@@ -1,8 +1,8 @@
-import DashboardPage from './pages/DashboardPage';
+import LoginPage from './pages/LoginPage';
 import './App.css';
 
 function App() {
-  return <DashboardPage />;
+  return <LoginPage />;
 }
 
 export default App;

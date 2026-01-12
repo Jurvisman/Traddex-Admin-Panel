@@ -3,6 +3,7 @@ import { Banner, LoginForm, OtpForm } from '../components';
 import DashboardPage from './DashboardPage';
 
 const OTP_LENGTH = 6;
+const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:8080';
 
 function LoginPage() {
   const [form, setForm] = useState({ phone: '' });
@@ -10,8 +11,9 @@ function LoginPage() {
   const [step, setStep] = useState('login');
   const [message, setMessage] = useState({
     type: 'info',
-    // text: 'Use a one-time passcode to secure entry to the command console.',
+    text: '',
   });
+  const [isSending, setIsSending] = useState(false);
   const inputRefs = useRef([]);
 
   const maskedPhone = (() => {
@@ -32,7 +34,7 @@ function LoginPage() {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleSendOtp = (event) => {
+  const handleSendOtp = async (event) => {
     event.preventDefault();
     const digits = (form.phone || '').replace(/\D/g, '');
     if (!/^[0-9]{10}$/.test(digits)) {
@@ -42,12 +44,51 @@ function LoginPage() {
       });
       return;
     }
-    setStep('otp');
-    setOtpDigits(Array(OTP_LENGTH).fill(''));
-    setMessage({
-      type: 'info',
-      text: `Code sent to ${maskedPhone}. It expires in 60 seconds.`,
-    });
+    setIsSending(true);
+    setMessage({ type: 'info', text: '' });
+    try {
+      const response = await fetch(`${API_BASE}/api/users/send-otp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': 'TradeX-API-Key-2024',
+        },
+        body: JSON.stringify({ mobileNumber: digits }),
+      });
+
+      if (!response.ok) {
+        let errorDetail = `Failed to send OTP. Status ${response.status}`;
+        try {
+          const data = await response.json();
+          if (data?.message) errorDetail = data.message;
+        } catch (error) {
+          try {
+            const text = await response.text();
+            if (text) errorDetail = text;
+          } catch (inner) {
+            // ignore parse errors
+          }
+        }
+        throw new Error(errorDetail);
+      }
+
+      setStep('otp');
+      setOtpDigits(Array(OTP_LENGTH).fill(''));
+      setMessage({
+        type: 'success',
+        text: `Code sent to +91 ${digits}. It expires in 60 seconds.`,
+      });
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: error.message || 'Failed to send OTP. Try again.',
+      });
+      // Surface details in console for debugging 4xx from backend
+      // eslint-disable-next-line no-console
+      console.error('send-otp failed', error);
+    } finally {
+      setIsSending(false);
+    }
   };
 
   const handleOtpChange = (value, index) => {
@@ -104,7 +145,7 @@ function LoginPage() {
     setOtpDigits(Array(OTP_LENGTH).fill(''));
     setMessage({
       type: 'info',
-      // text: 'Use a one-time passcode to secure entry to the command console.',
+      text: '',
     });
   };
 
@@ -116,42 +157,60 @@ function LoginPage() {
     return <DashboardPage onLogout={handleLogout} userEmail={fullPhone} />;
   }
 
-  const title = step === 'login' ? 'Login to Traddex' : 'Verify OTP';
+  const title = step === 'login' ? 'Admin login with OTP' : 'Verify OTP';
   const subtitle =
     step === 'login'
       ? 'Enter your mobile number to receive a one-time passcode.'
       : `We sent a 6-digit code to ${maskedPhone}.`;
 
   return (
-    <div className="page simple-page">
-      <div className="shell simple-shell">
-        <main className="form-panel simple-card">
-          <div className="panel-head">
-            <div className="crumb subtle">Login</div>
-            <h1>{title}</h1>
-            <p className="muted">{subtitle}</p>
+    <div className="auth-viewport minimal-bg">
+      <div className="glow blur-1" aria-hidden />
+      <div className="glow blur-2" aria-hidden />
+      <div className="auth-center">
+        <section className="card-compact">
+          <div className="brand-block">
+            <h1 className="brand-title">Traddex</h1>
+            <p className="tagline">One platform for every trade.</p>
           </div>
-
-          <Banner message={message} />
 
           {step === 'login' ? (
             <>
-              <LoginForm form={form} onFieldChange={handleFieldChange} onSubmit={handleSendOtp} />
+              <LoginForm
+                form={form}
+                onFieldChange={handleFieldChange}
+                onSubmit={handleSendOtp}
+                isSending={isSending}
+              />
             </>
           ) : (
-            <OtpForm
-              otpDigits={otpDigits}
-              inputRefs={inputRefs}
-              maskedPhone={maskedPhone}
-              isOtpReady={isOtpReady}
-              onOtpChange={handleOtpChange}
-              onKeyDown={handleKeyDown}
-              onResend={handleResend}
-              onEditNumber={handleEditNumber}
-              onSubmit={handleVerify}
-            />
+            <>
+              <header className="otp-hero">
+                <h2 className="otp-heading">Enter OTP</h2>
+                <p className="muted-text">
+                  We have sent a verification code to <span className="highlight">{maskedPhone}</span>
+                </p>
+              </header>
+              <OtpForm
+                otpDigits={otpDigits}
+                inputRefs={inputRefs}
+                maskedPhone={maskedPhone}
+                isOtpReady={isOtpReady}
+                onOtpChange={handleOtpChange}
+                onKeyDown={handleKeyDown}
+                onResend={handleResend}
+                onEditNumber={handleEditNumber}
+                onSubmit={handleVerify}
+              />
+              <p className="otp-hint">
+                Didn't receive the code?{' '}
+                <button type="button" className="ghost-link inline" onClick={handleResend}>
+                  Resend
+                </button>
+              </p>
+            </>
           )}
-        </main>
+        </section>
       </div>
     </div>
   );

@@ -1,35 +1,31 @@
-function LoginForm({ form, onFieldChange, onSubmit }) {
+function LoginForm({ form, onFieldChange, onSubmit, isSending }) {
   return (
     <form className="form" onSubmit={onSubmit}>
-      <div className="input-group">
-        <label htmlFor="phone">Mobile number</label>
-        <div className="input-row">
-          <div className="input-prefix" aria-label="India country code +91">
-            <span className="flag" role="img" aria-label="India">
-              🇮🇳
-            </span>
-            <span className="dial-code">+91</span>
-          </div>
-          <input
-            id="phone"
-            type="tel"
-            inputMode="numeric"
-            pattern="[0-9]{10}"
-            autoComplete="tel-national"
-            placeholder="9876543210"
-            value={form.phone}
-            onChange={(event) => onFieldChange('phone', event.target.value.replace(/\D/g, ''))}
-            minLength={10}
-            maxLength={10}
-            className="phone-input"
-            title="Enter a 10-digit mobile number."
-            required
-          />
+      <label className="input-label" htmlFor="phone">
+        Mobile number
+      </label>
+      <div className="input-shell pill">
+        <div className="country-chip" aria-label="India country code">
+          <div className="country-code">+91</div>
         </div>
-        <div className="hint">We text the OTP; WhatsApp fallback is automatic.</div>
+        <input
+          id="phone"
+          type="tel"
+          inputMode="numeric"
+          pattern="[0-9]{10}"
+          autoComplete="tel-national"
+          placeholder="Phone Number"
+          value={form.phone}
+          onChange={(event) => onFieldChange('phone', event.target.value.replace(/\D/g, ''))}
+          minLength={10}
+          maxLength={10}
+          className="text-input"
+          title="Enter a 10-digit mobile number."
+          required
+        />
       </div>
-      <button type="submit" className="primary-btn">
-        Send OTP
+      <button type="submit" className="primary-btn full pill-btn-strong" disabled={isSending}>
+        {isSending ? 'Sending...' : 'Continue'}
       </button>
     </form>
   );
