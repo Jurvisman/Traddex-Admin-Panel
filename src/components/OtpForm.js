@@ -1,8 +1,9 @@
 function OtpForm({
   otpDigits,
   inputRefs,
-  maskedPhone,
   isOtpReady,
+  isResending,
+  isVerifying,
   onOtpChange,
   onKeyDown,
   onResend,
@@ -26,14 +27,14 @@ function OtpForm({
           />
         ))}
       </div>
-      <button type="submit" className="primary-btn full pill-btn-strong" disabled={!isOtpReady}>
-        Continue
+      <button type="submit" className="primary-btn full pill-btn-strong" disabled={!isOtpReady || isVerifying}>
+        {isVerifying ? 'Verifying...' : 'Continue'}
       </button>
       <div className="otp-links">
         <button type="button" className="ghost-link inline" onClick={onEditNumber}>
           Edit number
         </button>
-        <button type="button" className="ghost-link inline" onClick={onResend}>
+        <button type="button" className="ghost-link inline" onClick={onResend} disabled={isResending}>
           Resend
         </button>
       </div>
