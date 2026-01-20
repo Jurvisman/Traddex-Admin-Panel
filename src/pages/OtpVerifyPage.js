@@ -42,7 +42,7 @@ function OtpVerifyPage({ phone = '', onEditNumber, onVerified }) {
     }
   };
 
-  const handleVerify = (event) => {
+  const handleVerify = async (event) => {
     event.preventDefault();
     if (otpDigits.some((digit) => digit === '')) {
       setMessage({ type: 'error', text: 'Add all six digits to verify this device.' });
@@ -57,21 +57,19 @@ function OtpVerifyPage({ phone = '', onEditNumber, onVerified }) {
     const otpCode = otpDigits.join('');
     setIsVerifying(true);
     setMessage({ type: 'info', text: '' });
-    verifyOtp(digits, otpCode)
-      .then(() => {
-        if (onVerified) onVerified();
-      })
-      .catch((error) => {
-        setMessage({
-          type: 'error',
-          text: error.message || 'OTP verification failed. Try again.',
-        });
-        // eslint-disable-next-line no-console
-        console.error('verify-otp failed', error);
-      })
-      .finally(() => {
-        setIsVerifying(false);
+    try {
+      const response = await verifyOtp(digits, otpCode);
+      if (onVerified) onVerified(response?.data);
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: error.message || 'OTP verification failed. Try again.',
       });
+      // eslint-disable-next-line no-console
+      console.error('verify-otp failed', error);
+    } finally {
+      setIsVerifying(false);
+    }
   };
 
   const handleResend = async () => {

@@ -1,3 +1,9 @@
 export { default as LoginPage } from './LoginPage';
 export { default as OtpVerifyPage } from './OtpVerifyPage';
 export { default as DashboardPage } from './DashboardPage';
+export { default as AdminDashboardPage } from './AdminDashboardPage';
+export { default as IndustryPage } from './IndustryPage';
+export { default as MainCategoryPage } from './MainCategoryPage';
+export { default as CategoryPage } from './CategoryPage';
+export { default as SubCategoryPage } from './SubCategoryPage';
+export { default as ProductPage } from './ProductPage';
