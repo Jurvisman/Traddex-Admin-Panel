@@ -507,9 +507,11 @@ textarea {
 
 .otp-grid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(38px, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 10px;
-  margin: 12px 0 6px;
+  margin: 12px auto 6px;
+  max-width: 360px;
+  width: 100%;
 }
 
 .otp-grid.compact {
@@ -525,6 +527,8 @@ textarea {
   background: #f7f5ff;
   color: var(--ink);
   outline: none;
+  min-width: 0;
+  width: 100%;
 }
 
 .otp-input:focus {
