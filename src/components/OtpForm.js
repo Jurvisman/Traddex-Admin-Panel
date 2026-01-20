@@ -10,22 +10,8 @@ function OtpForm({
   onSubmit,
 }) {
   return (
-    <form className="form" onSubmit={onSubmit}>
-      <div className="otp-head">
-        <div>
-          <div className="otp-title">Enter the 6-digit OTP</div>
-          <div className="otp-sub">Sent to {maskedPhone}. Expires in 60 seconds.</div>
-        </div>
-        <div className="otp-actions">
-          <button type="button" className="text-button" onClick={onResend}>
-            Resend
-          </button>
-          <button type="button" className="text-button" onClick={onEditNumber}>
-            Edit number
-          </button>
-        </div>
-      </div>
-      <div className="otp-grid">
+    <form className="form otp-form" onSubmit={onSubmit}>
+      <div className="otp-grid compact">
         {otpDigits.map((digit, index) => (
           <input
             key={index}
@@ -40,9 +26,17 @@ function OtpForm({
           />
         ))}
       </div>
-      <button type="submit" className="primary-btn" disabled={!isOtpReady}>
-        Verify and continue
+      <button type="submit" className="primary-btn full pill-btn-strong" disabled={!isOtpReady}>
+        Continue
       </button>
+      <div className="otp-links">
+        <button type="button" className="ghost-link inline" onClick={onEditNumber}>
+          Edit number
+        </button>
+        <button type="button" className="ghost-link inline" onClick={onResend}>
+          Resend
+        </button>
+      </div>
     </form>
   );
 }
