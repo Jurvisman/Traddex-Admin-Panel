@@ -7,6 +7,7 @@ import {
   LoginPage,
   MainCategoryPage,
   OtpVerifyPage,
+  ProductAttributePage,
   ProductPage,
   SubCategoryPage,
 } from './pages';
@@ -46,6 +47,7 @@ function App() {
           { id: 'main-category', label: 'Main Category' },
           { id: 'category', label: 'Category' },
           { id: 'sub-category', label: 'Sub-Category' },
+          { id: 'product-attribute', label: 'Product Attributes' },
           { id: 'product', label: 'Product' },
         ],
       },
@@ -78,6 +80,11 @@ function App() {
       title: 'Sub-Category',
       subtitle: 'Create sub-categories for deeper organization.',
       component: SubCategoryPage,
+    },
+    'product-attribute': {
+      title: 'Product Attributes',
+      subtitle: 'Manage attribute definitions and category mappings.',
+      component: ProductAttributePage,
     },
     product: {
       title: 'Product',
