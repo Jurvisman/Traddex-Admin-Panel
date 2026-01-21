@@ -72,3 +72,30 @@ export const listProducts = (token) => request('/admin/product/getall', { token 
 export const createProduct = (token, payload) =>
   request('/admin/product/create', { method: 'POST', body: payload, token });
 export const deleteProduct = (token, id) => request(`/admin/product/${id}`, { method: 'DELETE', token });
+
+export const listAttributeDefinitions = (token, active) => {
+  const query = active === true || active === false ? `?active=${active}` : '';
+  return request(`/admin/product-attribute/getall${query}`, { token });
+};
+export const createAttributeDefinition = (token, payload) =>
+  request('/admin/product-attribute/create', { method: 'POST', body: payload, token });
+export const updateAttributeDefinition = (token, id, payload) =>
+  request(`/admin/product-attribute/${id}/update`, { method: 'PUT', body: payload, token });
+export const deleteAttributeDefinition = (token, id) =>
+  request(`/admin/product-attribute/${id}`, { method: 'DELETE', token });
+
+export const listAttributeMappings = (token, filters = {}) => {
+  const params = new URLSearchParams();
+  if (filters.mainCategoryId) params.set('mainCategoryId', filters.mainCategoryId);
+  if (filters.categoryId) params.set('categoryId', filters.categoryId);
+  if (filters.subCategoryId) params.set('subCategoryId', filters.subCategoryId);
+  if (filters.active === true || filters.active === false) params.set('active', filters.active);
+  const query = params.toString() ? `?${params.toString()}` : '';
+  return request(`/admin/product-attribute-map/getall${query}`, { token });
+};
+export const createAttributeMapping = (token, payload) =>
+  request('/admin/product-attribute-map/create', { method: 'POST', body: payload, token });
+export const updateAttributeMapping = (token, id, payload) =>
+  request(`/admin/product-attribute-map/${id}/update`, { method: 'PUT', body: payload, token });
+export const deleteAttributeMapping = (token, id) =>
+  request(`/admin/product-attribute-map/${id}`, { method: 'DELETE', token });
