@@ -1274,6 +1274,8 @@ textarea {
   color: var(--ink);
   cursor: pointer;
   font-size: 13px;
+  text-decoration: none;
+  display: block;
 }
 
 .admin-nav-item:hover {
@@ -1527,6 +1529,53 @@ textarea {
 
 .table-actions {
   text-align: right;
+}
+
+.table-row-clickable {
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.table-row-clickable:hover {
+  background: var(--panel-soft);
+}
+
+.field-value {
+  margin: 0;
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid var(--line);
+  background: var(--panel-soft);
+  color: var(--muted);
+  text-transform: capitalize;
+}
+
+.status-pill.approved {
+  border-color: rgba(77, 168, 121, 0.35);
+  background: rgba(77, 168, 121, 0.12);
+  color: #2b7a4a;
+}
+
+.status-pill.rejected {
+  border-color: rgba(203, 79, 79, 0.35);
+  background: rgba(203, 79, 79, 0.12);
+  color: #a13636;
+}
+
+.status-pill.pending-review {
+  border-color: rgba(240, 170, 70, 0.4);
+  background: rgba(240, 170, 70, 0.12);
+  color: #a86c1c;
 }
 
 .empty-state {

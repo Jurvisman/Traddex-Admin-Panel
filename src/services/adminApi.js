@@ -71,6 +71,9 @@ export const deleteSubCategory = (token, id) => request(`/sub-categories/${id}`,
 export const listProducts = (token) => request('/admin/product/getall', { token });
 export const createProduct = (token, payload) =>
   request('/admin/product/create', { method: 'POST', body: payload, token });
+export const getProduct = (token, id) => request(`/admin/product/${id}`, { token });
+export const updateProduct = (token, id, payload) =>
+  request(`/admin/product/${id}/update`, { method: 'PUT', body: payload, token });
 export const deleteProduct = (token, id) => request(`/admin/product/${id}`, { method: 'DELETE', token });
 
 export const listAttributeDefinitions = (token, active) => {
