@@ -1,14 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMatch, useNavigate, useParams } from 'react-router-dom';
 import { Banner } from '../components';
 import {
   createProduct,
   deleteProduct,
+  getProduct,
   listAttributeDefinitions,
   listAttributeMappings,
   listCategories,
   listMainCategories,
   listProducts,
   listSubCategories,
+  updateProduct,
 } from '../services/adminApi';
 
 const initialForm = {
@@ -24,8 +27,9 @@ const initialForm = {
   userId: '',
 };
 
-function ProductPage({ token }) {
+function ProductPage({ token, adminUserId }) {
   const [products, setProducts] = useState([]);
+  const [selectedProduct, setSelectedProduct] = useState(null);
   const [mainCategories, setMainCategories] = useState([]);
   const [categories, setCategories] = useState([]);
   const [subCategories, setSubCategories] = useState([]);
@@ -36,7 +40,11 @@ function ProductPage({ token }) {
   const [message, setMessage] = useState({ type: 'info', text: '' });
   const [isLoading, setIsLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [editingProductId, setEditingProductId] = useState(null);
   const didInitRef = useRef(false);
+  const navigate = useNavigate();
+  const { id } = useParams();
+  const editMatch = useMatch('/admin/products/:id/edit');
 
   const definitionById = useMemo(() => {
     const mapping = new Map();
@@ -46,9 +54,19 @@ function ProductPage({ token }) {
     return mapping;
   }, [attributeDefinitions]);
 
+  const selectedProductId = id && !Number.isNaN(Number(id)) ? Number(id) : null;
+  const isEditing = Boolean(editingProductId);
+  const isViewing = Boolean(selectedProductId);
+  const isEditRoute = Boolean(editMatch);
+
   const loadProducts = async () => {
     const response = await listProducts(token);
     setProducts(response?.data?.products || []);
+  };
+
+  const loadProductDetail = async (productId) => {
+    const response = await getProduct(token, productId);
+    setSelectedProduct(response?.data || null);
   };
 
   const loadMainCategories = async () => {
@@ -145,6 +163,35 @@ function ProductPage({ token }) {
     } catch (error) {
       return '';
     }
+  };
+
+  const formatValue = (value) => {
+    if (value === null || value === undefined || value === '') return '-';
+    if (Array.isArray(value)) return value.join(', ');
+    if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+    if (typeof value === 'object') {
+      try {
+        return JSON.stringify(value);
+      } catch (error) {
+        return '[Object]';
+      }
+    }
+    return String(value);
+  };
+
+  const formatStatus = (status) => {
+    if (!status) return 'Pending';
+    return status
+      .toLowerCase()
+      .split('_')
+      .map((part) => (part ? `${part.charAt(0).toUpperCase()}${part.slice(1)}` : ''))
+      .join(' ');
+  };
+
+  const formatCategory = (category) => {
+    if (!category) return '-';
+    const parts = [category.mainCategoryName, category.categoryName, category.subCategoryName].filter(Boolean);
+    return parts.length ? parts.join(' / ') : '-';
   };
 
   const buildDynamicAttributes = () => {
@@ -265,6 +312,38 @@ function ProductPage({ token }) {
   }, []);
 
   useEffect(() => {
+    if (!selectedProductId) {
+      setSelectedProduct(null);
+      return;
+    }
+    setSelectedProduct(null);
+    setIsLoading(true);
+    setMessage({ type: 'info', text: '' });
+    loadProductDetail(selectedProductId)
+      .catch((error) => {
+        setMessage({ type: 'error', text: error.message || 'Failed to load product details.' });
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedProductId, token]);
+
+  useEffect(() => {
+    if (!isEditRoute) {
+      if (editingProductId) {
+        setEditingProductId(null);
+        setShowForm(false);
+      }
+      return;
+    }
+    if (!selectedProduct) return;
+    if (editingProductId === selectedProduct.id && showForm) return;
+    populateEditForm(selectedProduct);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditRoute, selectedProduct]);
+
+  useEffect(() => {
     if (!form.mainCategoryId) {
       setCategories([]);
       setSubCategories([]);
@@ -319,6 +398,70 @@ function ProductPage({ token }) {
     return definition.options.values;
   };
 
+  const getAdminId = () => {
+    if (!adminUserId) {
+      setMessage({ type: 'error', text: 'Admin user ID missing. Please log in again.' });
+      return null;
+    }
+    return Number(adminUserId);
+  };
+
+  const populateEditForm = (product) => {
+    setEditingProductId(product.id);
+    setForm({
+      productName: product.productName || '',
+      brandName: product.brandName || '',
+      shortDescription: product.shortDescription || '',
+      mainCategoryId: product.category?.mainCategoryId ? String(product.category.mainCategoryId) : '',
+      categoryId: product.category?.categoryId ? String(product.category.categoryId) : '',
+      subCategoryId: product.category?.subCategoryId ? String(product.category.subCategoryId) : '',
+      sellingPrice:
+        product.sellingPrice !== null && product.sellingPrice !== undefined
+          ? String(product.sellingPrice)
+          : '',
+      mrp: product.mrp !== null && product.mrp !== undefined ? String(product.mrp) : '',
+      gstRate:
+        product.gstRate !== null && product.gstRate !== undefined ? String(product.gstRate) : '',
+      userId: '',
+    });
+    setDynamicValues(product.dynamicAttributes || {});
+    setShowForm(true);
+  };
+
+  const handleOpenCreateForm = () => {
+    setEditingProductId(null);
+    setForm(initialForm);
+    setAttributeMappings([]);
+    setDynamicValues({});
+    setShowForm(true);
+  };
+
+  const handleOpenEditForm = () => {
+    if (!selectedProduct) return;
+    navigate(`/admin/products/${selectedProduct.id}/edit`);
+    populateEditForm(selectedProduct);
+  };
+
+  const handleCloseForm = () => {
+    setShowForm(false);
+    setEditingProductId(null);
+    if (isEditRoute && selectedProductId) {
+      navigate(`/admin/products/${selectedProductId}`);
+    }
+  };
+
+  const handleViewProduct = (productId) => {
+    navigate(`/admin/products/${productId}`);
+    setShowForm(false);
+    setEditingProductId(null);
+  };
+
+  const handleBackToList = () => {
+    setSelectedProduct(null);
+    setMessage({ type: 'info', text: '' });
+    navigate('/admin/products');
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (
@@ -334,6 +477,14 @@ function ProductPage({ token }) {
       return;
     }
 
+    if (isEditing && !editingProductId) {
+      setMessage({ type: 'error', text: 'Select a product to edit.' });
+      return;
+    }
+
+    const adminId = isEditing ? getAdminId() : null;
+    if (isEditing && !adminId) return;
+
     try {
       setIsLoading(true);
       const dynamicAttributes = buildDynamicAttributes();
@@ -342,7 +493,6 @@ function ProductPage({ token }) {
         return;
       }
       const payload = {
-        userId: form.userId ? Number(form.userId) : null,
         productName: form.productName.trim(),
         brandName: form.brandName || null,
         shortDescription: form.shortDescription || null,
@@ -356,17 +506,36 @@ function ProductPage({ token }) {
       if (dynamicAttributes && Object.keys(dynamicAttributes).length > 0) {
         payload.dynamicAttributes = dynamicAttributes;
       }
-      await createProduct(token, {
-        ...payload,
-      });
-      setForm(initialForm);
-      setAttributeMappings([]);
-      setDynamicValues({});
-      setShowForm(false);
-      await loadProducts();
-      setMessage({ type: 'success', text: 'Product created successfully.' });
+
+      if (isEditing) {
+        await updateProduct(token, editingProductId, { ...payload, userId: adminId });
+        await loadProducts();
+        if (selectedProductId) {
+          loadProductDetail(selectedProductId).catch(() => null);
+        }
+        setShowForm(false);
+        setEditingProductId(null);
+        if (isEditRoute && selectedProductId) {
+          navigate(`/admin/products/${selectedProductId}`);
+        }
+        setMessage({ type: 'success', text: 'Product updated successfully.' });
+      } else {
+        await createProduct(token, {
+          ...payload,
+          userId: form.userId ? Number(form.userId) : null,
+        });
+        setForm(initialForm);
+        setAttributeMappings([]);
+        setDynamicValues({});
+        setShowForm(false);
+        await loadProducts();
+        setMessage({ type: 'success', text: 'Product created successfully.' });
+      }
     } catch (error) {
-      setMessage({ type: 'error', text: error.message || 'Failed to create product.' });
+      setMessage({
+        type: 'error',
+        text: error.message || (isEditing ? 'Failed to update product.' : 'Failed to create product.'),
+      });
     } finally {
       setIsLoading(false);
     }
@@ -396,28 +565,93 @@ function ProductPage({ token }) {
     }
   };
 
+  const handleStatusUpdate = async (nextStatus) => {
+    if (!selectedProductId) return;
+    const adminId = getAdminId();
+    if (!adminId) return;
+    try {
+      setIsLoading(true);
+      await updateProduct(token, selectedProductId, { approvalStatus: nextStatus, userId: adminId });
+      await loadProducts();
+      await loadProductDetail(selectedProductId);
+      setMessage({
+        type: 'success',
+        text: `Product ${nextStatus === 'APPROVED' ? 'approved' : 'rejected'} successfully.`,
+      });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to update product status.' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const statusValue = selectedProduct?.approvalStatus || '';
+  const statusLabel = formatStatus(statusValue);
+  const statusClass = `status-pill ${statusValue ? statusValue.toLowerCase().replace(/_/g, '-') : 'pending'}`;
+  const dynamicEntries = selectedProduct?.dynamicAttributes
+    ? Object.entries(selectedProduct.dynamicAttributes)
+    : [];
+  const disableApprove = isLoading || !selectedProduct || statusValue === 'APPROVED';
+  const disableReject = isLoading || !selectedProduct || statusValue === 'REJECTED';
+  const disableEdit = isLoading || !selectedProduct;
+
   return (
     <div>
-      <div className="panel-head">
-        <div>
-          <h2 className="panel-title">Product</h2>
-          <p className="panel-subtitle">Create and manage products for businesses.</p>
+      {isViewing ? (
+        <div className="panel-head">
+          <div>
+            <div className="inline-row">
+              <button type="button" className="ghost-btn small" onClick={handleBackToList}>
+                Back
+              </button>
+              <h2 className="panel-title">Product view</h2>
+            </div>
+            <p className="panel-subtitle">Review, approve, or edit product details.</p>
+          </div>
+          <div className="inline-row">
+            <button
+              type="button"
+              className="primary-btn compact"
+              onClick={() => handleStatusUpdate('APPROVED')}
+              disabled={disableApprove}
+            >
+              Approve
+            </button>
+            <button
+              type="button"
+              className="ghost-btn small"
+              onClick={() => handleStatusUpdate('REJECTED')}
+              disabled={disableReject}
+            >
+              Reject
+            </button>
+            <button type="button" className="ghost-btn small" onClick={handleOpenEditForm} disabled={disableEdit}>
+              Edit
+            </button>
+          </div>
         </div>
-        <button type="button" className="ghost-btn" onClick={handleRefresh} disabled={isLoading}>
-          Refresh
-        </button>
-      </div>
+      ) : (
+        <div className="panel-head">
+          <div>
+            <h2 className="panel-title">Product</h2>
+            <p className="panel-subtitle">Create and manage products for businesses.</p>
+          </div>
+          <button type="button" className="ghost-btn" onClick={handleRefresh} disabled={isLoading}>
+            Refresh
+          </button>
+        </div>
+      )}
       <Banner message={message} />
       {showForm ? (
-        <div className="admin-modal-backdrop" onClick={() => setShowForm(false)}>
+        <div className="admin-modal-backdrop" onClick={handleCloseForm}>
           <form
             className="admin-modal"
             onSubmit={handleSubmit}
             onClick={(event) => event.stopPropagation()}
           >
             <div className="panel-split">
-              <h3 className="panel-subheading">Create product</h3>
-              <button type="button" className="ghost-btn small" onClick={() => setShowForm(false)}>
+              <h3 className="panel-subheading">{isEditing ? 'Edit product' : 'Create product'}</h3>
+              <button type="button" className="ghost-btn small" onClick={handleCloseForm}>
                 Close
               </button>
             </div>
@@ -525,15 +759,17 @@ function ProductPage({ token }) {
                   placeholder="Short description"
                 />
               </label>
-              <label className="field">
-                <span>Business user ID (optional)</span>
-                <input
-                  type="number"
-                  value={form.userId}
-                  onChange={(event) => handleChange('userId', event.target.value)}
-                  placeholder="User ID"
-                />
-              </label>
+              {!isEditing ? (
+                <label className="field">
+                  <span>Business user ID (optional)</span>
+                  <input
+                    type="number"
+                    value={form.userId}
+                    onChange={(event) => handleChange('userId', event.target.value)}
+                    placeholder="User ID"
+                  />
+                </label>
+              ) : null}
               <div className="field-span">
                 <h4 className="panel-subheading">Dynamic attributes</h4>
                 <p className="muted">
@@ -646,57 +882,209 @@ function ProductPage({ token }) {
               )}
             </div>
             <button type="submit" className="primary-btn full" disabled={isLoading}>
-              {isLoading ? 'Saving...' : 'Save product'}
+              {isLoading ? 'Saving...' : isEditing ? 'Update product' : 'Save product'}
             </button>
           </form>
         </div>
       ) : null}
-      <div className="panel-grid">
-        <div className="panel card">
-          <div className="panel-split">
-            <h3 className="panel-subheading">Product list</h3>
-            <button
-              type="button"
-              className="primary-btn compact"
-              onClick={() => setShowForm((prev) => !prev)}
-            >
-              {showForm ? 'Close' : 'Create'}
-            </button>
-          </div>
-          {products.length === 0 ? (
-            <p className="empty-state">No products yet.</p>
+      {isViewing ? (
+        <div className="panel-grid">
+          {selectedProduct ? (
+            <>
+              <div className="panel card">
+                <div className="panel-split">
+                  <h3 className="panel-subheading">Overview</h3>
+                  <span className={statusClass}>{statusLabel}</span>
+                </div>
+                <div className="field-grid">
+                  <div className="field">
+                    <span>Product ID</span>
+                    <p className="field-value">{formatValue(selectedProduct.id)}</p>
+                  </div>
+                  <div className="field">
+                    <span>Product name</span>
+                    <p className="field-value">{formatValue(selectedProduct.productName)}</p>
+                  </div>
+                  <div className="field">
+                    <span>Brand</span>
+                    <p className="field-value">{formatValue(selectedProduct.brandName)}</p>
+                  </div>
+                  <div className="field">
+                    <span>Business</span>
+                    <p className="field-value">{formatValue(selectedProduct.businessName)}</p>
+                  </div>
+                  <div className="field">
+                    <span>Category</span>
+                    <p className="field-value">{formatCategory(selectedProduct.category)}</p>
+                  </div>
+                  <div className="field">
+                    <span>Product type</span>
+                    <p className="field-value">{formatValue(selectedProduct.productType)}</p>
+                  </div>
+                  <div className="field">
+                    <span>Created</span>
+                    <p className="field-value">{formatValue(selectedProduct.createdOn)}</p>
+                  </div>
+                  <div className="field">
+                    <span>Updated</span>
+                    <p className="field-value">{formatValue(selectedProduct.updatedOn)}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="panel card">
+                <h3 className="panel-subheading">Pricing</h3>
+                <div className="field-grid">
+                  <div className="field">
+                    <span>Selling price</span>
+                    <p className="field-value">{formatValue(selectedProduct.sellingPrice)}</p>
+                  </div>
+                  <div className="field">
+                    <span>MRP</span>
+                    <p className="field-value">{formatValue(selectedProduct.mrp)}</p>
+                  </div>
+                  <div className="field">
+                    <span>GST rate</span>
+                    <p className="field-value">{formatValue(selectedProduct.gstRate)}</p>
+                  </div>
+                  <div className="field">
+                    <span>Currency</span>
+                    <p className="field-value">{formatValue(selectedProduct.currency)}</p>
+                  </div>
+                  <div className="field">
+                    <span>B2B price</span>
+                    <p className="field-value">{formatValue(selectedProduct.b2bPrice)}</p>
+                  </div>
+                  <div className="field">
+                    <span>Minimum order qty</span>
+                    <p className="field-value">{formatValue(selectedProduct.minimumOrderQuantity)}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="panel card">
+                <h3 className="panel-subheading">Inventory &amp; shipping</h3>
+                <div className="field-grid">
+                  <div className="field">
+                    <span>SKU</span>
+                    <p className="field-value">{formatValue(selectedProduct.sku)}</p>
+                  </div>
+                  <div className="field">
+                    <span>Stock quantity</span>
+                    <p className="field-value">{formatValue(selectedProduct.stockQuantity)}</p>
+                  </div>
+                  <div className="field">
+                    <span>Warehouse</span>
+                    <p className="field-value">{formatValue(selectedProduct.warehouseLocation)}</p>
+                  </div>
+                  <div className="field">
+                    <span>Shipping available</span>
+                    <p className="field-value">{formatValue(selectedProduct.shippingAvailable)}</p>
+                  </div>
+                  <div className="field">
+                    <span>Shipping type</span>
+                    <p className="field-value">{formatValue(selectedProduct.shippingType)}</p>
+                  </div>
+                  <div className="field">
+                    <span>Return policy</span>
+                    <p className="field-value">{formatValue(selectedProduct.returnPolicy)}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="panel card">
+                <h3 className="panel-subheading">Descriptions</h3>
+                <div className="field-grid">
+                  <div className="field field-span">
+                    <span>Short description</span>
+                    <p className="field-value">{formatValue(selectedProduct.shortDescription)}</p>
+                  </div>
+                  <div className="field field-span">
+                    <span>Long description</span>
+                    <p className="field-value">{formatValue(selectedProduct.longDescription)}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="panel card">
+                <h3 className="panel-subheading">Dynamic attributes</h3>
+                {dynamicEntries.length === 0 ? (
+                  <p className="empty-state">No dynamic attributes provided.</p>
+                ) : (
+                  <div className="field-grid">
+                    {dynamicEntries.map(([key, value]) => (
+                      <div className="field" key={key}>
+                        <span>{key}</span>
+                        <p className="field-value">{formatValue(value)}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
           ) : (
-            <div className="table-shell">
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Category</th>
-                    <th>Selling price</th>
-                    <th>Status</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {products.map((product) => (
-                    <tr key={product.id}>
-                      <td>{product.productName}</td>
-                      <td>{product.category?.subCategoryName || product.category?.categoryName || '-'}</td>
-                      <td>{product.sellingPrice ?? '-'}</td>
-                      <td>{product.approvalStatus || 'Pending'}</td>
-                      <td className="table-actions">
-                        <button type="button" className="ghost-btn small" onClick={() => handleDelete(product.id)}>
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="panel card">
+              <p className="empty-state">
+                {isLoading ? 'Loading product details...' : 'Product details not available.'}
+              </p>
             </div>
           )}
         </div>
-      </div>
+      ) : (
+        <div className="panel-grid">
+          <div className="panel card">
+            <div className="panel-split">
+              <h3 className="panel-subheading">Product list</h3>
+              <button
+                type="button"
+                className="primary-btn compact"
+                onClick={showForm ? handleCloseForm : handleOpenCreateForm}
+              >
+                {showForm ? 'Close' : 'Create'}
+              </button>
+            </div>
+            {products.length === 0 ? (
+              <p className="empty-state">No products yet.</p>
+            ) : (
+              <div className="table-shell">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Category</th>
+                      <th>Selling price</th>
+                      <th>Status</th>
+                      <th />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {products.map((product) => (
+                      <tr
+                        key={product.id}
+                        className="table-row-clickable"
+                        onClick={() => handleViewProduct(product.id)}
+                      >
+                        <td>{product.productName}</td>
+                        <td>{product.category?.subCategoryName || product.category?.categoryName || '-'}</td>
+                        <td>{product.sellingPrice ?? '-'}</td>
+                        <td>{formatStatus(product.approvalStatus)}</td>
+                        <td className="table-actions">
+                          <button
+                            type="button"
+                            className="ghost-btn small"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleDelete(product.id);
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

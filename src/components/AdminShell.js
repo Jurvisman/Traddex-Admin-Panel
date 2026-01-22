@@ -1,4 +1,6 @@
-function AdminShell({ navItems, currentPage, onNavigate, onLogout, pageTitle, pageSubtitle, children }) {
+import { NavLink } from 'react-router-dom';
+
+function AdminShell({ navItems, onLogout, pageTitle, pageSubtitle, children }) {
   return (
     <div className="admin-shell">
       <aside className="admin-sidebar">
@@ -12,14 +14,13 @@ function AdminShell({ navItems, currentPage, onNavigate, onLogout, pageTitle, pa
               <div className="admin-nav-title">{group.title}</div>
               <div className="admin-nav-items">
                 {group.items.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className={`admin-nav-item ${currentPage === item.id ? 'active' : ''}`}
-                    onClick={() => onNavigate(item.id)}
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    className={({ isActive }) => `admin-nav-item ${isActive ? 'active' : ''}`}
                   >
                     {item.label}
-                  </button>
+                  </NavLink>
                 ))}
               </div>
             </div>
