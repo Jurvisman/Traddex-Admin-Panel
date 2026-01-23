@@ -102,3 +102,5 @@ export const updateAttributeMapping = (token, id, payload) =>
   request(`/admin/product-attribute-map/${id}/update`, { method: 'PUT', body: payload, token });
 export const deleteAttributeMapping = (token, id) =>
   request(`/admin/product-attribute-map/${id}`, { method: 'DELETE', token });
+
+export const listUoms = (token) => request('/uom/getall', { token });
