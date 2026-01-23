@@ -11,8 +11,11 @@ import {
   listMainCategories,
   listProducts,
   listSubCategories,
+  listUoms,
   updateProduct,
 } from '../services/adminApi';
+
+const createUomEntry = () => ({ uomId: '', conversionFactor: '' });
 
 const initialForm = {
   productName: '',
@@ -25,6 +28,9 @@ const initialForm = {
   mrp: '',
   gstRate: '',
   userId: '',
+  baseUomId: '',
+  purchaseUoms: [],
+  salesUoms: [],
 };
 
 function ProductPage({ token, adminUserId }) {
@@ -37,6 +43,7 @@ function ProductPage({ token, adminUserId }) {
   const [attributeDefinitions, setAttributeDefinitions] = useState([]);
   const [attributeMappings, setAttributeMappings] = useState([]);
   const [dynamicValues, setDynamicValues] = useState({});
+  const [uoms, setUoms] = useState([]);
   const [message, setMessage] = useState({ type: 'info', text: '' });
   const [isLoading, setIsLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -72,6 +79,13 @@ function ProductPage({ token, adminUserId }) {
   const loadMainCategories = async () => {
     const response = await listMainCategories(token);
     setMainCategories(response?.data || []);
+  };
+
+  const loadUoms = async () => {
+    const response = await listUoms(token);
+    const items = response?.data?.uoms || [];
+    const sorted = [...items].sort((a, b) => (a.uomName || '').localeCompare(b.uomName || ''));
+    setUoms(sorted);
   };
 
   const loadAttributeDefinitions = async () => {
@@ -194,6 +208,60 @@ function ProductPage({ token, adminUserId }) {
     return parts.length ? parts.join(' / ') : '-';
   };
 
+  const formatUomLabel = (uom) => {
+    if (!uom) return '';
+    return uom.uomCode ? `${uom.uomName} (${uom.uomCode})` : uom.uomName;
+  };
+
+  const formatUomEntry = (entry, includePrice) => {
+    if (!entry) return '';
+    const name = entry.uomCode ? `${entry.uomName} (${entry.uomCode})` : entry.uomName;
+    const factorValue =
+      entry.effectiveConversionFactor !== null && entry.effectiveConversionFactor !== undefined
+        ? entry.effectiveConversionFactor
+        : entry.conversionFactor;
+    const factorText = factorValue ? ` • ${factorValue} to base` : '';
+    const priceText =
+      includePrice && entry.pricePerUom !== null && entry.pricePerUom !== undefined
+        ? ` • Price: ${entry.pricePerUom}`
+        : '';
+    return `${name || 'UOM'}${factorText}${priceText}`;
+  };
+
+  const buildUomPayload = (entries, label) => {
+    if (!Array.isArray(entries) || entries.length === 0) return [];
+    const payload = [];
+    const seen = new Set();
+    for (const entry of entries) {
+      if (!entry?.uomId) continue;
+      const uomId = Number(entry.uomId);
+      if (Number.isNaN(uomId)) {
+        setMessage({ type: 'error', text: `Select a valid ${label} UOM.` });
+        return null;
+      }
+      if (seen.has(uomId)) {
+        setMessage({ type: 'error', text: `Duplicate ${label} UOMs are not allowed.` });
+        return null;
+      }
+      seen.add(uomId);
+      const payloadEntry = { uomId };
+      if (entry.conversionFactor !== '' && entry.conversionFactor !== null && entry.conversionFactor !== undefined) {
+        const factor = Number(entry.conversionFactor);
+        if (Number.isNaN(factor) || factor <= 0) {
+          setMessage({ type: 'error', text: `Conversion factor must be positive for ${label} UOMs.` });
+          return null;
+        }
+        payloadEntry.conversionFactor = factor;
+      }
+      payload.push(payloadEntry);
+    }
+    if (payload.length > 3) {
+      setMessage({ type: 'error', text: `Only 3 ${label} UOMs are allowed.` });
+      return null;
+    }
+    return payload;
+  };
+
   const buildDynamicAttributes = () => {
     if (attributeMappings.length === 0) return null;
     const payload = {};
@@ -301,7 +369,7 @@ function ProductPage({ token, adminUserId }) {
     didInitRef.current = true;
     setIsLoading(true);
     setMessage({ type: 'info', text: '' });
-    Promise.all([loadProducts(), loadMainCategories(), loadAttributeDefinitions()])
+    Promise.all([loadProducts(), loadMainCategories(), loadAttributeDefinitions(), loadUoms()])
       .catch((error) => {
         setMessage({ type: 'error', text: error.message || 'Failed to load products.' });
       })
@@ -384,7 +452,54 @@ function ProductPage({ token, adminUserId }) {
       if (key === 'categoryId') {
         next.subCategoryId = '';
       }
+      if (key === 'baseUomId') {
+        const syncEntries = (entries) =>
+          entries.map((entry) => {
+            if (!entry.uomId) return entry;
+            if (value && entry.uomId === value) {
+              return { ...entry, conversionFactor: '1' };
+            }
+            if (entry.conversionFactor === '1') {
+              return { ...entry, conversionFactor: '' };
+            }
+            return entry;
+          });
+        next.purchaseUoms = syncEntries(next.purchaseUoms);
+        next.salesUoms = syncEntries(next.salesUoms);
+      }
       return next;
+    });
+  };
+
+  const handleUomEntryChange = (type, index, key, value) => {
+    setForm((prev) => {
+      const listKey = type === 'purchase' ? 'purchaseUoms' : 'salesUoms';
+      const nextList = [...prev[listKey]];
+      const nextEntry = { ...nextList[index], [key]: value };
+      if (key === 'uomId' && value && prev.baseUomId && value === prev.baseUomId) {
+        nextEntry.conversionFactor = '1';
+      }
+      if (key === 'uomId' && value && prev.baseUomId && value !== prev.baseUomId && nextEntry.conversionFactor === '1') {
+        nextEntry.conversionFactor = '';
+      }
+      nextList[index] = nextEntry;
+      return { ...prev, [listKey]: nextList };
+    });
+  };
+
+  const handleAddUomEntry = (type) => {
+    setForm((prev) => {
+      const listKey = type === 'purchase' ? 'purchaseUoms' : 'salesUoms';
+      if (prev[listKey].length >= 3) return prev;
+      return { ...prev, [listKey]: [...prev[listKey], createUomEntry()] };
+    });
+  };
+
+  const handleRemoveUomEntry = (type, index) => {
+    setForm((prev) => {
+      const listKey = type === 'purchase' ? 'purchaseUoms' : 'salesUoms';
+      const nextList = prev[listKey].filter((_, itemIndex) => itemIndex !== index);
+      return { ...prev, [listKey]: nextList };
     });
   };
 
@@ -423,6 +538,25 @@ function ProductPage({ token, adminUserId }) {
       gstRate:
         product.gstRate !== null && product.gstRate !== undefined ? String(product.gstRate) : '',
       userId: '',
+      baseUomId: product.baseUomId ? String(product.baseUomId) : '',
+      purchaseUoms: Array.isArray(product.purchaseUoms)
+        ? product.purchaseUoms.map((entry) => ({
+            uomId: entry.uomId ? String(entry.uomId) : '',
+            conversionFactor:
+              entry.conversionFactor !== null && entry.conversionFactor !== undefined
+                ? String(entry.conversionFactor)
+                : '',
+          }))
+        : [],
+      salesUoms: Array.isArray(product.salesUoms)
+        ? product.salesUoms.map((entry) => ({
+            uomId: entry.uomId ? String(entry.uomId) : '',
+            conversionFactor:
+              entry.conversionFactor !== null && entry.conversionFactor !== undefined
+                ? String(entry.conversionFactor)
+                : '',
+          }))
+        : [],
     });
     setDynamicValues(product.dynamicAttributes || {});
     setShowForm(true);
@@ -503,6 +637,27 @@ function ProductPage({ token, adminUserId }) {
         mrp: Number(form.mrp),
         gstRate: Number(form.gstRate),
       };
+      const purchaseUoms = buildUomPayload(form.purchaseUoms, 'purchase');
+      if (purchaseUoms === null) {
+        setIsLoading(false);
+        return;
+      }
+      const salesUoms = buildUomPayload(form.salesUoms, 'sales');
+      if (salesUoms === null) {
+        setIsLoading(false);
+        return;
+      }
+      const hasUomPayload = Boolean(form.baseUomId || purchaseUoms.length || salesUoms.length);
+      if (hasUomPayload && !form.baseUomId) {
+        setMessage({ type: 'error', text: 'Base UOM is required when adding purchase or sales UOMs.' });
+        setIsLoading(false);
+        return;
+      }
+      if (hasUomPayload) {
+        payload.baseUomId = Number(form.baseUomId);
+        payload.purchaseUoms = purchaseUoms;
+        payload.salesUoms = salesUoms;
+      }
       if (dynamicAttributes && Object.keys(dynamicAttributes).length > 0) {
         payload.dynamicAttributes = dynamicAttributes;
       }
@@ -751,6 +906,132 @@ function ProductPage({ token, adminUserId }) {
                 />
               </label>
               <label className="field field-span">
+                <span>Base UOM</span>
+                <select
+                  value={form.baseUomId}
+                  onChange={(event) => handleChange('baseUomId', event.target.value)}
+                  disabled={uoms.length === 0}
+                >
+                  <option value="">Select base unit</option>
+                  {uoms.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {formatUomLabel(item)}
+                    </option>
+                  ))}
+                </select>
+                <span className="field-help">
+                  {uoms.length === 0
+                    ? 'No UOMs available. Add units in the UOM master to enable selection.'
+                    : 'Used as the canonical unit for all conversions; selling price is per base UOM.'}
+                </span>
+              </label>
+              {uoms.length === 0 ? null : (
+                <>
+                  <div className="field field-span">
+                    <span>Purchase UOMs (max 3)</span>
+                    {form.purchaseUoms.length === 0 ? (
+                      <span className="field-help">No purchase UOMs added.</span>
+                    ) : null}
+                    {form.purchaseUoms.map((entry, index) => {
+                      const isBaseUom = form.baseUomId && entry.uomId === form.baseUomId;
+                      return (
+                        <div className="inline-row" key={`purchase-${index}`}>
+                          <select
+                            value={entry.uomId}
+                            onChange={(event) =>
+                              handleUomEntryChange('purchase', index, 'uomId', event.target.value)
+                            }
+                          >
+                            <option value="">Select UOM</option>
+                            {uoms.map((item) => (
+                              <option key={item.id} value={item.id}>
+                                {formatUomLabel(item)}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            type="number"
+                            step="0.000001"
+                            value={entry.conversionFactor}
+                            onChange={(event) =>
+                              handleUomEntryChange('purchase', index, 'conversionFactor', event.target.value)
+                            }
+                            placeholder={isBaseUom ? '1 (base)' : 'e.g. 1000'}
+                            disabled={isBaseUom}
+                          />
+                          <button
+                            type="button"
+                            className="ghost-btn small"
+                            onClick={() => handleRemoveUomEntry('purchase', index)}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      );
+                    })}
+                    <button
+                      type="button"
+                      className="ghost-btn small"
+                      onClick={() => handleAddUomEntry('purchase')}
+                      disabled={form.purchaseUoms.length >= 3}
+                    >
+                      Add purchase UOM
+                    </button>
+                    <span className="field-help">Conversion factor is base units per 1 unit of the selected UOM.</span>
+                  </div>
+                  <div className="field field-span">
+                    <span>Sales UOMs (max 3)</span>
+                    {form.salesUoms.length === 0 ? <span className="field-help">No sales UOMs added.</span> : null}
+                    {form.salesUoms.map((entry, index) => {
+                      const isBaseUom = form.baseUomId && entry.uomId === form.baseUomId;
+                      return (
+                        <div className="inline-row" key={`sales-${index}`}>
+                          <select
+                            value={entry.uomId}
+                            onChange={(event) =>
+                              handleUomEntryChange('sales', index, 'uomId', event.target.value)
+                            }
+                          >
+                            <option value="">Select UOM</option>
+                            {uoms.map((item) => (
+                              <option key={item.id} value={item.id}>
+                                {formatUomLabel(item)}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            type="number"
+                            step="0.000001"
+                            value={entry.conversionFactor}
+                            onChange={(event) =>
+                              handleUomEntryChange('sales', index, 'conversionFactor', event.target.value)
+                            }
+                            placeholder={isBaseUom ? '1 (base)' : 'e.g. 0.001'}
+                            disabled={isBaseUom}
+                          />
+                          <button
+                            type="button"
+                            className="ghost-btn small"
+                            onClick={() => handleRemoveUomEntry('sales', index)}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      );
+                    })}
+                    <button
+                      type="button"
+                      className="ghost-btn small"
+                      onClick={() => handleAddUomEntry('sales')}
+                      disabled={form.salesUoms.length >= 3}
+                    >
+                      Add sales UOM
+                    </button>
+                    <span className="field-help">Leave conversion blank to use global conversion if configured.</span>
+                  </div>
+                </>
+              )}
+              <label className="field field-span">
                 <span>Short description</span>
                 <input
                   type="text"
@@ -957,6 +1238,43 @@ function ProductPage({ token, adminUserId }) {
                   <div className="field">
                     <span>Minimum order qty</span>
                     <p className="field-value">{formatValue(selectedProduct.minimumOrderQuantity)}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="panel card">
+                <h3 className="panel-subheading">Units of measure</h3>
+                <div className="field-grid">
+                  <div className="field">
+                    <span>Base UOM</span>
+                    <p className="field-value">{formatValue(selectedProduct.baseUomName)}</p>
+                  </div>
+                  <div className="field field-span">
+                    <span>Purchase UOMs</span>
+                    {selectedProduct.purchaseUoms && selectedProduct.purchaseUoms.length > 0 ? (
+                      <div className="tag-row">
+                        {selectedProduct.purchaseUoms.map((entry, index) => (
+                          <span className="tag" key={`purchase-${entry.uomId || index}`}>
+                            {formatUomEntry(entry, false)}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="field-value">-</p>
+                    )}
+                  </div>
+                  <div className="field field-span">
+                    <span>Sales UOMs</span>
+                    {selectedProduct.salesUoms && selectedProduct.salesUoms.length > 0 ? (
+                      <div className="tag-row">
+                        {selectedProduct.salesUoms.map((entry, index) => (
+                          <span className="tag" key={`sales-${entry.uomId || index}`}>
+                            {formatUomEntry(entry, true)}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="field-value">-</p>
+                    )}
                   </div>
                 </div>
               </div>
