@@ -1472,6 +1472,57 @@ textarea {
   font-weight: 700;
 }
 
+.field-label {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+}
+
+.variant-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.variant-card {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px;
+  background: #ffffff;
+  display: grid;
+  gap: 12px;
+}
+
+.variant-form-card {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px;
+  background: var(--panel);
+  display: grid;
+  gap: 12px;
+}
+
+.variant-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.variant-fields {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.variant-attributes {
+  display: grid;
+  gap: 6px;
+}
+
+.variant-actions {
+  justify-content: flex-end;
+}
+
 .checkbox-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));

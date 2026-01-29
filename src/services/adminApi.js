@@ -75,6 +75,8 @@ export const getProduct = (token, id) => request(`/admin/product/${id}`, { token
 export const updateProduct = (token, id, payload) =>
   request(`/admin/product/${id}/update`, { method: 'PUT', body: payload, token });
 export const deleteProduct = (token, id) => request(`/admin/product/${id}`, { method: 'DELETE', token });
+export const updateProductVariantStatus = (token, productId, variantId, payload) =>
+  request(`/admin/product/${productId}/variants/${variantId}/status`, { method: 'PUT', body: payload, token });
 
 export const listAttributeDefinitions = (token, active) => {
   const query = active === true || active === false ? `?active=${active}` : '';

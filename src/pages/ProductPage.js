@@ -13,9 +13,23 @@ import {
   listSubCategories,
   listUoms,
   updateProduct,
+  updateProductVariantStatus,
 } from '../services/adminApi';
 
 const createUomEntry = () => ({ uomId: '', conversionFactor: '' });
+const createVariantAttributeEntry = () => ({ key: '', value: '' });
+const createVariantEntry = () => ({
+  variantName: '',
+  sku: '',
+  barcode: '',
+  sellingPrice: '',
+  mrp: '',
+  stockQuantity: '',
+  lowStockAlert: '',
+  thumbnailImage: '',
+  galleryImagesText: '',
+  attributes: [createVariantAttributeEntry()],
+});
 
 const initialForm = {
   productName: '',
@@ -31,6 +45,7 @@ const initialForm = {
   baseUomId: '',
   purchaseUoms: [],
   salesUoms: [],
+  variants: [],
 };
 
 function ProductPage({ token, adminUserId }) {
@@ -226,6 +241,14 @@ function ProductPage({ token, adminUserId }) {
         ? ` • Price: ${entry.pricePerUom}`
         : '';
     return `${name || 'UOM'}${factorText}${priceText}`;
+  };
+
+  const parseList = (value) => {
+    if (!value) return [];
+    return value
+      .split(/[\n,]+/)
+      .map((item) => item.trim())
+      .filter(Boolean);
   };
 
   const buildUomPayload = (entries, label) => {
@@ -503,6 +526,65 @@ function ProductPage({ token, adminUserId }) {
     });
   };
 
+  const handleVariantChange = (index, key, value) => {
+    setForm((prev) => {
+      const nextVariants = [...prev.variants];
+      const nextVariant = { ...nextVariants[index], [key]: value };
+      nextVariants[index] = nextVariant;
+      return { ...prev, variants: nextVariants };
+    });
+  };
+
+  const handleAddVariant = () => {
+    setForm((prev) => {
+      if (prev.variants.length >= 20) return prev;
+      return { ...prev, variants: [...prev.variants, createVariantEntry()] };
+    });
+  };
+
+  const handleRemoveVariant = (index) => {
+    setForm((prev) => ({
+      ...prev,
+      variants: prev.variants.filter((_, itemIndex) => itemIndex !== index),
+    }));
+  };
+
+  const handleVariantAttributeChange = (variantIndex, attributeIndex, key, value) => {
+    setForm((prev) => {
+      const nextVariants = [...prev.variants];
+      const variant = { ...nextVariants[variantIndex] };
+      const nextAttributes = [...(variant.attributes || [])];
+      const nextAttribute = { ...nextAttributes[attributeIndex], [key]: value };
+      nextAttributes[attributeIndex] = nextAttribute;
+      variant.attributes = nextAttributes;
+      nextVariants[variantIndex] = variant;
+      return { ...prev, variants: nextVariants };
+    });
+  };
+
+  const handleAddVariantAttribute = (variantIndex) => {
+    setForm((prev) => {
+      const nextVariants = [...prev.variants];
+      const variant = { ...nextVariants[variantIndex] };
+      const attributes = [...(variant.attributes || [])];
+      attributes.push(createVariantAttributeEntry());
+      variant.attributes = attributes;
+      nextVariants[variantIndex] = variant;
+      return { ...prev, variants: nextVariants };
+    });
+  };
+
+  const handleRemoveVariantAttribute = (variantIndex, attributeIndex) => {
+    setForm((prev) => {
+      const nextVariants = [...prev.variants];
+      const variant = { ...nextVariants[variantIndex] };
+      const attributes = (variant.attributes || []).filter((_, idx) => idx !== attributeIndex);
+      variant.attributes = attributes.length ? attributes : [createVariantAttributeEntry()];
+      nextVariants[variantIndex] = variant;
+      return { ...prev, variants: nextVariants };
+    });
+  };
+
   const handleDynamicChange = (key, value) => {
     setDynamicValues((prev) => ({ ...prev, [key]: value }));
   };
@@ -555,6 +637,36 @@ function ProductPage({ token, adminUserId }) {
               entry.conversionFactor !== null && entry.conversionFactor !== undefined
                 ? String(entry.conversionFactor)
                 : '',
+          }))
+        : [],
+      variants: Array.isArray(product.variants)
+        ? product.variants.map((variant) => ({
+            variantName: variant.variantName || '',
+            sku: variant.sku || '',
+            barcode: variant.barcode || '',
+            sellingPrice:
+              variant.sellingPrice !== null && variant.sellingPrice !== undefined
+                ? String(variant.sellingPrice)
+                : '',
+            mrp: variant.mrp !== null && variant.mrp !== undefined ? String(variant.mrp) : '',
+            stockQuantity:
+              variant.stockQuantity !== null && variant.stockQuantity !== undefined
+                ? String(variant.stockQuantity)
+                : '',
+            lowStockAlert:
+              variant.lowStockAlert !== null && variant.lowStockAlert !== undefined
+                ? String(variant.lowStockAlert)
+                : '',
+            thumbnailImage: variant.thumbnailImage || '',
+            galleryImagesText: Array.isArray(variant.images)
+              ? variant.images.map((img) => img?.url).filter(Boolean).join(', ')
+              : '',
+            attributes: Array.isArray(variant.attributes) && variant.attributes.length > 0
+              ? variant.attributes.map((attr) => ({
+                  key: attr?.key || '',
+                  value: attr?.value || '',
+                }))
+              : [createVariantAttributeEntry()],
           }))
         : [],
     });
@@ -662,6 +774,75 @@ function ProductPage({ token, adminUserId }) {
         payload.dynamicAttributes = dynamicAttributes;
       }
 
+      if (Array.isArray(form.variants) && form.variants.length > 0) {
+        const variantPayload = form.variants
+          .map((variant) => {
+            if (!variant) return null;
+            const hasContent =
+              (variant.variantName && variant.variantName.trim()) ||
+              (variant.sku && variant.sku.trim()) ||
+              (variant.barcode && variant.barcode.trim()) ||
+              (variant.thumbnailImage && variant.thumbnailImage.trim()) ||
+              (variant.galleryImagesText && variant.galleryImagesText.trim()) ||
+              (Array.isArray(variant.attributes) &&
+                variant.attributes.some((attr) => attr?.key || attr?.value));
+
+            if (!hasContent) return null;
+
+            const payloadVariant = {
+              variantName: variant.variantName?.trim() || null,
+              sku: variant.sku?.trim() || null,
+              barcode: variant.barcode?.trim() || null,
+              thumbnailImage: variant.thumbnailImage?.trim() || null,
+            };
+
+            if (variant.sellingPrice !== '' && variant.sellingPrice !== null && variant.sellingPrice !== undefined) {
+              payloadVariant.sellingPrice = Number(variant.sellingPrice);
+            }
+            if (variant.mrp !== '' && variant.mrp !== null && variant.mrp !== undefined) {
+              payloadVariant.mrp = Number(variant.mrp);
+            }
+            if (
+              variant.stockQuantity !== '' &&
+              variant.stockQuantity !== null &&
+              variant.stockQuantity !== undefined
+            ) {
+              payloadVariant.stockQuantity = Number(variant.stockQuantity);
+            }
+            if (
+              variant.lowStockAlert !== '' &&
+              variant.lowStockAlert !== null &&
+              variant.lowStockAlert !== undefined
+            ) {
+              payloadVariant.lowStockAlert = Number(variant.lowStockAlert);
+            }
+
+            const galleryImages = parseList(variant.galleryImagesText);
+            if (galleryImages.length) {
+              payloadVariant.galleryImages = galleryImages;
+            }
+
+            if (Array.isArray(variant.attributes)) {
+              const attributes = variant.attributes
+                .filter((attr) => attr?.key && attr.key.trim())
+                .map((attr) => ({
+                  key: attr.key.trim(),
+                  value: attr.value ?? '',
+                }));
+              if (attributes.length) {
+                payloadVariant.attributes = attributes;
+              }
+            }
+
+            return payloadVariant;
+          })
+          .filter(Boolean);
+
+        if (variantPayload.length) {
+          payload.variants = variantPayload;
+        }
+      }
+
       if (isEditing) {
         await updateProduct(token, editingProductId, { ...payload, userId: adminId });
         await loadProducts();
@@ -740,12 +921,35 @@ function ProductPage({ token, adminUserId }) {
     }
   };
 
+  const handleVariantStatusUpdate = async (variantId, nextStatus) => {
+    if (!selectedProductId || !variantId) return;
+    const adminId = getAdminId();
+    if (!adminId) return;
+    try {
+      setIsLoading(true);
+      await updateProductVariantStatus(token, selectedProductId, variantId, {
+        approvalStatus: nextStatus,
+        adminUserId: adminId,
+      });
+      await loadProductDetail(selectedProductId);
+      setMessage({
+        type: 'success',
+        text: `Variant ${nextStatus === 'APPROVED' ? 'approved' : 'rejected'} successfully.`,
+      });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to update variant status.' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const statusValue = selectedProduct?.approvalStatus || '';
   const statusLabel = formatStatus(statusValue);
   const statusClass = `status-pill ${statusValue ? statusValue.toLowerCase().replace(/_/g, '-') : 'pending'}`;
   const dynamicEntries = selectedProduct?.dynamicAttributes
     ? Object.entries(selectedProduct.dynamicAttributes)
     : [];
+  const variants = Array.isArray(selectedProduct?.variants) ? selectedProduct.variants : [];
   const disableApprove = isLoading || !selectedProduct || statusValue === 'APPROVED';
   const disableReject = isLoading || !selectedProduct || statusValue === 'REJECTED';
   const disableEdit = isLoading || !selectedProduct;
@@ -1031,6 +1235,164 @@ function ProductPage({ token, adminUserId }) {
                   </div>
                 </>
               )}
+              <div className="field-span">
+                <div className="panel-split">
+                  <h4 className="panel-subheading">Variants</h4>
+                  <button
+                    type="button"
+                    className="ghost-btn small"
+                    onClick={handleAddVariant}
+                    disabled={form.variants.length >= 20}
+                  >
+                    Add variant
+                  </button>
+                </div>
+                <p className="muted">Add up to 20 variants for this product.</p>
+              </div>
+              {form.variants.length === 0 ? (
+                <div className="field-span">
+                  <p className="empty-state">No variants added.</p>
+                </div>
+              ) : (
+                form.variants.map((variant, index) => (
+                  <div className="variant-form-card field-span" key={`variant-${index}`}>
+                    <div className="panel-split">
+                      <p className="variant-title">
+                        {variant.variantName || variant.sku || `Variant ${index + 1}`}
+                      </p>
+                      <button
+                        type="button"
+                        className="ghost-btn small"
+                        onClick={() => handleRemoveVariant(index)}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                    <div className="field-grid variant-fields">
+                      <label className="field">
+                        <span>Variant name</span>
+                        <input
+                          type="text"
+                          value={variant.variantName}
+                          onChange={(event) => handleVariantChange(index, 'variantName', event.target.value)}
+                          placeholder="e.g. Black / 256GB"
+                        />
+                      </label>
+                      <label className="field">
+                        <span>SKU</span>
+                        <input
+                          type="text"
+                          value={variant.sku}
+                          onChange={(event) => handleVariantChange(index, 'sku', event.target.value)}
+                          placeholder="Variant SKU"
+                        />
+                      </label>
+                      <label className="field">
+                        <span>Barcode</span>
+                        <input
+                          type="text"
+                          value={variant.barcode}
+                          onChange={(event) => handleVariantChange(index, 'barcode', event.target.value)}
+                          placeholder="Barcode"
+                        />
+                      </label>
+                      <label className="field">
+                        <span>Selling price</span>
+                        <input
+                          type="number"
+                          value={variant.sellingPrice}
+                          onChange={(event) => handleVariantChange(index, 'sellingPrice', event.target.value)}
+                          placeholder="0.00"
+                        />
+                      </label>
+                      <label className="field">
+                        <span>MRP</span>
+                        <input
+                          type="number"
+                          value={variant.mrp}
+                          onChange={(event) => handleVariantChange(index, 'mrp', event.target.value)}
+                          placeholder="0.00"
+                        />
+                      </label>
+                      <label className="field">
+                        <span>Stock qty</span>
+                        <input
+                          type="number"
+                          value={variant.stockQuantity}
+                          onChange={(event) => handleVariantChange(index, 'stockQuantity', event.target.value)}
+                          placeholder="0"
+                        />
+                      </label>
+                      <label className="field">
+                        <span>Low stock alert</span>
+                        <input
+                          type="number"
+                          value={variant.lowStockAlert}
+                          onChange={(event) => handleVariantChange(index, 'lowStockAlert', event.target.value)}
+                          placeholder="0"
+                        />
+                      </label>
+                      <label className="field field-span">
+                        <span>Thumbnail image</span>
+                        <input
+                          type="text"
+                          value={variant.thumbnailImage}
+                          onChange={(event) => handleVariantChange(index, 'thumbnailImage', event.target.value)}
+                          placeholder="https://..."
+                        />
+                      </label>
+                      <label className="field field-span">
+                        <span>Gallery images (comma or new line separated)</span>
+                        <textarea
+                          rows={2}
+                          value={variant.galleryImagesText}
+                          onChange={(event) => handleVariantChange(index, 'galleryImagesText', event.target.value)}
+                          placeholder="https://image1.jpg, https://image2.jpg"
+                        />
+                      </label>
+                    </div>
+                    <div className="variant-attributes">
+                      <div className="panel-split">
+                        <span className="field-label">Attributes</span>
+                        <button
+                          type="button"
+                          className="ghost-btn small"
+                          onClick={() => handleAddVariantAttribute(index)}
+                        >
+                          Add attribute
+                        </button>
+                      </div>
+                      {(variant.attributes || []).map((attr, attrIndex) => (
+                        <div className="inline-row" key={`variant-${index}-attr-${attrIndex}`}>
+                          <input
+                            type="text"
+                            value={attr.key}
+                            onChange={(event) =>
+                              handleVariantAttributeChange(index, attrIndex, 'key', event.target.value)
+                            }
+                            placeholder="Key (e.g. color)"
+                          />
+                          <input
+                            type="text"
+                            value={attr.value}
+                            onChange={(event) =>
+                              handleVariantAttributeChange(index, attrIndex, 'value', event.target.value)
+                            }
+                            placeholder="Value (e.g. Black)"
+                          />
+                          <button
+                            type="button"
+                            className="ghost-btn small"
+                            onClick={() => handleRemoveVariantAttribute(index, attrIndex)}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              )}
               <label className="field field-span">
                 <span>Short description</span>
                 <input
@@ -1306,6 +1668,93 @@ function ProductPage({ token, adminUserId }) {
                     <p className="field-value">{formatValue(selectedProduct.returnPolicy)}</p>
                   </div>
                 </div>
+              </div>
+              <div className="panel card">
+                <div className="panel-split">
+                  <h3 className="panel-subheading">Variants</h3>
+                  <span className="muted">{variants.length} total</span>
+                </div>
+                {variants.length === 0 ? (
+                  <p className="empty-state">No variants submitted.</p>
+                ) : (
+                  <div className="variant-grid">
+                    {variants.map((variant, index) => {
+                      const variantStatus = variant?.approvalStatus || '';
+                      const variantStatusClass = `status-pill ${
+                        variantStatus ? variantStatus.toLowerCase().replace(/_/g, '-') : 'pending'
+                      }`;
+                      const variantTitle =
+                        variant?.variantName || variant?.sku || `Variant ${index + 1}`;
+                      const disableVariantApprove = isLoading || variantStatus === 'APPROVED';
+                      const disableVariantReject = isLoading || variantStatus === 'REJECTED';
+                      const attributes = Array.isArray(variant?.attributes) ? variant.attributes : [];
+
+                      return (
+                        <div
+                          className="variant-card"
+                          key={variant?.variantId || variant?.sku || `variant-${index}`}
+                        >
+                          <div className="panel-split">
+                            <div>
+                              <p className="variant-title">{variantTitle}</p>
+                              <p className="muted">SKU: {formatValue(variant?.sku)}</p>
+                            </div>
+                            <span className={variantStatusClass}>{formatStatus(variantStatus)}</span>
+                          </div>
+                          <div className="field-grid variant-fields">
+                            <div className="field">
+                              <span>Selling price</span>
+                              <p className="field-value">{formatValue(variant?.sellingPrice)}</p>
+                            </div>
+                            <div className="field">
+                              <span>MRP</span>
+                              <p className="field-value">{formatValue(variant?.mrp)}</p>
+                            </div>
+                            <div className="field">
+                              <span>Stock qty</span>
+                              <p className="field-value">{formatValue(variant?.stockQuantity)}</p>
+                            </div>
+                            <div className="field">
+                              <span>Low stock alert</span>
+                              <p className="field-value">{formatValue(variant?.lowStockAlert)}</p>
+                            </div>
+                          </div>
+                          {attributes.length > 0 ? (
+                            <div className="variant-attributes">
+                              <span className="field-label">Attributes</span>
+                              <div className="tag-row">
+                                {attributes.map((attr, attrIndex) => (
+                                  <span className="tag" key={`${attr?.key || 'attr'}-${attrIndex}`}>
+                                    {attr?.key ? `${attr.key}: ` : ''}
+                                    {formatValue(attr?.value)}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          ) : null}
+                          <div className="inline-row variant-actions">
+                            <button
+                              type="button"
+                              className="primary-btn compact"
+                              onClick={() => handleVariantStatusUpdate(variant?.variantId, 'APPROVED')}
+                              disabled={disableVariantApprove || !variant?.variantId}
+                            >
+                              Approve
+                            </button>
+                            <button
+                              type="button"
+                              className="ghost-btn small"
+                              onClick={() => handleVariantStatusUpdate(variant?.variantId, 'REJECTED')}
+                              disabled={disableVariantReject || !variant?.variantId}
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
               <div className="panel card">
                 <h3 className="panel-subheading">Descriptions</h3>
