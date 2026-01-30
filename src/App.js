@@ -7,6 +7,8 @@ import {
   IndustryPage,
   LoginPage,
   MainCategoryPage,
+  InquiryConfigPage,
+  InquiryReportPage,
   OtpVerifyPage,
   ProductAttributePage,
   ProductPage,
@@ -53,6 +55,16 @@ const ADMIN_META = [
     matchPrefix: '/admin/products',
     title: 'Products',
     subtitle: 'Create and manage products submitted by businesses.',
+  },
+  {
+    match: '/admin/inquiry/config',
+    title: 'Inquiry Config',
+    subtitle: 'Tune premium vs normal distribution ratios.',
+  },
+  {
+    match: '/admin/inquiry/report',
+    title: 'Inquiry Report',
+    subtitle: 'Monitor inquiry volume, assignments, and refunds.',
   },
 ];
 
@@ -129,6 +141,13 @@ function AppRoutes() {
           { path: '/admin/sub-category', label: 'Sub-Category' },
           { path: '/admin/product-attribute', label: 'Product Attributes' },
           { path: '/admin/products', label: 'Products' },
+        ],
+      },
+      {
+        title: 'Inquiry',
+        items: [
+          { path: '/admin/inquiry/config', label: 'Inquiry Config' },
+          { path: '/admin/inquiry/report', label: 'Inquiry Report' },
         ],
       },
     ],
@@ -218,6 +237,8 @@ function AppRoutes() {
         <Route path="products" element={<ProductPage token={authToken} adminUserId={authUserId} />} />
         <Route path="products/:id" element={<ProductPage token={authToken} adminUserId={authUserId} />} />
         <Route path="products/:id/edit" element={<ProductPage token={authToken} adminUserId={authUserId} />} />
+        <Route path="inquiry/config" element={<InquiryConfigPage token={authToken} />} />
+        <Route path="inquiry/report" element={<InquiryReportPage token={authToken} />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

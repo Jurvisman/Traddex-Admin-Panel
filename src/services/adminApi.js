@@ -106,3 +106,16 @@ export const deleteAttributeMapping = (token, id) =>
   request(`/admin/product-attribute-map/${id}`, { method: 'DELETE', token });
 
 export const listUoms = (token) => request('/uom/getall', { token });
+
+export const getInquiryConfig = (token) => request('/admin/inquiry/config', { token });
+export const updateInquiryConfig = (token, payload) =>
+  request('/admin/inquiry/config', { method: 'PUT', body: payload, token });
+
+export const getInquiryReport = (token, filters = {}) => {
+  const params = new URLSearchParams();
+  if (filters.date_from) params.set('date_from', filters.date_from);
+  if (filters.date_to) params.set('date_to', filters.date_to);
+  if (filters.user_id) params.set('user_id', filters.user_id);
+  const query = params.toString() ? `?${params.toString()}` : '';
+  return request(`/admin/inquiry/report${query}`, { token });
+};
