@@ -10,3 +10,6 @@ export { default as ProductPage } from './ProductPage';
 export { default as ProductAttributePage } from './ProductAttributePage';
 export { default as InquiryConfigPage } from './InquiryConfigPage';
 export { default as InquiryReportPage } from './InquiryReportPage';
+export { default as SubscriptionFeaturePage } from './SubscriptionFeaturePage';
+export { default as SubscriptionPlanPage } from './SubscriptionPlanPage';
+export { default as SubscriptionAssignPage } from './SubscriptionAssignPage';

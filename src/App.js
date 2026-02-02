@@ -13,6 +13,9 @@ import {
   ProductAttributePage,
   ProductPage,
   SubCategoryPage,
+  SubscriptionAssignPage,
+  SubscriptionFeaturePage,
+  SubscriptionPlanPage,
 } from './pages';
 import './App.css';
 
@@ -65,6 +68,21 @@ const ADMIN_META = [
     match: '/admin/inquiry/report',
     title: 'Inquiry Report',
     subtitle: 'Monitor inquiry volume, assignments, and refunds.',
+  },
+  {
+    match: '/admin/subscription/features',
+    title: 'Subscription Features',
+    subtitle: 'Manage the feature catalog that powers plan access.',
+  },
+  {
+    match: '/admin/subscription/plans',
+    title: 'Subscription Plans',
+    subtitle: 'Create plans with pricing, durations, and feature limits.',
+  },
+  {
+    match: '/admin/subscription/assignments',
+    title: 'Assign Subscriptions',
+    subtitle: 'Grant plans to users and review assignments.',
   },
 ];
 
@@ -148,6 +166,14 @@ function AppRoutes() {
         items: [
           { path: '/admin/inquiry/config', label: 'Inquiry Config' },
           { path: '/admin/inquiry/report', label: 'Inquiry Report' },
+        ],
+      },
+      {
+        title: 'Subscriptions',
+        items: [
+          { path: '/admin/subscription/features', label: 'Features' },
+          { path: '/admin/subscription/plans', label: 'Plans' },
+          { path: '/admin/subscription/assignments', label: 'Assignments' },
         ],
       },
     ],
@@ -239,6 +265,9 @@ function AppRoutes() {
         <Route path="products/:id/edit" element={<ProductPage token={authToken} adminUserId={authUserId} />} />
         <Route path="inquiry/config" element={<InquiryConfigPage token={authToken} />} />
         <Route path="inquiry/report" element={<InquiryReportPage token={authToken} />} />
+        <Route path="subscription/features" element={<SubscriptionFeaturePage token={authToken} />} />
+        <Route path="subscription/plans" element={<SubscriptionPlanPage token={authToken} />} />
+        <Route path="subscription/assignments" element={<SubscriptionAssignPage token={authToken} />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

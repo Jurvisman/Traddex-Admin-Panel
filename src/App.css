@@ -924,18 +924,18 @@ textarea {
 .primary-btn {
   background: linear-gradient(120deg, var(--accent), var(--accent-strong));
   color: #ffffff;
-  border-radius: 14px;
-  padding: 12px 18px;
+  border-radius: 10px;
+  padding: 8px 12px;
   font-weight: 700;
   cursor: pointer;
   border: none;
-  box-shadow: 0 14px 36px rgba(92, 75, 255, 0.28);
+  box-shadow: 0 10px 24px rgba(92, 75, 255, 0.22);
   transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
 }
 
 .primary-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 18px 40px rgba(92, 75, 255, 0.3);
+  box-shadow: 0 14px 32px rgba(92, 75, 255, 0.26);
 }
 
 .primary-btn:disabled {
@@ -950,10 +950,10 @@ textarea {
 }
 
 .primary-btn.compact {
-  padding: 8px 12px;
-  font-size: 12px;
-  border-radius: 10px;
-  box-shadow: 0 10px 28px rgba(92, 75, 255, 0.2);
+  padding: 6px 10px;
+  font-size: 10px;
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(92, 75, 255, 0.18);
 }
 
 .pill-btn-strong {
@@ -963,8 +963,8 @@ textarea {
 }
 
 .ghost-btn {
-  border-radius: 12px;
-  padding: 8px 16px;
+  border-radius: 10px;
+  padding: 6px 12px;
   border: 1px solid var(--line);
   color: var(--ink);
   font-weight: 600;
@@ -978,8 +978,8 @@ textarea {
 }
 
 .ghost-btn.small {
-  padding: 6px 12px;
-  font-size: 12px;
+  padding: 4px 10px;
+  font-size: 10px;
 }
 
 .muted {
@@ -1180,8 +1180,8 @@ textarea {
 
 .card {
   border: 1px solid var(--line);
-  border-radius: 24px;
-  padding: 22px;
+  border-radius: 18px;
+  padding: 16px;
   background: var(--panel);
   box-shadow: var(--shadow-soft);
 }
@@ -1205,13 +1205,13 @@ textarea {
   display: grid;
   grid-template-columns: 260px 1fr;
   background: var(--bg);
-  font-size: 13px;
+  font-size: 10px;
 }
 
 .admin-sidebar {
   background: #ffffff;
   border-right: 1px solid var(--line);
-  padding: 18px 16px;
+  padding: 14px 12px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -1252,7 +1252,7 @@ textarea {
 }
 
 .admin-nav-title {
-  font-size: 10px;
+  font-size: 7px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--muted);
@@ -1267,13 +1267,13 @@ textarea {
 .admin-nav-item {
   border: 1px solid transparent;
   background: transparent;
-  padding: 8px 10px;
-  border-radius: 12px;
+  padding: 6px 8px;
+  border-radius: 10px;
   font-weight: 600;
   text-align: left;
   color: var(--ink);
   cursor: pointer;
-  font-size: 13px;
+  font-size: 10px;
   text-decoration: none;
   display: block;
 }
@@ -1293,7 +1293,7 @@ textarea {
 }
 
 .admin-main {
-  padding: 20px;
+  padding: 16px;
 }
 
 .admin-topbar {
@@ -1303,20 +1303,20 @@ textarea {
 .admin-kicker {
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  font-size: 10px;
+  font-size: 7px;
   color: var(--muted);
   margin: 0 0 6px;
 }
 
 .admin-title {
-  font-size: 24px;
+  font-size: 16px;
   margin: 0;
 }
 
 .admin-subtitle {
   margin: 6px 0 0;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 10px;
 }
 
 .admin-content {
@@ -1334,18 +1334,18 @@ textarea {
 
 .panel-title {
   margin: 0;
-  font-size: 18px;
+  font-size: 12px;
 }
 
 .panel-subtitle {
   margin: 4px 0 0;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 10px;
 }
 
 .panel-subheading {
   margin: 0 0 12px;
-  font-size: 14px;
+  font-size: 10px;
 }
 
 .panel-split {
@@ -1392,13 +1392,13 @@ textarea {
 
 .panel.card {
   display: grid;
-  gap: 16px;
+  gap: 12px;
 }
 
 .field-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
 }
 
 .field {
@@ -1416,11 +1416,11 @@ textarea {
 .field input,
 .field select,
 .field textarea {
-  padding: 9px 11px;
-  border-radius: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
   border: 1px solid var(--line);
   background: #f7f5ff;
-  font-size: 13px;
+  font-size: 10px;
 }
 
 .field textarea {
@@ -1561,21 +1561,263 @@ textarea {
 .admin-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 10px;
 }
 
 .admin-table th,
 .admin-table td {
-  padding: 10px 8px;
+  padding: 8px 6px;
   border-bottom: 1px solid var(--line);
   text-align: left;
 }
 
 .admin-table th {
-  font-size: 11px;
+  font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: var(--muted);
+}
+
+.subscription-plan-page {
+  width: 100%;
+  overflow-x: hidden;
+  margin-bottom: 14px;
+}
+
+.plan-builder {
+  display: grid;
+  grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.plan-preview {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.plan-preview-card {
+  border-radius: 16px;
+  padding: 14px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  gap: 12px;
+  text-align: center;
+}
+
+.plan-preview-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.7);
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  margin: 0 auto;
+}
+
+.plan-preview-icon img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.plan-preview-icon-placeholder {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.plan-preview-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.plan-preview-price {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  justify-content: center;
+}
+
+.plan-preview-price-main {
+  font-size: 14px;
+}
+
+.plan-preview-price-pill {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  font-size: 10px;
+}
+
+.plan-preview-features {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+  font-size: 10px;
+  text-align: left;
+  justify-self: center;
+}
+
+.plan-preview-cta {
+  border: none;
+  border-radius: 12px;
+  padding: 8px 12px;
+  font-weight: 700;
+  cursor: pointer;
+  width: 100%;
+  font-size: 10px;
+}
+
+.plan-description-card {
+  gap: 10px;
+}
+
+.plan-description-input {
+  width: 100%;
+  min-height: 90px;
+  resize: vertical;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: #f7f5ff;
+  padding: 12px;
+  font: inherit;
+}
+
+.plan-form {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.icon-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.icon-input input {
+  flex: 1;
+  min-width: 0;
+}
+
+.icon-preview {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.icon-preview img {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+}
+
+.icon-placeholder {
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--muted);
+}
+
+.plan-feature-card {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 14px;
+  background: var(--panel);
+  display: grid;
+  gap: 12px;
+}
+
+.plan-feature-rows {
+  display: grid;
+  gap: 10px;
+}
+
+.plan-feature-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 0.9fr) minmax(0, 0.9fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.plan-feature-row input,
+.plan-feature-row select {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: #f7f5ff;
+  font-size: 12px;
+  min-width: 0;
+}
+
+.plan-toggle {
+  position: relative;
+  display: inline-flex;
+  width: 42px;
+  height: 22px;
+  align-items: center;
+}
+
+.plan-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.plan-toggle-track {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: #d7d3eb;
+  transition: background 0.2s ease;
+}
+
+.plan-toggle-track::after {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ffffff;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.plan-toggle input:checked + .plan-toggle-track {
+  background: #3d6bff;
+}
+
+.plan-toggle input:checked + .plan-toggle-track::after {
+  transform: translateX(20px);
+}
+
+.plan-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+@media (max-width: 960px) {
+  .plan-builder {
+    grid-template-columns: 1fr;
+  }
+
+  .plan-feature-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 .table-actions {

@@ -119,3 +119,30 @@ export const getInquiryReport = (token, filters = {}) => {
   const query = params.toString() ? `?${params.toString()}` : '';
   return request(`/admin/inquiry/report${query}`, { token });
 };
+
+// Subscription management
+export const listSubscriptionFeatures = (token) => request('/admin/feature/list', { token });
+export const createSubscriptionFeature = (token, payload) =>
+  request('/admin/feature/create', { method: 'POST', body: payload, token });
+export const updateSubscriptionFeature = (token, id, payload) =>
+  request(`/admin/feature/${id}`, { method: 'PUT', body: payload, token });
+export const deleteSubscriptionFeature = (token, id) =>
+  request(`/admin/feature/${id}`, { method: 'DELETE', token });
+
+export const listSubscriptionPlans = (token) => request('/admin/plan/list', { token });
+export const createSubscriptionPlan = (token, payload) =>
+  request('/admin/plan/create', { method: 'POST', body: payload, token });
+export const updateSubscriptionPlan = (token, id, payload) =>
+  request(`/admin/plan/${id}`, { method: 'PUT', body: payload, token });
+export const deleteSubscriptionPlan = (token, id) =>
+  request(`/admin/plan/${id}`, { method: 'DELETE', token });
+
+export const assignSubscriptionPlan = (token, payload) =>
+  request('/admin/subscription/assign', { method: 'POST', body: payload, token });
+export const listSubscriptionAssignments = (token, filters = {}) => {
+  const params = new URLSearchParams();
+  if (filters.user_id) params.set('user_id', filters.user_id);
+  if (filters.status) params.set('status', filters.status);
+  const query = params.toString() ? `?${params.toString()}` : '';
+  return request(`/admin/subscription/list${query}`, { token });
+};
