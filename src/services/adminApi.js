@@ -120,6 +120,38 @@ export const getInquiryReport = (token, filters = {}) => {
   return request(`/admin/inquiry/report${query}`, { token });
 };
 
+// App config management
+export const getAppConfigDraft = (token) => request('/admin/app-config/draft', { token });
+export const saveAppConfigDraft = (token, payload) =>
+  request('/admin/app-config/draft', { method: 'PUT', body: payload, token });
+export const validateAppConfig = (token, payload) =>
+  request('/admin/app-config/validate', { method: 'POST', body: payload, token });
+export const publishAppConfig = (token) => request('/admin/app-config/publish', { method: 'POST', token });
+export const listAppConfigVersions = (token) => request('/admin/app-config/versions', { token });
+export const rollbackAppConfig = (token, payload) =>
+  request('/admin/app-config/rollback', { method: 'POST', body: payload, token });
+
+export const uploadBannerImages = async (token, files) => {
+  const headers = { 'x-api-key': API_KEY };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  const body = new FormData();
+  Array.from(files || []).forEach((file) => body.append('files', file));
+
+  const response = await fetch(buildUrl('/user/product/images'), {
+    method: 'POST',
+    headers,
+    body,
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseError(response));
+  }
+  if (response.status === 204) return null;
+  return response.json();
+};
+
 // Subscription management
 export const listSubscriptionFeatures = (token) => request('/admin/feature/list', { token });
 export const createSubscriptionFeature = (token, payload) =>

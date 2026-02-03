@@ -13,3 +13,4 @@ export { default as InquiryReportPage } from './InquiryReportPage';
 export { default as SubscriptionFeaturePage } from './SubscriptionFeaturePage';
 export { default as SubscriptionPlanPage } from './SubscriptionPlanPage';
 export { default as SubscriptionAssignPage } from './SubscriptionAssignPage';
+export { default as AppConfigPage } from './AppConfigPage';

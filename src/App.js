@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useNavigat
 import { AdminShell } from './components';
 import {
   AdminDashboardPage,
+  AppConfigPage,
   CategoryPage,
   IndustryPage,
   LoginPage,
@@ -83,6 +84,11 @@ const ADMIN_META = [
     match: '/admin/subscription/assignments',
     title: 'Assign Subscriptions',
     subtitle: 'Grant plans to users and review assignments.',
+  },
+  {
+    match: '/admin/app-config',
+    title: 'App Config',
+    subtitle: 'Edit and publish dynamic UI configuration.',
   },
 ];
 
@@ -176,6 +182,10 @@ function AppRoutes() {
           { path: '/admin/subscription/assignments', label: 'Assignments' },
         ],
       },
+      {
+        title: 'Configuration',
+        items: [{ path: '/admin/app-config', label: 'App Config' }],
+      },
     ],
     []
   );
@@ -268,6 +278,7 @@ function AppRoutes() {
         <Route path="subscription/features" element={<SubscriptionFeaturePage token={authToken} />} />
         <Route path="subscription/plans" element={<SubscriptionPlanPage token={authToken} />} />
         <Route path="subscription/assignments" element={<SubscriptionAssignPage token={authToken} />} />
+        <Route path="app-config" element={<AppConfigPage token={authToken} />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
