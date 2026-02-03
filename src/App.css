@@ -1446,6 +1446,17 @@ textarea {
   flex: 1;
 }
 
+.color-input {
+  width: 42px;
+  height: 36px;
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
 .tag-row {
   display: flex;
   flex-wrap: wrap;

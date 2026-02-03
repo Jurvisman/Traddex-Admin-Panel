@@ -11,6 +11,7 @@ import {
 const initialForm = {
   plan_name: '',
   user_type: 'BUSINESS',
+  business_type: 'ALL',
   price: '',
   duration_months: '',
   description: '',
@@ -25,6 +26,12 @@ const USER_TYPES = [
   { value: 'USER', label: 'User' },
   { value: 'LOGISTIC', label: 'Logistic' },
   { value: 'INSURANCE', label: 'Insurance' },
+];
+
+const BUSINESS_TYPES = [
+  { value: 'ALL', label: 'All business' },
+  { value: 'B2B', label: 'B2B' },
+  { value: 'B2C', label: 'B2C' },
 ];
 
 const PRIORITIES = ['P1', 'P2', 'P3'];
@@ -90,7 +97,16 @@ function SubscriptionPlanPage({ token }) {
   }, []);
 
   const handleChange = (key, value) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
+    setForm((prev) => {
+      if (key === 'user_type') {
+        return {
+          ...prev,
+          user_type: value,
+          business_type: value === 'BUSINESS' ? prev.business_type || 'ALL' : '',
+        };
+      }
+      return { ...prev, [key]: value };
+    });
   };
 
   const updateFeatureRow = (index, key, value) => {
@@ -129,9 +145,11 @@ function SubscriptionPlanPage({ token }) {
   };
 
   const buildPayload = () => {
+    const businessType = form.user_type === 'BUSINESS' ? form.business_type || 'ALL' : null;
     const payload = {
       plan_name: form.plan_name.trim(),
       user_type: form.user_type,
+      business_type: businessType,
       price: toNumber(form.price),
       duration_months: toNumber(form.duration_months),
       description: form.description.trim() || null,
@@ -191,6 +209,7 @@ function SubscriptionPlanPage({ token }) {
     setForm({
       plan_name: plan.plan_name || '',
       user_type: plan.user_type || 'BUSINESS',
+      business_type: plan.business_type || 'ALL',
       price: plan.price ?? '',
       duration_months: plan.duration_months ?? plan.duration ?? '',
       description: plan.description || '',
@@ -345,21 +364,39 @@ function SubscriptionPlanPage({ token }) {
                   </label>
                   <label className="field">
                     <span>Font color</span>
-                    <input
-                      type="text"
-                      value={form.font_color}
-                      onChange={(event) => handleChange('font_color', event.target.value)}
-                      placeholder="#0f1230"
-                    />
+                    <div className="inline-row">
+                      <input
+                        type="color"
+                        className="color-input"
+                        value={form.font_color}
+                        onChange={(event) => handleChange('font_color', event.target.value)}
+                        aria-label="Font color"
+                      />
+                      <input
+                        type="text"
+                        value={form.font_color}
+                        onChange={(event) => handleChange('font_color', event.target.value)}
+                        placeholder="#0f1230"
+                      />
+                    </div>
                   </label>
                   <label className="field">
                     <span>Background color</span>
-                    <input
-                      type="text"
-                      value={form.background_color}
-                      onChange={(event) => handleChange('background_color', event.target.value)}
-                      placeholder="#f6f3ff"
-                    />
+                    <div className="inline-row">
+                      <input
+                        type="color"
+                        className="color-input"
+                        value={form.background_color}
+                        onChange={(event) => handleChange('background_color', event.target.value)}
+                        aria-label="Background color"
+                      />
+                      <input
+                        type="text"
+                        value={form.background_color}
+                        onChange={(event) => handleChange('background_color', event.target.value)}
+                        placeholder="#f6f3ff"
+                      />
+                    </div>
                   </label>
                   <label className="field">
                     <span>Monthly price</span>
@@ -385,6 +422,21 @@ function SubscriptionPlanPage({ token }) {
                       ))}
                     </select>
                   </label>
+                  {form.user_type === 'BUSINESS' ? (
+                    <label className="field">
+                      <span>Business type</span>
+                      <select
+                        value={form.business_type || 'ALL'}
+                        onChange={(event) => handleChange('business_type', event.target.value)}
+                      >
+                        {BUSINESS_TYPES.map((type) => (
+                          <option key={type.value} value={type.value}>
+                            {type.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ) : null}
                   <label className="field">
                     <span>Status</span>
                     <select value={form.is_active} onChange={(event) => handleChange('is_active', event.target.value)}>
