@@ -75,6 +75,8 @@ export const getProduct = (token, id) => request(`/admin/product/${id}`, { token
 export const updateProduct = (token, id, payload) =>
   request(`/admin/product/${id}/update`, { method: 'PUT', body: payload, token });
 export const deleteProduct = (token, id) => request(`/admin/product/${id}`, { method: 'DELETE', token });
+export const updateProductVariantStatus = (token, productId, variantId, payload) =>
+  request(`/admin/product/${productId}/variants/${variantId}/status`, { method: 'PUT', body: payload, token });
 
 export const listAttributeDefinitions = (token, active) => {
   const query = active === true || active === false ? `?active=${active}` : '';
@@ -104,3 +106,43 @@ export const deleteAttributeMapping = (token, id) =>
   request(`/admin/product-attribute-map/${id}`, { method: 'DELETE', token });
 
 export const listUoms = (token) => request('/uom/getall', { token });
+
+export const getInquiryConfig = (token) => request('/admin/inquiry/config', { token });
+export const updateInquiryConfig = (token, payload) =>
+  request('/admin/inquiry/config', { method: 'PUT', body: payload, token });
+
+export const getInquiryReport = (token, filters = {}) => {
+  const params = new URLSearchParams();
+  if (filters.date_from) params.set('date_from', filters.date_from);
+  if (filters.date_to) params.set('date_to', filters.date_to);
+  if (filters.user_id) params.set('user_id', filters.user_id);
+  const query = params.toString() ? `?${params.toString()}` : '';
+  return request(`/admin/inquiry/report${query}`, { token });
+};
+
+// Subscription management
+export const listSubscriptionFeatures = (token) => request('/admin/feature/list', { token });
+export const createSubscriptionFeature = (token, payload) =>
+  request('/admin/feature/create', { method: 'POST', body: payload, token });
+export const updateSubscriptionFeature = (token, id, payload) =>
+  request(`/admin/feature/${id}`, { method: 'PUT', body: payload, token });
+export const deleteSubscriptionFeature = (token, id) =>
+  request(`/admin/feature/${id}`, { method: 'DELETE', token });
+
+export const listSubscriptionPlans = (token) => request('/admin/plan/list', { token });
+export const createSubscriptionPlan = (token, payload) =>
+  request('/admin/plan/create', { method: 'POST', body: payload, token });
+export const updateSubscriptionPlan = (token, id, payload) =>
+  request(`/admin/plan/${id}`, { method: 'PUT', body: payload, token });
+export const deleteSubscriptionPlan = (token, id) =>
+  request(`/admin/plan/${id}`, { method: 'DELETE', token });
+
+export const assignSubscriptionPlan = (token, payload) =>
+  request('/admin/subscription/assign', { method: 'POST', body: payload, token });
+export const listSubscriptionAssignments = (token, filters = {}) => {
+  const params = new URLSearchParams();
+  if (filters.user_id) params.set('user_id', filters.user_id);
+  if (filters.status) params.set('status', filters.status);
+  const query = params.toString() ? `?${params.toString()}` : '';
+  return request(`/admin/subscription/list${query}`, { token });
+};
