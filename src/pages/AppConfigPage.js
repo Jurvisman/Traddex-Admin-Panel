@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Banner } from '../components';
 import {
   getAppConfigDraft,
+  getPublishedAppConfig,
   listAppConfigVersions,
+  listIndustries,
   publishAppConfig,
   rollbackAppConfig,
   saveAppConfigDraft,
@@ -26,6 +28,8 @@ const parseJson = (value) => {
 };
 
 const formatDate = (value) => (value ? new Date(value).toLocaleString() : '-');
+const isHardcodedSection = (section) => section?.type === 'hardcoded';
+const isHomeMainPage = (page) => page?.id === 'home_main' || page?.route === '/home';
 
 const sectionTypeOptions = [
   { value: 'carousel', label: 'Carousel' },
@@ -37,8 +41,8 @@ const sectionTypeOptions = [
   { value: 'twoColumn', label: 'Two column' },
 ];
 
-const headerTabs = [
-  { id: 'home', label: 'Home', route: '/home/electronics' },
+const fallbackHeaderTabs = [
+  { id: 'home', label: 'Home', route: '/home' },
   { id: 'electronics', label: 'Electronics', route: '/home/electronics' },
   { id: 'beauty', label: 'Beauty', route: '/home/beauty' },
   { id: 'grocery', label: 'Grocery', route: '/home/grocery' },
@@ -46,13 +50,13 @@ const headerTabs = [
   { id: 'agriculture', label: 'Agriculture', route: '/home/agriculture' },
 ];
 
-const pagePresets = [
+const fallbackIndustryPresets = [
   {
     id: 'home_electronics',
     route: '/home/electronics',
     dataSourceRef: 'home.electronics',
     dataSourceUrl: '/api/home?category=electronics',
-    label: 'Home / Electronics',
+    label: 'Electronics',
   },
   {
     id: 'home_beauty',
@@ -83,6 +87,89 @@ const pagePresets = [
     label: 'Agriculture',
   },
 ];
+
+const homeFixedSections = [
+  { id: 'stats_row', title: 'Sales Report' },
+  { id: 'b2b_b2c', title: 'B2B & B2C' },
+  { id: 'quick_action', title: 'Quick Action' },
+  { id: 'business_of_month', title: 'Business of Month' },
+  { id: 'trending_categories', title: 'Categories of Trending' },
+  { id: 'bestsellers', title: 'Bestsellers' },
+  { id: 'services_near_you', title: 'Services Near You' },
+  { id: 'business_health', title: 'Your Business Health' },
+];
+
+const buildHomeFixedSections = () =>
+  homeFixedSections.map((section) => ({
+    id: section.id,
+    type: 'hardcoded',
+    title: section.title,
+    enabled: true,
+  }));
+
+const normalizeSlug = (value) =>
+  (value || '')
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+const resolveIndustryRoute = (industry, slug) => {
+  const path = industry?.path;
+  if (path && typeof path === 'string') {
+    return path.startsWith('/') ? path : `/${path}`;
+  }
+  return slug ? `/home/${slug}` : '/home';
+};
+
+const buildIndustryPresets = (industries = []) => {
+  const items = Array.isArray(industries) ? industries : [];
+  const active = items.filter((item) => item?.active !== 0);
+  active.sort((a, b) => (a?.ordering ?? 0) - (b?.ordering ?? 0));
+  return active
+    .map((industry) => {
+      const name = industry?.name || 'Industry';
+      const slug = normalizeSlug(industry?.slug || name);
+      if (!slug) return null;
+      const route = resolveIndustryRoute(industry, slug);
+      return {
+        id: `home_${slug}`,
+        route,
+        dataSourceRef: `home.${slug}`,
+        dataSourceUrl: `/api/home?category=${slug}`,
+        label: name,
+      };
+    })
+    .filter(Boolean);
+};
+
+const buildHeaderTabs = (industries = []) => {
+  const industryTabs = buildIndustryPresets(industries).map((preset) => ({
+    id: preset.id.replace(/^home_/, ''),
+    label: preset.label,
+    route: preset.route,
+  }));
+  if (!industryTabs.length) {
+    return fallbackHeaderTabs;
+  }
+  const homeTab = { id: 'home', label: 'Home', route: '/home' };
+  return [homeTab, ...industryTabs];
+};
+
+const buildPagePresets = (industries = []) => {
+  const industryPresets = buildIndustryPresets(industries);
+  const pages = industryPresets.length ? industryPresets : fallbackIndustryPresets;
+  return [
+    {
+      id: 'home_main',
+      route: '/home',
+      label: 'Home Page',
+      sections: buildHomeFixedSections(),
+    },
+    ...pages,
+  ];
+};
 
 const quickSectionPresets = [
   {
@@ -122,7 +209,22 @@ const quickSectionPresets = [
   },
 ];
 
-const defaultConfig = {
+const buildDataSources = (pagePresets = []) => {
+  const sources = {};
+  pagePresets.forEach((page) => {
+    if (!page?.dataSourceRef) return;
+    if (!sources[page.dataSourceRef]) {
+      sources[page.dataSourceRef] = {
+        method: 'GET',
+        url: page.dataSourceUrl || `/api/${page.dataSourceRef}`,
+      };
+    }
+  });
+  sources.todaydealproducts = { method: 'GET', url: '/api/user/todaydealproducts' };
+  return sources;
+};
+
+const buildDefaultConfig = (pagePresets, headerTabs) => ({
   version: '1.0.0',
   app: { locale: 'en-IN', currency: 'INR' },
   theme: {
@@ -239,21 +341,18 @@ const defaultConfig = {
       ],
     },
   },
-  dataSources: {
-    'home.electronics': { method: 'GET', url: '/api/home?category=electronics' },
-    'home.fashion': { method: 'GET', url: '/api/home?category=fashion' },
-    'home.beauty': { method: 'GET', url: '/api/home?category=beauty' },
-    'home.grocery': { method: 'GET', url: '/api/home?category=grocery' },
-    'home.agriculture': { method: 'GET', url: '/api/home?category=agriculture' },
-    todaydealproducts: { method: 'GET', url: '/api/user/todaydealproducts' },
-  },
+  dataSources: buildDataSources(pagePresets),
   pages: pagePresets.map((page) => ({
     id: page.id,
     route: page.route,
     dataSourceRef: page.dataSourceRef,
-    screen: { type: 'screen', bgColorRef: 'bg.page', sections: [] },
+    screen: {
+      type: 'screen',
+      bgColorRef: 'bg.page',
+      sections: Array.isArray(page.sections) ? page.sections.map((section) => ({ ...section })) : [],
+    },
   })),
-};
+});
 
 const defaultSectionForm = {
   id: '',
@@ -261,12 +360,13 @@ const defaultSectionForm = {
   title: '',
   itemsPath: '',
   itemTemplateRef: '',
+  dataSourceRef: '',
   columns: '',
 };
 
 const getPageKey = (page, index) => page?.id || page?.route || `page_${index + 1}`;
-const getPageLabel = (page, index) => {
-  const preset = pagePresets.find((item) => item.id === page?.id);
+const getPageLabel = (page, index, presets) => {
+  const preset = (presets || []).find((item) => item.id === page?.id);
   return preset?.label || page?.id || page?.route || `Page ${index + 1}`;
 };
 
@@ -278,22 +378,29 @@ function AppConfigPage({ token }) {
   const [showAdvancedJson, setShowAdvancedJson] = useState(false);
   const [showCustomPageFields, setShowCustomPageFields] = useState(false);
   const [showSectionDetails, setShowSectionDetails] = useState(false);
+  const [showEditor, setShowEditor] = useState(false);
+  const [showAdvancedFields, setShowAdvancedFields] = useState(false);
   const [isUploadingBanner, setIsUploadingBanner] = useState(false);
   const [versions, setVersions] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [selectedPageKey, setSelectedPageKey] = useState('');
+  const [industries, setIndustries] = useState([]);
   const [newPageId, setNewPageId] = useState('');
   const [newPageRoute, setNewPageRoute] = useState('');
   const [newPageSource, setNewPageSource] = useState('');
   const [sectionForm, setSectionForm] = useState(defaultSectionForm);
   const [editingSectionIndex, setEditingSectionIndex] = useState(null);
-  const [pagePresetKey, setPagePresetKey] = useState(pagePresets[0]?.id || '');
+  const [pagePresetKey, setPagePresetKey] = useState('');
   const bannerInputRef = useRef(null);
+
+  const pagePresets = useMemo(() => buildPagePresets(industries), [industries]);
+  const headerTabs = useMemo(() => buildHeaderTabs(industries), [industries]);
 
   const selectedMeta = useMemo(
     () => versions.find((item) => item.id === selectedId) || null,
     [versions, selectedId]
   );
+  const latestUpdated = versions?.[0]?.updated_on || versions?.[0]?.published_on || null;
 
   const configSnapshot = useMemo(() => {
     const parsed = parseJson(draftText);
@@ -313,6 +420,8 @@ function AppConfigPage({ token }) {
     const sections = selectedPage?.screen?.sections;
     return Array.isArray(sections) ? sections : [];
   }, [selectedPage]);
+  const activeSection = editingSectionIndex !== null ? selectedSections[editingSectionIndex] : null;
+  const isEditingFixed = isHardcodedSection(activeSection);
 
   useEffect(() => {
     if (!pages.length) {
@@ -321,9 +430,18 @@ function AppConfigPage({ token }) {
     }
     const exists = pages.some((page, index) => getPageKey(page, index) === selectedPageKey);
     if (!selectedPageKey || !exists) {
-      setSelectedPageKey(getPageKey(pages[0], 0));
+      const homeIndex = pages.findIndex((page) => page?.id === 'home_main' || page?.route === '/home');
+      const nextIndex = homeIndex >= 0 ? homeIndex : 0;
+      setSelectedPageKey(getPageKey(pages[nextIndex], nextIndex));
     }
   }, [pages, selectedPageKey]);
+
+  useEffect(() => {
+    if (!pagePresets.length) return;
+    if (!pagePresetKey) {
+      setPagePresetKey(pagePresets[0]?.id || '');
+    }
+  }, [pagePresets, pagePresetKey]);
 
   const loadDraft = async () => {
     setIsLoading(true);
@@ -334,6 +452,14 @@ function AppConfigPage({ token }) {
       if (payload?.config) {
         setDraftText(JSON.stringify(payload.config, null, 2));
         setVersion(payload?.meta?.version || '');
+        return;
+      }
+      const published = await getPublishedAppConfig();
+      const publishedPayload = published?.data;
+      if (publishedPayload?.config) {
+        setDraftText(JSON.stringify(publishedPayload.config, null, 2));
+        setVersion(publishedPayload?.meta?.version || '');
+        setMessage({ type: 'info', text: 'Loaded published config (no draft found).' });
       }
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to load draft config.' });
@@ -351,9 +477,20 @@ function AppConfigPage({ token }) {
     }
   };
 
+  const loadIndustries = async () => {
+    try {
+      const response = await listIndustries(token);
+      const items = response?.data;
+      setIndustries(Array.isArray(items) ? items : []);
+    } catch (error) {
+      setIndustries([]);
+    }
+  };
+
   useEffect(() => {
     loadDraft();
     loadVersions();
+    loadIndustries();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -433,11 +570,11 @@ function AppConfigPage({ token }) {
   };
 
   const handleRefresh = async () => {
-    await Promise.all([loadDraft(), loadVersions()]);
+    await Promise.all([loadDraft(), loadVersions(), loadIndustries()]);
   };
 
   const handleCreateBaseConfig = () => {
-    const payload = JSON.parse(JSON.stringify(defaultConfig));
+    const payload = JSON.parse(JSON.stringify(buildDefaultConfig(pagePresets, headerTabs)));
     setDraftText(JSON.stringify(payload, null, 2));
     setVersion(payload.version || '1.0.0');
     setSelectedPageKey(getPageKey(payload.pages[0], 0));
@@ -464,7 +601,11 @@ function AppConfigPage({ token }) {
       id: preset.id,
       route: preset.route,
       dataSourceRef: preset.dataSourceRef,
-      screen: { type: 'screen', bgColorRef: 'bg.page', sections: [] },
+      screen: {
+        type: 'screen',
+        bgColorRef: 'bg.page',
+        sections: Array.isArray(preset.sections) ? preset.sections.map((section) => ({ ...section })) : [],
+      },
     });
     if (!next.dataSources || typeof next.dataSources !== 'object') {
       next.dataSources = {};
@@ -500,6 +641,27 @@ function AppConfigPage({ token }) {
   const resetSectionForm = () => {
     setSectionForm({ ...defaultSectionForm });
     setEditingSectionIndex(null);
+    setShowAdvancedFields(false);
+  };
+
+  const openAddSection = () => {
+    if (!selectedPageKey) {
+      setMessage({ type: 'error', text: 'Select a page before adding sections.' });
+      return;
+    }
+    resetSectionForm();
+    setShowEditor(true);
+  };
+
+  const openEditSection = (index) => {
+    handleSelectSection(index);
+    setShowAdvancedFields(false);
+    setShowEditor(true);
+  };
+
+  const closeEditor = () => {
+    setShowEditor(false);
+    resetSectionForm();
   };
 
   const ensureHeaderTabs = (config) => {
@@ -530,7 +692,11 @@ function AppConfigPage({ token }) {
           id: preset.id,
           route: preset.route,
           dataSourceRef: preset.dataSourceRef,
-          screen: { type: 'screen', bgColorRef: 'bg.page', sections: [] },
+          screen: {
+            type: 'screen',
+            bgColorRef: 'bg.page',
+            sections: Array.isArray(preset.sections) ? preset.sections.map((section) => ({ ...section })) : [],
+          },
         });
       }
       if (preset.dataSourceRef && !next.dataSources[preset.dataSourceRef]) {
@@ -583,6 +749,21 @@ function AppConfigPage({ token }) {
       next.dataSources[base.dataSourceRef] = { method: 'GET', url: `/api/${base.dataSourceRef}` };
     }
     updateConfigFromBuilder(next, 'Section added. Remember to save draft.');
+  };
+
+  const applySectionPreset = (presetKey) => {
+    const preset = quickSectionPresets.find((item) => item.key === presetKey);
+    if (!preset) return;
+    setSectionForm((prev) => ({
+      ...prev,
+      id: preset.section.id || '',
+      type: preset.section.type || prev.type,
+      title: preset.section.title || '',
+      itemsPath: preset.section.itemsPath || '',
+      itemTemplateRef: preset.section.itemTemplateRef || '',
+      dataSourceRef: preset.section.dataSourceRef || '',
+      columns: preset.section.columns ? String(preset.section.columns) : '',
+    }));
   };
 
   const handleAddQuickSection = (presetKey) => {
@@ -665,6 +846,7 @@ function AppConfigPage({ token }) {
     setOrDelete('title', form.title?.trim());
     setOrDelete('itemsPath', form.itemsPath?.trim());
     setOrDelete('itemTemplateRef', form.itemTemplateRef?.trim());
+    setOrDelete('dataSourceRef', form.dataSourceRef?.trim());
     const columns = form.columns !== '' ? Number(form.columns) : null;
     if (columns && !Number.isNaN(columns)) {
       next.columns = columns;
@@ -745,6 +927,7 @@ function AppConfigPage({ token }) {
     sections.push(newSection);
     updateConfigFromBuilder(next, 'Section added. Remember to save draft.');
     resetSectionForm();
+    setShowEditor(false);
   };
 
   const handleUpdateSection = () => {
@@ -785,6 +968,7 @@ function AppConfigPage({ token }) {
     sections[editingSectionIndex] = updated;
     updateConfigFromBuilder(next, 'Section updated. Remember to save draft.');
     resetSectionForm();
+    setShowEditor(false);
   };
 
   const handleSelectSection = (index) => {
@@ -797,6 +981,7 @@ function AppConfigPage({ token }) {
       title: section.title || '',
       itemsPath: section.itemsPath || '',
       itemTemplateRef: section.itemTemplateRef || '',
+      dataSourceRef: section.dataSourceRef || '',
       columns: section.columns !== undefined && section.columns !== null ? String(section.columns) : '',
     });
   };
@@ -840,17 +1025,22 @@ function AppConfigPage({ token }) {
     const pageIndex = pagesList.findIndex((page, idx) => getPageKey(page, idx) === selectedPageKey);
     if (pageIndex < 0) return;
     const sections = ensureScreenSections(pagesList[pageIndex]);
+    const section = sections[index];
+    if (isHardcodedSection(section)) {
+      setMessage({ type: 'error', text: 'Fixed sections cannot be deleted.' });
+      return;
+    }
     sections.splice(index, 1);
     updateConfigFromBuilder(next, 'Section removed. Remember to save draft.');
     resetSectionForm();
   };
 
   return (
-    <div>
-      <div className="panel-head">
+    <div className="app-config-page">
+      <div className="panel-head app-config-head">
         <div>
-          <h2 className="panel-title">App Config</h2>
-          <p className="panel-subtitle">Edit, validate, and publish the dynamic UI config.</p>
+          <h2 className="panel-title">Manage Dynamic Home Page</h2>
+          <p className="panel-subtitle">Control the visibility and order of sections on the user home page.</p>
         </div>
         <div className="inline-row">
           <button
@@ -866,392 +1056,375 @@ function AppConfigPage({ token }) {
         </div>
       </div>
       <Banner message={message} />
-      {showAdvancedJson ? (
-        <div className="panel-grid">
-        <div className="panel card">
-          <div className="panel-split">
-            <h3 className="panel-subheading">Draft JSON</h3>
-            <span className="chip subtle">{version ? `Version ${version}` : 'No version'}</span>
+      <div className="app-config-card">
+        <div className="config-toolbar">
+          <div className="page-block">
+            <label className="page-field">
+              <span>Page</span>
+              <select
+                value={selectedPageKey}
+                onChange={(event) => {
+                  setSelectedPageKey(event.target.value);
+                  resetSectionForm();
+                }}
+              >
+                <option value="">Select page</option>
+                {pages.map((page, index) => {
+                  const key = getPageKey(page, index);
+                  return (
+                    <option key={key} value={key}>
+                      {getPageLabel(page, index, pagePresets)}
+                    </option>
+                  );
+                })}
+              </select>
+            </label>
+            <span className="update-chip">
+              {latestUpdated ? `Last updated ${formatDate(latestUpdated)}` : 'No updates yet'}
+            </span>
           </div>
-          <form className="field-grid" onSubmit={handleSave}>
-            <label className="field field-span">
-              <span>Config JSON</span>
-              <textarea
-                value={draftText}
-                onChange={(event) => setDraftText(event.target.value)}
-                placeholder='{"version":"1.0.0", "theme": { ... }, "pages": []}'
-              />
-            </label>
-            <label className="field">
-              <span>Version label (optional)</span>
-              <input
-                type="text"
-                value={version}
-                onChange={(event) => setVersion(event.target.value)}
-                placeholder="1.0.0"
-              />
-            </label>
-            <div className="field">
-              <span>Actions</span>
-              <div className="inline-row">
-                <button type="button" className="ghost-btn small" onClick={handleValidate} disabled={isLoading}>
-                  Validate
-                </button>
-                <button type="submit" className="primary-btn compact" disabled={isLoading}>
-                  Save Draft
-                </button>
-                <button type="button" className="primary-btn compact" onClick={handlePublish} disabled={isLoading}>
-                  Publish
-                </button>
-              </div>
-            </div>
-            <div className="field field-span">
-              <span>Selected version</span>
-              <p className="field-help">
-                {selectedMeta
-                  ? `#${selectedMeta.id} (${selectedMeta.status}) - updated ${formatDate(
-                      selectedMeta.updated_on
-                    )}`
-                  : 'Select a version from the list to rollback.'}
-              </p>
-            </div>
-          </form>
-        </div>
-
-        <div className="panel card">
-          <div className="panel-split">
-            <h3 className="panel-subheading">Versions</h3>
-            <button type="button" className="ghost-btn small" onClick={loadVersions} disabled={isLoading}>
-              Refresh
+          <div className="toolbar-actions">
+            <button type="button" className="ghost-btn small" onClick={handleCreateBaseConfig} disabled={isLoading}>
+              Create Base Config
+            </button>
+            <button type="button" className="ghost-btn small" onClick={ensureHeaderPages} disabled={isLoading}>
+              Ensure Header Pages
+            </button>
+            <button type="button" className="primary-btn compact" onClick={saveDraft} disabled={isLoading}>
+              Save Draft
+            </button>
+            <button type="button" className="primary-btn compact" onClick={handlePublish} disabled={isLoading}>
+              Publish
             </button>
           </div>
-          <div className="table-shell">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Status</th>
-                  <th>Version</th>
-                  <th>Updated</th>
-                  <th>Published</th>
-                  <th className="table-actions">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {versions.length === 0 ? (
-                  <tr>
-                    <td colSpan="6">No versions found.</td>
-                  </tr>
-                ) : (
-                  versions.map((item) => (
-                    <tr
-                      key={item.id}
-                      className="table-row-clickable"
-                      onClick={() => setSelectedId(item.id)}
+        </div>
+
+        {!configSnapshot ? (
+          <div className="empty-state">
+            <p>Click "Create Base Config" to start, or enable Advanced JSON to paste a config.</p>
+            <button type="button" className="primary-btn compact" onClick={handleCreateBaseConfig} disabled={isLoading}>
+              Create Base Config
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="section-list">
+              {selectedSections.length === 0 ? (
+                <div className="section-empty">No sections yet.</div>
+              ) : (
+                selectedSections.map((section, index) => {
+                  const isFixed = isHardcodedSection(section);
+                  const title = section?.title || section?.id || 'Section';
+                  const typeLabel = isFixed ? 'Fixed' : section?.type || 'Section';
+                  const visible = section?.enabled !== false;
+                  return (
+                    <div
+                      key={`${section?.id || 'section'}-${index}`}
+                      className={`section-row ${visible ? '' : 'is-hidden'}`}
                     >
-                      <td>{item.id}</td>
-                      <td>
-                        <span className="chip subtle">{item.status || 'UNKNOWN'}</span>
-                      </td>
-                      <td>{item.version || '-'}</td>
-                      <td>{formatDate(item.updated_on)}</td>
-                      <td>{formatDate(item.published_on)}</td>
-                      <td className="table-actions">
+                      <div className="section-grip" />
+                      <div className="section-main" onClick={() => openEditSection(index)}>
+                        <div className="section-title">{title}</div>
+                        <div className="section-sub">{section?.id || ''}</div>
+                      </div>
+                      <span className={`section-pill ${isFixed ? 'pill-fixed' : ''}`}>{typeLabel}</span>
+                      <label className="toggle" onClick={(event) => event.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={visible}
+                          onChange={() => handleToggleSection(index)}
+                        />
+                        <span className="toggle-track">
+                          <span className="toggle-thumb" />
+                        </span>
+                        <span className="toggle-text">{visible ? 'Visible' : 'Hidden'}</span>
+                      </label>
+                      <div className="section-actions">
                         <button
                           type="button"
                           className="ghost-btn small"
                           onClick={(event) => {
                             event.stopPropagation();
-                            handleRollback(item.id);
+                            handleMoveSection(index, -1);
                           }}
-                          disabled={isLoading}
                         >
-                          Rollback
+                          Up
                         </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-      ) : null}
-      <div className="panel-grid">
-        <div className="panel card">
-          <div className="panel-split">
-            <h3 className="panel-subheading">Section Builder</h3>
-            <div className="inline-row">
-              <button type="button" className="ghost-btn small" onClick={handleCreateBaseConfig} disabled={isLoading}>
-                Create Base Config
-              </button>
-              <button type="button" className="ghost-btn small" onClick={ensureHeaderPages} disabled={isLoading}>
-                Ensure Header Pages
-              </button>
-              <button type="button" className="primary-btn compact" onClick={saveDraft} disabled={isLoading}>
-                Save Draft
-              </button>
-              <button type="button" className="primary-btn compact" onClick={handlePublish} disabled={isLoading}>
-                Publish
-              </button>
-            </div>
-          </div>
-          <div className="panel-split">
-            <span className="chip subtle">
-              {selectedPage ? `Page ${getPageLabel(selectedPage, selectedPageIndex)}` : 'No page selected'}
-            </span>
-            <button
-              type="button"
-              className="ghost-btn small"
-              onClick={() => setShowCustomPageFields((prev) => !prev)}
-            >
-              {showCustomPageFields ? 'Hide custom page' : 'Custom page'}
-            </button>
-          </div>
-          {!configSnapshot ? (
-            <p className="field-help">Click "Create Base Config" to start, or show Advanced JSON to paste.</p>
-          ) : (
-            <>
-              <div className="field-grid">
-                <label className="field">
-                  <span>Page</span>
-                  <select
-                    value={selectedPageKey}
-                    onChange={(event) => {
-                      setSelectedPageKey(event.target.value);
-                      resetSectionForm();
-                    }}
-                  >
-                    <option value="">Select page</option>
-                    {pages.map((page, index) => {
-                      const key = getPageKey(page, index);
-                      return (
-                        <option key={key} value={key}>
-                          {getPageLabel(page, index)}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </label>
-                <div className="field">
-                  <span>Quick add sections</span>
-                  <div className="inline-row">
-                    <button type="button" className="ghost-btn small" onClick={handleBannerClick} disabled={isUploadingBanner}>
-                      {isUploadingBanner ? 'Uploading...' : 'Add Ad Banner'}
-                    </button>
-                    <button type="button" className="ghost-btn small" onClick={() => handleAddQuickSection('todays_deals')}>
-                      Add Today&apos;s Deals
-                    </button>
-                    <button type="button" className="ghost-btn small" onClick={() => handleAddQuickSection('quick_actions')}>
-                      Add Quick Actions
-                    </button>
-                    <button type="button" className="ghost-btn small" onClick={() => handleAddQuickSection('shop_categories')}>
-                      Add Categories
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <input
-                ref={bannerInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                style={{ display: 'none' }}
-                onChange={handleBannerFiles}
-              />
-
-              {showCustomPageFields ? (
-                <div className="field-grid">
-                  <label className="field">
-                    <span>Preset pages</span>
-                    <select value={pagePresetKey} onChange={(event) => setPagePresetKey(event.target.value)}>
-                      {pagePresets.map((page) => (
-                        <option key={page.id} value={page.id}>
-                          {page.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <div className="field">
-                    <span>Page actions</span>
-                    <div className="inline-row">
-                      <button type="button" className="ghost-btn small" onClick={handleAddPresetPage} disabled={isLoading}>
-                        Add Preset Page
-                      </button>
-                    </div>
-                  </div>
-                  <label className="field">
-                    <span>New page id</span>
-                    <input
-                      type="text"
-                      value={newPageId}
-                      onChange={(event) => setNewPageId(event.target.value)}
-                      placeholder="home_custom"
-                    />
-                  </label>
-                  <label className="field">
-                    <span>New page route</span>
-                    <input
-                      type="text"
-                      value={newPageRoute}
-                      onChange={(event) => setNewPageRoute(event.target.value)}
-                      placeholder="/home/custom"
-                    />
-                  </label>
-                  <label className="field">
-                    <span>Data source ref (optional)</span>
-                    <input
-                      type="text"
-                      value={newPageSource}
-                      onChange={(event) => setNewPageSource(event.target.value)}
-                      placeholder="home.custom"
-                    />
-                  </label>
-                  <div className="field">
-                    <span>Custom page action</span>
-                    <div className="inline-row">
-                      <button type="button" className="ghost-btn small" onClick={handleAddPage} disabled={isLoading}>
-                        Add Page
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-
-              <div className="panel-split">
-                <h3 className="panel-subheading">Sections</h3>
-                <span className="chip subtle">{selectedSections.length} sections</span>
-              </div>
-              <div className="table-shell">
-                <table className="admin-table">
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>Type</th>
-                      <th>Title</th>
-                      <th>Enabled</th>
-                      <th className="table-actions">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selectedSections.length === 0 ? (
-                      <tr>
-                        <td colSpan="5">No sections yet.</td>
-                      </tr>
-                    ) : (
-                      selectedSections.map((section, index) => (
-                        <tr
-                          key={`${section?.id || 'section'}-${index}`}
-                          className="table-row-clickable"
-                          onClick={() => handleSelectSection(index)}
+                        <button
+                          type="button"
+                          className="ghost-btn small"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleMoveSection(index, 1);
+                          }}
                         >
-                          <td>{section?.id || '-'}</td>
-                          <td>{section?.type || '-'}</td>
-                          <td>{section?.title || '-'}</td>
-                          <td>{section?.enabled === false ? 'No' : 'Yes'}</td>
-                          <td className="table-actions">
-                            <div className="inline-row">
-                              <button
-                                type="button"
-                                className="ghost-btn small"
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  handleMoveSection(index, -1);
-                                }}
-                              >
-                                Up
-                              </button>
-                              <button
-                                type="button"
-                                className="ghost-btn small"
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  handleMoveSection(index, 1);
-                                }}
-                              >
-                                Down
-                              </button>
-                              <button
-                                type="button"
-                                className="ghost-btn small"
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  handleToggleSection(index);
-                                }}
-                              >
-                                {section?.enabled === false ? 'Enable' : 'Disable'}
-                              </button>
-                              <button
-                                type="button"
-                                className="ghost-btn small"
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  handleDeleteSection(index);
-                                }}
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="panel-split">
-                <h3 className="panel-subheading">Section details (advanced)</h3>
+                          Down
+                        </button>
+                        <button
+                          type="button"
+                          className="ghost-btn small"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            openEditSection(index);
+                          }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="ghost-btn small"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleDeleteSection(index);
+                          }}
+                          disabled={isFixed}
+                        >
+                          {isFixed ? 'Fixed' : 'Remove'}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+            <div className="section-footer">
+              <button type="button" className="add-section-btn" onClick={openAddSection}>
+                + Add Section
+              </button>
+              <div className="quick-add-row">
                 <button
                   type="button"
                   className="ghost-btn small"
-                  onClick={() => setShowSectionDetails((prev) => !prev)}
+                  onClick={handleBannerClick}
+                  disabled={isUploadingBanner}
                 >
-                  {showSectionDetails ? 'Hide details' : 'Show details'}
+                  {isUploadingBanner ? 'Uploading...' : 'Add Ad Banner'}
+                </button>
+                <button type="button" className="ghost-btn small" onClick={() => handleAddQuickSection('todays_deals')}>
+                  Add Today's Deals
+                </button>
+                <button type="button" className="ghost-btn small" onClick={() => handleAddQuickSection('quick_actions')}>
+                  Add Quick Actions
+                </button>
+                <button type="button" className="ghost-btn small" onClick={() => handleAddQuickSection('shop_categories')}>
+                  Add Categories
                 </button>
               </div>
-              {showSectionDetails || editingSectionIndex !== null ? (
-                <form className="field-grid" onSubmit={handleSectionSubmit}>
-                  <label className="field">
-                    <span>Section id</span>
-                    <input
-                      type="text"
-                      value={sectionForm.id}
-                      onChange={(event) => setSectionForm((prev) => ({ ...prev, id: event.target.value }))}
-                      placeholder="quick_actions"
-                      required
-                    />
-                  </label>
-                  <label className="field">
-                    <span>Type</span>
-                    <select
-                      value={sectionForm.type}
-                      onChange={(event) => setSectionForm((prev) => ({ ...prev, type: event.target.value }))}
-                    >
-                      {sectionTypeOptions.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="field">
-                    <span>Title (optional)</span>
-                    <input
-                      type="text"
-                      value={sectionForm.title}
-                      onChange={(event) => setSectionForm((prev) => ({ ...prev, title: event.target.value }))}
-                      placeholder="Quick actions"
-                    />
-                  </label>
+            </div>
+          </>
+        )}
+        <input
+          ref={bannerInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          style={{ display: 'none' }}
+          onChange={handleBannerFiles}
+        />
+      </div>
+      {showAdvancedJson ? (
+        <div className="panel-grid">
+          <div className="panel card">
+            <div className="panel-split">
+              <h3 className="panel-subheading">Draft JSON</h3>
+              <span className="chip subtle">{version ? `Version ${version}` : 'No version'}</span>
+            </div>
+            <form className="field-grid" onSubmit={handleSave}>
+              <label className="field field-span">
+                <span>Config JSON</span>
+                <textarea
+                  value={draftText}
+                  onChange={(event) => setDraftText(event.target.value)}
+                  placeholder='{"version":"1.0.0", "theme": { ... }, "pages": []}'
+                />
+              </label>
+              <label className="field">
+                <span>Version label (optional)</span>
+                <input
+                  type="text"
+                  value={version}
+                  onChange={(event) => setVersion(event.target.value)}
+                  placeholder="1.0.0"
+                />
+              </label>
+              <div className="field">
+                <span>Actions</span>
+                <div className="inline-row">
+                  <button type="button" className="ghost-btn small" onClick={handleValidate} disabled={isLoading}>
+                    Validate
+                  </button>
+                  <button type="submit" className="primary-btn compact" disabled={isLoading}>
+                    Save Draft
+                  </button>
+                  <button type="button" className="primary-btn compact" onClick={handlePublish} disabled={isLoading}>
+                    Publish
+                  </button>
+                </div>
+              </div>
+              <div className="field field-span">
+                <span>Selected version</span>
+                <p className="field-help">
+                  {selectedMeta
+                    ? `#${selectedMeta.id} (${selectedMeta.status}) - updated ${formatDate(
+                        selectedMeta.updated_on
+                      )}`
+                    : 'Select a version from the list to rollback.'}
+                </p>
+              </div>
+            </form>
+          </div>
+
+          <div className="panel card">
+            <div className="panel-split">
+              <h3 className="panel-subheading">Versions</h3>
+              <button type="button" className="ghost-btn small" onClick={loadVersions} disabled={isLoading}>
+                Refresh
+              </button>
+            </div>
+            <div className="table-shell">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Status</th>
+                    <th>Version</th>
+                    <th>Updated</th>
+                    <th>Published</th>
+                    <th className="table-actions">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {versions.length === 0 ? (
+                    <tr>
+                      <td colSpan="6">No versions found.</td>
+                    </tr>
+                  ) : (
+                    versions.map((item) => (
+                      <tr
+                        key={item.id}
+                        className="table-row-clickable"
+                        onClick={() => setSelectedId(item.id)}
+                      >
+                        <td>{item.id}</td>
+                        <td>
+                          <span className="chip subtle">{item.status || 'UNKNOWN'}</span>
+                        </td>
+                        <td>{item.version || '-'}</td>
+                        <td>{formatDate(item.updated_on)}</td>
+                        <td>{formatDate(item.published_on)}</td>
+                        <td className="table-actions">
+                          <button
+                            type="button"
+                            className="ghost-btn small"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleRollback(item.id);
+                            }}
+                            disabled={isLoading}
+                          >
+                            Rollback
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {showEditor ? (
+        <div className="modal-backdrop" onClick={closeEditor}>
+          <div className="modal-card" onClick={(event) => event.stopPropagation()}>
+            <div className="modal-head">
+              <div>
+                <h3 className="panel-subheading">{editingSectionIndex !== null ? 'Edit Section' : 'Add Section'}</h3>
+                {isEditingFixed ? (
+                  <p className="field-help">Fixed sections can only be reordered or hidden.</p>
+                ) : null}
+              </div>
+              <button type="button" className="ghost-btn small" onClick={closeEditor}>
+                x
+              </button>
+            </div>
+            <form className="field-grid modal-grid" onSubmit={handleSectionSubmit}>
+              <label className="field field-span">
+                <span>Section title</span>
+                <input
+                  type="text"
+                  value={sectionForm.title}
+                  onChange={(event) => setSectionForm((prev) => ({ ...prev, title: event.target.value }))}
+                  placeholder="Section title"
+                />
+              </label>
+              <label className="field">
+                <span>Section id</span>
+                <input
+                  type="text"
+                  value={sectionForm.id}
+                  onChange={(event) => setSectionForm((prev) => ({ ...prev, id: event.target.value }))}
+                  placeholder="todays_deals"
+                  disabled={isEditingFixed}
+                  required={!isEditingFixed}
+                />
+              </label>
+              {isEditingFixed ? (
+                <label className="field">
+                  <span>Section type</span>
+                  <input type="text" value="Fixed" disabled />
+                </label>
+              ) : (
+                <label className="field">
+                  <span>Section type</span>
+                  <select
+                    value={sectionForm.type}
+                    onChange={(event) => setSectionForm((prev) => ({ ...prev, type: event.target.value }))}
+                  >
+                    {sectionTypeOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              {!isEditingFixed ? (
+                <div className="field field-span">
+                  <span>Templates</span>
+                  <div className="inline-row">
+                    <button type="button" className="ghost-btn small" onClick={() => applySectionPreset('todays_deals')}>
+                      Today's Deals
+                    </button>
+                    <button type="button" className="ghost-btn small" onClick={() => applySectionPreset('quick_actions')}>
+                      Quick Actions
+                    </button>
+                    <button type="button" className="ghost-btn small" onClick={() => applySectionPreset('shop_categories')}>
+                      Categories
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+              {!isEditingFixed ? (
+                <div className="field field-span">
+                  <button
+                    type="button"
+                    className="ghost-btn small"
+                    onClick={() => setShowAdvancedFields((prev) => !prev)}
+                  >
+                    {showAdvancedFields ? 'Hide advanced fields' : 'Show advanced fields'}
+                  </button>
+                </div>
+              ) : null}
+              {showAdvancedFields && !isEditingFixed ? (
+                <>
                   <label className="field">
                     <span>Items path</span>
                     <input
                       type="text"
                       value={sectionForm.itemsPath}
                       onChange={(event) => setSectionForm((prev) => ({ ...prev, itemsPath: event.target.value }))}
-                      placeholder="$.quickActions"
+                      placeholder="$.items"
                     />
                   </label>
                   <label className="field">
@@ -1264,6 +1437,15 @@ function AppConfigPage({ token }) {
                     />
                   </label>
                   <label className="field">
+                    <span>Data source ref</span>
+                    <input
+                      type="text"
+                      value={sectionForm.dataSourceRef}
+                      onChange={(event) => setSectionForm((prev) => ({ ...prev, dataSourceRef: event.target.value }))}
+                      placeholder="todaydealproducts"
+                    />
+                  </label>
+                  <label className="field">
                     <span>Columns (grid only)</span>
                     <input
                       type="number"
@@ -1273,29 +1455,23 @@ function AppConfigPage({ token }) {
                       placeholder="2"
                     />
                   </label>
-                  <div className="field">
-                    <span>Section actions</span>
-                    <div className="inline-row">
-                      <button type="submit" className="primary-btn compact" disabled={isLoading}>
-                        {editingSectionIndex !== null ? 'Update Section' : 'Add Section'}
-                      </button>
-                      {editingSectionIndex !== null ? (
-                        <button type="button" className="ghost-btn small" onClick={resetSectionForm} disabled={isLoading}>
-                          Cancel
-                        </button>
-                      ) : null}
-                    </div>
-                  </div>
-                </form>
-              ) : (
-                <p className="field-help">Select a section row to edit details, or enable advanced fields.</p>
-              )}
-            </>
-          )}
+                </>
+              ) : null}
+              <div className="field field-span modal-actions">
+                <button type="button" className="ghost-btn" onClick={closeEditor}>
+                  Cancel
+                </button>
+                <button type="submit" className="primary-btn compact" disabled={isLoading}>
+                  {editingSectionIndex !== null ? 'Save' : 'Add Section'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }
 
 export default AppConfigPage;
+

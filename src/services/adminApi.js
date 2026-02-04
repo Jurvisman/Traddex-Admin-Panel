@@ -130,6 +130,7 @@ export const publishAppConfig = (token) => request('/admin/app-config/publish', 
 export const listAppConfigVersions = (token) => request('/admin/app-config/versions', { token });
 export const rollbackAppConfig = (token, payload) =>
   request('/admin/app-config/rollback', { method: 'POST', body: payload, token });
+export const getPublishedAppConfig = () => request('/app-config');
 
 export const uploadBannerImages = async (token, files) => {
   const headers = { 'x-api-key': API_KEY };
