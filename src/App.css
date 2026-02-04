@@ -2040,6 +2040,16 @@ textarea {
   margin-top: 12px;
 }
 
+.app-config-header {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 16px;
+  background: #f9f7ff;
+  border: 1px solid #ece6ff;
+  display: grid;
+  gap: 12px;
+}
+
 .section-row {
   display: grid;
   grid-template-columns: 18px 1fr auto auto auto;
@@ -2050,6 +2060,12 @@ textarea {
   background: #faf8ff;
   border: 1px solid #ede8ff;
   box-shadow: 0 10px 30px rgba(70, 60, 120, 0.08);
+}
+
+.section-row--header {
+  grid-template-columns: 1fr auto;
+  background: #f4f0ff;
+  border: 1px dashed #d9d1ff;
 }
 
 .section-row.is-hidden {

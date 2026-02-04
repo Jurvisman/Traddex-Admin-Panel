@@ -364,6 +364,21 @@ const defaultSectionForm = {
   columns: '',
 };
 
+const defaultHeaderForm = {
+  backgroundImage: '',
+  overlayGradient: '',
+};
+
+const defaultHeaderSectionForm = {
+  id: '',
+  type: 'carousel',
+  title: '',
+  itemsPath: '',
+  itemTemplateRef: '',
+  dataSourceRef: '',
+  columns: '',
+};
+
 const getPageKey = (page, index) => page?.id || page?.route || `page_${index + 1}`;
 const getPageLabel = (page, index, presets) => {
   const preset = (presets || []).find((item) => item.id === page?.id);
@@ -381,6 +396,8 @@ function AppConfigPage({ token }) {
   const [showEditor, setShowEditor] = useState(false);
   const [showAdvancedFields, setShowAdvancedFields] = useState(false);
   const [isUploadingBanner, setIsUploadingBanner] = useState(false);
+  const [isUploadingHeaderImage, setIsUploadingHeaderImage] = useState(false);
+  const [isUploadingHeroBanner, setIsUploadingHeroBanner] = useState(false);
   const [versions, setVersions] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [selectedPageKey, setSelectedPageKey] = useState('');
@@ -389,9 +406,16 @@ function AppConfigPage({ token }) {
   const [newPageRoute, setNewPageRoute] = useState('');
   const [newPageSource, setNewPageSource] = useState('');
   const [sectionForm, setSectionForm] = useState(defaultSectionForm);
+  const [headerForm, setHeaderForm] = useState(defaultHeaderForm);
+  const [headerSectionForm, setHeaderSectionForm] = useState(defaultHeaderSectionForm);
   const [editingSectionIndex, setEditingSectionIndex] = useState(null);
+  const [editingHeaderSectionIndex, setEditingHeaderSectionIndex] = useState(null);
   const [pagePresetKey, setPagePresetKey] = useState('');
   const bannerInputRef = useRef(null);
+  const headerInputRef = useRef(null);
+  const heroBannerInputRef = useRef(null);
+  const [showHeaderEditor, setShowHeaderEditor] = useState(false);
+  const [showHeaderAdvancedFields, setShowHeaderAdvancedFields] = useState(false);
 
   const pagePresets = useMemo(() => buildPagePresets(industries), [industries]);
   const headerTabs = useMemo(() => buildHeaderTabs(industries), [industries]);
@@ -420,7 +444,13 @@ function AppConfigPage({ token }) {
     const sections = selectedPage?.screen?.sections;
     return Array.isArray(sections) ? sections : [];
   }, [selectedPage]);
+  const selectedHeaderSections = useMemo(() => {
+    const sections = selectedPage?.header?.sections;
+    return Array.isArray(sections) ? sections : [];
+  }, [selectedPage]);
   const activeSection = editingSectionIndex !== null ? selectedSections[editingSectionIndex] : null;
+  const activeHeaderSection =
+    editingHeaderSectionIndex !== null ? selectedHeaderSections[editingHeaderSectionIndex] : null;
   const isEditingFixed = isHardcodedSection(activeSection);
 
   useEffect(() => {
@@ -435,6 +465,23 @@ function AppConfigPage({ token }) {
       setSelectedPageKey(getPageKey(pages[nextIndex], nextIndex));
     }
   }, [pages, selectedPageKey]);
+
+  useEffect(() => {
+    if (!selectedPage || !selectedPage.header) {
+      setHeaderForm({ ...defaultHeaderForm });
+      return;
+    }
+    const header = selectedPage.header || {};
+    const joinList = (value) => {
+      if (Array.isArray(value)) return value.join(', ');
+      if (typeof value === 'string') return value;
+      return '';
+    };
+    setHeaderForm({
+      backgroundImage: typeof header.backgroundImage === 'string' ? header.backgroundImage : '',
+      overlayGradient: joinList(header.overlayGradient),
+    });
+  }, [selectedPage]);
 
   useEffect(() => {
     if (!pagePresets.length) return;
@@ -644,6 +691,12 @@ function AppConfigPage({ token }) {
     setShowAdvancedFields(false);
   };
 
+  const resetHeaderSectionForm = () => {
+    setHeaderSectionForm({ ...defaultHeaderSectionForm });
+    setEditingHeaderSectionIndex(null);
+    setShowHeaderAdvancedFields(false);
+  };
+
   const openAddSection = () => {
     if (!selectedPageKey) {
       setMessage({ type: 'error', text: 'Select a page before adding sections.' });
@@ -653,15 +706,49 @@ function AppConfigPage({ token }) {
     setShowEditor(true);
   };
 
+  const openAddHeaderSection = () => {
+    if (!selectedPageKey) {
+      setMessage({ type: 'error', text: 'Select a page before adding hero sections.' });
+      return;
+    }
+    resetHeaderSectionForm();
+    setShowHeaderEditor(true);
+  };
+
   const openEditSection = (index) => {
     handleSelectSection(index);
     setShowAdvancedFields(false);
     setShowEditor(true);
   };
 
+  const openEditHeaderSection = (index) => {
+    if (!selectedPageKey) {
+      setMessage({ type: 'error', text: 'Select a page before editing hero sections.' });
+      return;
+    }
+    setEditingHeaderSectionIndex(index);
+    const section = selectedHeaderSections[index];
+    setHeaderSectionForm({
+      id: section?.id || '',
+      type: section?.type || 'carousel',
+      title: section?.title || '',
+      itemsPath: section?.itemsPath || '',
+      itemTemplateRef: section?.itemTemplateRef || '',
+      dataSourceRef: section?.dataSourceRef || '',
+      columns: section?.columns ? String(section.columns) : '',
+    });
+    setShowHeaderAdvancedFields(false);
+    setShowHeaderEditor(true);
+  };
+
   const closeEditor = () => {
     setShowEditor(false);
     resetSectionForm();
+  };
+
+  const closeHeaderEditor = () => {
+    setShowHeaderEditor(false);
+    resetHeaderSectionForm();
   };
 
   const ensureHeaderTabs = (config) => {
@@ -815,6 +902,96 @@ function AppConfigPage({ token }) {
     }
   };
 
+  const handleHeaderImageClick = () => {
+    if (!selectedPageKey) {
+      setMessage({ type: 'error', text: 'Select a page before uploading header image.' });
+      return;
+    }
+    if (headerInputRef.current) {
+      headerInputRef.current.value = '';
+      headerInputRef.current.click();
+    }
+  };
+
+  const handleHeaderImageFiles = async (event) => {
+    const files = event?.target?.files;
+    if (!files || files.length === 0) return;
+    if (!selectedPageKey) {
+      setMessage({ type: 'error', text: 'Select a page before uploading header image.' });
+      return;
+    }
+    setIsUploadingHeaderImage(true);
+    setMessage(emptyMessage);
+    try {
+      const limited = Array.from(files).slice(0, 1);
+      const response = await uploadBannerImages(token, limited);
+      const urls = response?.data?.urls || [];
+      if (!urls.length) {
+        throw new Error('Upload failed. No URLs returned.');
+      }
+      setHeaderForm((prev) => ({ ...prev, backgroundImage: urls[0] }));
+      setMessage({ type: 'success', text: 'Header image uploaded. Click "Apply Header" to save.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to upload header image.' });
+    } finally {
+      setIsUploadingHeaderImage(false);
+    }
+  };
+
+  const handleHeroBannerClick = () => {
+    if (!selectedPageKey) {
+      setMessage({ type: 'error', text: 'Select a page before adding hero banners.' });
+      return;
+    }
+    if (heroBannerInputRef.current) {
+      heroBannerInputRef.current.value = '';
+      heroBannerInputRef.current.click();
+    }
+  };
+
+  const handleHeroBannerFiles = async (event) => {
+    const files = event?.target?.files;
+    if (!files || files.length === 0) return;
+    if (!selectedPageKey) {
+      setMessage({ type: 'error', text: 'Select a page before adding hero banners.' });
+      return;
+    }
+    setIsUploadingHeroBanner(true);
+    setMessage(emptyMessage);
+    try {
+      const limited = Array.from(files).slice(0, 3);
+      const response = await uploadBannerImages(token, limited);
+      const urls = response?.data?.urls || [];
+      if (!urls.length) {
+        throw new Error('Upload failed. No URLs returned.');
+      }
+      const items = urls.map((url) => ({ imageUrl: url }));
+      const config = getConfigForBuilder();
+      if (!config) return;
+      const next = cloneConfig(config);
+      const pagesList = ensurePagesArray(next);
+      const pageIndex = pagesList.findIndex((page, index) => getPageKey(page, index) === selectedPageKey);
+      if (pageIndex < 0) {
+        setMessage({ type: 'error', text: 'Selected page not found in config.' });
+        return;
+      }
+      const sections = ensureHeaderSections(pagesList[pageIndex]);
+      const baseId = 'hero_banner';
+      const uniqueId = buildUniqueSectionId(baseId, sections);
+      sections.push({
+        id: uniqueId,
+        type: 'carousel',
+        title: 'Hero Banner',
+        items,
+      });
+      updateConfigFromBuilder(next, 'Hero banner section added. Remember to save draft.');
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to upload hero banner.' });
+    } finally {
+      setIsUploadingHeroBanner(false);
+    }
+  };
+
   const ensurePagesArray = (config) => {
     if (!Array.isArray(config.pages)) {
       config.pages = [];
@@ -830,6 +1007,16 @@ function AppConfigPage({ token }) {
       page.screen.sections = [];
     }
     return page.screen.sections;
+  };
+
+  const ensureHeaderSections = (page) => {
+    if (!page.header || typeof page.header !== 'object') {
+      page.header = {};
+    }
+    if (!Array.isArray(page.header.sections)) {
+      page.header.sections = [];
+    }
+    return page.header.sections;
   };
 
   const buildSectionFromForm = (base, form) => {
@@ -854,6 +1041,96 @@ function AppConfigPage({ token }) {
       delete next.columns;
     }
     return next;
+  };
+
+  const parseGradientList = (value) => {
+    if (!value || typeof value !== 'string') return [];
+    const trimmed = value.trim();
+    if (!trimmed) return [];
+    if (trimmed.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          return parsed.map((item) => String(item)).filter(Boolean);
+        }
+      } catch (error) {
+        // fall back to comma parsing
+      }
+    }
+    return trimmed
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+  };
+
+  const handleHeaderSubmit = (event) => {
+    event.preventDefault();
+    const config = getConfigForBuilder();
+    if (!config) return;
+    if (!selectedPageKey) {
+      setMessage({ type: 'error', text: 'Select a page before editing header settings.' });
+      return;
+    }
+    const next = cloneConfig(config);
+    const pagesList = ensurePagesArray(next);
+    const pageIndex = pagesList.findIndex((page, index) => getPageKey(page, index) === selectedPageKey);
+    if (pageIndex < 0) {
+      setMessage({ type: 'error', text: 'Selected page not found in config.' });
+      return;
+    }
+    const currentHeader = pagesList[pageIndex]?.header && typeof pagesList[pageIndex].header === 'object'
+      ? pagesList[pageIndex].header
+      : {};
+    const nextHeader = { ...currentHeader };
+
+    const backgroundImage = headerForm.backgroundImage?.trim();
+    if (backgroundImage) {
+      nextHeader.backgroundImage = backgroundImage;
+    } else {
+      delete nextHeader.backgroundImage;
+    }
+
+    const overlayGradient = parseGradientList(headerForm.overlayGradient);
+    if (overlayGradient.length > 0) {
+      nextHeader.overlayGradient = overlayGradient;
+    } else {
+      delete nextHeader.overlayGradient;
+    }
+
+    if (Object.keys(nextHeader).length > 0) {
+      pagesList[pageIndex].header = nextHeader;
+    } else {
+      delete pagesList[pageIndex].header;
+    }
+    updateConfigFromBuilder(next, 'Header settings updated. Remember to save draft.');
+  };
+
+  const handleClearHeader = () => {
+    const config = getConfigForBuilder();
+    if (!config) return;
+    if (!selectedPageKey) {
+      setMessage({ type: 'error', text: 'Select a page before editing header settings.' });
+      return;
+    }
+    const next = cloneConfig(config);
+    const pagesList = ensurePagesArray(next);
+    const pageIndex = pagesList.findIndex((page, index) => getPageKey(page, index) === selectedPageKey);
+    if (pageIndex < 0) {
+      setMessage({ type: 'error', text: 'Selected page not found in config.' });
+      return;
+    }
+    const currentHeader = pagesList[pageIndex]?.header && typeof pagesList[pageIndex].header === 'object'
+      ? pagesList[pageIndex].header
+      : {};
+    delete currentHeader.backgroundImage;
+    delete currentHeader.overlayGradient;
+    if (Object.keys(currentHeader).length > 0) {
+      pagesList[pageIndex].header = currentHeader;
+    } else {
+      delete pagesList[pageIndex].header;
+    }
+    setHeaderForm({ ...defaultHeaderForm });
+    updateConfigFromBuilder(next, 'Header settings cleared. Remember to save draft.');
   };
 
   const handleAddPage = () => {
@@ -898,6 +1175,15 @@ function AppConfigPage({ token }) {
     }
   };
 
+  const handleHeaderSectionSubmit = (event) => {
+    event.preventDefault();
+    if (editingHeaderSectionIndex !== null) {
+      handleUpdateHeaderSection();
+    } else {
+      handleAddHeaderSection();
+    }
+  };
+
   const handleAddSection = () => {
     const config = getConfigForBuilder();
     if (!config) return;
@@ -928,6 +1214,38 @@ function AppConfigPage({ token }) {
     updateConfigFromBuilder(next, 'Section added. Remember to save draft.');
     resetSectionForm();
     setShowEditor(false);
+  };
+
+  const handleAddHeaderSection = () => {
+    const config = getConfigForBuilder();
+    if (!config) return;
+    if (!selectedPageKey) {
+      setMessage({ type: 'error', text: 'Select a page before adding hero sections.' });
+      return;
+    }
+    const id = headerSectionForm.id.trim();
+    const type = headerSectionForm.type.trim();
+    if (!id || !type) {
+      setMessage({ type: 'error', text: 'Hero section id and type are required.' });
+      return;
+    }
+    const next = cloneConfig(config);
+    const pagesList = ensurePagesArray(next);
+    const pageIndex = pagesList.findIndex((page, index) => getPageKey(page, index) === selectedPageKey);
+    if (pageIndex < 0) {
+      setMessage({ type: 'error', text: 'Selected page not found in config.' });
+      return;
+    }
+    const sections = ensureHeaderSections(pagesList[pageIndex]);
+    if (sections.some((section) => section?.id === id)) {
+      setMessage({ type: 'error', text: 'Hero section id already exists on this page.' });
+      return;
+    }
+    const newSection = buildSectionFromForm(null, headerSectionForm);
+    sections.push(newSection);
+    updateConfigFromBuilder(next, 'Hero section added. Remember to save draft.');
+    resetHeaderSectionForm();
+    setShowHeaderEditor(false);
   };
 
   const handleUpdateSection = () => {
@@ -969,6 +1287,41 @@ function AppConfigPage({ token }) {
     updateConfigFromBuilder(next, 'Section updated. Remember to save draft.');
     resetSectionForm();
     setShowEditor(false);
+  };
+
+  const handleUpdateHeaderSection = () => {
+    const config = getConfigForBuilder();
+    if (!config) return;
+    if (!selectedPageKey) {
+      setMessage({ type: 'error', text: 'Select a page before editing hero sections.' });
+      return;
+    }
+    if (editingHeaderSectionIndex === null) {
+      return;
+    }
+    const next = cloneConfig(config);
+    const pagesList = ensurePagesArray(next);
+    const pageIndex = pagesList.findIndex((page, index) => getPageKey(page, index) === selectedPageKey);
+    if (pageIndex < 0) {
+      setMessage({ type: 'error', text: 'Selected page not found in config.' });
+      return;
+    }
+    const sections = ensureHeaderSections(pagesList[pageIndex]);
+    const section = sections[editingHeaderSectionIndex];
+    if (!section) return;
+    const updated = buildSectionFromForm(section, headerSectionForm);
+    if (!updated.id) {
+      setMessage({ type: 'error', text: 'Hero section id is required.' });
+      return;
+    }
+    if (updated.id !== section.id && sections.some((item) => item?.id === updated.id)) {
+      setMessage({ type: 'error', text: 'Hero section id already exists on this page.' });
+      return;
+    }
+    sections[editingHeaderSectionIndex] = updated;
+    updateConfigFromBuilder(next, 'Hero section updated. Remember to save draft.');
+    resetHeaderSectionForm();
+    setShowHeaderEditor(false);
   };
 
   const handleSelectSection = (index) => {
@@ -1033,6 +1386,35 @@ function AppConfigPage({ token }) {
     sections.splice(index, 1);
     updateConfigFromBuilder(next, 'Section removed. Remember to save draft.');
     resetSectionForm();
+  };
+
+  const handleMoveHeaderSection = (index, direction) => {
+    const config = getConfigForBuilder();
+    if (!config) return;
+    const next = cloneConfig(config);
+    const pagesList = ensurePagesArray(next);
+    const pageIndex = pagesList.findIndex((page, idx) => getPageKey(page, idx) === selectedPageKey);
+    if (pageIndex < 0) return;
+    const sections = ensureHeaderSections(pagesList[pageIndex]);
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= sections.length) return;
+    const temp = sections[index];
+    sections[index] = sections[targetIndex];
+    sections[targetIndex] = temp;
+    updateConfigFromBuilder(next, 'Hero section order updated. Remember to save draft.');
+  };
+
+  const handleDeleteHeaderSection = (index) => {
+    const config = getConfigForBuilder();
+    if (!config) return;
+    const next = cloneConfig(config);
+    const pagesList = ensurePagesArray(next);
+    const pageIndex = pagesList.findIndex((page, idx) => getPageKey(page, idx) === selectedPageKey);
+    if (pageIndex < 0) return;
+    const sections = ensureHeaderSections(pagesList[pageIndex]);
+    sections.splice(index, 1);
+    updateConfigFromBuilder(next, 'Hero section removed. Remember to save draft.');
+    resetHeaderSectionForm();
   };
 
   return (
@@ -1108,7 +1490,149 @@ function AppConfigPage({ token }) {
           </div>
         ) : (
           <>
+            <div className="app-config-header">
+              <div className="panel-split">
+                <div>
+                  <h3 className="panel-subheading">Header Settings</h3>
+                  <p className="field-help">Set a background image + overlay gradient for the selected page header.</p>
+                </div>
+                <button
+                  type="button"
+                  className="ghost-btn small"
+                  onClick={() => setShowCustomPageFields((prev) => !prev)}
+                >
+                  {showCustomPageFields ? 'Hide' : 'Edit'}
+                </button>
+              </div>
+              {showCustomPageFields ? (
+                selectedPage ? (
+                  <form className="field-grid" onSubmit={handleHeaderSubmit}>
+                    <label className="field field-span">
+                      <span>Header background image URL</span>
+                      <div className="inline-row">
+                        <input
+                          type="text"
+                          value={headerForm.backgroundImage}
+                          onChange={(event) =>
+                            setHeaderForm((prev) => ({ ...prev, backgroundImage: event.target.value }))
+                          }
+                          placeholder="https://cdn.example.com/banners/beauty-hero.jpg"
+                        />
+                        <button
+                          type="button"
+                          className="ghost-btn small"
+                          onClick={handleHeaderImageClick}
+                          disabled={isUploadingHeaderImage}
+                        >
+                          {isUploadingHeaderImage ? 'Uploading...' : 'Upload'}
+                        </button>
+                      </div>
+                    </label>
+                    <label className="field field-span">
+                      <span>Overlay gradient (comma separated)</span>
+                      <input
+                        type="text"
+                        value={headerForm.overlayGradient}
+                        onChange={(event) =>
+                          setHeaderForm((prev) => ({ ...prev, overlayGradient: event.target.value }))
+                        }
+                        placeholder="rgba(255,255,255,0.05), rgba(255,255,255,0.55)"
+                      />
+                    </label>
+                    <div className="field field-span">
+                      <div className="inline-row">
+                        <button type="submit" className="primary-btn compact">
+                          Apply Header
+                        </button>
+                        <button type="button" className="ghost-btn small" onClick={handleClearHeader}>
+                          Clear
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                ) : (
+                  <p className="field-help">Select a page to edit header settings.</p>
+                )
+              ) : null}
+            </div>
             <div className="section-list">
+              <div className="section-row section-row--header">
+                <div className="section-main">
+                  <div className="section-title">Hero Sections</div>
+                  <div className="section-sub">Content that appears inside the header image area.</div>
+                </div>
+                <div className="section-actions">
+                  <button type="button" className="ghost-btn small" onClick={handleHeroBannerClick} disabled={isUploadingHeroBanner}>
+                    {isUploadingHeroBanner ? 'Uploading...' : 'Add Hero Banner'}
+                  </button>
+                  <button type="button" className="ghost-btn small" onClick={openAddHeaderSection}>
+                    + Add Hero Section
+                  </button>
+                </div>
+              </div>
+              {selectedHeaderSections.length === 0 ? (
+                <div className="section-empty">No hero sections yet.</div>
+              ) : (
+                selectedHeaderSections.map((section, index) => {
+                  const title = section?.title || section?.id || 'Hero Section';
+                  const typeLabel = section?.type || 'Section';
+                  return (
+                    <div
+                      key={`${section?.id || 'hero'}-${index}`}
+                      className="section-row"
+                    >
+                      <div className="section-grip" />
+                      <div className="section-main" onClick={() => openEditHeaderSection(index)}>
+                        <div className="section-title">{title}</div>
+                        <div className="section-sub">{section?.id || ''}</div>
+                      </div>
+                      <span className="section-pill">{typeLabel}</span>
+                      <div className="section-actions">
+                        <button
+                          type="button"
+                          className="ghost-btn small"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleMoveHeaderSection(index, -1);
+                          }}
+                        >
+                          Up
+                        </button>
+                        <button
+                          type="button"
+                          className="ghost-btn small"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleMoveHeaderSection(index, 1);
+                          }}
+                        >
+                          Down
+                        </button>
+                        <button
+                          type="button"
+                          className="ghost-btn small"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            openEditHeaderSection(index);
+                          }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="ghost-btn small"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleDeleteHeaderSection(index);
+                          }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
               {selectedSections.length === 0 ? (
                 <div className="section-empty">No sections yet.</div>
               ) : (
@@ -1220,6 +1744,21 @@ function AppConfigPage({ token }) {
           multiple
           style={{ display: 'none' }}
           onChange={handleBannerFiles}
+        />
+        <input
+          ref={headerInputRef}
+          type="file"
+          accept="image/*"
+          style={{ display: 'none' }}
+          onChange={handleHeaderImageFiles}
+        />
+        <input
+          ref={heroBannerInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          style={{ display: 'none' }}
+          onChange={handleHeroBannerFiles}
         />
       </div>
       {showAdvancedJson ? (
@@ -1464,6 +2003,119 @@ function AppConfigPage({ token }) {
                 <button type="submit" className="primary-btn compact" disabled={isLoading}>
                   {editingSectionIndex !== null ? 'Save' : 'Add Section'}
                 </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
+      {showHeaderEditor ? (
+        <div className="modal-backdrop" onClick={closeHeaderEditor}>
+          <div className="modal-card" onClick={(event) => event.stopPropagation()}>
+            <div className="modal-head">
+              <div>
+                <h3 className="panel-subheading">
+                  {editingHeaderSectionIndex !== null ? 'Edit Hero Section' : 'Add Hero Section'}
+                </h3>
+              </div>
+              <button type="button" className="ghost-btn small" onClick={closeHeaderEditor}>
+                x
+              </button>
+            </div>
+            <form className="field-grid modal-grid" onSubmit={handleHeaderSectionSubmit}>
+              <label className="field field-span">
+                <span>Section title</span>
+                <input
+                  type="text"
+                  value={headerSectionForm.title}
+                  onChange={(event) => setHeaderSectionForm((prev) => ({ ...prev, title: event.target.value }))}
+                  placeholder="Hero section title"
+                />
+              </label>
+              <label className="field">
+                <span>Section id</span>
+                <input
+                  type="text"
+                  value={headerSectionForm.id}
+                  onChange={(event) => setHeaderSectionForm((prev) => ({ ...prev, id: event.target.value }))}
+                  placeholder="hero_banner"
+                  required
+                />
+              </label>
+              <label className="field">
+                <span>Section type</span>
+                <select
+                  value={headerSectionForm.type}
+                  onChange={(event) => setHeaderSectionForm((prev) => ({ ...prev, type: event.target.value }))}
+                >
+                  {sectionTypeOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="field field-span">
+                <button
+                  type="button"
+                  className="ghost-btn small"
+                  onClick={() => setShowHeaderAdvancedFields((prev) => !prev)}
+                >
+                  {showHeaderAdvancedFields ? 'Hide advanced fields' : 'Show advanced fields'}
+                </button>
+              </div>
+              {showHeaderAdvancedFields ? (
+                <>
+                  <label className="field">
+                    <span>Items path</span>
+                    <input
+                      type="text"
+                      value={headerSectionForm.itemsPath}
+                      onChange={(event) => setHeaderSectionForm((prev) => ({ ...prev, itemsPath: event.target.value }))}
+                      placeholder="$.items"
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Item template ref</span>
+                    <input
+                      type="text"
+                      value={headerSectionForm.itemTemplateRef}
+                      onChange={(event) =>
+                        setHeaderSectionForm((prev) => ({ ...prev, itemTemplateRef: event.target.value }))
+                      }
+                      placeholder="bannerCard"
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Data source ref</span>
+                    <input
+                      type="text"
+                      value={headerSectionForm.dataSourceRef}
+                      onChange={(event) =>
+                        setHeaderSectionForm((prev) => ({ ...prev, dataSourceRef: event.target.value }))
+                      }
+                      placeholder="home.beauty"
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Columns</span>
+                    <input
+                      type="number"
+                      value={headerSectionForm.columns}
+                      onChange={(event) => setHeaderSectionForm((prev) => ({ ...prev, columns: event.target.value }))}
+                      placeholder="4"
+                    />
+                  </label>
+                </>
+              ) : null}
+              <div className="field field-span">
+                <div className="inline-row">
+                  <button type="submit" className="primary-btn compact">
+                    {editingHeaderSectionIndex !== null ? 'Update Hero Section' : 'Add Hero Section'}
+                  </button>
+                  <button type="button" className="ghost-btn small" onClick={closeHeaderEditor}>
+                    Cancel
+                  </button>
+                </div>
               </div>
             </form>
           </div>
