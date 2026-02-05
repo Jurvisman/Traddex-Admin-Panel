@@ -3,17 +3,14 @@ import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useNavigat
 import { AdminShell } from './components';
 import {
   AdminDashboardPage,
+  CatalogManagerPage,
   AppConfigPage,
-  CategoryPage,
-  IndustryPage,
   LoginPage,
-  MainCategoryPage,
   InquiryConfigPage,
   InquiryReportPage,
   OtpVerifyPage,
   ProductAttributePage,
   ProductPage,
-  SubCategoryPage,
   SubscriptionAssignPage,
   SubscriptionFeaturePage,
   SubscriptionPlanPage,
@@ -31,24 +28,9 @@ const ADMIN_META = [
     ...DEFAULT_ADMIN_META,
   },
   {
-    match: '/admin/industry',
-    title: 'Industry',
-    subtitle: 'Create and organize industries for the marketplace.',
-  },
-  {
-    match: '/admin/main-category',
-    title: 'Main Category',
-    subtitle: 'Manage the main category list per industry.',
-  },
-  {
-    match: '/admin/category',
-    title: 'Category',
-    subtitle: 'Manage categories under each main category.',
-  },
-  {
-    match: '/admin/sub-category',
-    title: 'Sub-Category',
-    subtitle: 'Create sub-categories for deeper organization.',
+    match: '/admin/catalog-manager',
+    title: 'Catalog Manager',
+    subtitle: 'Manage industries, main categories, categories, and sub-categories together.',
   },
   {
     match: '/admin/product-attribute',
@@ -159,10 +141,7 @@ function AppRoutes() {
       {
         title: 'Master Management',
         items: [
-          { path: '/admin/industry', label: 'Industry' },
-          { path: '/admin/main-category', label: 'Main Category' },
-          { path: '/admin/category', label: 'Category' },
-          { path: '/admin/sub-category', label: 'Sub-Category' },
+          { path: '/admin/catalog-manager', label: 'Catalog Manager' },
           { path: '/admin/product-attribute', label: 'Product Attributes' },
           { path: '/admin/products', label: 'Products' },
         ],
@@ -265,10 +244,7 @@ function AppRoutes() {
       >
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<AdminDashboardPage token={authToken} />} />
-        <Route path="industry" element={<IndustryPage token={authToken} />} />
-        <Route path="main-category" element={<MainCategoryPage token={authToken} />} />
-        <Route path="category" element={<CategoryPage token={authToken} />} />
-        <Route path="sub-category" element={<SubCategoryPage token={authToken} />} />
+        <Route path="catalog-manager" element={<CatalogManagerPage token={authToken} />} />
         <Route path="product-attribute" element={<ProductAttributePage token={authToken} />} />
         <Route path="products" element={<ProductPage token={authToken} adminUserId={authUserId} />} />
         <Route path="products/:id" element={<ProductPage token={authToken} adminUserId={authUserId} />} />
