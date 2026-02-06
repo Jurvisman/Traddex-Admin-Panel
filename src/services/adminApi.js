@@ -43,6 +43,10 @@ const request = async (path, { method = 'GET', body, token } = {}) => {
 };
 
 export const fetchUsers = (token) => request('/users/all', { token });
+export const updateUser = (token, id, payload) => request(`/users/${id}`, { method: 'PUT', body: payload, token });
+export const blockUser = (token, id) => request(`/users/${id}/block`, { method: 'POST', token });
+export const deleteUser = (token, id) => request(`/users/${id}/delete`, { method: 'POST', token });
+export const logoutUser = (token, id) => request(`/users/${id}/logout`, { method: 'POST', token });
 
 export const listIndustries = (token) => request('/industries', { token });
 export const createIndustry = (token, payload) => request('/industries', { method: 'POST', body: payload, token });
