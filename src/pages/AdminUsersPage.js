@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Banner } from '../components';
-import { deleteUser, fetchUsers, updateUser } from '../services/adminApi';
+import { deleteUser, deleteUsersBulk, fetchUserDetails, fetchUsers, updateUser } from '../services/adminApi';
 
 const normalize = (value) => String(value || '').toLowerCase();
 
@@ -81,7 +81,8 @@ function AdminUsersPage({ token }) {
   const [query, setQuery] = useState('');
   const [message, setMessage] = useState({ type: 'info', text: '' });
   const [isLoading, setIsLoading] = useState(false);
-  const [viewUser, setViewUser] = useState(null);
+  const [viewDetails, setViewDetails] = useState(null);
+  const [isViewLoading, setIsViewLoading] = useState(false);
   const [editUser, setEditUser] = useState(null);
   const [editForm, setEditForm] = useState({
     name: '',
@@ -92,6 +93,7 @@ function AdminUsersPage({ token }) {
     timeZone: '',
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
 
   const loadUsers = async () => {
     setIsLoading(true);
@@ -105,6 +107,7 @@ function AdminUsersPage({ token }) {
         return bDate - aDate;
       });
       setUsers(list);
+      setSelectedIds(new Set());
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to load users.' });
     } finally {
@@ -138,6 +141,33 @@ function AdminUsersPage({ token }) {
   const loginCount = useMemo(() => users.filter((user) => resolveLoginStatus(user)).length, [users]);
   const logoutCount = Math.max(0, users.length - loginCount);
   const pendingCount = useMemo(() => users.filter((user) => Number(user?.verify) !== 1).length, [users]);
+  const selectedCount = selectedIds.size;
+  const allSelected =
+    filteredUsers.length > 0 && filteredUsers.every((user) => user?.id && selectedIds.has(user.id));
+
+  const toggleSelect = (userId) => {
+    if (!userId) return;
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(userId)) {
+        next.delete(userId);
+      } else {
+        next.add(userId);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedIds((prev) => {
+      if (allSelected) return new Set();
+      const next = new Set(prev);
+      filteredUsers.forEach((user) => {
+        if (user?.id) next.add(user.id);
+      });
+      return next;
+    });
+  };
 
   const openEdit = (user) => {
     setEditUser(user);
@@ -211,6 +241,44 @@ function AdminUsersPage({ token }) {
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (!selectedCount) return;
+    const ok = window.confirm(`Delete ${selectedCount} users? This will remove them from the list.`);
+    if (!ok) return;
+    setIsLoading(true);
+    setMessage({ type: 'info', text: '' });
+    try {
+      await deleteUsersBulk(token, Array.from(selectedIds));
+      await loadUsers();
+      setMessage({ type: 'success', text: 'Users deleted successfully.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to delete users.' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleView = async (user) => {
+    if (!user?.id) return;
+    setViewDetails({ user });
+    setIsViewLoading(true);
+    setMessage({ type: 'info', text: '' });
+    try {
+      const response = await fetchUserDetails(token, user.id);
+      setViewDetails(response?.data || { user });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to load user details.' });
+    } finally {
+      setIsViewLoading(false);
+    }
+  };
+
+  const viewUser = viewDetails?.user || null;
+  const viewUserProfile = viewDetails?.userProfile || null;
+  const viewBusinessProfile = viewDetails?.businessProfile || null;
+  const viewLogisticProfile = viewDetails?.logisticProfile || null;
+  const viewInsuranceProfile = viewDetails?.insuranceProfile || null;
+
   return (
     <div className="users-page">
       <div className="users-head">
@@ -221,6 +289,14 @@ function AdminUsersPage({ token }) {
         <div className="users-head-actions">
           <button type="button" className="ghost-btn" onClick={loadUsers} disabled={isLoading}>
             {isLoading ? 'Refreshing...' : 'Refresh'}
+          </button>
+          <button
+            type="button"
+            className="ghost-btn"
+            onClick={handleBulkDelete}
+            disabled={isLoading || selectedCount === 0}
+          >
+            Delete Selected{selectedCount ? ` (${selectedCount})` : ''}
           </button>
           <button type="button" className="primary-btn">
             Add User
@@ -259,6 +335,15 @@ function AdminUsersPage({ token }) {
             <table className="admin-table users-table">
               <thead>
                 <tr>
+                  <th>
+                    <input
+                      type="checkbox"
+                      className="select-checkbox"
+                      checked={allSelected}
+                      onChange={toggleSelectAll}
+                      aria-label="Select all users"
+                    />
+                  </th>
                   <th>User</th>
                   <th>Type</th>
                   <th>Subscription</th>
@@ -278,6 +363,15 @@ function AdminUsersPage({ token }) {
                   const verificationClass = verificationStatus === 'Verified' ? 'verified' : 'pending';
                   return (
                     <tr key={user?.id || user?.user_id || index}>
+                      <td>
+                        <input
+                          type="checkbox"
+                          className="select-checkbox"
+                          checked={user?.id ? selectedIds.has(user.id) : false}
+                          onChange={() => toggleSelect(user?.id)}
+                          aria-label={`Select ${getUserName(user)}`}
+                        />
+                      </td>
                       <td>
                         <div className="user-cell">
                           <div className={`user-avatar ${statusClass}`}>
@@ -305,7 +399,7 @@ function AdminUsersPage({ token }) {
                       <td>{formatDate(user?.created_at || user?.createdAt || user?.joined_at)}</td>
                       <td className="table-actions">
                         <div className="table-action-group">
-                          <button type="button" className="ghost-btn small" onClick={() => setViewUser(user)}>
+                          <button type="button" className="ghost-btn small" onClick={() => handleView(user)}>
                             View
                           </button>
                           <button type="button" className="ghost-btn small" onClick={() => openEdit(user)}>
@@ -335,69 +429,148 @@ function AdminUsersPage({ token }) {
         )}
       </div>
 
-      {viewUser ? (
+      {viewDetails ? (
         <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
           <div className="admin-modal">
             <div className="panel-split">
               <div>
                 <h3 className="panel-subheading">User Details</h3>
-                <p className="panel-subtitle">{getUserName(viewUser)}</p>
+                <p className="panel-subtitle">{viewUser ? getUserName(viewUser) : 'Loading...'}</p>
               </div>
-              <button type="button" className="ghost-btn small" onClick={() => setViewUser(null)}>
+              <button type="button" className="ghost-btn small" onClick={() => setViewDetails(null)}>
                 Close
               </button>
             </div>
 
-            <div className="user-detail-grid">
-              <div className="user-detail-card">
-                <p className="user-detail-label">Phone</p>
-                <p className="user-detail-value">{viewUser?.number || viewUser?.mobile || '-'}</p>
-              </div>
-              <div className="user-detail-card">
-                <p className="user-detail-label">User Type</p>
-                <p className="user-detail-value">{getUserType(viewUser)}</p>
-              </div>
-              <div className="user-detail-card">
-                <p className="user-detail-label">Subscription</p>
-                <p className="user-detail-value">{getSubscriptionLabel(viewUser)}</p>
-              </div>
-              <div className="user-detail-card">
-                <p className="user-detail-label">Subscription Status</p>
-                <p className="user-detail-value">{viewUser?.subscriptionStatus || '-'}</p>
-              </div>
-              <div className="user-detail-card">
-                <p className="user-detail-label">Login Status</p>
-                <p className="user-detail-value">{resolveLoginStatus(viewUser) ? 'Login' : 'Logout'}</p>
-              </div>
-              <div className="user-detail-card">
-                <p className="user-detail-label">Active</p>
-                <p className="user-detail-value">
-                  {viewUser?.active !== undefined && viewUser?.active !== null ? String(viewUser.active) : '-'}
-                </p>
-              </div>
-              <div className="user-detail-card">
-                <p className="user-detail-label">Verified</p>
-                <p className="user-detail-value">{getVerificationStatus(viewUser)}</p>
-              </div>
-              <div className="user-detail-card">
-                <p className="user-detail-label">Joined</p>
-                <p className="user-detail-value">
-                  {formatDate(viewUser?.createdAt || viewUser?.created_at || viewUser?.joined_at)}
-                </p>
-              </div>
-              <div className="user-detail-card">
-                <p className="user-detail-label">Last Active</p>
-                <p className="user-detail-value">{formatDate(viewUser?.lastActive || viewUser?.last_active)}</p>
-              </div>
-              <div className="user-detail-card">
-                <p className="user-detail-label">Role</p>
-                <p className="user-detail-value">{viewUser?.roleName || '-'}</p>
-              </div>
-              <div className="user-detail-card">
-                <p className="user-detail-label">Time Zone</p>
-                <p className="user-detail-value">{viewUser?.timeZone || '-'}</p>
-              </div>
-            </div>
+            {isViewLoading ? <p className="empty-state">Loading user details...</p> : null}
+
+            {viewUser ? (
+              <>
+                <div className="detail-section">
+                  <h4 className="detail-section-title">Account</h4>
+                  <div className="user-detail-grid">
+                    <div className="user-detail-card">
+                      <p className="user-detail-label">Phone</p>
+                      <p className="user-detail-value">{viewUser?.number || viewUser?.mobile || '-'}</p>
+                    </div>
+                    <div className="user-detail-card">
+                      <p className="user-detail-label">User Type</p>
+                      <p className="user-detail-value">{getUserType(viewUser)}</p>
+                    </div>
+                    <div className="user-detail-card">
+                      <p className="user-detail-label">Subscription</p>
+                      <p className="user-detail-value">{getSubscriptionLabel(viewUser)}</p>
+                    </div>
+                    <div className="user-detail-card">
+                      <p className="user-detail-label">Subscription Status</p>
+                      <p className="user-detail-value">{viewUser?.subscriptionStatus || '-'}</p>
+                    </div>
+                    <div className="user-detail-card">
+                      <p className="user-detail-label">Login Status</p>
+                      <p className="user-detail-value">{resolveLoginStatus(viewUser) ? 'Login' : 'Logout'}</p>
+                    </div>
+                    <div className="user-detail-card">
+                      <p className="user-detail-label">Active</p>
+                      <p className="user-detail-value">
+                        {viewUser?.active !== undefined && viewUser?.active !== null ? String(viewUser.active) : '-'}
+                      </p>
+                    </div>
+                    <div className="user-detail-card">
+                      <p className="user-detail-label">Verified</p>
+                      <p className="user-detail-value">{getVerificationStatus(viewUser)}</p>
+                    </div>
+                    <div className="user-detail-card">
+                      <p className="user-detail-label">Joined</p>
+                      <p className="user-detail-value">
+                        {formatDate(viewUser?.createdAt || viewUser?.created_at || viewUser?.joined_at)}
+                      </p>
+                    </div>
+                    <div className="user-detail-card">
+                      <p className="user-detail-label">Last Active</p>
+                      <p className="user-detail-value">{formatDate(viewUser?.lastActive || viewUser?.last_active)}</p>
+                    </div>
+                    <div className="user-detail-card">
+                      <p className="user-detail-label">Role</p>
+                      <p className="user-detail-value">{viewUser?.roleName || '-'}</p>
+                    </div>
+                    <div className="user-detail-card">
+                      <p className="user-detail-label">Time Zone</p>
+                      <p className="user-detail-value">{viewUser?.timeZone || '-'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {viewUserProfile ? (
+                  <div className="detail-section">
+                    <h4 className="detail-section-title">User Profile</h4>
+                    <div className="user-detail-grid">
+                      {Object.entries(viewUserProfile).map(([key, value]) => {
+                        if (value === null || value === undefined || value === '') return null;
+                        return (
+                          <div key={`user-${key}`} className="user-detail-card">
+                            <p className="user-detail-label">{key.replace(/([A-Z])/g, ' $1')}</p>
+                            <p className="user-detail-value">{String(value)}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
+
+                {viewBusinessProfile ? (
+                  <div className="detail-section">
+                    <h4 className="detail-section-title">Business Profile</h4>
+                    <div className="user-detail-grid">
+                      {Object.entries(viewBusinessProfile).map(([key, value]) => {
+                        if (value === null || value === undefined || value === '') return null;
+                        return (
+                          <div key={`biz-${key}`} className="user-detail-card">
+                            <p className="user-detail-label">{key.replace(/([A-Z])/g, ' $1')}</p>
+                            <p className="user-detail-value">{String(value)}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
+
+                {viewLogisticProfile ? (
+                  <div className="detail-section">
+                    <h4 className="detail-section-title">Logistic Profile</h4>
+                    <div className="user-detail-grid">
+                      {Object.entries(viewLogisticProfile).map(([key, value]) => {
+                        if (value === null || value === undefined || value === '') return null;
+                        return (
+                          <div key={`log-${key}`} className="user-detail-card">
+                            <p className="user-detail-label">{key.replace(/([A-Z])/g, ' $1')}</p>
+                            <p className="user-detail-value">{String(value)}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
+
+                {viewInsuranceProfile ? (
+                  <div className="detail-section">
+                    <h4 className="detail-section-title">Insurance Profile</h4>
+                    <div className="user-detail-grid">
+                      {Object.entries(viewInsuranceProfile).map(([key, value]) => {
+                        if (value === null || value === undefined || value === '') return null;
+                        const display =
+                          typeof value === 'object' && value !== null ? JSON.stringify(value) : String(value);
+                        return (
+                          <div key={`ins-${key}`} className="user-detail-card">
+                            <p className="user-detail-label">{key.replace(/([A-Z])/g, ' $1')}</p>
+                            <p className="user-detail-value">{display}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
+              </>
+            ) : null}
           </div>
         </div>
       ) : null}

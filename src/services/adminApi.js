@@ -46,6 +46,9 @@ export const fetchUsers = (token) => request('/users/all', { token });
 export const updateUser = (token, id, payload) => request(`/users/${id}`, { method: 'PUT', body: payload, token });
 export const blockUser = (token, id) => request(`/users/${id}/block`, { method: 'POST', token });
 export const deleteUser = (token, id) => request(`/users/${id}/delete`, { method: 'POST', token });
+export const deleteUsersBulk = (token, userIds) =>
+  request('/users/delete-bulk', { method: 'POST', body: { user_ids: userIds }, token });
+export const fetchUserDetails = (token, id) => request(`/users/${id}/details`, { token });
 export const logoutUser = (token, id) => request(`/users/${id}/logout`, { method: 'POST', token });
 
 export const listIndustries = (token) => request('/industries', { token });
