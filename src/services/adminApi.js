@@ -1,6 +1,4 @@
 const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:8080';
-const API_KEY = 'TradeX-API-Key-2024';
-
 const buildUrl = (path) => `${API_BASE}/api${path}`;
 
 const parseError = async (response) => {
@@ -23,7 +21,6 @@ const parseError = async (response) => {
 const request = async (path, { method = 'GET', body, token } = {}) => {
   const headers = {
     'Content-Type': 'application/json',
-    'x-api-key': API_KEY,
   };
   if (token) {
     headers.Authorization = `Bearer ${token}`;
@@ -140,7 +137,7 @@ export const rollbackAppConfig = (token, payload) =>
 export const getPublishedAppConfig = () => request('/app-config');
 
 export const uploadBannerImages = async (token, files) => {
-  const headers = { 'x-api-key': API_KEY };
+  const headers = {};
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
