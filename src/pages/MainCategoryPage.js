@@ -49,6 +49,9 @@ function MainCategoryPage({ token }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const activeCount = items.filter((item) => Number(item.active) === 1).length;
+  const inactiveCount = Math.max(0, items.length - activeCount);
+
   const industryNameById = useMemo(() => {
     const lookup = new Map();
     industries.forEach((industry) => {
@@ -117,6 +120,28 @@ function MainCategoryPage({ token }) {
         </button>
       </div>
       <Banner message={message} />
+      <div className="stat-grid">
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#8B5CF6' }}>
+          <p className="stat-label">Main categories</p>
+          <p className="stat-value">{items.length}</p>
+          <p className="stat-sub">Total list</p>
+        </div>
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#16A34A' }}>
+          <p className="stat-label">Active</p>
+          <p className="stat-value">{activeCount}</p>
+          <p className="stat-sub">Visible to users</p>
+        </div>
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#F97316' }}>
+          <p className="stat-label">Industries</p>
+          <p className="stat-value">{industries.length}</p>
+          <p className="stat-sub">With main categories</p>
+        </div>
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#EF4444' }}>
+          <p className="stat-label">Inactive</p>
+          <p className="stat-value">{inactiveCount}</p>
+          <p className="stat-sub">Hidden</p>
+        </div>
+      </div>
       {showForm ? (
         <div className="admin-modal-backdrop" onClick={() => setShowForm(false)}>
           <form

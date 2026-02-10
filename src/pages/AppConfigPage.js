@@ -453,6 +453,11 @@ function AppConfigPage({ token }) {
     editingHeaderSectionIndex !== null ? selectedHeaderSections[editingHeaderSectionIndex] : null;
   const isEditingFixed = isHardcodedSection(activeSection);
 
+  const pageCount = pages.length;
+  const sectionCount = selectedSections.length;
+  const versionCount = versions.length;
+  const industryCount = industries.length;
+
   useEffect(() => {
     if (!pages.length) {
       if (selectedPageKey) setSelectedPageKey('');
@@ -1438,6 +1443,28 @@ function AppConfigPage({ token }) {
         </div>
       </div>
       <Banner message={message} />
+      <div className="stat-grid">
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#0EA5E9' }}>
+          <p className="stat-label">Pages</p>
+          <p className="stat-value">{pageCount}</p>
+          <p className="stat-sub">Configured routes</p>
+        </div>
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#A855F7' }}>
+          <p className="stat-label">Sections</p>
+          <p className="stat-value">{sectionCount}</p>
+          <p className="stat-sub">On selected page</p>
+        </div>
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#F59E0B' }}>
+          <p className="stat-label">Versions</p>
+          <p className="stat-value">{versionCount}</p>
+          <p className="stat-sub">Saved snapshots</p>
+        </div>
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#16A34A' }}>
+          <p className="stat-label">Industries</p>
+          <p className="stat-value">{industryCount}</p>
+          <p className="stat-sub">Available presets</p>
+        </div>
+      </div>
       <div className="app-config-card">
         <div className="config-toolbar">
           <div className="page-block">

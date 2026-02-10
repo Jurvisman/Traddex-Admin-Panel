@@ -49,6 +49,10 @@ function SubscriptionFeaturePage({ token }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const activeCount = features.filter((feature) => Number(feature.is_active) === 1).length;
+  const inactiveCount = Math.max(0, features.length - activeCount);
+  const accessCount = features.filter((feature) => String(feature.type || '').toUpperCase() === 'ACCESS').length;
+
   const handleChange = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
@@ -129,6 +133,28 @@ function SubscriptionFeaturePage({ token }) {
         </button>
       </div>
       <Banner message={message} />
+      <div className="stat-grid">
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#10B981' }}>
+          <p className="stat-label">Total features</p>
+          <p className="stat-value">{features.length}</p>
+          <p className="stat-sub">Catalog items</p>
+        </div>
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#16A34A' }}>
+          <p className="stat-label">Active</p>
+          <p className="stat-value">{activeCount}</p>
+          <p className="stat-sub">Enabled features</p>
+        </div>
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#F59E0B' }}>
+          <p className="stat-label">Access type</p>
+          <p className="stat-value">{accessCount}</p>
+          <p className="stat-sub">Unlimited access</p>
+        </div>
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#EF4444' }}>
+          <p className="stat-label">Inactive</p>
+          <p className="stat-value">{inactiveCount}</p>
+          <p className="stat-sub">Disabled</p>
+        </div>
+      </div>
 
       {showForm ? (
         <div className="admin-modal-backdrop" onClick={() => setShowForm(false)}>

@@ -37,6 +37,9 @@ function IndustryPage({ token }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const activeCount = items.filter((item) => Number(item.active) === 1).length;
+  const inactiveCount = Math.max(0, items.length - activeCount);
+
   const handleChange = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
@@ -93,6 +96,23 @@ function IndustryPage({ token }) {
         </button>
       </div>
       <Banner message={message} />
+      <div className="stat-grid">
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#F59E0B' }}>
+          <p className="stat-label">Total industries</p>
+          <p className="stat-value">{items.length}</p>
+          <p className="stat-sub">All groups</p>
+        </div>
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#16A34A' }}>
+          <p className="stat-label">Active</p>
+          <p className="stat-value">{activeCount}</p>
+          <p className="stat-sub">Visible to users</p>
+        </div>
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#EF4444' }}>
+          <p className="stat-label">Inactive</p>
+          <p className="stat-value">{inactiveCount}</p>
+          <p className="stat-sub">Hidden from users</p>
+        </div>
+      </div>
       {showForm ? (
         <div className="admin-modal-backdrop" onClick={() => setShowForm(false)}>
           <form

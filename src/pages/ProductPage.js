@@ -953,6 +953,14 @@ function ProductPage({ token, adminUserId }) {
   const disableApprove = isLoading || !selectedProduct || statusValue === 'APPROVED';
   const disableReject = isLoading || !selectedProduct || statusValue === 'REJECTED';
   const disableEdit = isLoading || !selectedProduct;
+  const totalProducts = products.length;
+  const approvedCount = products.filter(
+    (product) => String(product?.approvalStatus || '').toUpperCase() === 'APPROVED'
+  ).length;
+  const rejectedCount = products.filter(
+    (product) => String(product?.approvalStatus || '').toUpperCase() === 'REJECTED'
+  ).length;
+  const pendingCount = Math.max(0, totalProducts - approvedCount - rejectedCount);
 
   return (
     <div>
@@ -1001,6 +1009,28 @@ function ProductPage({ token, adminUserId }) {
         </div>
       )}
       <Banner message={message} />
+      <div className="stat-grid">
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#14B8A6' }}>
+          <p className="stat-label">Total products</p>
+          <p className="stat-value">{totalProducts}</p>
+          <p className="stat-sub">All listings</p>
+        </div>
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#16A34A' }}>
+          <p className="stat-label">Approved</p>
+          <p className="stat-value">{approvedCount}</p>
+          <p className="stat-sub">Live products</p>
+        </div>
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#F59E0B' }}>
+          <p className="stat-label">Pending</p>
+          <p className="stat-value">{pendingCount}</p>
+          <p className="stat-sub">Needs review</p>
+        </div>
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#EF4444' }}>
+          <p className="stat-label">Rejected</p>
+          <p className="stat-value">{rejectedCount}</p>
+          <p className="stat-sub">Declined items</p>
+        </div>
+      </div>
       {showForm ? (
         <div className="admin-modal-backdrop" onClick={handleCloseForm}>
           <form
@@ -1414,14 +1444,11 @@ function ProductPage({ token, adminUserId }) {
                 </label>
               ) : null}
               <div className="field-span">
-                <h4 className="panel-subheading">Dynamic attributes</h4>
-                <p className="muted">
-                  Attributes load based on the selected category. Required fields are marked.
-                </p>
+                <h4 className="panel-subheading">Dynamic fields</h4>
               </div>
               {attributeMappings.length === 0 ? (
                 <div className="field-span">
-                  <p className="muted">Select a category to load dynamic attributes.</p>
+                  <p className="muted">Select a category to load dynamic fields.</p>
                 </div>
               ) : (
                 attributeMappings.map((mapping) => {
@@ -1770,9 +1797,9 @@ function ProductPage({ token, adminUserId }) {
                 </div>
               </div>
               <div className="panel card">
-                <h3 className="panel-subheading">Dynamic attributes</h3>
+                <h3 className="panel-subheading">Dynamic fields</h3>
                 {dynamicEntries.length === 0 ? (
-                  <p className="empty-state">No dynamic attributes provided.</p>
+                  <p className="empty-state">No dynamic fields provided.</p>
                 ) : (
                   <div className="field-grid">
                     {dynamicEntries.map(([key, value]) => (

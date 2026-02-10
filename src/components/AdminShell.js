@@ -26,6 +26,15 @@ function AdminShell({ navItems, onLogout, pageTitle, pageSubtitle, children }) {
                   <NavLink
                     key={item.path}
                     to={item.path}
+                    style={
+                      item.tone
+                        ? {
+                            '--nav-tone': item.tone.base,
+                            '--nav-tone-soft': item.tone.soft,
+                            '--nav-tone-shadow': item.tone.shadow,
+                          }
+                        : undefined
+                    }
                     className={({ isActive }) => `admin-nav-item ${isActive ? 'active' : ''}`}
                   >
                     {item.icon ? <span className="admin-nav-icon">{item.icon}</span> : null}

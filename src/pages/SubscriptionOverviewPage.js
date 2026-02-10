@@ -137,7 +137,7 @@ function SubscriptionOverviewPage({ token }) {
       <Banner message={message} />
 
       <div className="subscription-metrics">
-        <div className="stat-card subscription-stat-card">
+        <div className="stat-card subscription-stat-card" style={{ '--stat-accent': '#16A34A' }}>
           <div className="metric-icon metric-revenue" />
           <div>
             <p className="stat-label">Total Revenue</p>
@@ -145,7 +145,7 @@ function SubscriptionOverviewPage({ token }) {
             <p className="stat-sub">Last 30 days</p>
           </div>
         </div>
-        <div className="stat-card subscription-stat-card">
+        <div className="stat-card subscription-stat-card" style={{ '--stat-accent': '#3B82F6' }}>
           <div className="metric-icon metric-subscribers" />
           <div>
             <p className="stat-label">Total Subscribers</p>
@@ -153,7 +153,7 @@ function SubscriptionOverviewPage({ token }) {
             <p className="stat-sub">Active assignments</p>
           </div>
         </div>
-        <div className="stat-card subscription-stat-card">
+        <div className="stat-card subscription-stat-card" style={{ '--stat-accent': '#A855F7' }}>
           <div className="metric-icon metric-paid" />
           <div>
             <p className="stat-label">Paid Subscribers</p>
@@ -161,7 +161,7 @@ function SubscriptionOverviewPage({ token }) {
             <p className="stat-sub">Active paid plans</p>
           </div>
         </div>
-        <div className="stat-card subscription-stat-card">
+        <div className="stat-card subscription-stat-card" style={{ '--stat-accent': '#F59E0B' }}>
           <div className="metric-icon metric-conversion" />
           <div>
             <p className="stat-label">Conversion Rate</p>

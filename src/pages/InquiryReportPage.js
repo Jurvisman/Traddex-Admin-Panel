@@ -107,17 +107,17 @@ function InquiryReportPage({ token }) {
         <div className="panel card">
           <h3 className="panel-subheading">Summary</h3>
           <div className="stat-grid">
-            <div className="stat-card admin-stat">
+            <div className="stat-card admin-stat" style={{ '--stat-accent': '#F97316' }}>
               <p className="stat-label">Total requests</p>
               <p className="stat-value">{report.total_requests}</p>
               <p className="stat-sub">Inquiry requests created</p>
             </div>
-            <div className="stat-card admin-stat">
+            <div className="stat-card admin-stat" style={{ '--stat-accent': '#3B82F6' }}>
               <p className="stat-label">Assigned</p>
               <p className="stat-value">{report.total_assigned}</p>
               <p className="stat-sub">Total businesses reached</p>
             </div>
-            <div className="stat-card admin-stat">
+            <div className="stat-card admin-stat" style={{ '--stat-accent': '#EF4444' }}>
               <p className="stat-label">Refunded</p>
               <p className="stat-value">{report.total_refunded}</p>
               <p className="stat-sub">Unmatched inquiries</p>
@@ -125,21 +125,21 @@ function InquiryReportPage({ token }) {
           </div>
           <h4 className="panel-subheading">Distribution</h4>
           <div className="stat-grid">
-            <div className="stat-card admin-stat">
+            <div className="stat-card admin-stat" style={{ '--stat-accent': '#F59E0B' }}>
               <p className="stat-label">Premium (P1)</p>
               <p className="stat-value">{report.premium_assigned}</p>
               <p className="stat-sub">
                 {distributionTotal ? Math.round((report.premium_assigned / distributionTotal) * 100) : 0}% share
               </p>
             </div>
-            <div className="stat-card admin-stat">
+            <div className="stat-card admin-stat" style={{ '--stat-accent': '#0EA5E9' }}>
               <p className="stat-label">Normal (P2)</p>
               <p className="stat-value">{report.normal_assigned}</p>
               <p className="stat-sub">
                 {distributionTotal ? Math.round((report.normal_assigned / distributionTotal) * 100) : 0}% share
               </p>
             </div>
-            <div className="stat-card admin-stat">
+            <div className="stat-card admin-stat" style={{ '--stat-accent': '#8B5CF6' }}>
               <p className="stat-label">Cooldown (P3)</p>
               <p className="stat-value">{report.cooldown_assigned}</p>
               <p className="stat-sub">

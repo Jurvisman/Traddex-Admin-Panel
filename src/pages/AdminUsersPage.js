@@ -141,6 +141,7 @@ function AdminUsersPage({ token }) {
   const loginCount = useMemo(() => users.filter((user) => resolveLoginStatus(user)).length, [users]);
   const logoutCount = Math.max(0, users.length - loginCount);
   const pendingCount = useMemo(() => users.filter((user) => Number(user?.verify) !== 1).length, [users]);
+  const verifiedCount = Math.max(0, users.length - pendingCount);
   const selectedCount = selectedIds.size;
   const allSelected =
     filteredUsers.length > 0 && filteredUsers.every((user) => user?.id && selectedIds.has(user.id));
@@ -305,6 +306,29 @@ function AdminUsersPage({ token }) {
       </div>
 
       <Banner message={message} />
+
+      <div className="stat-grid">
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#4F46E5' }}>
+          <p className="stat-label">Total users</p>
+          <p className="stat-value">{users.length}</p>
+          <p className="stat-sub">All registered accounts</p>
+        </div>
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#16A34A' }}>
+          <p className="stat-label">Logged in</p>
+          <p className="stat-value">{loginCount}</p>
+          <p className="stat-sub">Active sessions</p>
+        </div>
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#0EA5E9' }}>
+          <p className="stat-label">Verified</p>
+          <p className="stat-value">{verifiedCount}</p>
+          <p className="stat-sub">KYC complete</p>
+        </div>
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#F97316' }}>
+          <p className="stat-label">Pending</p>
+          <p className="stat-value">{pendingCount}</p>
+          <p className="stat-sub">Needs verification</p>
+        </div>
+      </div>
 
       <div className="users-filters">
         <span className="status-chip login">{loginCount} Login</span>

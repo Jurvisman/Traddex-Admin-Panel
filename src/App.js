@@ -106,6 +106,21 @@ const ICONS = {
   ),
 };
 
+const NAV_TONES = {
+  dashboard: { base: '#4F46E5', soft: 'rgba(79, 70, 229, 0.14)', shadow: 'rgba(79, 70, 229, 0.35)' },
+  users: { base: '#16A34A', soft: 'rgba(22, 163, 74, 0.16)', shadow: 'rgba(22, 163, 74, 0.3)' },
+  catalog: { base: '#F59E0B', soft: 'rgba(245, 158, 11, 0.16)', shadow: 'rgba(245, 158, 11, 0.3)' },
+  fields: { base: '#8B5CF6', soft: 'rgba(139, 92, 246, 0.16)', shadow: 'rgba(139, 92, 246, 0.3)' },
+  products: { base: '#14B8A6', soft: 'rgba(20, 184, 166, 0.16)', shadow: 'rgba(20, 184, 166, 0.3)' },
+  inquiryConfig: { base: '#F97316', soft: 'rgba(249, 115, 22, 0.16)', shadow: 'rgba(249, 115, 22, 0.3)' },
+  inquiryReport: { base: '#EF4444', soft: 'rgba(239, 68, 68, 0.16)', shadow: 'rgba(239, 68, 68, 0.3)' },
+  subOverview: { base: '#3B82F6', soft: 'rgba(59, 130, 246, 0.16)', shadow: 'rgba(59, 130, 246, 0.3)' },
+  subFeatures: { base: '#10B981', soft: 'rgba(16, 185, 129, 0.16)', shadow: 'rgba(16, 185, 129, 0.3)' },
+  subPlans: { base: '#A855F7', soft: 'rgba(168, 85, 247, 0.16)', shadow: 'rgba(168, 85, 247, 0.3)' },
+  subAssignments: { base: '#EAB308', soft: 'rgba(234, 179, 8, 0.16)', shadow: 'rgba(234, 179, 8, 0.3)' },
+  appConfig: { base: '#0EA5E9', soft: 'rgba(14, 165, 233, 0.16)', shadow: 'rgba(14, 165, 233, 0.3)' },
+};
+
 const DEFAULT_ADMIN_META = {
   title: 'Dashboard',
   subtitle: 'Track core counts and activity across Traddex.',
@@ -128,8 +143,8 @@ const ADMIN_META = [
   },
   {
     match: '/admin/product-attribute',
-    title: 'Product Attributes',
-    subtitle: 'Manage attribute definitions and category mappings.',
+    title: 'Dynamic Fields',
+    subtitle: 'Create custom fields that appear in product forms.',
   },
   {
     matchPrefix: '/admin/products',
@@ -235,39 +250,81 @@ function AppRoutes() {
     () => [
       {
         title: 'Overview',
-        items: [{ path: '/admin/dashboard', label: 'Dashboard', icon: ICONS.dashboard }],
+        items: [
+          {
+            path: '/admin/dashboard',
+            label: 'Dashboard',
+            icon: ICONS.dashboard,
+            tone: NAV_TONES.dashboard,
+          },
+        ],
       },
       {
         title: 'Users',
-        items: [{ path: '/admin/users', label: 'Users', icon: ICONS.users }],
+        items: [{ path: '/admin/users', label: 'Users', icon: ICONS.users, tone: NAV_TONES.users }],
       },
       {
         title: 'Master Management',
         items: [
-          { path: '/admin/catalog-manager', label: 'Catalog Manager', icon: ICONS.catalog },
-          { path: '/admin/product-attribute', label: 'Product Attributes', icon: ICONS.attributes },
-          { path: '/admin/products', label: 'Products', icon: ICONS.products },
+          { path: '/admin/catalog-manager', label: 'Catalog Manager', icon: ICONS.catalog, tone: NAV_TONES.catalog },
+          {
+            path: '/admin/product-attribute',
+            label: 'Dynamic Fields',
+            icon: ICONS.attributes,
+            tone: NAV_TONES.fields,
+          },
+          { path: '/admin/products', label: 'Products', icon: ICONS.products, tone: NAV_TONES.products },
         ],
       },
       {
         title: 'Inquiry',
         items: [
-          { path: '/admin/inquiry/config', label: 'Inquiry Config', icon: ICONS.inquiryConfig },
-          { path: '/admin/inquiry/report', label: 'Inquiry Report', icon: ICONS.inquiryReport },
+          {
+            path: '/admin/inquiry/config',
+            label: 'Inquiry Config',
+            icon: ICONS.inquiryConfig,
+            tone: NAV_TONES.inquiryConfig,
+          },
+          {
+            path: '/admin/inquiry/report',
+            label: 'Inquiry Report',
+            icon: ICONS.inquiryReport,
+            tone: NAV_TONES.inquiryReport,
+          },
         ],
       },
       {
         title: 'Subscriptions',
         items: [
-          { path: '/admin/subscription/overview', label: 'Overview', icon: ICONS.subOverview },
-          { path: '/admin/subscription/features', label: 'Features', icon: ICONS.subFeatures },
-          { path: '/admin/subscription/plans', label: 'Plans', icon: ICONS.subPlans },
-          { path: '/admin/subscription/assignments', label: 'Assignments', icon: ICONS.subAssignments },
+          {
+            path: '/admin/subscription/overview',
+            label: 'Overview',
+            icon: ICONS.subOverview,
+            tone: NAV_TONES.subOverview,
+          },
+          {
+            path: '/admin/subscription/features',
+            label: 'Features',
+            icon: ICONS.subFeatures,
+            tone: NAV_TONES.subFeatures,
+          },
+          {
+            path: '/admin/subscription/plans',
+            label: 'Plans',
+            icon: ICONS.subPlans,
+            tone: NAV_TONES.subPlans,
+          },
+          {
+            path: '/admin/subscription/assignments',
+            label: 'Assignments',
+            icon: ICONS.subAssignments,
+            tone: NAV_TONES.subAssignments,
+          },
         ],
       },
       {
         title: 'Configuration',
-        items: [{ path: '/admin/app-config', label: 'App Config', icon: ICONS.appConfig }],
+        items: [{ path: '/admin/app-config', label: 'App Config', icon: ICONS.appConfig, tone: NAV_TONES.appConfig }],
       },
     ],
     []

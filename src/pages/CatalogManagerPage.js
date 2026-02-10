@@ -698,6 +698,29 @@ function CatalogManagerPage({ token }) {
 
       <Banner message={message} />
 
+      <div className="stat-grid">
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#F59E0B' }}>
+          <p className="stat-label">Industries</p>
+          <p className="stat-value">{industries.length}</p>
+          <p className="stat-sub">Master groups</p>
+        </div>
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#8B5CF6' }}>
+          <p className="stat-label">Main categories</p>
+          <p className="stat-value">{mainCategories.length}</p>
+          <p className="stat-sub">Within selected industry</p>
+        </div>
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#14B8A6' }}>
+          <p className="stat-label">Categories</p>
+          <p className="stat-value">{categories.length}</p>
+          <p className="stat-sub">Under selected main</p>
+        </div>
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#0EA5E9' }}>
+          <p className="stat-label">Sub-categories</p>
+          <p className="stat-value">{subCategories.length}</p>
+          <p className="stat-sub">Under selected category</p>
+        </div>
+      </div>
+
       <div className="catalog-layout">
         <section className="catalog-tree">
           <div className="catalog-card">
