@@ -96,6 +96,10 @@ function SubscriptionPlanPage({ token }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const activeCount = plans.filter((plan) => Number(plan.is_active) === 1).length;
+  const inactiveCount = Math.max(0, plans.length - activeCount);
+  const paidCount = plans.filter((plan) => Number(plan.price || 0) > 0).length;
+
   const handleChange = (key, value) => {
     setForm((prev) => {
       if (key === 'user_type') {
@@ -273,6 +277,28 @@ function SubscriptionPlanPage({ token }) {
         </button>
       </div>
       <Banner message={message} />
+      <div className="stat-grid">
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#A855F7' }}>
+          <p className="stat-label">Total plans</p>
+          <p className="stat-value">{plans.length}</p>
+          <p className="stat-sub">Published plans</p>
+        </div>
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#16A34A' }}>
+          <p className="stat-label">Active</p>
+          <p className="stat-value">{activeCount}</p>
+          <p className="stat-sub">Available for users</p>
+        </div>
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#0EA5E9' }}>
+          <p className="stat-label">Paid plans</p>
+          <p className="stat-value">{paidCount}</p>
+          <p className="stat-sub">With pricing</p>
+        </div>
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#EF4444' }}>
+          <p className="stat-label">Inactive</p>
+          <p className="stat-value">{inactiveCount}</p>
+          <p className="stat-sub">Unavailable</p>
+        </div>
+      </div>
 
       <div className="panel card subscription-plan-page">
         <form onSubmit={handleSubmit}>

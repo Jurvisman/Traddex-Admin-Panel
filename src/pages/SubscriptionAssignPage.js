@@ -68,6 +68,11 @@ function SubscriptionAssignPage({ token }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const activePlanCount = plans.filter((plan) => Number(plan.is_active) === 1).length;
+  const activeAssignments = assignments.filter(
+    (assignment) => String(assignment.status || '').toUpperCase() === 'ACTIVE'
+  ).length;
+
   const handleChange = (key, value) => {
     setForm((prev) => {
       const next = { ...prev, [key]: value };
@@ -118,6 +123,28 @@ function SubscriptionAssignPage({ token }) {
         </button>
       </div>
       <Banner message={message} />
+      <div className="stat-grid">
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#EAB308' }}>
+          <p className="stat-label">Assignments</p>
+          <p className="stat-value">{assignments.length}</p>
+          <p className="stat-sub">Total granted plans</p>
+        </div>
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#16A34A' }}>
+          <p className="stat-label">Active</p>
+          <p className="stat-value">{activeAssignments}</p>
+          <p className="stat-sub">Currently running</p>
+        </div>
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#3B82F6' }}>
+          <p className="stat-label">Active plans</p>
+          <p className="stat-value">{activePlanCount}</p>
+          <p className="stat-sub">Available to assign</p>
+        </div>
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#8B5CF6' }}>
+          <p className="stat-label">Users</p>
+          <p className="stat-value">{users.length}</p>
+          <p className="stat-sub">Eligible accounts</p>
+        </div>
+      </div>
 
       <div className="panel-grid">
         <div className="panel card">

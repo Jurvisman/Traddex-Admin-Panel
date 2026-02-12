@@ -64,6 +64,23 @@ function InquiryConfigPage({ token }) {
         </button>
       </div>
       <Banner message={message} />
+      <div className="stat-grid">
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#F97316' }}>
+          <p className="stat-label">Premium ratio</p>
+          <p className="stat-value">{premiumValue}%</p>
+          <p className="stat-sub">Priority distribution</p>
+        </div>
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#0EA5E9' }}>
+          <p className="stat-label">Normal ratio</p>
+          <p className="stat-value">{normalValue}%</p>
+          <p className="stat-sub">Standard distribution</p>
+        </div>
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#16A34A' }}>
+          <p className="stat-label">Total split</p>
+          <p className="stat-value">100%</p>
+          <p className="stat-sub">Combined ratio</p>
+        </div>
+      </div>
       <div className="panel-grid">
         <div className="panel card">
           <div className="panel-split">

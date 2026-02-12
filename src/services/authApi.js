@@ -21,7 +21,6 @@ export const sendOtp = async (digits) => {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': 'TradeX-API-Key-2024',
     },
     body: JSON.stringify({ mobileNumber: digits }),
   });
@@ -38,7 +37,6 @@ export const verifyOtp = async (digits, otpCode) => {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': 'TradeX-API-Key-2024',
     },
     body: JSON.stringify({ mobileNumber: digits, otpCode }),
   });

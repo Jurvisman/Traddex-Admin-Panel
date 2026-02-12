@@ -1,6 +1,4 @@
 const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:8080';
-const API_KEY = 'TradeX-API-Key-2024';
-
 const buildUrl = (path) => `${API_BASE}/api${path}`;
 
 const parseError = async (response) => {
@@ -23,7 +21,6 @@ const parseError = async (response) => {
 const request = async (path, { method = 'GET', body, token } = {}) => {
   const headers = {
     'Content-Type': 'application/json',
-    'x-api-key': API_KEY,
   };
   if (token) {
     headers.Authorization = `Bearer ${token}`;
@@ -43,6 +40,13 @@ const request = async (path, { method = 'GET', body, token } = {}) => {
 };
 
 export const fetchUsers = (token) => request('/users/all', { token });
+export const updateUser = (token, id, payload) => request(`/users/${id}`, { method: 'PUT', body: payload, token });
+export const blockUser = (token, id) => request(`/users/${id}/block`, { method: 'POST', token });
+export const deleteUser = (token, id) => request(`/users/${id}/delete`, { method: 'POST', token });
+export const deleteUsersBulk = (token, userIds) =>
+  request('/users/delete-bulk', { method: 'POST', body: { user_ids: userIds }, token });
+export const fetchUserDetails = (token, id) => request(`/users/${id}/details`, { token });
+export const logoutUser = (token, id) => request(`/users/${id}/logout`, { method: 'POST', token });
 
 export const listIndustries = (token) => request('/industries', { token });
 export const createIndustry = (token, payload) => request('/industries', { method: 'POST', body: payload, token });
@@ -118,6 +122,39 @@ export const getInquiryReport = (token, filters = {}) => {
   if (filters.user_id) params.set('user_id', filters.user_id);
   const query = params.toString() ? `?${params.toString()}` : '';
   return request(`/admin/inquiry/report${query}`, { token });
+};
+
+// App config management
+export const getAppConfigDraft = (token) => request('/admin/app-config/draft', { token });
+export const saveAppConfigDraft = (token, payload) =>
+  request('/admin/app-config/draft', { method: 'PUT', body: payload, token });
+export const validateAppConfig = (token, payload) =>
+  request('/admin/app-config/validate', { method: 'POST', body: payload, token });
+export const publishAppConfig = (token) => request('/admin/app-config/publish', { method: 'POST', token });
+export const listAppConfigVersions = (token) => request('/admin/app-config/versions', { token });
+export const rollbackAppConfig = (token, payload) =>
+  request('/admin/app-config/rollback', { method: 'POST', body: payload, token });
+export const getPublishedAppConfig = () => request('/app-config');
+
+export const uploadBannerImages = async (token, files) => {
+  const headers = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  const body = new FormData();
+  Array.from(files || []).forEach((file) => body.append('files', file));
+
+  const response = await fetch(buildUrl('/user/product/images'), {
+    method: 'POST',
+    headers,
+    body,
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseError(response));
+  }
+  if (response.status === 204) return null;
+  return response.json();
 };
 
 // Subscription management

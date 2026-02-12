@@ -7,9 +7,8 @@ import {
   deleteAttributeMapping,
   listAttributeDefinitions,
   listAttributeMappings,
-  listCategories,
+  listIndustries,
   listMainCategories,
-  listSubCategories,
   updateAttributeDefinition,
   updateAttributeMapping,
 } from '../services/adminApi';
@@ -33,7 +32,11 @@ const definitionInitial = {
 
 const mappingInitial = {
   attributeId: '',
-  scope: 'sub',
+  label: '',
+  key: '',
+  dataType: 'STRING',
+  enumOptions: [],
+  scope: 'main',
   mainCategoryId: '',
   categoryId: '',
   subCategoryId: '',
@@ -45,6 +48,7 @@ const mappingInitial = {
   defaultValueBool: '',
   defaultValueList: '',
   defaultValueJson: '',
+  placeholder: '',
   uiConfig: '',
   active: true,
 };
@@ -106,13 +110,12 @@ function ProductAttributePage({ token }) {
   const [isLoading, setIsLoading] = useState(false);
   const [optionDraft, setOptionDraft] = useState('');
   const [keyEdited, setKeyEdited] = useState(false);
+  const [mappingKeyEdited, setMappingKeyEdited] = useState(false);
   const didInitRef = useRef(false);
 
+  const [industries, setIndustries] = useState([]);
+  const [selectedIndustryId, setSelectedIndustryId] = useState('');
   const [mainCategories, setMainCategories] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [subCategories, setSubCategories] = useState([]);
-  const [filterCategories, setFilterCategories] = useState([]);
-  const [filterSubCategories, setFilterSubCategories] = useState([]);
 
   const definitionMap = useMemo(() => {
     const map = new Map();
@@ -128,6 +131,26 @@ function ProductAttributePage({ token }) {
     return definitionMap.get(id) || null;
   }, [definitionMap, mappingForm.attributeId]);
 
+  const filteredMainCategories = useMemo(() => {
+    if (!selectedIndustryId) return [];
+    return mainCategories.filter(
+      (item) => String(item.industryId) === String(selectedIndustryId)
+    );
+  }, [mainCategories, selectedIndustryId]);
+
+  const selectedMainCategory = useMemo(() => {
+    if (!filterForm.mainCategoryId) return null;
+    return (
+      mainCategories.find((item) => String(item.id) === String(filterForm.mainCategoryId)) ||
+      null
+    );
+  }, [mainCategories, filterForm.mainCategoryId]);
+
+  const totalFields = mappings.length;
+  const activeFields = mappings.filter((item) => item.active !== false).length;
+  const requiredFields = mappings.filter((item) => item.required).length;
+  const inactiveFields = Math.max(0, totalFields - activeFields);
+
   const loadDefinitions = async () => {
     const response = await listAttributeDefinitions(token);
     setDefinitions(response?.data?.definitions || []);
@@ -135,6 +158,10 @@ function ProductAttributePage({ token }) {
 
   const loadMappings = async (overrideFilters) => {
     const source = overrideFilters || filterForm;
+    if (!source.mainCategoryId && !source.categoryId && !source.subCategoryId) {
+      setMappings([]);
+      return;
+    }
     const filters = {};
     if (source.mainCategoryId) filters.mainCategoryId = Number(source.mainCategoryId);
     if (source.categoryId) filters.categoryId = Number(source.categoryId);
@@ -143,6 +170,16 @@ function ProductAttributePage({ token }) {
     if (source.active === 'false') filters.active = false;
     const response = await listAttributeMappings(token, filters);
     setMappings(response?.data?.mappings || []);
+  };
+
+  const loadIndustries = async () => {
+    const response = await listIndustries(token);
+    const list = (response?.data || []).map((item) => ({
+      ...item,
+      id: item.id ?? item.industryId,
+      industryId: item.industryId ?? item.id,
+    }));
+    setIndustries(list);
   };
 
   const loadMainCategories = async () => {
@@ -155,7 +192,7 @@ function ProductAttributePage({ token }) {
     didInitRef.current = true;
     setIsLoading(true);
     setMessage({ type: 'info', text: '' });
-    Promise.all([loadDefinitions(), loadMappings(), loadMainCategories()])
+    Promise.all([loadDefinitions(), loadMappings(), loadMainCategories(), loadIndustries()])
       .catch((error) => {
         setMessage({ type: 'error', text: error.message || 'Failed to load attribute data.' });
       })
@@ -164,46 +201,9 @@ function ProductAttributePage({ token }) {
   }, []);
 
   useEffect(() => {
-    if (!mappingForm.mainCategoryId) {
-      setCategories([]);
-      setSubCategories([]);
-      return;
-    }
-    listCategories(token, mappingForm.mainCategoryId)
-      .then((response) => setCategories(response?.data || []))
-      .catch(() => setCategories([]));
-  }, [mappingForm.mainCategoryId, token]);
-
-  useEffect(() => {
-    if (!mappingForm.categoryId) {
-      setSubCategories([]);
-      return;
-    }
-    listSubCategories(token, mappingForm.categoryId)
-      .then((response) => setSubCategories(response?.data || []))
-      .catch(() => setSubCategories([]));
-  }, [mappingForm.categoryId, token]);
-
-  useEffect(() => {
-    if (!filterForm.mainCategoryId) {
-      setFilterCategories([]);
-      setFilterSubCategories([]);
-      return;
-    }
-    listCategories(token, filterForm.mainCategoryId)
-      .then((response) => setFilterCategories(response?.data || []))
-      .catch(() => setFilterCategories([]));
-  }, [filterForm.mainCategoryId, token]);
-
-  useEffect(() => {
-    if (!filterForm.categoryId) {
-      setFilterSubCategories([]);
-      return;
-    }
-    listSubCategories(token, filterForm.categoryId)
-      .then((response) => setFilterSubCategories(response?.data || []))
-      .catch(() => setFilterSubCategories([]));
-  }, [filterForm.categoryId, token]);
+    loadMappings().catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterForm.mainCategoryId, filterForm.categoryId, filterForm.subCategoryId, filterForm.active]);
 
   useEffect(() => {
     setMappingForm((prev) => ({
@@ -242,6 +242,36 @@ function ProductAttributePage({ token }) {
     setDefinitionForm((prev) => ({
       ...prev,
       enumOptions: prev.enumOptions.filter((item) => item !== option),
+    }));
+  };
+
+  const addMappingOption = () => {
+    const raw = optionDraft.trim();
+    if (!raw) return;
+    const parts = raw
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean);
+    if (!parts.length) return;
+    setMappingForm((prev) => {
+      const nextOptions = [...(prev.enumOptions || [])];
+      const existing = new Set(nextOptions.map((value) => value.toLowerCase()));
+      parts.forEach((value) => {
+        const key = value.toLowerCase();
+        if (!existing.has(key)) {
+          existing.add(key);
+          nextOptions.push(value);
+        }
+      });
+      return { ...prev, enumOptions: nextOptions };
+    });
+    setOptionDraft('');
+  };
+
+  const removeMappingOption = (option) => {
+    setMappingForm((prev) => ({
+      ...prev,
+      enumOptions: (prev.enumOptions || []).filter((item) => item !== option),
     }));
   };
 
@@ -355,16 +385,38 @@ function ProductAttributePage({ token }) {
 
   const buildUiConfig = () => {
     const raw = mappingForm.uiConfig.trim();
-    if (!raw) return { config: null, error: null };
+    const placeholder = mappingForm.placeholder?.trim();
+    if (!raw) {
+      if (!placeholder) return { config: null, error: null };
+      return { config: { placeholder }, error: null };
+    }
     try {
       const parsed = JSON.parse(raw);
       if (parsed === null || Array.isArray(parsed) || typeof parsed !== 'object') {
         return { config: null, error: 'UI config must be a JSON object.' };
       }
+      if (placeholder) {
+        return { config: { ...parsed, placeholder }, error: null };
+      }
       return { config: parsed, error: null };
     } catch (error) {
       return { config: null, error: 'UI config must be valid JSON.' };
     }
+  };
+
+  const buildFieldDefinitionPayload = () => {
+    const payload = {
+      key: mappingForm.key.trim(),
+      label: mappingForm.label.trim(),
+      dataType: mappingForm.dataType,
+      active: true,
+    };
+
+    if (mappingForm.dataType === 'ENUM' && mappingForm.enumOptions.length > 0) {
+      payload.options = { values: mappingForm.enumOptions };
+    }
+
+    return payload;
   };
 
   const handleDefinitionSubmit = async (event) => {
@@ -409,30 +461,25 @@ function ProductAttributePage({ token }) {
 
   const handleMappingSubmit = async (event) => {
     event.preventDefault();
-    if (!mappingForm.attributeId) {
-      setMessage({ type: 'error', text: 'Select an attribute to map.' });
+    if (!mappingForm.label.trim()) {
+      setMessage({ type: 'error', text: 'Field label is required.' });
+      return;
+    }
+    if (!mappingForm.key.trim()) {
+      setMessage({ type: 'error', text: 'Field name is required.' });
+      return;
+    }
+    if (mappingForm.dataType === 'ENUM' && mappingForm.enumOptions.length === 0) {
+      setMessage({ type: 'error', text: 'Add at least one option for dropdown fields.' });
       return;
     }
 
-    const scope = mappingForm.scope;
-    if (scope === 'main' && !mappingForm.mainCategoryId) {
+    if (!mappingForm.mainCategoryId) {
       setMessage({ type: 'error', text: 'Select a main category.' });
-      return;
-    }
-    if (scope === 'category' && (!mappingForm.mainCategoryId || !mappingForm.categoryId)) {
-      setMessage({ type: 'error', text: 'Select a main category and category.' });
-      return;
-    }
-    if (
-      scope === 'sub' &&
-      (!mappingForm.mainCategoryId || !mappingForm.categoryId || !mappingForm.subCategoryId)
-    ) {
-      setMessage({ type: 'error', text: 'Select a main category, category, and sub-category.' });
       return;
     }
 
     const payload = {
-      attributeId: Number(mappingForm.attributeId),
       required: Boolean(mappingForm.required),
       filterable: Boolean(mappingForm.filterable),
       searchable: Boolean(mappingForm.searchable),
@@ -442,9 +489,7 @@ function ProductAttributePage({ token }) {
     const sortOrder = toInteger(mappingForm.sortOrder);
     if (sortOrder !== null) payload.sortOrder = sortOrder;
 
-    if (scope === 'main') payload.mainCategoryId = Number(mappingForm.mainCategoryId);
-    if (scope === 'category') payload.categoryId = Number(mappingForm.categoryId);
-    if (scope === 'sub') payload.subCategoryId = Number(mappingForm.subCategoryId);
+    payload.mainCategoryId = Number(mappingForm.mainCategoryId);
 
     const { value, error } = buildDefaultValue();
     if (error) {
@@ -463,20 +508,37 @@ function ProductAttributePage({ token }) {
     setIsLoading(true);
     setMessage({ type: 'info', text: '' });
     try {
+      const definitionPayload = buildFieldDefinitionPayload();
+      let attributeId = mappingForm.attributeId ? Number(mappingForm.attributeId) : null;
+
+      if (editingMappingId && attributeId) {
+        await updateAttributeDefinition(token, attributeId, definitionPayload);
+      } else {
+        const definitionResponse = await createAttributeDefinition(token, definitionPayload);
+        attributeId = definitionResponse?.data?.attribute_id ?? null;
+      }
+
+      if (!attributeId) {
+        throw new Error('Failed to save field definition.');
+      }
+
+      payload.attributeId = attributeId;
+
       if (editingMappingId) {
         await updateAttributeMapping(token, editingMappingId, payload);
-        setMessage({ type: 'success', text: 'Attribute mapping updated.' });
+        setMessage({ type: 'success', text: 'Field updated.' });
       } else {
         await createAttributeMapping(token, payload);
-        setMessage({ type: 'success', text: 'Attribute mapping created.' });
+        setMessage({ type: 'success', text: 'Field added.' });
       }
       setMappingForm(mappingInitial);
+      setMappingKeyEdited(false);
       setEditingMappingId(null);
       setShowMappingForm(false);
       setShowMappingAdvanced(false);
-      await loadMappings();
+      await Promise.all([loadMappings(), loadDefinitions()]);
     } catch (error) {
-      setMessage({ type: 'error', text: error.message || 'Failed to save attribute mapping.' });
+      setMessage({ type: 'error', text: error.message || 'Failed to save field.' });
     } finally {
       setIsLoading(false);
     }
@@ -500,9 +562,9 @@ function ProductAttributePage({ token }) {
       setIsLoading(true);
       await deleteAttributeMapping(token, id);
       await loadMappings();
-      setMessage({ type: 'success', text: 'Attribute mapping deleted.' });
+      setMessage({ type: 'success', text: 'Field deleted.' });
     } catch (error) {
-      setMessage({ type: 'error', text: error.message || 'Failed to delete attribute mapping.' });
+      setMessage({ type: 'error', text: error.message || 'Failed to delete field.' });
     } finally {
       setIsLoading(false);
     }
@@ -535,7 +597,8 @@ function ProductAttributePage({ token }) {
   };
 
   const handleEditMapping = (mapping) => {
-    const type = mapping.dataType || definitionMap.get(mapping.attributeId)?.dataType || 'STRING';
+    const definition = mapping.attributeId ? definitionMap.get(mapping.attributeId) : null;
+    const type = definition?.dataType || mapping.dataType || 'STRING';
     const defaultValue = mapping.defaultValue;
     const defaults = {
       defaultValueText: '',
@@ -566,24 +629,44 @@ function ProductAttributePage({ token }) {
     }
 
     const uiConfig = mapping.uiConfig ? JSON.stringify(mapping.uiConfig, null, 2) : '';
-    const scope = mapping.subCategoryId ? 'sub' : mapping.categoryId ? 'category' : 'main';
+    const placeholder =
+      mapping.uiConfig?.placeholder || mapping.uiConfig?.hint || mapping.uiConfig?.helpText || '';
+    const label = definition?.label || mapping.label || '';
+    const key = definition?.key || mapping.attributeKey || '';
+    const enumOptions = Array.isArray(definition?.options?.values) ? definition.options.values : [];
     setMappingForm({
       attributeId: mapping.attributeId ? String(mapping.attributeId) : '',
-      scope,
+      label,
+      key,
+      dataType: type,
+      enumOptions,
       mainCategoryId: mapping.mainCategoryId ? String(mapping.mainCategoryId) : '',
-      categoryId: mapping.categoryId ? String(mapping.categoryId) : '',
-      subCategoryId: mapping.subCategoryId ? String(mapping.subCategoryId) : '',
+      categoryId: '',
+      subCategoryId: '',
       required: Boolean(mapping.required),
       filterable: Boolean(mapping.filterable),
       searchable: Boolean(mapping.searchable),
       sortOrder: toInputValue(mapping.sortOrder),
       uiConfig,
+      placeholder,
       active: mapping.active !== false,
       ...defaults,
     });
+    setMappingKeyEdited(true);
+    setOptionDraft('');
     setEditingMappingId(mapping.id);
     setShowMappingForm(true);
     setShowMappingAdvanced(Boolean(uiConfig || type === 'OBJECT'));
+  };
+
+  const handleIndustryChange = (value) => {
+    setSelectedIndustryId(value);
+    setFilterForm((prev) => ({
+      ...prev,
+      mainCategoryId: '',
+      categoryId: '',
+      subCategoryId: '',
+    }));
   };
 
   const handleFilterChange = (key, value) => {
@@ -601,39 +684,22 @@ function ProductAttributePage({ token }) {
   };
 
   const resetFilter = () => {
+    setSelectedIndustryId('');
     setFilterForm(filterInitial);
     loadMappings(filterInitial).catch(() => {});
-  };
-
-  const handleApplyFilters = async () => {
-    try {
-      setIsLoading(true);
-      await loadMappings();
-    } catch (error) {
-      setMessage({ type: 'error', text: error.message || 'Failed to load mappings.' });
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   const handleRefresh = async () => {
     setIsLoading(true);
     setMessage({ type: 'info', text: '' });
     try {
-      await Promise.all([loadDefinitions(), loadMappings(), loadMainCategories()]);
+      await Promise.all([loadDefinitions(), loadMappings(), loadMainCategories(), loadIndustries()]);
       setMessage({ type: 'success', text: 'Attribute data refreshed.' });
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to refresh attribute data.' });
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const scopeLabel = (mapping) => {
-    if (mapping.subCategoryId) return `Sub-category #${mapping.subCategoryId}`;
-    if (mapping.categoryId) return `Category #${mapping.categoryId}`;
-    if (mapping.mainCategoryId) return `Main category #${mapping.mainCategoryId}`;
-    return 'Unscoped';
   };
 
   const openDefinitionForm = () => {
@@ -646,29 +712,67 @@ function ProductAttributePage({ token }) {
   };
 
   const openMappingForm = () => {
-    setMappingForm(mappingInitial);
+    if (!filterForm.mainCategoryId) {
+      setMessage({ type: 'error', text: 'Select an industry and main category first.' });
+      return;
+    }
+    setMappingForm({
+      ...mappingInitial,
+      scope: 'main',
+      mainCategoryId: filterForm.mainCategoryId,
+    });
+    setMappingKeyEdited(false);
+    setOptionDraft('');
     setEditingMappingId(null);
     setShowMappingForm(true);
     setShowMappingAdvanced(false);
   };
 
-  const selectedType = selectedDefinition?.dataType || 'STRING';
-  const selectedOptions = Array.isArray(selectedDefinition?.options?.values)
-    ? selectedDefinition.options.values
-    : null;
+  const selectedType = mappingForm.dataType || selectedDefinition?.dataType || 'STRING';
+  const selectedOptions =
+    mappingForm.dataType === 'ENUM' && Array.isArray(mappingForm.enumOptions) && mappingForm.enumOptions.length
+      ? mappingForm.enumOptions
+      : Array.isArray(selectedDefinition?.options?.values)
+      ? selectedDefinition.options.values
+      : null;
 
   return (
     <div>
       <div className="panel-head">
         <div>
-          <h2 className="panel-title">Product attributes</h2>
-          <p className="panel-subtitle">Create attributes and map them to categories.</p>
+          <h2 className="panel-title">Dynamic Fields</h2>
+          <p className="panel-subtitle">Define custom product fields per main category.</p>
         </div>
         <button type="button" className="ghost-btn" onClick={handleRefresh} disabled={isLoading}>
           Refresh
         </button>
       </div>
       <Banner message={message} />
+
+      <div className="stat-grid">
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#8B5CF6' }}>
+          <p className="stat-label">Total fields</p>
+          <p className="stat-value">{totalFields}</p>
+          <p className="stat-sub">
+            {selectedMainCategory ? `Main category: ${selectedMainCategory.name}` : 'Select a main category'}
+          </p>
+        </div>
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#16A34A' }}>
+          <p className="stat-label">Active</p>
+          <p className="stat-value">{activeFields}</p>
+          <p className="stat-sub">Visible in product form</p>
+        </div>
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#F59E0B' }}>
+          <p className="stat-label">Required</p>
+          <p className="stat-value">{requiredFields}</p>
+          <p className="stat-sub">Must be filled</p>
+        </div>
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#EF4444' }}>
+          <p className="stat-label">Inactive</p>
+          <p className="stat-value">{inactiveFields}</p>
+          <p className="stat-sub">Hidden from form</p>
+        </div>
+      </div>
 
       {showDefinitionForm ? (
         <div className="admin-modal-backdrop" onClick={() => setShowDefinitionForm(false)}>
@@ -946,65 +1050,107 @@ function ProductAttributePage({ token }) {
           >
             <div className="panel-split">
               <h3 className="panel-subheading">
-                {editingMappingId ? 'Edit attribute mapping' : 'Create attribute mapping'}
+                {editingMappingId ? 'Edit field' : 'Add field'}
               </h3>
               <button type="button" className="ghost-btn small" onClick={() => setShowMappingForm(false)}>
                 Close
               </button>
             </div>
             <div className="field-grid">
-              <label className="field field-span">
-                <span>Attribute</span>
-                <select
-                  value={mappingForm.attributeId}
-                  onChange={(event) =>
-                    setMappingForm((prev) => ({ ...prev, attributeId: event.target.value }))
-                  }
+              <label className="field">
+                <span>Label</span>
+                <input
+                  type="text"
+                  value={mappingForm.label}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setMappingForm((prev) => ({
+                      ...prev,
+                      label: value,
+                      key: mappingKeyEdited ? prev.key : toKey(value),
+                    }));
+                  }}
+                  placeholder="e.g. Shelf Life"
                   required
+                />
+              </label>
+              <label className="field">
+                <span>Field name</span>
+                <div className="inline-row">
+                  <input
+                    type="text"
+                    value={mappingForm.key}
+                    onChange={(event) => {
+                      setMappingKeyEdited(true);
+                      setMappingForm((prev) => ({ ...prev, key: event.target.value }));
+                    }}
+                    placeholder="e.g. shelf_life"
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="ghost-btn small"
+                    onClick={() => {
+                      setMappingForm((prev) => ({ ...prev, key: toKey(prev.label || '') }));
+                      setMappingKeyEdited(false);
+                    }}
+                  >
+                    Auto
+                  </button>
+                </div>
+                <p className="field-help">Used as the key in product data.</p>
+              </label>
+              <label className="field">
+                <span>Type</span>
+                <select
+                  value={mappingForm.dataType}
+                  onChange={(event) =>
+                    setMappingForm((prev) => ({ ...prev, dataType: event.target.value }))
+                  }
                 >
-                  <option value="">Select attribute</option>
-                  {definitions.map((definition) => (
-                    <option key={definition.id} value={definition.id}>
-                      {definition.label} ({typeLabel(definition.dataType)})
-                      {definition.active ? '' : ' - inactive'}
+                  {dataTypes.map((type) => (
+                    <option key={type.value} value={type.value}>
+                      {type.label}
                     </option>
                   ))}
                 </select>
               </label>
-              {selectedDefinition ? (
-                <div className="field-span">
-                  <p className="field-help">
-                    Type: {typeLabel(selectedDefinition.dataType)}
-                    {selectedDefinition.unit ? ` | Unit: ${selectedDefinition.unit}` : ''}
-                  </p>
-                  {selectedDefinition.description ? (
-                    <p className="field-help">{selectedDefinition.description}</p>
-                  ) : null}
+              {mappingForm.dataType === 'ENUM' ? (
+                <div className="field field-span">
+                  <span>Dropdown options</span>
+                  <div className="inline-row">
+                    <input
+                      type="text"
+                      value={optionDraft}
+                      onChange={(event) => setOptionDraft(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                          event.preventDefault();
+                          addMappingOption();
+                        }
+                      }}
+                      placeholder="Add options separated by commas"
+                    />
+                    <button type="button" className="ghost-btn small" onClick={addMappingOption}>
+                      Add
+                    </button>
+                  </div>
+                  {mappingForm.enumOptions.length ? (
+                    <div className="tag-row">
+                      {mappingForm.enumOptions.map((option) => (
+                        <span className="tag" key={option}>
+                          {option}
+                          <button type="button" onClick={() => removeMappingOption(option)}>
+                            x
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="field-help">Options will show as a dropdown in the product form.</p>
+                  )}
                 </div>
               ) : null}
-              <label className="field">
-                <span>Applies to</span>
-                <select
-                  value={mappingForm.scope}
-                  onChange={(event) =>
-                    setMappingForm((prev) => {
-                      const next = { ...prev, scope: event.target.value };
-                      if (event.target.value === 'main') {
-                        next.categoryId = '';
-                        next.subCategoryId = '';
-                      }
-                      if (event.target.value === 'category') {
-                        next.subCategoryId = '';
-                      }
-                      return next;
-                    })
-                  }
-                >
-                  <option value="main">Main category</option>
-                  <option value="category">Category</option>
-                  <option value="sub">Sub-category</option>
-                </select>
-              </label>
               <label className="field">
                 <span>Main category</span>
                 <select
@@ -1020,45 +1166,7 @@ function ProductAttributePage({ token }) {
                   required
                 >
                   <option value="">Select main category</option>
-                  {mainCategories.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="field">
-                <span>Category</span>
-                <select
-                  value={mappingForm.categoryId}
-                  onChange={(event) =>
-                    setMappingForm((prev) => ({
-                      ...prev,
-                      categoryId: event.target.value,
-                      subCategoryId: '',
-                    }))
-                  }
-                  disabled={mappingForm.scope === 'main' || !mappingForm.mainCategoryId}
-                  required={mappingForm.scope !== 'main'}
-                >
-                  <option value="">Select category</option>
-                  {categories.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="field">
-                <span>Sub-category</span>
-                <select
-                  value={mappingForm.subCategoryId}
-                  onChange={(event) => setMappingForm((prev) => ({ ...prev, subCategoryId: event.target.value }))}
-                  disabled={mappingForm.scope !== 'sub' || !mappingForm.categoryId}
-                  required={mappingForm.scope === 'sub'}
-                >
-                  <option value="">Select sub-category</option>
-                  {subCategories.map((item) => (
+                  {filteredMainCategories.map((item) => (
                     <option key={item.id} value={item.id}>
                       {item.name}
                     </option>
@@ -1074,6 +1182,17 @@ function ProductAttributePage({ token }) {
                     setMappingForm((prev) => ({ ...prev, sortOrder: event.target.value }))
                   }
                   placeholder="1"
+                />
+              </label>
+              <label className="field">
+                <span>Placeholder</span>
+                <input
+                  type="text"
+                  value={mappingForm.placeholder}
+                  onChange={(event) =>
+                    setMappingForm((prev) => ({ ...prev, placeholder: event.target.value }))
+                  }
+                  placeholder="Optional placeholder text"
                 />
               </label>
               <div className="field field-span">
@@ -1121,109 +1240,9 @@ function ProductAttributePage({ token }) {
                   </label>
                 </div>
               </div>
-              <div className="field field-span">
-                <span>Default value</span>
-                {!selectedDefinition ? (
-                  <p className="field-help">Select an attribute to set a default value.</p>
-                ) : selectedType === 'BOOLEAN' ? (
-                  <select
-                    value={mappingForm.defaultValueBool}
-                    onChange={(event) =>
-                      setMappingForm((prev) => ({ ...prev, defaultValueBool: event.target.value }))
-                    }
-                  >
-                    <option value="">None</option>
-                    <option value="true">Yes</option>
-                    <option value="false">No</option>
-                  </select>
-                ) : selectedType === 'ENUM' ? (
-                  Array.isArray(selectedOptions) ? (
-                    <select
-                      value={mappingForm.defaultValueText}
-                      onChange={(event) =>
-                        setMappingForm((prev) => ({ ...prev, defaultValueText: event.target.value }))
-                      }
-                    >
-                      <option value="">None</option>
-                      {selectedOptions.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <p className="field-help">Add dropdown options in the attribute definition first.</p>
-                  )
-                ) : selectedType === 'LIST' ? (
-                  <>
-                    <input
-                      type="text"
-                      value={mappingForm.defaultValueList}
-                      onChange={(event) =>
-                        setMappingForm((prev) => ({ ...prev, defaultValueList: event.target.value }))
-                      }
-                      placeholder="e.g. red, blue, green"
-                    />
-                    <p className="field-help">Enter comma-separated values.</p>
-                  </>
-                ) : selectedType === 'OBJECT' ? (
-                  <p className="field-help">This attribute stores structured data. Use Advanced to set a default.</p>
-                ) : (
-                  <input
-                    type={selectedType === 'NUMBER' ? 'number' : selectedType === 'DATE' ? 'date' : 'text'}
-                    value={mappingForm.defaultValueText}
-                    onChange={(event) =>
-                      setMappingForm((prev) => ({ ...prev, defaultValueText: event.target.value }))
-                    }
-                    placeholder="Default value"
-                  />
-                )}
-              </div>
-              <div className="field field-span">
-                <div className="inline-row">
-                  <span>Advanced</span>
-                  <button
-                    type="button"
-                    className="ghost-btn small"
-                    onClick={() => setShowMappingAdvanced((prev) => !prev)}
-                  >
-                    {showMappingAdvanced ? 'Hide' : 'Show'}
-                  </button>
-                </div>
-                {showMappingAdvanced ? (
-                  <>
-                    {selectedType === 'OBJECT' ? (
-                      <label className="field field-span">
-                        <span>Default value (JSON)</span>
-                        <textarea
-                          rows={3}
-                          value={mappingForm.defaultValueJson}
-                          onChange={(event) =>
-                            setMappingForm((prev) => ({ ...prev, defaultValueJson: event.target.value }))
-                          }
-                          placeholder='{"key":"value"}'
-                        />
-                      </label>
-                    ) : null}
-                    <label className="field field-span">
-                      <span>UI config (JSON)</span>
-                      <textarea
-                        rows={3}
-                        value={mappingForm.uiConfig}
-                        onChange={(event) =>
-                          setMappingForm((prev) => ({ ...prev, uiConfig: event.target.value }))
-                        }
-                        placeholder='{"placeholder":"Optional hint"}'
-                      />
-                    </label>
-                  </>
-                ) : (
-                  <p className="field-help">Optional settings for advanced UI behavior.</p>
-                )}
-              </div>
             </div>
             <button type="submit" className="primary-btn full" disabled={isLoading}>
-              {isLoading ? 'Saving...' : 'Save mapping'}
+              {isLoading ? 'Saving...' : 'Save field'}
             </button>
           </form>
         </div>
@@ -1232,102 +1251,44 @@ function ProductAttributePage({ token }) {
       <div className="panel-grid">
         <div className="panel card">
           <div className="panel-split">
-            <h3 className="panel-subheading">Attribute definitions</h3>
-            <button type="button" className="primary-btn compact" onClick={openDefinitionForm}>
-              Create
-            </button>
-          </div>
-          {definitions.length === 0 ? (
-            <p className="empty-state">No attribute definitions yet.</p>
-          ) : (
-            <div className="table-shell">
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>Label</th>
-                    <th>Key</th>
-                    <th>Type</th>
-                    <th>Status</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {definitions.map((definition) => (
-                    <tr key={definition.id}>
-                      <td>{definition.label}</td>
-                      <td>{definition.key}</td>
-                      <td>{typeLabel(definition.dataType)}</td>
-                      <td>{definition.active ? 'Active' : 'Inactive'}</td>
-                      <td className="table-actions">
-                        <button
-                          type="button"
-                          className="ghost-btn small"
-                          onClick={() => handleEditDefinition(definition)}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          className="ghost-btn small"
-                          onClick={() => handleDeleteDefinition(definition.id)}
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div>
+              <h3 className="panel-subheading">Dynamic fields</h3>
+              <p className="panel-subtitle">
+                {selectedMainCategory
+                  ? `Fields for: ${selectedMainCategory.name}`
+                  : 'Select an industry and main category to manage fields.'}
+              </p>
             </div>
-          )}
-        </div>
-
-        <div className="panel card">
-          <div className="panel-split">
-            <h3 className="panel-subheading">Category mappings</h3>
-            <button type="button" className="primary-btn compact" onClick={openMappingForm}>
-              Create
+            <button
+              type="button"
+              className="primary-btn compact"
+              onClick={openMappingForm}
+              disabled={!filterForm.mainCategoryId}
+            >
+              Add Field
             </button>
           </div>
           <div className="field-grid">
+            <label className="field">
+              <span>Industry</span>
+              <select value={selectedIndustryId} onChange={(event) => handleIndustryChange(event.target.value)}>
+                <option value="">Select industry</option>
+                {industries.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+            </label>
             <label className="field">
               <span>Main category</span>
               <select
                 value={filterForm.mainCategoryId}
                 onChange={(event) => handleFilterChange('mainCategoryId', event.target.value)}
+                disabled={!selectedIndustryId}
               >
-                <option value="">All</option>
-                {mainCategories.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>Category</span>
-              <select
-                value={filterForm.categoryId}
-                onChange={(event) => handleFilterChange('categoryId', event.target.value)}
-                disabled={!filterForm.mainCategoryId}
-              >
-                <option value="">All</option>
-                {filterCategories.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>Sub-category</span>
-              <select
-                value={filterForm.subCategoryId}
-                onChange={(event) => handleFilterChange('subCategoryId', event.target.value)}
-                disabled={!filterForm.categoryId}
-              >
-                <option value="">All</option>
-                {filterSubCategories.map((item) => (
+                <option value="">Select main category</option>
+                {filteredMainCategories.map((item) => (
                   <option key={item.id} value={item.id}>
                     {item.name}
                   </option>
@@ -1344,24 +1305,25 @@ function ProductAttributePage({ token }) {
             </label>
             <div className="field field-span">
               <div className="inline-row">
-                <button type="button" className="ghost-btn small" onClick={handleApplyFilters} disabled={isLoading}>
-                  Apply filters
-                </button>
-                <button type="button" className="ghost-btn small" onClick={resetFilter}>
+                <button type="button" className="ghost-btn small" onClick={resetFilter} disabled={isLoading}>
                   Reset
                 </button>
               </div>
             </div>
           </div>
-          {mappings.length === 0 ? (
-            <p className="empty-state">No attribute mappings yet.</p>
+          {!filterForm.mainCategoryId ? (
+            <p className="empty-state">Select an industry and main category to view fields.</p>
+          ) : mappings.length === 0 ? (
+            <p className="empty-state">
+              No fields yet{selectedMainCategory ? ` for ${selectedMainCategory.name}` : ''}.
+            </p>
           ) : (
             <div className="table-shell">
               <table className="admin-table">
                 <thead>
                   <tr>
-                    <th>Attribute</th>
-                    <th>Scope</th>
+                    <th>Field</th>
+                    <th>Type</th>
                     <th>Required</th>
                     <th>Order</th>
                     <th>Status</th>
@@ -1372,7 +1334,7 @@ function ProductAttributePage({ token }) {
                   {mappings.map((mapping) => (
                     <tr key={mapping.id}>
                       <td>{mapping.label || mapping.attributeKey}</td>
-                      <td>{scopeLabel(mapping)}</td>
+                      <td>{typeLabel(mapping.dataType || definitionMap.get(mapping.attributeId)?.dataType)}</td>
                       <td>{mapping.required ? 'Yes' : 'No'}</td>
                       <td>{mapping.sortOrder ?? '-'}</td>
                       <td>{mapping.active ? 'Active' : 'Inactive'}</td>
