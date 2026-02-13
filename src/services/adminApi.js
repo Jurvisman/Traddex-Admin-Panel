@@ -47,6 +47,12 @@ export const deleteUsersBulk = (token, userIds) =>
   request('/users/delete-bulk', { method: 'POST', body: { user_ids: userIds }, token });
 export const fetchUserDetails = (token, id) => request(`/users/${id}/details`, { token });
 export const logoutUser = (token, id) => request(`/users/${id}/logout`, { method: 'POST', token });
+export const updateBusinessProfile = (token, userId, payload, status) => {
+  const query = status ? `?status=${encodeURIComponent(status)}` : '';
+  return request(`/admin/profile/${userId}/business${query}`, { method: 'PUT', body: payload, token });
+};
+export const updateBusinessProfileStatus = (token, profileId, status) =>
+  request(`/admin/profile/${profileId}/status?status=${encodeURIComponent(status)}`, { method: 'POST', token });
 
 export const listIndustries = (token) => request('/industries', { token });
 export const createIndustry = (token, payload) => request('/industries', { method: 'POST', body: payload, token });
@@ -79,6 +85,8 @@ export const getProduct = (token, id) => request(`/admin/product/${id}`, { token
 export const updateProduct = (token, id, payload) =>
   request(`/admin/product/${id}/update`, { method: 'PUT', body: payload, token });
 export const deleteProduct = (token, id) => request(`/admin/product/${id}`, { method: 'DELETE', token });
+export const deleteProductsBulk = (token, productIds) =>
+  request('/admin/product/delete-bulk', { method: 'POST', body: { product_ids: productIds }, token });
 export const updateProductVariantStatus = (token, productId, variantId, payload) =>
   request(`/admin/product/${productId}/variants/${variantId}/status`, { method: 'PUT', body: payload, token });
 
@@ -110,6 +118,9 @@ export const deleteAttributeMapping = (token, id) =>
   request(`/admin/product-attribute-map/${id}`, { method: 'DELETE', token });
 
 export const listUoms = (token) => request('/uom/getall', { token });
+export const createUom = (token, payload) => request('/uom/create', { method: 'POST', body: payload, token });
+export const updateUom = (token, id, payload) => request(`/uom/${id}/update`, { method: 'PUT', body: payload, token });
+export const deleteUom = (token, id) => request(`/uom/${id}`, { method: 'DELETE', token });
 
 export const getInquiryConfig = (token) => request('/admin/inquiry/config', { token });
 export const updateInquiryConfig = (token, payload) =>

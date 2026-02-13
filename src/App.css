@@ -3179,6 +3179,16 @@ textarea {
   color: #facc15;
 }
 
+.status-chip.approved {
+  border-color: rgba(47, 218, 132, 0.4);
+  color: #b9f3d9;
+}
+
+.status-chip.rejected {
+  border-color: rgba(248, 113, 113, 0.4);
+  color: #ffd6d6;
+}
+
 .verify-pill {
   display: inline-flex;
   align-items: center;
@@ -3202,6 +3212,12 @@ textarea {
   border-color: rgba(245, 158, 11, 0.4);
   background: rgba(245, 158, 11, 0.12);
   color: #facc15;
+}
+
+.verify-pill.rejected {
+  border-color: rgba(248, 113, 113, 0.4);
+  background: rgba(248, 113, 113, 0.12);
+  color: #fecaca;
 }
 
 .users-table-card {
@@ -3359,6 +3375,18 @@ textarea {
   color: #b45309;
 }
 
+.admin-shell.theme-light .status-chip.approved {
+  background: #dcfce7;
+  border-color: #22c55e;
+  color: #166534;
+}
+
+.admin-shell.theme-light .status-chip.rejected {
+  background: #fee2e2;
+  border-color: #ef4444;
+  color: #991b1b;
+}
+
 .admin-shell.theme-light .verify-pill {
   background: #fef3c7;
   border-color: #f59e0b;
@@ -3369,6 +3397,12 @@ textarea {
   background: #dcfce7;
   border-color: #22c55e;
   color: #166534;
+}
+
+.admin-shell.theme-light .verify-pill.rejected {
+  background: #fee2e2;
+  border-color: #ef4444;
+  color: #991b1b;
 }
 
 .admin-shell.theme-light .subscription-pill,
