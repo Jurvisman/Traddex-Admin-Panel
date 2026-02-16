@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Banner } from '../components';
+import { useNavigate } from 'react-router-dom';
 import {
   deleteUser,
   deleteUsersBulk,
   fetchUserDetails,
   fetchUsers,
+  listProductsByUser,
   updateBusinessProfile,
   updateBusinessProfileStatus,
   updateUser,
@@ -112,6 +114,15 @@ const getInitials = (user) => {
   return `${words[0][0] || ''}${words[1][0] || ''}`.toUpperCase();
 };
 
+const formatProductStatus = (status) => {
+  if (!status) return 'Pending';
+  return status
+    .toLowerCase()
+    .split('_')
+    .map((part) => (part ? `${part.charAt(0).toUpperCase()}${part.slice(1)}` : ''))
+    .join(' ');
+};
+
 const BUSINESS_PROFILE_FIELDS = [
   { key: 'businessName', label: 'Business Name', required: true, span: true },
   { key: 'ownerName', label: 'Owner Name' },
@@ -183,6 +194,7 @@ const buildBusinessPayload = (form) =>
   }, {});
 
 function AdminUsersPage({ token }) {
+  const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [query, setQuery] = useState('');
   const [message, setMessage] = useState({ type: 'info', text: '' });
@@ -199,6 +211,8 @@ function AdminUsersPage({ token }) {
     timeZone: '',
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [linkedProducts, setLinkedProducts] = useState([]);
+  const [isLinkedLoading, setIsLinkedLoading] = useState(false);
   const [editBusinessProfile, setEditBusinessProfile] = useState(null);
   const [editBusinessForm, setEditBusinessForm] = useState(() => buildBusinessFormState(null));
   const [isBusinessSaving, setIsBusinessSaving] = useState(false);
@@ -373,13 +387,30 @@ function AdminUsersPage({ token }) {
     setViewDetails({ user });
     setIsViewLoading(true);
     setMessage({ type: 'info', text: '' });
+    setLinkedProducts([]);
     try {
       const response = await fetchUserDetails(token, user.id);
       setViewDetails(response?.data || { user });
+      if (isBusinessUser(user)) {
+        await loadLinkedProducts(user.id);
+      }
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to load user details.' });
     } finally {
       setIsViewLoading(false);
+    }
+  };
+
+  const loadLinkedProducts = async (userId) => {
+    if (!userId) return;
+    setIsLinkedLoading(true);
+    try {
+      const response = await listProductsByUser(token, userId);
+      setLinkedProducts(response?.data?.products || []);
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to load linked products.' });
+    } finally {
+      setIsLinkedLoading(false);
     }
   };
 
@@ -389,6 +420,7 @@ function AdminUsersPage({ token }) {
     try {
       const response = await fetchUserDetails(token, userId);
       setViewDetails(response?.data || { user: viewDetails?.user });
+      await loadLinkedProducts(userId);
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to refresh user details.' });
     } finally {
@@ -753,6 +785,89 @@ function AdminUsersPage({ token }) {
                         );
                       })}
                     </div>
+                  </div>
+                ) : null}
+
+                {viewUser && isBusinessUser(viewUser) ? (
+                  <div className="detail-section">
+                    <div className="panel-split">
+                      <div>
+                        <h4 className="detail-section-title">Linked Products</h4>
+                        <p className="panel-subtitle">Products created by this business.</p>
+                      </div>
+                      <button
+                        type="button"
+                        className="ghost-btn small"
+                        onClick={() => loadLinkedProducts(viewUser.id)}
+                        disabled={isLinkedLoading}
+                      >
+                        {isLinkedLoading ? 'Refreshing...' : 'Refresh'}
+                      </button>
+                    </div>
+                    {isLinkedLoading ? (
+                      <p className="empty-state">Loading products...</p>
+                    ) : linkedProducts.length === 0 ? (
+                      <p className="empty-state">No products linked yet.</p>
+                    ) : (
+                      <div className="table-shell">
+                        <table className="admin-table">
+                          <thead>
+                            <tr>
+                              <th>Product</th>
+                              <th>Category</th>
+                              <th>Price</th>
+                              <th>Status</th>
+                              <th>Updated</th>
+                              <th className="table-actions">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {linkedProducts.map((product) => {
+                              const statusValue = product?.approvalStatus || '';
+                              const statusClass = `status-pill ${
+                                statusValue ? statusValue.toLowerCase().replace(/_/g, '-') : 'pending'
+                              }`;
+                              return (
+                                <tr key={product?.id || product?.productId}>
+                                  <td>{product?.productName || '-'}</td>
+                                  <td>
+                                    {product?.category?.subCategoryName ||
+                                      product?.category?.categoryName ||
+                                      product?.category?.mainCategoryName ||
+                                      '-'}
+                                  </td>
+                                  <td>{product?.sellingPrice ?? '-'}</td>
+                                  <td>
+                                    <span className={statusClass}>{formatProductStatus(statusValue)}</span>
+                                  </td>
+                                  <td>{formatDate(product?.updatedOn || product?.updated_on || product?.createdOn)}</td>
+                                  <td className="table-actions">
+                                    <div className="table-action-group">
+                                      <button
+                                        type="button"
+                                        className="ghost-btn small"
+                                        onClick={() => navigate(`/admin/products/${product?.id || product?.productId}`)}
+                                      >
+                                        View
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className="ghost-btn small"
+                                        onClick={() =>
+                                          navigate(`/admin/products/${product?.id || product?.productId}/edit`)
+                                        }
+                                      >
+                                        Edit
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
                   </div>
                 ) : null}
 
