@@ -195,3 +195,24 @@ export const listSubscriptionAssignments = (token, filters = {}) => {
   const query = params.toString() ? `?${params.toString()}` : '';
   return request(`/admin/subscription/list${query}`, { token });
 };
+
+// Order disputes
+export const listOrderDisputes = (token, status) => {
+  const query = status ? `?status=${encodeURIComponent(status)}` : '';
+  return request(`/admin/orders/disputes${query}`, { token });
+};
+export const resolveOrderDispute = (token, disputeId, payload) =>
+  request(`/admin/orders/disputes/${disputeId}/resolve`, { method: 'POST', body: payload, token });
+
+export const listOrderReturns = (token, status) => {
+  const query = status ? `?status=${encodeURIComponent(status)}` : '';
+  return request(`/admin/orders/returns${query}`, { token });
+};
+export const overrideOrderReturn = (token, returnId, payload) =>
+  request(`/admin/orders/returns/${returnId}/override`, { method: 'POST', body: payload, token });
+
+export const getUserBusinessScore = (token, userId) =>
+  request(`/admin/business-score?user_id=${userId}`, { token });
+
+export const getUserBusinessScoreHistory = (token, userId, limit = 25) =>
+  request(`/admin/business-score/history?user_id=${userId}&limit=${limit}`, { token });

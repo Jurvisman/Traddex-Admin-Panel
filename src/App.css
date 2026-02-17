@@ -1344,6 +1344,11 @@ textarea {
   font-size: 10px;
 }
 
+.panel-hint {
+  font-size: 11px;
+  color: var(--muted);
+}
+
 .admin-content > * > .panel-head .panel-title,
 .admin-content > * > .panel-head .panel-subtitle {
   display: none;
@@ -1971,6 +1976,12 @@ textarea {
   border-color: rgba(240, 170, 70, 0.4);
   background: rgba(240, 170, 70, 0.12);
   color: #a86c1c;
+}
+
+.status-pill.closed {
+  border-color: rgba(148, 163, 184, 0.4);
+  background: rgba(148, 163, 184, 0.14);
+  color: #64748b;
 }
 
 .empty-state {

@@ -6,6 +6,8 @@ import {
   deleteUsersBulk,
   fetchUserDetails,
   fetchUsers,
+  getUserBusinessScore,
+  getUserBusinessScoreHistory,
   listProductsByUser,
   updateBusinessProfile,
   updateBusinessProfileStatus,
@@ -123,6 +125,18 @@ const formatProductStatus = (status) => {
     .join(' ');
 };
 
+const formatEventLabel = (value) =>
+  String(value || '')
+    .toLowerCase()
+    .split('_')
+    .map((part) => (part ? `${part.charAt(0).toUpperCase()}${part.slice(1)}` : ''))
+    .join(' ');
+
+const formatDelta = (delta) => {
+  if (delta === null || delta === undefined) return '-';
+  return `${delta >= 0 ? '+' : ''}${delta}`;
+};
+
 const BUSINESS_PROFILE_FIELDS = [
   { key: 'businessName', label: 'Business Name', required: true, span: true },
   { key: 'ownerName', label: 'Owner Name' },
@@ -213,6 +227,10 @@ function AdminUsersPage({ token }) {
   const [isSaving, setIsSaving] = useState(false);
   const [linkedProducts, setLinkedProducts] = useState([]);
   const [isLinkedLoading, setIsLinkedLoading] = useState(false);
+  const [businessScore, setBusinessScore] = useState(null);
+  const [businessScoreHistory, setBusinessScoreHistory] = useState([]);
+  const [isBusinessScoreLoading, setIsBusinessScoreLoading] = useState(false);
+  const [businessScoreError, setBusinessScoreError] = useState('');
   const [editBusinessProfile, setEditBusinessProfile] = useState(null);
   const [editBusinessForm, setEditBusinessForm] = useState(() => buildBusinessFormState(null));
   const [isBusinessSaving, setIsBusinessSaving] = useState(false);
@@ -388,12 +406,16 @@ function AdminUsersPage({ token }) {
     setIsViewLoading(true);
     setMessage({ type: 'info', text: '' });
     setLinkedProducts([]);
+    setBusinessScore(null);
+    setBusinessScoreHistory([]);
+    setBusinessScoreError('');
     try {
       const response = await fetchUserDetails(token, user.id);
       setViewDetails(response?.data || { user });
       if (isBusinessUser(user)) {
         await loadLinkedProducts(user.id);
       }
+      await loadBusinessScore(user.id);
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to load user details.' });
     } finally {
@@ -414,6 +436,24 @@ function AdminUsersPage({ token }) {
     }
   };
 
+  const loadBusinessScore = async (userId) => {
+    if (!userId) return;
+    setIsBusinessScoreLoading(true);
+    setBusinessScoreError('');
+    try {
+      const [scoreResp, historyResp] = await Promise.all([
+        getUserBusinessScore(token, userId),
+        getUserBusinessScoreHistory(token, userId, 25),
+      ]);
+      setBusinessScore(scoreResp?.data || null);
+      setBusinessScoreHistory(historyResp?.data || []);
+    } catch (error) {
+      setBusinessScoreError(error.message || 'Failed to load business score.');
+    } finally {
+      setIsBusinessScoreLoading(false);
+    }
+  };
+
   const refreshViewDetails = async (userId) => {
     if (!userId) return;
     setIsViewLoading(true);
@@ -421,6 +461,7 @@ function AdminUsersPage({ token }) {
       const response = await fetchUserDetails(token, userId);
       setViewDetails(response?.data || { user: viewDetails?.user });
       await loadLinkedProducts(userId);
+      await loadBusinessScore(userId);
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to refresh user details.' });
     } finally {
@@ -728,6 +769,84 @@ function AdminUsersPage({ token }) {
                       <p className="user-detail-value">{viewUser?.timeZone || '-'}</p>
                     </div>
                   </div>
+                </div>
+
+                <div className="detail-section">
+                  <div className="panel-split">
+                    <div>
+                      <h4 className="detail-section-title">Business Score</h4>
+                      <p className="panel-subtitle">Latest score and activity history.</p>
+                    </div>
+                    <button
+                      type="button"
+                      className="ghost-btn small"
+                      onClick={() => loadBusinessScore(viewUser?.id)}
+                      disabled={isBusinessScoreLoading}
+                    >
+                      {isBusinessScoreLoading ? 'Refreshing...' : 'Refresh'}
+                    </button>
+                  </div>
+                  {isBusinessScoreLoading ? <p className="empty-state">Loading business score...</p> : null}
+                  {businessScoreError ? <p className="empty-state">{businessScoreError}</p> : null}
+                  {businessScore ? (
+                    <div className="user-detail-grid">
+                      <div className="user-detail-card">
+                        <p className="user-detail-label">Score</p>
+                        <p className="user-detail-value">{businessScore?.score ?? '-'}</p>
+                      </div>
+                      <div className="user-detail-card">
+                        <p className="user-detail-label">Band</p>
+                        <p className="user-detail-value">{businessScore?.band || '-'}</p>
+                      </div>
+                      <div className="user-detail-card">
+                        <p className="user-detail-label">Range</p>
+                        <p className="user-detail-value">
+                          {businessScore?.min_score ?? '-'} - {businessScore?.max_score ?? '-'}
+                        </p>
+                      </div>
+                      <div className="user-detail-card">
+                        <p className="user-detail-label">Updated</p>
+                        <p className="user-detail-value">{formatDate(businessScore?.updated_on)}</p>
+                      </div>
+                    </div>
+                  ) : null}
+                  {businessScoreHistory.length === 0 && !isBusinessScoreLoading && !businessScoreError ? (
+                    <p className="empty-state">No business score history yet.</p>
+                  ) : null}
+                  {businessScoreHistory.length > 0 ? (
+                    <div className="table-shell">
+                      <table className="admin-table">
+                        <thead>
+                          <tr>
+                            <th>Event</th>
+                            <th>Delta</th>
+                            <th>Score after</th>
+                            <th>Reason</th>
+                            <th>Order</th>
+                            <th>Created</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {businessScoreHistory.map((entry) => {
+                            const delta = entry?.delta ?? 0;
+                            const deltaClass = delta >= 0 ? 'approved' : 'rejected';
+                            return (
+                              <tr key={entry?.id || `${entry?.event_type}-${entry?.created_on}`}>
+                                <td>{formatEventLabel(entry?.event_type) || '-'}</td>
+                                <td>
+                                  <span className={`status-pill ${deltaClass}`}>{formatDelta(delta)}</span>
+                                </td>
+                                <td>{entry?.score_after ?? '-'}</td>
+                                <td>{entry?.reason || '-'}</td>
+                                <td>{entry?.order_id ?? '-'}</td>
+                                <td>{formatDate(entry?.created_on)}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : null}
                 </div>
 
                 {viewUserProfile ? (
