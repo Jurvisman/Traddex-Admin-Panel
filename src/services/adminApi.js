@@ -169,6 +169,37 @@ export const uploadBannerImages = async (token, files) => {
   return response.json();
 };
 
+export const importTimeZones = async (token, file, replace = true) => {
+  const headers = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  const body = new FormData();
+  if (file) {
+    body.append('file', file);
+  }
+
+  const response = await fetch(
+    buildUrl(`/admin/locations/timezones/import?replace=${replace ? 'true' : 'false'}`),
+    {
+      method: 'POST',
+      headers,
+      body,
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(await parseError(response));
+  }
+  if (response.status === 204) return null;
+
+  const payload = await response.json();
+  if (payload?.success === false) {
+    throw new Error(payload?.message || 'Failed to import timezones.');
+  }
+  return payload?.data || payload;
+};
+
 // Subscription management
 export const listSubscriptionFeatures = (token) => request('/admin/feature/list', { token });
 export const createSubscriptionFeature = (token, payload) =>

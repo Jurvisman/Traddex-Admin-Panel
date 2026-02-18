@@ -5,6 +5,7 @@ import {
   AdminDashboardPage,
   CatalogManagerPage,
   AppConfigPage,
+  AdminTimezonesPage,
   LoginPage,
   InquiryConfigPage,
   InquiryReportPage,
@@ -106,6 +107,14 @@ const ICONS = {
       />
     </svg>
   ),
+  timezones: (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8Zm1-13h-2v6l4.8 2.8 1-1.7-3.8-2.2V7Z"
+        fill="currentColor"
+      />
+    </svg>
+  ),
   disputes: (
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path
@@ -137,6 +146,7 @@ const NAV_TONES = {
   subPlans: { base: '#A855F7', soft: 'rgba(168, 85, 247, 0.16)', shadow: 'rgba(168, 85, 247, 0.3)' },
   subAssignments: { base: '#EAB308', soft: 'rgba(234, 179, 8, 0.16)', shadow: 'rgba(234, 179, 8, 0.3)' },
   appConfig: { base: '#0EA5E9', soft: 'rgba(14, 165, 233, 0.16)', shadow: 'rgba(14, 165, 233, 0.3)' },
+  timezones: { base: '#2563EB', soft: 'rgba(37, 99, 235, 0.16)', shadow: 'rgba(37, 99, 235, 0.3)' },
   disputes: { base: '#EF4444', soft: 'rgba(239, 68, 68, 0.16)', shadow: 'rgba(239, 68, 68, 0.3)' },
   returns: { base: '#F97316', soft: 'rgba(249, 115, 22, 0.16)', shadow: 'rgba(249, 115, 22, 0.3)' },
 };
@@ -205,6 +215,11 @@ const ADMIN_META = [
     match: '/admin/app-config',
     title: 'App Config',
     subtitle: 'Edit and publish dynamic UI configuration.',
+  },
+  {
+    match: '/admin/timezones',
+    title: 'Timezones',
+    subtitle: 'Import IANA zone1970.tab to refresh timezone lookups.',
   },
   {
     match: '/admin/orders/disputes',
@@ -357,6 +372,12 @@ function AppRoutes() {
         items: [{ path: '/admin/app-config', label: 'App Config', icon: ICONS.appConfig, tone: NAV_TONES.appConfig }],
       },
       {
+        title: 'Locations',
+        items: [
+          { path: '/admin/timezones', label: 'Timezones', icon: ICONS.timezones, tone: NAV_TONES.timezones },
+        ],
+      },
+      {
         title: 'Orders',
         items: [
           {
@@ -465,6 +486,7 @@ function AppRoutes() {
         <Route path="subscription/plans" element={<SubscriptionPlanPage token={authToken} />} />
         <Route path="subscription/assignments" element={<SubscriptionAssignPage token={authToken} />} />
         <Route path="app-config" element={<AppConfigPage token={authToken} />} />
+        <Route path="timezones" element={<AdminTimezonesPage token={authToken} />} />
         <Route path="orders/disputes" element={<OrderDisputesPage token={authToken} />} />
         <Route path="orders/returns" element={<OrderReturnsPage token={authToken} />} />
       </Route>
