@@ -3,7 +3,10 @@ import { useMatch, useNavigate, useParams } from 'react-router-dom';
 import { Banner } from '../components';
 import {
   createProduct,
+  createUom,
   deleteProduct,
+  deleteProductsBulk,
+  deleteUom,
   getProduct,
   listAttributeDefinitions,
   listAttributeMappings,
@@ -12,6 +15,7 @@ import {
   listProducts,
   listSubCategories,
   listUoms,
+  updateUom,
   updateProduct,
   updateProductVariantStatus,
 } from '../services/adminApi';
@@ -30,6 +34,8 @@ const createVariantEntry = () => ({
   galleryImagesText: '',
   attributes: [createVariantAttributeEntry()],
 });
+
+const normalize = (value) => String(value || '').toLowerCase();
 
 const initialForm = {
   productName: '',
@@ -59,8 +65,19 @@ function ProductPage({ token, adminUserId }) {
   const [attributeMappings, setAttributeMappings] = useState([]);
   const [dynamicValues, setDynamicValues] = useState({});
   const [uoms, setUoms] = useState([]);
+  const [uomForm, setUomForm] = useState({
+    uomCode: '',
+    uomName: '',
+    description: '',
+    isActive: true,
+  });
+  const [editingUomId, setEditingUomId] = useState(null);
+  const [isUomSaving, setIsUomSaving] = useState(false);
   const [message, setMessage] = useState({ type: 'info', text: '' });
   const [isLoading, setIsLoading] = useState(false);
+  const [query, setQuery] = useState('');
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingProductId, setEditingProductId] = useState(null);
   const didInitRef = useRef(false);
@@ -76,6 +93,25 @@ function ProductPage({ token, adminUserId }) {
     return mapping;
   }, [attributeDefinitions]);
 
+  const filteredProducts = useMemo(() => {
+    const term = normalize(query);
+    if (!term) return products;
+    return products.filter((product) => {
+      const haystack = [
+        product?.productName,
+        product?.brandName,
+        product?.businessName,
+        product?.category?.subCategoryName,
+        product?.category?.categoryName,
+        product?.category?.mainCategoryName,
+        product?.approvalStatus,
+      ]
+        .map(normalize)
+        .join(' ');
+      return haystack.includes(term);
+    });
+  }, [products, query]);
+
   const selectedProductId = id && !Number.isNaN(Number(id)) ? Number(id) : null;
   const isEditing = Boolean(editingProductId);
   const isViewing = Boolean(selectedProductId);
@@ -84,6 +120,7 @@ function ProductPage({ token, adminUserId }) {
   const loadProducts = async () => {
     const response = await listProducts(token);
     setProducts(response?.data?.products || []);
+    setSelectedIds(new Set());
   };
 
   const loadProductDetail = async (productId) => {
@@ -101,6 +138,7 @@ function ProductPage({ token, adminUserId }) {
     const items = response?.data?.uoms || [];
     const sorted = [...items].sort((a, b) => (a.uomName || '').localeCompare(b.uomName || ''));
     setUoms(sorted);
+    syncUomSelections(sorted);
   };
 
   const loadAttributeDefinitions = async () => {
@@ -241,6 +279,30 @@ function ProductPage({ token, adminUserId }) {
         ? ` • Price: ${entry.pricePerUom}`
         : '';
     return `${name || 'UOM'}${factorText}${priceText}`;
+  };
+
+  const resetUomForm = () => {
+    setUomForm({ uomCode: '', uomName: '', description: '', isActive: true });
+    setEditingUomId(null);
+  };
+
+  const syncUomSelections = (nextUoms) => {
+    const ids = new Set((nextUoms || []).map((item) => String(item?.id)));
+    setForm((prev) => ({
+      ...prev,
+      baseUomId: prev.baseUomId && ids.has(String(prev.baseUomId)) ? prev.baseUomId : '',
+      purchaseUoms: (prev.purchaseUoms || []).filter((entry) => entry?.uomId && ids.has(String(entry.uomId))),
+      salesUoms: (prev.salesUoms || []).filter((entry) => entry?.uomId && ids.has(String(entry.uomId))),
+    }));
+  };
+
+  const handleUomChange = (key, value) => {
+    setUomForm((prev) => {
+      if (key === 'isActive') {
+        return { ...prev, isActive: value === true || value === 'true' };
+      }
+      return { ...prev, [key]: value };
+    });
   };
 
   const parseList = (value) => {
@@ -888,7 +950,109 @@ function ProductPage({ token, adminUserId }) {
     }
   };
 
+  const handleUomSave = async () => {
+    const uomCode = uomForm.uomCode.trim();
+    const uomName = uomForm.uomName.trim();
+    if (!uomCode || !uomName) {
+      setMessage({ type: 'error', text: 'UOM code and name are required.' });
+      return;
+    }
+    const payload = {
+      uomCode: uomCode.toUpperCase(),
+      uomName,
+      description: uomForm.description ? uomForm.description.trim() : null,
+      isActive: Boolean(uomForm.isActive),
+    };
+    try {
+      setIsUomSaving(true);
+      if (editingUomId) {
+        await updateUom(token, editingUomId, payload);
+        setMessage({ type: 'success', text: 'UOM updated successfully.' });
+      } else {
+        await createUom(token, payload);
+        setMessage({ type: 'success', text: 'UOM created successfully.' });
+      }
+      await loadUoms();
+      resetUomForm();
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to save UOM.' });
+    } finally {
+      setIsUomSaving(false);
+    }
+  };
+
+  const handleUomRefresh = async () => {
+    try {
+      setIsUomSaving(true);
+      await loadUoms();
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to load UOMs.' });
+    } finally {
+      setIsUomSaving(false);
+    }
+  };
+
+  const handleUomEdit = (uom) => {
+    if (!uom) return;
+    setEditingUomId(uom.id);
+    setUomForm({
+      uomCode: uom.uomCode || '',
+      uomName: uom.uomName || '',
+      description: uom.description || '',
+      isActive: uom.isActive !== false,
+    });
+  };
+
+  const handleUomDelete = async (uom) => {
+    if (!uom?.id) return;
+    const ok = window.confirm(`Delete UOM ${uom.uomName || uom.uomCode || ''}?`);
+    if (!ok) return;
+    try {
+      setIsUomSaving(true);
+      await deleteUom(token, uom.id);
+      await loadUoms();
+      if (editingUomId === uom.id) {
+        resetUomForm();
+      }
+      setMessage({ type: 'success', text: 'UOM deleted successfully.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to delete UOM.' });
+    } finally {
+      setIsUomSaving(false);
+    }
+  };
+
+  const toggleSelect = (productId) => {
+    if (!productId) return;
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(productId)) {
+        next.delete(productId);
+      } else {
+        next.add(productId);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    const selectableIds = filteredProducts.map((product) => product?.id).filter(Boolean);
+    if (selectableIds.length === 0) return;
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      const allSelected = selectableIds.every((id) => next.has(id));
+      if (allSelected) {
+        selectableIds.forEach((id) => next.delete(id));
+      } else {
+        selectableIds.forEach((id) => next.add(id));
+      }
+      return next;
+    });
+  };
+
   const handleDelete = async (id) => {
+    const ok = window.confirm('Delete this product? This will remove it from the list.');
+    if (!ok) return;
     try {
       setIsLoading(true);
       await deleteProduct(token, id);
@@ -898,6 +1062,22 @@ function ProductPage({ token, adminUserId }) {
       setMessage({ type: 'error', text: error.message || 'Failed to delete product.' });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!selectedIds.size) return;
+    const ok = window.confirm(`Delete ${selectedIds.size} products? This will remove them from the list.`);
+    if (!ok) return;
+    try {
+      setIsBulkDeleting(true);
+      await deleteProductsBulk(token, Array.from(selectedIds));
+      await loadProducts();
+      setMessage({ type: 'success', text: 'Products deleted successfully.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to delete products.' });
+    } finally {
+      setIsBulkDeleting(false);
     }
   };
 
@@ -961,9 +1141,12 @@ function ProductPage({ token, adminUserId }) {
     (product) => String(product?.approvalStatus || '').toUpperCase() === 'REJECTED'
   ).length;
   const pendingCount = Math.max(0, totalProducts - approvedCount - rejectedCount);
+  const selectableIds = filteredProducts.map((product) => product?.id).filter(Boolean);
+  const selectedCount = selectedIds.size;
+  const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selectedIds.has(id));
 
   return (
-    <div>
+    <div className="users-page">
       {isViewing ? (
         <div className="panel-head">
           <div>
@@ -998,14 +1181,31 @@ function ProductPage({ token, adminUserId }) {
           </div>
         </div>
       ) : (
-        <div className="panel-head">
+        <div className="users-head">
           <div>
-            <h2 className="panel-title">Product</h2>
+            <h2 className="panel-title">Products</h2>
             <p className="panel-subtitle">Create and manage products for businesses.</p>
           </div>
-          <button type="button" className="ghost-btn" onClick={handleRefresh} disabled={isLoading}>
-            Refresh
-          </button>
+          <div className="users-head-actions">
+            <button type="button" className="ghost-btn" onClick={handleRefresh} disabled={isLoading}>
+              {isLoading ? 'Refreshing...' : 'Refresh'}
+            </button>
+            <button
+              type="button"
+              className="ghost-btn"
+              onClick={handleBulkDelete}
+              disabled={isBulkDeleting || selectedCount === 0}
+            >
+              Delete Selected{selectedCount ? ` (${selectedCount})` : ''}
+            </button>
+            <button
+              type="button"
+              className="primary-btn"
+              onClick={showForm ? handleCloseForm : handleOpenCreateForm}
+            >
+              {showForm ? 'Close' : 'Create'}
+            </button>
+          </div>
         </div>
       )}
       <Banner message={message} />
@@ -1031,6 +1231,13 @@ function ProductPage({ token, adminUserId }) {
           <p className="stat-sub">Declined items</p>
         </div>
       </div>
+      {!isViewing ? (
+        <div className="users-filters">
+          <span className="status-chip approved">{approvedCount} Approved</span>
+          <span className="status-chip pending">{pendingCount} Pending</span>
+          <span className="status-chip rejected">{rejectedCount} Rejected</span>
+        </div>
+      ) : null}
       {showForm ? (
         <div className="admin-modal-backdrop" onClick={handleCloseForm}>
           <form
@@ -1139,132 +1346,255 @@ function ProductPage({ token, adminUserId }) {
                   required
                 />
               </label>
-              <label className="field field-span">
-                <span>Base UOM</span>
-                <select
-                  value={form.baseUomId}
-                  onChange={(event) => handleChange('baseUomId', event.target.value)}
-                  disabled={uoms.length === 0}
-                >
-                  <option value="">Select base unit</option>
-                  {uoms.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {formatUomLabel(item)}
-                    </option>
-                  ))}
-                </select>
-                <span className="field-help">
-                  {uoms.length === 0
-                    ? 'No UOMs available. Add units in the UOM master to enable selection.'
-                    : 'Used as the canonical unit for all conversions; selling price is per base UOM.'}
-                </span>
-              </label>
-              {uoms.length === 0 ? null : (
-                <>
-                  <div className="field field-span">
-                    <span>Purchase UOMs (max 3)</span>
-                    {form.purchaseUoms.length === 0 ? (
-                      <span className="field-help">No purchase UOMs added.</span>
-                    ) : null}
-                    {form.purchaseUoms.map((entry, index) => {
-                      const isBaseUom = form.baseUomId && entry.uomId === form.baseUomId;
-                      return (
-                        <div className="inline-row" key={`purchase-${index}`}>
-                          <select
-                            value={entry.uomId}
-                            onChange={(event) =>
-                              handleUomEntryChange('purchase', index, 'uomId', event.target.value)
-                            }
-                          >
-                            <option value="">Select UOM</option>
-                            {uoms.map((item) => (
-                              <option key={item.id} value={item.id}>
-                                {formatUomLabel(item)}
-                              </option>
-                            ))}
-                          </select>
-                          <input
-                            type="number"
-                            step="0.000001"
-                            value={entry.conversionFactor}
-                            onChange={(event) =>
-                              handleUomEntryChange('purchase', index, 'conversionFactor', event.target.value)
-                            }
-                            placeholder={isBaseUom ? '1 (base)' : 'e.g. 1000'}
-                            disabled={isBaseUom}
-                          />
-                          <button
-                            type="button"
-                            className="ghost-btn small"
-                            onClick={() => handleRemoveUomEntry('purchase', index)}
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      );
-                    })}
-                    <button
-                      type="button"
-                      className="ghost-btn small"
-                      onClick={() => handleAddUomEntry('purchase')}
-                      disabled={form.purchaseUoms.length >= 3}
-                    >
-                      Add purchase UOM
-                    </button>
-                    <span className="field-help">Conversion factor is base units per 1 unit of the selected UOM.</span>
+              <div className="field-span">
+                <div className="panel-grid">
+                  <div className="panel card">
+                    <h4 className="panel-subheading">UOM setup</h4>
+                    <div className="field-grid">
+                      <label className="field field-span">
+                        <span>Base UOM</span>
+                        <select
+                          value={form.baseUomId}
+                          onChange={(event) => handleChange('baseUomId', event.target.value)}
+                          disabled={uoms.length === 0}
+                        >
+                          <option value="">Select base unit</option>
+                          {uoms.map((item) => (
+                            <option key={item.id} value={item.id}>
+                              {formatUomLabel(item)}
+                            </option>
+                          ))}
+                        </select>
+                        <span className="field-help">
+                          {uoms.length === 0
+                            ? 'No UOMs available. Add units in the UOM library to enable selection.'
+                            : 'Used as the canonical unit for all conversions; selling price is per base UOM.'}
+                        </span>
+                      </label>
+                      {uoms.length === 0 ? null : (
+                        <>
+                          <div className="field field-span">
+                            <span>Purchase UOMs (max 3)</span>
+                            {form.purchaseUoms.length === 0 ? (
+                              <span className="field-help">No purchase UOMs added.</span>
+                            ) : null}
+                            {form.purchaseUoms.map((entry, index) => {
+                              const isBaseUom = form.baseUomId && entry.uomId === form.baseUomId;
+                              return (
+                                <div className="inline-row" key={`purchase-${index}`}>
+                                  <select
+                                    value={entry.uomId}
+                                    onChange={(event) =>
+                                      handleUomEntryChange('purchase', index, 'uomId', event.target.value)
+                                    }
+                                  >
+                                    <option value="">Select UOM</option>
+                                    {uoms.map((item) => (
+                                      <option key={item.id} value={item.id}>
+                                        {formatUomLabel(item)}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <input
+                                    type="number"
+                                    step="0.000001"
+                                    value={entry.conversionFactor}
+                                    onChange={(event) =>
+                                      handleUomEntryChange('purchase', index, 'conversionFactor', event.target.value)
+                                    }
+                                    placeholder={isBaseUom ? '1 (base)' : 'e.g. 1000'}
+                                    disabled={isBaseUom}
+                                  />
+                                  <button
+                                    type="button"
+                                    className="ghost-btn small"
+                                    onClick={() => handleRemoveUomEntry('purchase', index)}
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              );
+                            })}
+                            <button
+                              type="button"
+                              className="ghost-btn small"
+                              onClick={() => handleAddUomEntry('purchase')}
+                              disabled={form.purchaseUoms.length >= 3}
+                            >
+                              Add purchase UOM
+                            </button>
+                            <span className="field-help">
+                              Conversion factor is base units per 1 unit of the selected UOM.
+                            </span>
+                          </div>
+                          <div className="field field-span">
+                            <span>Sales UOMs (max 3)</span>
+                            {form.salesUoms.length === 0 ? (
+                              <span className="field-help">No sales UOMs added.</span>
+                            ) : null}
+                            {form.salesUoms.map((entry, index) => {
+                              const isBaseUom = form.baseUomId && entry.uomId === form.baseUomId;
+                              return (
+                                <div className="inline-row" key={`sales-${index}`}>
+                                  <select
+                                    value={entry.uomId}
+                                    onChange={(event) =>
+                                      handleUomEntryChange('sales', index, 'uomId', event.target.value)
+                                    }
+                                  >
+                                    <option value="">Select UOM</option>
+                                    {uoms.map((item) => (
+                                      <option key={item.id} value={item.id}>
+                                        {formatUomLabel(item)}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <input
+                                    type="number"
+                                    step="0.000001"
+                                    value={entry.conversionFactor}
+                                    onChange={(event) =>
+                                      handleUomEntryChange('sales', index, 'conversionFactor', event.target.value)
+                                    }
+                                    placeholder={isBaseUom ? '1 (base)' : 'e.g. 0.001'}
+                                    disabled={isBaseUom}
+                                  />
+                                  <button
+                                    type="button"
+                                    className="ghost-btn small"
+                                    onClick={() => handleRemoveUomEntry('sales', index)}
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              );
+                            })}
+                            <button
+                              type="button"
+                              className="ghost-btn small"
+                              onClick={() => handleAddUomEntry('sales')}
+                              disabled={form.salesUoms.length >= 3}
+                            >
+                              Add sales UOM
+                            </button>
+                            <span className="field-help">
+                              Leave conversion blank to use global conversion if configured.
+                            </span>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
-                  <div className="field field-span">
-                    <span>Sales UOMs (max 3)</span>
-                    {form.salesUoms.length === 0 ? <span className="field-help">No sales UOMs added.</span> : null}
-                    {form.salesUoms.map((entry, index) => {
-                      const isBaseUom = form.baseUomId && entry.uomId === form.baseUomId;
-                      return (
-                        <div className="inline-row" key={`sales-${index}`}>
-                          <select
-                            value={entry.uomId}
-                            onChange={(event) =>
-                              handleUomEntryChange('sales', index, 'uomId', event.target.value)
-                            }
-                          >
-                            <option value="">Select UOM</option>
-                            {uoms.map((item) => (
-                              <option key={item.id} value={item.id}>
-                                {formatUomLabel(item)}
-                              </option>
+                  <div className="panel card">
+                    <div className="panel-split">
+                      <div>
+                        <h4 className="panel-subheading">UOM Library</h4>
+                        <p className="panel-subtitle">Create or manage units without leaving this form.</p>
+                      </div>
+                      <button
+                        type="button"
+                        className="ghost-btn small"
+                        onClick={handleUomRefresh}
+                        disabled={isUomSaving}
+                      >
+                        Refresh
+                      </button>
+                    </div>
+                    <div className="field-grid">
+                      <label className="field">
+                        <span>UOM Code</span>
+                        <input
+                          type="text"
+                          value={uomForm.uomCode}
+                          onChange={(event) => handleUomChange('uomCode', event.target.value)}
+                          placeholder="e.g. KG"
+                        />
+                      </label>
+                      <label className="field">
+                        <span>UOM Name</span>
+                        <input
+                          type="text"
+                          value={uomForm.uomName}
+                          onChange={(event) => handleUomChange('uomName', event.target.value)}
+                          placeholder="Kilogram"
+                        />
+                      </label>
+                      <label className="field field-span">
+                        <span>Description</span>
+                        <input
+                          type="text"
+                          value={uomForm.description}
+                          onChange={(event) => handleUomChange('description', event.target.value)}
+                          placeholder="Optional description"
+                        />
+                      </label>
+                      <label className="field">
+                        <span>Status</span>
+                        <select
+                          value={uomForm.isActive ? 'true' : 'false'}
+                          onChange={(event) => handleUomChange('isActive', event.target.value)}
+                        >
+                          <option value="true">Active</option>
+                          <option value="false">Inactive</option>
+                        </select>
+                      </label>
+                      <div className="field field-span form-actions">
+                        <button type="button" className="ghost-btn" onClick={resetUomForm} disabled={isUomSaving}>
+                          Clear
+                        </button>
+                        <button type="button" className="primary-btn" onClick={handleUomSave} disabled={isUomSaving}>
+                          {isUomSaving ? 'Saving...' : editingUomId ? 'Update UOM' : 'Create UOM'}
+                        </button>
+                      </div>
+                    </div>
+                    {uoms.length === 0 ? (
+                      <p className="empty-state">No UOMs created yet.</p>
+                    ) : (
+                      <div className="table-shell">
+                        <table className="admin-table">
+                          <thead>
+                            <tr>
+                              <th>Code</th>
+                              <th>Name</th>
+                              <th>Status</th>
+                              <th className="table-actions">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {uoms.map((uom) => (
+                              <tr key={uom.id || uom.uomCode}>
+                                <td>{uom.uomCode}</td>
+                                <td>{uom.uomName}</td>
+                                <td>{uom.isActive === false ? 'Inactive' : 'Active'}</td>
+                                <td className="table-actions">
+                                  <div className="table-action-group">
+                                    <button
+                                      type="button"
+                                      className="ghost-btn small"
+                                      onClick={() => handleUomEdit(uom)}
+                                      disabled={isUomSaving}
+                                    >
+                                      Edit
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="ghost-btn small"
+                                      onClick={() => handleUomDelete(uom)}
+                                      disabled={isUomSaving}
+                                    >
+                                      Delete
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
                             ))}
-                          </select>
-                          <input
-                            type="number"
-                            step="0.000001"
-                            value={entry.conversionFactor}
-                            onChange={(event) =>
-                              handleUomEntryChange('sales', index, 'conversionFactor', event.target.value)
-                            }
-                            placeholder={isBaseUom ? '1 (base)' : 'e.g. 0.001'}
-                            disabled={isBaseUom}
-                          />
-                          <button
-                            type="button"
-                            className="ghost-btn small"
-                            onClick={() => handleRemoveUomEntry('sales', index)}
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      );
-                    })}
-                    <button
-                      type="button"
-                      className="ghost-btn small"
-                      onClick={() => handleAddUomEntry('sales')}
-                      disabled={form.salesUoms.length >= 3}
-                    >
-                      Add sales UOM
-                    </button>
-                    <span className="field-help">Leave conversion blank to use global conversion if configured.</span>
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
                   </div>
-                </>
-              )}
+                </div>
+              </div>
               <div className="field-span">
                 <div className="panel-split">
                   <h4 className="panel-subheading">Variants</h4>
@@ -1821,62 +2151,123 @@ function ProductPage({ token, adminUserId }) {
           )}
         </div>
       ) : (
-        <div className="panel-grid">
-          <div className="panel card">
-            <div className="panel-split">
-              <h3 className="panel-subheading">Product list</h3>
-              <button
-                type="button"
-                className="primary-btn compact"
-                onClick={showForm ? handleCloseForm : handleOpenCreateForm}
-              >
-                {showForm ? 'Close' : 'Create'}
+        <div className="panel card users-table-card">
+          <div className="users-search">
+            <span className="icon icon-search" />
+            <input
+              type="search"
+              placeholder="Search products by name, brand, or business..."
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+            {query ? (
+              <button type="button" className="ghost-btn small" onClick={() => setQuery('')}>
+                Clear
               </button>
-            </div>
-            {products.length === 0 ? (
-              <p className="empty-state">No products yet.</p>
-            ) : (
-              <div className="table-shell">
-                <table className="admin-table">
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Category</th>
-                      <th>Selling price</th>
-                      <th>Status</th>
-                      <th />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {products.map((product) => (
+            ) : null}
+          </div>
+
+          {filteredProducts.length === 0 ? (
+            <p className="empty-state">No products found.</p>
+          ) : (
+            <div className="table-shell">
+              <table className="admin-table users-table">
+                <thead>
+                  <tr>
+                    <th>
+                      <input
+                        type="checkbox"
+                        className="select-checkbox"
+                        checked={allSelected}
+                        onChange={toggleSelectAll}
+                        aria-label="Select all products"
+                      />
+                    </th>
+                    <th>Product</th>
+                    <th>Business</th>
+                    <th>Category</th>
+                    <th>Price</th>
+                    <th>Status</th>
+                    <th>Updated</th>
+                    <th className="table-actions">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredProducts.map((product) => {
+                    const statusValue = product?.approvalStatus || '';
+                    const statusClass = `status-pill ${
+                      statusValue ? statusValue.toLowerCase().replace(/_/g, '-') : 'pending'
+                    }`;
+                    return (
                       <tr
-                        key={product.id}
+                        key={product?.id || product?.productId}
                         className="table-row-clickable"
                         onClick={() => handleViewProduct(product.id)}
                       >
-                        <td>{product.productName}</td>
-                        <td>{product.category?.subCategoryName || product.category?.categoryName || '-'}</td>
-                        <td>{product.sellingPrice ?? '-'}</td>
-                        <td>{formatStatus(product.approvalStatus)}</td>
+                        <td>
+                          <input
+                            type="checkbox"
+                            className="select-checkbox"
+                            checked={product?.id ? selectedIds.has(product.id) : false}
+                            onClick={(event) => event.stopPropagation()}
+                            onChange={() => toggleSelect(product?.id)}
+                            aria-label={`Select ${product?.productName || 'product'}`}
+                          />
+                        </td>
+                        <td>
+                          <div>
+                            <p className="user-name">{product?.productName || '-'}</p>
+                            <p className="user-email">{product?.brandName || '-'}</p>
+                          </div>
+                        </td>
+                        <td>{product?.businessName || '-'}</td>
+                        <td>{formatCategory(product?.category)}</td>
+                        <td>{product?.sellingPrice ?? '-'}</td>
+                        <td>
+                          <span className={statusClass}>{formatStatus(statusValue)}</span>
+                        </td>
+                        <td>{formatValue(product?.updatedOn || product?.updated_on || product?.createdOn)}</td>
                         <td className="table-actions">
-                          <button
-                            type="button"
-                            className="ghost-btn small"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              handleDelete(product.id);
-                            }}
-                          >
-                            Delete
-                          </button>
+                          <div className="table-action-group">
+                            <button
+                              type="button"
+                              className="ghost-btn small"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                handleViewProduct(product.id);
+                              }}
+                            >
+                              View
+                            </button>
+                            <button
+                              type="button"
+                              className="ghost-btn small"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                navigate(`/admin/products/${product.id}/edit`);
+                              }}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              className="ghost-btn small"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                handleDelete(product.id);
+                              }}
+                            >
+                              Delete
+                            </button>
+                          </div>
                         </td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
     </div>

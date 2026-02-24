@@ -1,6 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Banner } from '../components';
-import { deleteUser, deleteUsersBulk, fetchUserDetails, fetchUsers, updateUser } from '../services/adminApi';
+import { useNavigate } from 'react-router-dom';
+import {
+  deleteUser,
+  deleteUsersBulk,
+  fetchUserDetails,
+  fetchUsers,
+  getUserBusinessScore,
+  getUserBusinessScoreHistory,
+  listProductsByUser,
+  updateBusinessProfile,
+  updateBusinessProfileStatus,
+  updateUser,
+} from '../services/adminApi';
 
 const normalize = (value) => String(value || '').toLowerCase();
 
@@ -66,7 +78,35 @@ const getSubscriptionLabel = (user) => {
   );
 };
 
-const getVerificationStatus = (user) => (Number(user?.verify) === 1 ? 'Verified' : 'Pending');
+const normalizeStatus = (value) => String(value || '').trim().toUpperCase();
+
+const isBusinessUser = (user) => {
+  const raw = user?.userType || user?.type || user?.role;
+  return String(raw || '').toUpperCase() === 'BUSINESS';
+};
+
+const resolveBusinessVerification = (statusValue) => {
+  const normalized = normalizeStatus(statusValue);
+  if (!normalized) return { label: 'Pending', className: 'pending', isVerified: false };
+  if (['VERIFIED', 'APPROVED'].includes(normalized)) {
+    return { label: 'Verified', className: 'verified', isVerified: true };
+  }
+  if (normalized === 'REJECTED') {
+    return { label: 'Rejected', className: 'rejected', isVerified: false };
+  }
+  if (['PENDING_REVIEW', 'PENDING', 'COMPLETED'].includes(normalized)) {
+    return { label: 'Pending', className: 'pending', isVerified: false };
+  }
+  return { label: normalized, className: 'pending', isVerified: false };
+};
+
+const resolveVerification = (user) => {
+  if (isBusinessUser(user)) {
+    return resolveBusinessVerification(user?.kycStatus);
+  }
+  const verified = Number(user?.verify) === 1;
+  return { label: verified ? 'Verified' : 'Pending', className: verified ? 'verified' : 'pending', isVerified: verified };
+};
 
 const getInitials = (user) => {
   const name = getUserName(user);
@@ -76,7 +116,99 @@ const getInitials = (user) => {
   return `${words[0][0] || ''}${words[1][0] || ''}`.toUpperCase();
 };
 
+const formatProductStatus = (status) => {
+  if (!status) return 'Pending';
+  return status
+    .toLowerCase()
+    .split('_')
+    .map((part) => (part ? `${part.charAt(0).toUpperCase()}${part.slice(1)}` : ''))
+    .join(' ');
+};
+
+const formatEventLabel = (value) =>
+  String(value || '')
+    .toLowerCase()
+    .split('_')
+    .map((part) => (part ? `${part.charAt(0).toUpperCase()}${part.slice(1)}` : ''))
+    .join(' ');
+
+const formatDelta = (delta) => {
+  if (delta === null || delta === undefined) return '-';
+  return `${delta >= 0 ? '+' : ''}${delta}`;
+};
+
+const BUSINESS_PROFILE_FIELDS = [
+  { key: 'businessName', label: 'Business Name', required: true, span: true },
+  { key: 'ownerName', label: 'Owner Name' },
+  { key: 'contactNumber', label: 'Contact Number' },
+  { key: 'whatsappNumber', label: 'WhatsApp Number' },
+  { key: 'email', label: 'Email' },
+  { key: 'industry', label: 'Industry' },
+  { key: 'businessType', label: 'Business Type' },
+  { key: 'gstNumber', label: 'GST Number' },
+  { key: 'businessPan', label: 'Business PAN' },
+  { key: 'udyam', label: 'Udyam' },
+  { key: 'primaryCategoryId', label: 'Primary Category ID', type: 'number' },
+  { key: 'primarySubCategoryId', label: 'Primary Sub-Category ID', type: 'number' },
+  { key: 'address', label: 'Address', type: 'textarea', span: true },
+  { key: 'formattedAddress', label: 'Formatted Address', type: 'textarea', span: true },
+  { key: 'placeId', label: 'Place ID' },
+  { key: 'plotNo', label: 'Plot No' },
+  { key: 'landmark', label: 'Landmark' },
+  { key: 'postalCode', label: 'Postal Code' },
+  { key: 'countryCode', label: 'Country Code' },
+  { key: 'stateCode', label: 'State Code' },
+  { key: 'cityCode', label: 'City Code' },
+  { key: 'latitude', label: 'Latitude', type: 'number' },
+  { key: 'longitude', label: 'Longitude', type: 'number' },
+  { key: 'logo', label: 'Logo URL' },
+  { key: 'website', label: 'Website' },
+  { key: 'nature', label: 'Nature' },
+  { key: 'branchAddress', label: 'Branch Address', type: 'textarea', span: true },
+  { key: 'description', label: 'Description', type: 'textarea', span: true },
+  { key: 'experience', label: 'Experience' },
+  { key: 'hours', label: 'Hours' },
+  { key: 'serviceArea', label: 'Service Area' },
+  { key: 'serviceRadius', label: 'Service Radius', type: 'number' },
+  { key: 'modeOfService', label: 'Mode of Service' },
+  { key: 'paymentMethods', label: 'Payment Methods', type: 'textarea', span: true },
+  { key: 'refundPolicy', label: 'Refund Policy', type: 'textarea', span: true },
+  { key: 'serviceHighlights', label: 'Service Highlights', type: 'textarea', span: true },
+  { key: 'languagesSupported', label: 'Languages Supported' },
+  { key: 'licenseNumber', label: 'License Number' },
+  { key: 'mapLink', label: 'Map Link' },
+  { key: 'accountHolderName', label: 'Account Holder Name' },
+  { key: 'bankName', label: 'Bank Name' },
+  { key: 'accountNumber', label: 'Account Number' },
+  { key: 'ifscCode', label: 'IFSC Code' },
+  { key: 'razorpayKey', label: 'Razorpay Key' },
+];
+
+const buildBusinessFormState = (profile) =>
+  BUSINESS_PROFILE_FIELDS.reduce((acc, field) => {
+    const value = profile?.[field.key];
+    acc[field.key] = value !== null && value !== undefined ? value : '';
+    return acc;
+  }, {});
+
+const buildBusinessPayload = (form) =>
+  BUSINESS_PROFILE_FIELDS.reduce((acc, field) => {
+    const value = form?.[field.key];
+    if (value === null || value === undefined || value === '') {
+      acc[field.key] = null;
+      return acc;
+    }
+    if (field.type === 'number') {
+      const parsed = Number(value);
+      acc[field.key] = Number.isNaN(parsed) ? null : parsed;
+      return acc;
+    }
+    acc[field.key] = typeof value === 'string' ? value.trim() : value;
+    return acc;
+  }, {});
+
 function AdminUsersPage({ token }) {
+  const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [query, setQuery] = useState('');
   const [message, setMessage] = useState({ type: 'info', text: '' });
@@ -93,6 +225,15 @@ function AdminUsersPage({ token }) {
     timeZone: '',
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [linkedProducts, setLinkedProducts] = useState([]);
+  const [isLinkedLoading, setIsLinkedLoading] = useState(false);
+  const [businessScore, setBusinessScore] = useState(null);
+  const [businessScoreHistory, setBusinessScoreHistory] = useState([]);
+  const [isBusinessScoreLoading, setIsBusinessScoreLoading] = useState(false);
+  const [businessScoreError, setBusinessScoreError] = useState('');
+  const [editBusinessProfile, setEditBusinessProfile] = useState(null);
+  const [editBusinessForm, setEditBusinessForm] = useState(() => buildBusinessFormState(null));
+  const [isBusinessSaving, setIsBusinessSaving] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
 
   const loadUsers = async () => {
@@ -140,7 +281,7 @@ function AdminUsersPage({ token }) {
 
   const loginCount = useMemo(() => users.filter((user) => resolveLoginStatus(user)).length, [users]);
   const logoutCount = Math.max(0, users.length - loginCount);
-  const pendingCount = useMemo(() => users.filter((user) => Number(user?.verify) !== 1).length, [users]);
+  const pendingCount = useMemo(() => users.filter((user) => !resolveVerification(user).isVerified).length, [users]);
   const verifiedCount = Math.max(0, users.length - pendingCount);
   const selectedCount = selectedIds.size;
   const allSelected =
@@ -264,13 +405,115 @@ function AdminUsersPage({ token }) {
     setViewDetails({ user });
     setIsViewLoading(true);
     setMessage({ type: 'info', text: '' });
+    setLinkedProducts([]);
+    setBusinessScore(null);
+    setBusinessScoreHistory([]);
+    setBusinessScoreError('');
     try {
       const response = await fetchUserDetails(token, user.id);
       setViewDetails(response?.data || { user });
+      if (isBusinessUser(user)) {
+        await loadLinkedProducts(user.id);
+      }
+      await loadBusinessScore(user.id);
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to load user details.' });
     } finally {
       setIsViewLoading(false);
+    }
+  };
+
+  const loadLinkedProducts = async (userId) => {
+    if (!userId) return;
+    setIsLinkedLoading(true);
+    try {
+      const response = await listProductsByUser(token, userId);
+      setLinkedProducts(response?.data?.products || []);
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to load linked products.' });
+    } finally {
+      setIsLinkedLoading(false);
+    }
+  };
+
+  const loadBusinessScore = async (userId) => {
+    if (!userId) return;
+    setIsBusinessScoreLoading(true);
+    setBusinessScoreError('');
+    try {
+      const [scoreResp, historyResp] = await Promise.all([
+        getUserBusinessScore(token, userId),
+        getUserBusinessScoreHistory(token, userId, 25),
+      ]);
+      setBusinessScore(scoreResp?.data || null);
+      setBusinessScoreHistory(historyResp?.data || []);
+    } catch (error) {
+      setBusinessScoreError(error.message || 'Failed to load business score.');
+    } finally {
+      setIsBusinessScoreLoading(false);
+    }
+  };
+
+  const refreshViewDetails = async (userId) => {
+    if (!userId) return;
+    setIsViewLoading(true);
+    try {
+      const response = await fetchUserDetails(token, userId);
+      setViewDetails(response?.data || { user: viewDetails?.user });
+      await loadLinkedProducts(userId);
+      await loadBusinessScore(userId);
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to refresh user details.' });
+    } finally {
+      setIsViewLoading(false);
+    }
+  };
+
+  const openBusinessEdit = (profile) => {
+    if (!profile) return;
+    setEditBusinessProfile(profile);
+    setEditBusinessForm(buildBusinessFormState(profile));
+  };
+
+  const handleBusinessChange = (key, value) => {
+    setEditBusinessForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleBusinessSave = async (event) => {
+    event.preventDefault();
+    if (!editBusinessProfile?.userId) return;
+    setIsBusinessSaving(true);
+    setMessage({ type: 'info', text: '' });
+    try {
+      const payload = buildBusinessPayload(editBusinessForm);
+      if (!payload.businessName) {
+        throw new Error('Business name is required.');
+      }
+      await updateBusinessProfile(token, editBusinessProfile.userId, payload, 'VERIFIED');
+      await loadUsers();
+      await refreshViewDetails(editBusinessProfile.userId);
+      setEditBusinessProfile(null);
+      setMessage({ type: 'success', text: 'Business profile saved and verified.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to update business profile.' });
+    } finally {
+      setIsBusinessSaving(false);
+    }
+  };
+
+  const handleBusinessApprove = async () => {
+    if (!viewBusinessProfile?.profileId) return;
+    setIsBusinessSaving(true);
+    setMessage({ type: 'info', text: '' });
+    try {
+      await updateBusinessProfileStatus(token, viewBusinessProfile.profileId, 'VERIFIED');
+      await loadUsers();
+      await refreshViewDetails(viewBusinessProfile.userId || viewUser?.id);
+      setMessage({ type: 'success', text: 'Business profile verified successfully.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to verify business profile.' });
+    } finally {
+      setIsBusinessSaving(false);
     }
   };
 
@@ -279,6 +522,9 @@ function AdminUsersPage({ token }) {
   const viewBusinessProfile = viewDetails?.businessProfile || null;
   const viewLogisticProfile = viewDetails?.logisticProfile || null;
   const viewInsuranceProfile = viewDetails?.insuranceProfile || null;
+  const businessStatusMeta = viewBusinessProfile
+    ? resolveBusinessVerification(viewBusinessProfile?.status || viewUser?.kycStatus)
+    : null;
 
   return (
     <div className="users-page">
@@ -383,8 +629,9 @@ function AdminUsersPage({ token }) {
                   const statusLabel = isLoggedIn ? 'Login' : 'Logout';
                   const statusClass = isLoggedIn ? 'login' : 'logout';
                   const userType = getUserType(user);
-                  const verificationStatus = getVerificationStatus(user);
-                  const verificationClass = verificationStatus === 'Verified' ? 'verified' : 'pending';
+                  const verificationMeta = resolveVerification(user);
+                  const verificationStatus = verificationMeta.label;
+                  const verificationClass = verificationMeta.className;
                   return (
                     <tr key={user?.id || user?.user_id || index}>
                       <td>
@@ -429,7 +676,7 @@ function AdminUsersPage({ token }) {
                           <button type="button" className="ghost-btn small" onClick={() => openEdit(user)}>
                             Edit
                           </button>
-                          {verificationStatus !== 'Verified' ? (
+                          {verificationStatus !== 'Verified' && !isBusinessUser(user) ? (
                             <button
                               type="button"
                               className="ghost-btn small"
@@ -501,7 +748,7 @@ function AdminUsersPage({ token }) {
                     </div>
                     <div className="user-detail-card">
                       <p className="user-detail-label">Verified</p>
-                      <p className="user-detail-value">{getVerificationStatus(viewUser)}</p>
+                      <p className="user-detail-value">{resolveVerification(viewUser).label}</p>
                     </div>
                     <div className="user-detail-card">
                       <p className="user-detail-label">Joined</p>
@@ -524,6 +771,84 @@ function AdminUsersPage({ token }) {
                   </div>
                 </div>
 
+                <div className="detail-section">
+                  <div className="panel-split">
+                    <div>
+                      <h4 className="detail-section-title">Business Score</h4>
+                      <p className="panel-subtitle">Latest score and activity history.</p>
+                    </div>
+                    <button
+                      type="button"
+                      className="ghost-btn small"
+                      onClick={() => loadBusinessScore(viewUser?.id)}
+                      disabled={isBusinessScoreLoading}
+                    >
+                      {isBusinessScoreLoading ? 'Refreshing...' : 'Refresh'}
+                    </button>
+                  </div>
+                  {isBusinessScoreLoading ? <p className="empty-state">Loading business score...</p> : null}
+                  {businessScoreError ? <p className="empty-state">{businessScoreError}</p> : null}
+                  {businessScore ? (
+                    <div className="user-detail-grid">
+                      <div className="user-detail-card">
+                        <p className="user-detail-label">Score</p>
+                        <p className="user-detail-value">{businessScore?.score ?? '-'}</p>
+                      </div>
+                      <div className="user-detail-card">
+                        <p className="user-detail-label">Band</p>
+                        <p className="user-detail-value">{businessScore?.band || '-'}</p>
+                      </div>
+                      <div className="user-detail-card">
+                        <p className="user-detail-label">Range</p>
+                        <p className="user-detail-value">
+                          {businessScore?.min_score ?? '-'} - {businessScore?.max_score ?? '-'}
+                        </p>
+                      </div>
+                      <div className="user-detail-card">
+                        <p className="user-detail-label">Updated</p>
+                        <p className="user-detail-value">{formatDate(businessScore?.updated_on)}</p>
+                      </div>
+                    </div>
+                  ) : null}
+                  {businessScoreHistory.length === 0 && !isBusinessScoreLoading && !businessScoreError ? (
+                    <p className="empty-state">No business score history yet.</p>
+                  ) : null}
+                  {businessScoreHistory.length > 0 ? (
+                    <div className="table-shell">
+                      <table className="admin-table">
+                        <thead>
+                          <tr>
+                            <th>Event</th>
+                            <th>Delta</th>
+                            <th>Score after</th>
+                            <th>Reason</th>
+                            <th>Order</th>
+                            <th>Created</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {businessScoreHistory.map((entry) => {
+                            const delta = entry?.delta ?? 0;
+                            const deltaClass = delta >= 0 ? 'approved' : 'rejected';
+                            return (
+                              <tr key={entry?.id || `${entry?.event_type}-${entry?.created_on}`}>
+                                <td>{formatEventLabel(entry?.event_type) || '-'}</td>
+                                <td>
+                                  <span className={`status-pill ${deltaClass}`}>{formatDelta(delta)}</span>
+                                </td>
+                                <td>{entry?.score_after ?? '-'}</td>
+                                <td>{entry?.reason || '-'}</td>
+                                <td>{entry?.order_id ?? '-'}</td>
+                                <td>{formatDate(entry?.created_on)}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : null}
+                </div>
+
                 {viewUserProfile ? (
                   <div className="detail-section">
                     <h4 className="detail-section-title">User Profile</h4>
@@ -543,7 +868,31 @@ function AdminUsersPage({ token }) {
 
                 {viewBusinessProfile ? (
                   <div className="detail-section">
-                    <h4 className="detail-section-title">Business Profile</h4>
+                    <div className="panel-split">
+                      <div className="inline-row">
+                        <h4 className="detail-section-title">Business Profile</h4>
+                        {businessStatusMeta ? (
+                          <span className={`verify-pill ${businessStatusMeta.className}`}>{businessStatusMeta.label}</span>
+                        ) : null}
+                      </div>
+                      <div className="inline-row">
+                        <button
+                          type="button"
+                          className="ghost-btn small"
+                          onClick={() => openBusinessEdit(viewBusinessProfile)}
+                        >
+                          Edit KYC
+                        </button>
+                        <button
+                          type="button"
+                          className="primary-btn compact"
+                          onClick={handleBusinessApprove}
+                          disabled={isBusinessSaving || businessStatusMeta?.isVerified}
+                        >
+                          {businessStatusMeta?.isVerified ? 'Verified' : isBusinessSaving ? 'Approving...' : 'Approve'}
+                        </button>
+                      </div>
+                    </div>
                     <div className="user-detail-grid">
                       {Object.entries(viewBusinessProfile).map(([key, value]) => {
                         if (value === null || value === undefined || value === '') return null;
@@ -555,6 +904,89 @@ function AdminUsersPage({ token }) {
                         );
                       })}
                     </div>
+                  </div>
+                ) : null}
+
+                {viewUser && isBusinessUser(viewUser) ? (
+                  <div className="detail-section">
+                    <div className="panel-split">
+                      <div>
+                        <h4 className="detail-section-title">Linked Products</h4>
+                        <p className="panel-subtitle">Products created by this business.</p>
+                      </div>
+                      <button
+                        type="button"
+                        className="ghost-btn small"
+                        onClick={() => loadLinkedProducts(viewUser.id)}
+                        disabled={isLinkedLoading}
+                      >
+                        {isLinkedLoading ? 'Refreshing...' : 'Refresh'}
+                      </button>
+                    </div>
+                    {isLinkedLoading ? (
+                      <p className="empty-state">Loading products...</p>
+                    ) : linkedProducts.length === 0 ? (
+                      <p className="empty-state">No products linked yet.</p>
+                    ) : (
+                      <div className="table-shell">
+                        <table className="admin-table">
+                          <thead>
+                            <tr>
+                              <th>Product</th>
+                              <th>Category</th>
+                              <th>Price</th>
+                              <th>Status</th>
+                              <th>Updated</th>
+                              <th className="table-actions">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {linkedProducts.map((product) => {
+                              const statusValue = product?.approvalStatus || '';
+                              const statusClass = `status-pill ${
+                                statusValue ? statusValue.toLowerCase().replace(/_/g, '-') : 'pending'
+                              }`;
+                              return (
+                                <tr key={product?.id || product?.productId}>
+                                  <td>{product?.productName || '-'}</td>
+                                  <td>
+                                    {product?.category?.subCategoryName ||
+                                      product?.category?.categoryName ||
+                                      product?.category?.mainCategoryName ||
+                                      '-'}
+                                  </td>
+                                  <td>{product?.sellingPrice ?? '-'}</td>
+                                  <td>
+                                    <span className={statusClass}>{formatProductStatus(statusValue)}</span>
+                                  </td>
+                                  <td>{formatDate(product?.updatedOn || product?.updated_on || product?.createdOn)}</td>
+                                  <td className="table-actions">
+                                    <div className="table-action-group">
+                                      <button
+                                        type="button"
+                                        className="ghost-btn small"
+                                        onClick={() => navigate(`/admin/products/${product?.id || product?.productId}`)}
+                                      >
+                                        View
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className="ghost-btn small"
+                                        onClick={() =>
+                                          navigate(`/admin/products/${product?.id || product?.productId}/edit`)
+                                        }
+                                      >
+                                        Edit
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
                   </div>
                 ) : null}
 
@@ -667,6 +1099,54 @@ function AdminUsersPage({ token }) {
                 </button>
                 <button type="submit" className="primary-btn" disabled={isSaving}>
                   {isSaving ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
+
+      {editBusinessProfile ? (
+        <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
+          <div className="admin-modal">
+            <div className="panel-split">
+              <div>
+                <h3 className="panel-subheading">Edit Business Profile</h3>
+                <p className="panel-subtitle">{viewUser ? getUserName(viewUser) : 'Business user'}</p>
+              </div>
+              <button type="button" className="ghost-btn small" onClick={() => setEditBusinessProfile(null)}>
+                Close
+              </button>
+            </div>
+
+            <form className="field-grid" onSubmit={handleBusinessSave}>
+              {BUSINESS_PROFILE_FIELDS.map((field) => {
+                const value = editBusinessForm?.[field.key] ?? '';
+                const isTextArea = field.type === 'textarea';
+                const isNumber = field.type === 'number';
+                return (
+                  <label key={`biz-edit-${field.key}`} className={`field ${field.span ? 'field-span' : ''}`}>
+                    <span>{field.label}</span>
+                    {isTextArea ? (
+                      <textarea value={value} onChange={(event) => handleBusinessChange(field.key, event.target.value)} />
+                    ) : (
+                      <input
+                        type={isNumber ? 'number' : 'text'}
+                        value={value}
+                        step={isNumber && (field.key === 'latitude' || field.key === 'longitude') ? 'any' : undefined}
+                        onChange={(event) => handleBusinessChange(field.key, event.target.value)}
+                        required={Boolean(field.required)}
+                      />
+                    )}
+                  </label>
+                );
+              })}
+              <div className="field field-span form-actions">
+                <button type="button" className="ghost-btn" onClick={() => setEditBusinessProfile(null)}>
+                  Cancel
+                </button>
+                <button type="submit" className="primary-btn" disabled={isBusinessSaving}>
+                  {isBusinessSaving ? 'Saving...' : 'Save & Verify'}
                 </button>
               </div>
             </form>

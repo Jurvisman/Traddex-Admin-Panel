@@ -47,6 +47,12 @@ export const deleteUsersBulk = (token, userIds) =>
   request('/users/delete-bulk', { method: 'POST', body: { user_ids: userIds }, token });
 export const fetchUserDetails = (token, id) => request(`/users/${id}/details`, { token });
 export const logoutUser = (token, id) => request(`/users/${id}/logout`, { method: 'POST', token });
+export const updateBusinessProfile = (token, userId, payload, status) => {
+  const query = status ? `?status=${encodeURIComponent(status)}` : '';
+  return request(`/admin/profile/${userId}/business${query}`, { method: 'PUT', body: payload, token });
+};
+export const updateBusinessProfileStatus = (token, profileId, status) =>
+  request(`/admin/profile/${profileId}/status?status=${encodeURIComponent(status)}`, { method: 'POST', token });
 
 export const listIndustries = (token) => request('/industries', { token });
 export const createIndustry = (token, payload) => request('/industries', { method: 'POST', body: payload, token });
@@ -73,12 +79,15 @@ export const createSubCategory = (token, payload) =>
 export const deleteSubCategory = (token, id) => request(`/sub-categories/${id}`, { method: 'DELETE', token });
 
 export const listProducts = (token) => request('/admin/product/getall', { token });
+export const listProductsByUser = (token, userId) => request(`/admin/product/by-user?userId=${userId}`, { token });
 export const createProduct = (token, payload) =>
   request('/admin/product/create', { method: 'POST', body: payload, token });
 export const getProduct = (token, id) => request(`/admin/product/${id}`, { token });
 export const updateProduct = (token, id, payload) =>
   request(`/admin/product/${id}/update`, { method: 'PUT', body: payload, token });
 export const deleteProduct = (token, id) => request(`/admin/product/${id}`, { method: 'DELETE', token });
+export const deleteProductsBulk = (token, productIds) =>
+  request('/admin/product/delete-bulk', { method: 'POST', body: { product_ids: productIds }, token });
 export const updateProductVariantStatus = (token, productId, variantId, payload) =>
   request(`/admin/product/${productId}/variants/${variantId}/status`, { method: 'PUT', body: payload, token });
 
@@ -110,6 +119,9 @@ export const deleteAttributeMapping = (token, id) =>
   request(`/admin/product-attribute-map/${id}`, { method: 'DELETE', token });
 
 export const listUoms = (token) => request('/uom/getall', { token });
+export const createUom = (token, payload) => request('/uom/create', { method: 'POST', body: payload, token });
+export const updateUom = (token, id, payload) => request(`/uom/${id}/update`, { method: 'PUT', body: payload, token });
+export const deleteUom = (token, id) => request(`/uom/${id}`, { method: 'DELETE', token });
 
 export const getInquiryConfig = (token) => request('/admin/inquiry/config', { token });
 export const updateInquiryConfig = (token, payload) =>
@@ -157,6 +169,37 @@ export const uploadBannerImages = async (token, files) => {
   return response.json();
 };
 
+export const importTimeZones = async (token, file, replace = true) => {
+  const headers = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  const body = new FormData();
+  if (file) {
+    body.append('file', file);
+  }
+
+  const response = await fetch(
+    buildUrl(`/admin/locations/timezones/import?replace=${replace ? 'true' : 'false'}`),
+    {
+      method: 'POST',
+      headers,
+      body,
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(await parseError(response));
+  }
+  if (response.status === 204) return null;
+
+  const payload = await response.json();
+  if (payload?.success === false) {
+    throw new Error(payload?.message || 'Failed to import timezones.');
+  }
+  return payload?.data || payload;
+};
+
 // Subscription management
 export const listSubscriptionFeatures = (token) => request('/admin/feature/list', { token });
 export const createSubscriptionFeature = (token, payload) =>
@@ -183,3 +226,24 @@ export const listSubscriptionAssignments = (token, filters = {}) => {
   const query = params.toString() ? `?${params.toString()}` : '';
   return request(`/admin/subscription/list${query}`, { token });
 };
+
+// Order disputes
+export const listOrderDisputes = (token, status) => {
+  const query = status ? `?status=${encodeURIComponent(status)}` : '';
+  return request(`/admin/orders/disputes${query}`, { token });
+};
+export const resolveOrderDispute = (token, disputeId, payload) =>
+  request(`/admin/orders/disputes/${disputeId}/resolve`, { method: 'POST', body: payload, token });
+
+export const listOrderReturns = (token, status) => {
+  const query = status ? `?status=${encodeURIComponent(status)}` : '';
+  return request(`/admin/orders/returns${query}`, { token });
+};
+export const overrideOrderReturn = (token, returnId, payload) =>
+  request(`/admin/orders/returns/${returnId}/override`, { method: 'POST', body: payload, token });
+
+export const getUserBusinessScore = (token, userId) =>
+  request(`/admin/business-score?user_id=${userId}`, { token });
+
+export const getUserBusinessScoreHistory = (token, userId, limit = 25) =>
+  request(`/admin/business-score/history?user_id=${userId}&limit=${limit}`, { token });
