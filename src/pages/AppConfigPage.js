@@ -14,9 +14,11 @@ import { Banner } from '../components';
 import {
   getAppConfigDraft,
   getPublishedAppConfig,
+  getAppConfigPresets,
   listAppConfigVersions,
   listCategories,
   listIndustries,
+  createIndustry,
   publishAppConfig,
   rollbackAppConfig,
   saveAppConfigDraft,
@@ -79,6 +81,8 @@ const screenSectionTypeOptions = [
   { value: 'carousel', label: 'Carousel' },
   { value: 'horizontalList', label: 'Horizontal list' },
   { value: 'grid', label: 'Grid' },
+  { value: 'categoryPreviewGrid', label: 'Category preview grid' },
+  { value: 'campaignBento', label: 'Campaign bento' },
   { value: 'list', label: 'List' },
   { value: 'banner', label: 'Banner' },
   { value: 'card', label: 'Card' },
@@ -158,6 +162,35 @@ const screenToolboxItems = [
       columns: 2,
     },
   },
+  {
+    key: 'categoryPreviewGrid',
+    label: 'Category Preview Grid',
+    hint: 'Blinkit-style category cards',
+    section: {
+      id: 'category_preview_grid',
+      type: 'grid',
+      blockType: 'categoryPreviewGrid',
+      title: 'Frequently bought',
+      collectionIds: [],
+      itemsPath: '$.categories',
+      columns: 2,
+    },
+  },
+  {
+    key: 'campaignBento',
+    label: 'Campaign Bento Block',
+    hint: 'Hero + 4 tiles layout',
+    section: {
+      id: 'campaign_bento',
+      type: 'campaignBento',
+      blockType: 'campaignBento',
+      title: 'Skin-safe herbal gulal',
+      sectionBgColor: '#e7f6ff',
+      headerImage: '',
+      hero: { imageUrl: '', deepLink: '', label: '' },
+      tiles: Array.from({ length: 4 }, () => ({ imageUrl: '', deepLink: '', label: '' })),
+    },
+  },
 ];
 
 const toolboxItems = [...headerToolboxItems, ...screenToolboxItems];
@@ -169,6 +202,8 @@ const blockLabels = {
   heroBanner: 'Hero Banner Block',
   sectionTitle: 'Section Title Block',
   multiItemGrid: 'Multi Item Grid Block',
+  categoryPreviewGrid: 'Category Preview Grid',
+  campaignBento: 'Campaign Bento Block',
 };
 
 const resolveBlockLabel = (blockType, fallback) =>
@@ -180,10 +215,115 @@ const resolveBlockType = (section) => {
   if (section.type === 'banner') return 'heroBanner';
   if (section.type === 'title') return 'sectionTitle';
   if (section.type === 'grid') return 'multiItemGrid';
+  if (section.type === 'campaign' || section.type === 'campaignBento') return 'campaignBento';
   return section.type || '';
 };
 
 const normalizeCollectionId = (value) => (value === undefined || value === null ? '' : String(value).trim());
+
+const normalizeMatchValue = (value) => (value === undefined || value === null ? '' : String(value).trim().toLowerCase());
+const resolveIndustryId = (industry) =>
+  normalizeCollectionId(
+    industry?.id ?? industry?._id ?? industry?.slug ?? industry?.industryId ?? industry?.industry_id ?? industry?.name
+  );
+const resolveIndustryLabel = (industry) => industry?.name || industry?.label || industry?.title || 'Industry';
+
+const sizePresets = {
+  padding: [
+    { key: 'sm', label: 'Small', value: 6 },
+    { key: 'md', label: 'Medium', value: 10 },
+    { key: 'lg', label: 'Large', value: 14 },
+  ],
+  radius: [
+    { key: 'sm', label: 'Small', value: 12 },
+    { key: 'md', label: 'Medium', value: 16 },
+    { key: 'lg', label: 'Large', value: 20 },
+  ],
+  imageSize: [
+    { key: 'sm', label: 'Small', value: 52 },
+    { key: 'md', label: 'Medium', value: 60 },
+    { key: 'lg', label: 'Large', value: 70 },
+  ],
+  imageGap: [
+    { key: 'sm', label: 'Small', value: 4 },
+    { key: 'md', label: 'Medium', value: 6 },
+    { key: 'lg', label: 'Large', value: 8 },
+  ],
+};
+
+const categoryLayoutPresets = [
+  {
+    key: 'compact',
+    label: 'Compact',
+    values: {
+      paddingY: 6,
+      cardPadding: 6,
+      cardRadius: 12,
+      imageSize: 52,
+      imageRadius: 12,
+      imageGap: 4,
+    },
+  },
+  {
+    key: 'balanced',
+    label: 'Balanced',
+    values: {
+      paddingY: 10,
+      cardPadding: 10,
+      cardRadius: 16,
+      imageSize: 60,
+      imageRadius: 16,
+      imageGap: 6,
+    },
+  },
+  {
+    key: 'spacious',
+    label: 'Spacious',
+    values: {
+      paddingY: 14,
+      cardPadding: 14,
+      cardRadius: 20,
+      imageSize: 70,
+      imageRadius: 20,
+      imageGap: 8,
+    },
+  },
+];
+
+const findPresetKey = (list, value) => {
+  const num = typeof value === 'number' ? value : Number(value);
+  const match = list.find((item) => item.value === num);
+  return match ? match.key : '';
+};
+
+const ensureBentoTiles = (tiles, count = 4) => {
+  const normalized = Array.isArray(tiles)
+    ? tiles.map((tile) => ({
+        imageUrl: tile?.imageUrl || tile?.image || '',
+        deepLink: tile?.deepLink || tile?.targetUrl || '',
+        label: tile?.label || tile?.title || '',
+      }))
+    : [];
+  while (normalized.length < count) {
+    normalized.push({ imageUrl: '', deepLink: '', label: '' });
+  }
+  return normalized.slice(0, count);
+};
+
+const matchesLayoutPreset = (preset, form) => {
+  if (!preset || !preset.values) return false;
+  const toNumber = (value) =>
+    value === undefined || value === null || value === '' ? null : Number(value);
+  const values = preset.values;
+  return (
+    toNumber(form.paddingY) === values.paddingY &&
+    toNumber(form.cardPadding) === values.cardPadding &&
+    toNumber(form.cardRadius) === values.cardRadius &&
+    toNumber(form.imageSize) === values.imageSize &&
+    toNumber(form.imageRadius) === values.imageRadius &&
+    toNumber(form.imageGap) === values.imageGap
+  );
+};
 
 const fallbackHeaderTabs = [
   { id: 'home', label: 'Home', route: '/home' },
@@ -510,6 +650,24 @@ const defaultSectionForm = {
   collectionIds: [],
   placement: '',
   placeholder: '',
+  sectionBgColor: '',
+  cardBgColor: '',
+  titleColor: '',
+  badgeBgColor: '',
+  badgeTextColor: '',
+  imageShellBg: '',
+  paddingY: '',
+  cardPadding: '',
+  cardRadius: '',
+  imageSize: '',
+  imageRadius: '',
+  imageGap: '',
+  bentoHeaderImage: '',
+  bentoHeroImage: '',
+  bentoHeroLink: '',
+  bentoHeroLabel: '',
+  bentoHeroBadge: '',
+  bentoTiles: Array.from({ length: 4 }, () => ({ imageUrl: '', deepLink: '', label: '' })),
   enabled: true,
   itemsPath: '',
   itemTemplateRef: '',
@@ -530,6 +688,13 @@ const defaultHeaderForm = {
   backgroundImage: '',
   overlayGradient: '',
   backgroundColor: '',
+  searchBg: '',
+  searchText: '',
+  iconColor: '',
+  locationColor: '',
+  profileBg: '',
+  profileIconColor: '',
+  categoryColor: '',
   minHeight: '',
   paddingTop: '',
   paddingBottom: '',
@@ -623,10 +788,15 @@ const ToolboxItem = ({ item, onAdd }) => {
   );
 };
 
-const DropZone = ({ id, isOver, children, className, style }) => {
+const DropZone = ({ id, isOver, children, className, style, onClick }) => {
   const { setNodeRef } = useDroppable({ id });
   return (
-    <div ref={setNodeRef} style={style} className={`${className} ${isOver ? 'is-over' : ''}`}>
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`${className} ${isOver ? 'is-over' : ''}`}
+      onClick={onClick}
+    >
       {children}
     </div>
   );
@@ -643,7 +813,12 @@ const SortablePreviewItem = ({ id, className, onClick, children }) => {
       ref={setNodeRef}
       style={style}
       className={`${className} ${isDragging ? 'is-dragging' : ''}`}
-      onClick={onClick}
+      onClick={(event) => {
+        event.stopPropagation();
+        if (onClick) {
+          onClick(event);
+        }
+      }}
       {...attributes}
       {...listeners}
     >
@@ -665,6 +840,8 @@ function AppConfigPage({ token }) {
   const [isUploadingBanner, setIsUploadingBanner] = useState(false);
   const [isUploadingHeaderImage, setIsUploadingHeaderImage] = useState(false);
   const [isUploadingHeroBanner, setIsUploadingHeroBanner] = useState(false);
+  const [isUploadingBentoImage, setIsUploadingBentoImage] = useState(false);
+  const [bentoUploadTarget, setBentoUploadTarget] = useState(null);
   const [versions, setVersions] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [selectedPageKey, setSelectedPageKey] = useState('');
@@ -674,7 +851,10 @@ function AppConfigPage({ token }) {
   const [newPageSource, setNewPageSource] = useState('');
   const [sectionForm, setSectionForm] = useState(defaultSectionForm);
   const [headerForm, setHeaderForm] = useState(defaultHeaderForm);
+  const [headerPresets, setHeaderPresets] = useState({ colors: [], images: [] });
   const [headerSectionForm, setHeaderSectionForm] = useState(defaultHeaderSectionForm);
+  const [newIndustryName, setNewIndustryName] = useState('');
+  const [isCreatingIndustry, setIsCreatingIndustry] = useState(false);
   const [editingSectionIndex, setEditingSectionIndex] = useState(null);
   const [editingHeaderSectionIndex, setEditingHeaderSectionIndex] = useState(null);
   const [pagePresetKey, setPagePresetKey] = useState('');
@@ -683,6 +863,7 @@ function AppConfigPage({ token }) {
   const bannerInputRef = useRef(null);
   const headerInputRef = useRef(null);
   const heroBannerInputRef = useRef(null);
+  const bentoInputRef = useRef(null);
   const [showHeaderEditor, setShowHeaderEditor] = useState(false);
   const [showHeaderAdvancedFields, setShowHeaderAdvancedFields] = useState(false);
 
@@ -772,6 +953,13 @@ function AppConfigPage({ token }) {
       backgroundImage: typeof header.backgroundImage === 'string' ? header.backgroundImage : '',
       overlayGradient: joinList(header.overlayGradient),
       backgroundColor: typeof header.backgroundColor === 'string' ? header.backgroundColor : '',
+      searchBg: typeof header.searchBg === 'string' ? header.searchBg : '',
+      searchText: typeof header.searchText === 'string' ? header.searchText : '',
+      iconColor: typeof header.iconColor === 'string' ? header.iconColor : '',
+      locationColor: typeof header.locationColor === 'string' ? header.locationColor : '',
+      profileBg: typeof header.profileBg === 'string' ? header.profileBg : '',
+      profileIconColor: typeof header.profileIconColor === 'string' ? header.profileIconColor : '',
+      categoryColor: typeof header.categoryColor === 'string' ? header.categoryColor : '',
       minHeight:
         typeof header.minHeight === 'number' && Number.isFinite(header.minHeight)
           ? String(header.minHeight)
@@ -832,7 +1020,10 @@ function AppConfigPage({ token }) {
     try {
       const response = await listIndustries(token);
       const items = response?.data;
-      setIndustries(Array.isArray(items) ? items : []);
+      const sorted = Array.isArray(items)
+        ? [...items].sort((a, b) => (a?.ordering ?? 0) - (b?.ordering ?? 0))
+        : [];
+      setIndustries(sorted);
     } catch (error) {
       setIndustries([]);
     }
@@ -851,11 +1042,60 @@ function AppConfigPage({ token }) {
     }
   };
 
+  const handleCreateIndustry = async () => {
+    const trimmed = newIndustryName.trim();
+    if (!trimmed) {
+      setMessage({ type: 'error', text: 'Enter an industry name first.' });
+      return;
+    }
+    setIsCreatingIndustry(true);
+    setMessage(emptyMessage);
+    try {
+      const response = await createIndustry(token, { name: trimmed, active: 1 });
+      const created = response?.data || null;
+      const updated = Array.isArray(industries) ? [...industries] : [];
+      if (created) {
+        updated.push(created);
+      }
+      setIndustries(updated);
+      setNewIndustryName('');
+      const createdId = resolveIndustryId(created);
+      if (createdId) {
+        setHeaderSectionForm((prev) => {
+          const current = Array.isArray(prev.industryIds) ? prev.industryIds : [];
+          if (current.includes(createdId)) return prev;
+          return { ...prev, industryIds: [...current, createdId] };
+        });
+      }
+      ensureHeaderPages(buildPagePresets(updated), buildHeaderTabs(updated));
+      setMessage({ type: 'success', text: 'Industry added and pages synced. Remember to save draft.' });
+      await loadIndustries();
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to add industry.' });
+    } finally {
+      setIsCreatingIndustry(false);
+    }
+  };
+
+
+  const loadHeaderPresets = async () => {
+    try {
+      const response = await getAppConfigPresets(token);
+      const payload = response?.data || {};
+      const colors = Array.isArray(payload?.colors) ? payload.colors : [];
+      const images = Array.isArray(payload?.images) ? payload.images : [];
+      setHeaderPresets({ colors, images });
+    } catch (error) {
+      setHeaderPresets({ colors: [], images: [] });
+    }
+  };
+
   useEffect(() => {
     loadDraft();
     loadVersions();
     loadIndustries();
     loadCollections();
+    loadHeaderPresets();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1021,6 +1261,7 @@ function AppConfigPage({ token }) {
       return;
     }
     resetSectionForm();
+    setShowCustomPageFields(false);
     setActivePanel('screen');
   };
 
@@ -1030,12 +1271,14 @@ function AppConfigPage({ token }) {
       return;
     }
     resetHeaderSectionForm();
+    setShowCustomPageFields(false);
     setActivePanel('header');
   };
 
   const openEditSection = (index) => {
     handleSelectSection(index);
     setShowAdvancedFields(false);
+    setShowCustomPageFields(false);
     setActivePanel('screen');
   };
 
@@ -1048,7 +1291,25 @@ function AppConfigPage({ token }) {
     const section = selectedHeaderSections[index];
     setHeaderSectionForm(buildSectionFormFromConfig(section, 'addressHeader'));
     setShowHeaderAdvancedFields(false);
+    setShowCustomPageFields(false);
     setActivePanel('header');
+  };
+
+  const openHeaderSettings = () => {
+    if (!selectedPageKey) {
+      setMessage({ type: 'error', text: 'Select a page before editing header settings.' });
+      return;
+    }
+    setActivePanel(null);
+    setShowCustomPageFields(true);
+  };
+
+  const updateBentoTile = (index, field, value) => {
+    setSectionForm((prev) => {
+      const nextTiles = ensureBentoTiles(prev.bentoTiles);
+      nextTiles[index] = { ...nextTiles[index], [field]: value };
+      return { ...prev, bentoTiles: nextTiles };
+    });
   };
 
   const closeEditor = () => {
@@ -1061,14 +1322,15 @@ function AppConfigPage({ token }) {
     resetHeaderSectionForm();
   };
 
-  const ensureHeaderTabs = (config) => {
+  const ensureHeaderTabs = (config, tabsOverride) => {
     if (!config.navigation || typeof config.navigation !== 'object') {
       config.navigation = { topCategoryTabs: [], bottomTabs: [] };
     }
     if (!Array.isArray(config.navigation.topCategoryTabs)) {
       config.navigation.topCategoryTabs = [];
     }
-    headerTabs.forEach((tab) => {
+    const resolvedTabs = Array.isArray(tabsOverride) ? tabsOverride : headerTabs;
+    resolvedTabs.forEach((tab) => {
       const exists = config.navigation.topCategoryTabs.some((item) => item?.id === tab.id);
       if (!exists) {
         config.navigation.topCategoryTabs.push({ id: tab.id, label: tab.label, route: tab.route });
@@ -1076,13 +1338,15 @@ function AppConfigPage({ token }) {
     });
   };
 
-  const ensureHeaderPages = () => {
+  const ensureHeaderPages = (presetsOverride, tabsOverride) => {
     const config = getConfigForBuilder();
     if (!config) return;
     const next = cloneConfig(config);
-    ensureHeaderTabs(next);
+    const resolvedPresets = Array.isArray(presetsOverride) ? presetsOverride : pagePresets;
+    const resolvedTabs = Array.isArray(tabsOverride) ? tabsOverride : headerTabs;
+    ensureHeaderTabs(next, resolvedTabs);
     const pagesList = ensurePagesArray(next);
-    pagePresets.forEach((preset) => {
+    resolvedPresets.forEach((preset) => {
       const exists = pagesList.some((page) => page?.id === preset.id || page?.route === preset.route);
       if (!exists) {
         pagesList.push({
@@ -1310,6 +1574,52 @@ function AppConfigPage({ token }) {
     }
   };
 
+  const handleBentoImageClick = (target) => {
+    if (!selectedPageKey) {
+      setMessage({ type: 'error', text: 'Select a page before uploading images.' });
+      return;
+    }
+    setBentoUploadTarget(target);
+    if (bentoInputRef.current) {
+      bentoInputRef.current.value = '';
+      bentoInputRef.current.click();
+    }
+  };
+
+  const handleBentoImageFiles = async (event) => {
+    const files = event?.target?.files;
+    if (!files || files.length === 0) return;
+    if (!selectedPageKey) {
+      setMessage({ type: 'error', text: 'Select a page before uploading images.' });
+      return;
+    }
+    if (!bentoUploadTarget) return;
+    setIsUploadingBentoImage(true);
+    setMessage(emptyMessage);
+    try {
+      const limited = Array.from(files).slice(0, 1);
+      const response = await uploadBannerImages(token, limited);
+      const urls = response?.data?.urls || [];
+      if (!urls.length) {
+        throw new Error('Upload failed. No URLs returned.');
+      }
+      const url = urls[0];
+      if (bentoUploadTarget.kind === 'header') {
+        setSectionForm((prev) => ({ ...prev, bentoHeaderImage: url }));
+      } else if (bentoUploadTarget.kind === 'hero') {
+        setSectionForm((prev) => ({ ...prev, bentoHeroImage: url }));
+      } else if (bentoUploadTarget.kind === 'tile') {
+        updateBentoTile(bentoUploadTarget.index, 'imageUrl', url);
+      }
+      setMessage({ type: 'success', text: 'Image uploaded.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to upload image.' });
+    } finally {
+      setIsUploadingBentoImage(false);
+      setBentoUploadTarget(null);
+    }
+  };
+
   const ensurePagesArray = (config) => {
     if (!Array.isArray(config.pages)) {
       config.pages = [];
@@ -1355,6 +1665,81 @@ function AppConfigPage({ token }) {
     setOrDelete('aspectRatio', form.aspectRatio?.trim());
     setOrDelete('deepLink', form.deepLink?.trim());
     setOrDelete('placeholder', form.placeholder?.trim());
+    setOrDelete('sectionBgColor', form.sectionBgColor?.trim());
+    setOrDelete('cardBgColor', form.cardBgColor?.trim());
+    setOrDelete('titleColor', form.titleColor?.trim());
+    setOrDelete('badgeBgColor', form.badgeBgColor?.trim());
+    setOrDelete('badgeTextColor', form.badgeTextColor?.trim());
+    setOrDelete('imageShellBg', form.imageShellBg?.trim());
+    const paddingY = form.paddingY !== '' ? Number(form.paddingY) : null;
+    if (paddingY && !Number.isNaN(paddingY)) {
+      next.paddingY = paddingY;
+    } else {
+      delete next.paddingY;
+    }
+    const cardPadding = form.cardPadding !== '' ? Number(form.cardPadding) : null;
+    if (cardPadding && !Number.isNaN(cardPadding)) {
+      next.cardPadding = cardPadding;
+    } else {
+      delete next.cardPadding;
+    }
+    const cardRadius = form.cardRadius !== '' ? Number(form.cardRadius) : null;
+    if (cardRadius && !Number.isNaN(cardRadius)) {
+      next.cardRadius = cardRadius;
+    } else {
+      delete next.cardRadius;
+    }
+    const imageSize = form.imageSize !== '' ? Number(form.imageSize) : null;
+    if (imageSize && !Number.isNaN(imageSize)) {
+      next.imageSize = imageSize;
+    } else {
+      delete next.imageSize;
+    }
+    const imageRadius = form.imageRadius !== '' ? Number(form.imageRadius) : null;
+    if (imageRadius && !Number.isNaN(imageRadius)) {
+      next.imageRadius = imageRadius;
+    } else {
+      delete next.imageRadius;
+    }
+    const imageGap = form.imageGap !== '' ? Number(form.imageGap) : null;
+    if (imageGap && !Number.isNaN(imageGap)) {
+      next.imageGap = imageGap;
+    } else {
+      delete next.imageGap;
+    }
+    const headerImage = form.bentoHeaderImage?.trim();
+    if (headerImage) {
+      next.headerImage = headerImage;
+    } else {
+      delete next.headerImage;
+    }
+    const heroImage = form.bentoHeroImage?.trim();
+    const heroLink = form.bentoHeroLink?.trim();
+    const heroLabel = form.bentoHeroLabel?.trim();
+    const heroBadge = form.bentoHeroBadge?.trim();
+    if (heroImage || heroLink || heroLabel || heroBadge) {
+      next.hero = {
+        ...(heroImage ? { imageUrl: heroImage } : {}),
+        ...(heroLink ? { deepLink: heroLink } : {}),
+        ...(heroLabel ? { label: heroLabel } : {}),
+        ...(heroBadge ? { badgeText: heroBadge } : {}),
+      };
+    } else {
+      delete next.hero;
+    }
+    const tiles = Array.isArray(form.bentoTiles) ? form.bentoTiles : [];
+    const normalizedTiles = tiles
+      .map((tile) => ({
+        imageUrl: tile?.imageUrl ? String(tile.imageUrl).trim() : '',
+        deepLink: tile?.deepLink ? String(tile.deepLink).trim() : '',
+        label: tile?.label ? String(tile.label).trim() : '',
+      }))
+      .filter((tile) => tile.imageUrl || tile.deepLink || tile.label);
+    if (normalizedTiles.length > 0) {
+      next.tiles = normalizedTiles;
+    } else {
+      delete next.tiles;
+    }
     setOrDelete('itemsPath', form.itemsPath?.trim());
     setOrDelete('itemTemplateRef', form.itemTemplateRef?.trim());
     setOrDelete('dataSourceRef', form.dataSourceRef?.trim());
@@ -1473,6 +1858,49 @@ function AppConfigPage({ token }) {
       delete nextHeader.backgroundColor;
     }
 
+    const searchBg = headerForm.searchBg?.trim();
+    if (searchBg) {
+      nextHeader.searchBg = searchBg;
+    } else {
+      delete nextHeader.searchBg;
+    }
+    const searchText = headerForm.searchText?.trim();
+    if (searchText) {
+      nextHeader.searchText = searchText;
+    } else {
+      delete nextHeader.searchText;
+    }
+    const iconColor = headerForm.iconColor?.trim();
+    if (iconColor) {
+      nextHeader.iconColor = iconColor;
+    } else {
+      delete nextHeader.iconColor;
+    }
+    const locationColor = headerForm.locationColor?.trim();
+    if (locationColor) {
+      nextHeader.locationColor = locationColor;
+    } else {
+      delete nextHeader.locationColor;
+    }
+    const profileBg = headerForm.profileBg?.trim();
+    if (profileBg) {
+      nextHeader.profileBg = profileBg;
+    } else {
+      delete nextHeader.profileBg;
+    }
+    const profileIconColor = headerForm.profileIconColor?.trim();
+    if (profileIconColor) {
+      nextHeader.profileIconColor = profileIconColor;
+    } else {
+      delete nextHeader.profileIconColor;
+    }
+    const categoryColor = headerForm.categoryColor?.trim();
+    if (categoryColor) {
+      nextHeader.categoryColor = categoryColor;
+    } else {
+      delete nextHeader.categoryColor;
+    }
+
     const overlayGradient = parseGradientList(headerForm.overlayGradient);
     if (overlayGradient.length > 0) {
       nextHeader.overlayGradient = overlayGradient;
@@ -1535,6 +1963,13 @@ function AppConfigPage({ token }) {
     delete currentHeader.backgroundImage;
     delete currentHeader.overlayGradient;
     delete currentHeader.backgroundColor;
+    delete currentHeader.searchBg;
+    delete currentHeader.searchText;
+    delete currentHeader.iconColor;
+    delete currentHeader.locationColor;
+    delete currentHeader.profileBg;
+    delete currentHeader.profileIconColor;
+    delete currentHeader.categoryColor;
     delete currentHeader.minHeight;
     delete currentHeader.paddingTop;
     delete currentHeader.paddingBottom;
@@ -1741,15 +2176,36 @@ function AppConfigPage({ token }) {
   const buildSectionFormFromConfig = (section, fallbackType) => {
     const items = Array.isArray(section?.items) ? section.items : [];
     const firstItem = items[0] || {};
+    const hero = section?.hero && typeof section.hero === 'object' ? section.hero : {};
+    const tiles = ensureBentoTiles(section?.tiles);
+    const resolvedType = section?.type === 'campaign' ? 'campaignBento' : section?.type || fallbackType;
     return {
       id: section?.id || '',
-      type: section?.type || fallbackType,
+      type: resolvedType,
       blockType: resolveBlockType(section),
       title: section?.title || '',
       text: section?.text || '',
       imageUrl: section?.imageUrl || firstItem?.imageUrl || '',
       aspectRatio: section?.aspectRatio || '',
       deepLink: section?.deepLink || firstItem?.deepLink || firstItem?.targetUrl || '',
+      sectionBgColor: section?.sectionBgColor || '',
+      cardBgColor: section?.cardBgColor || '',
+      titleColor: section?.titleColor || '',
+      badgeBgColor: section?.badgeBgColor || '',
+      badgeTextColor: section?.badgeTextColor || '',
+      imageShellBg: section?.imageShellBg || '',
+      paddingY: section?.paddingY !== undefined && section?.paddingY !== null ? String(section.paddingY) : '',
+      cardPadding: section?.cardPadding !== undefined && section?.cardPadding !== null ? String(section.cardPadding) : '',
+      cardRadius: section?.cardRadius !== undefined && section?.cardRadius !== null ? String(section.cardRadius) : '',
+      imageSize: section?.imageSize !== undefined && section?.imageSize !== null ? String(section.imageSize) : '',
+      imageRadius: section?.imageRadius !== undefined && section?.imageRadius !== null ? String(section.imageRadius) : '',
+      imageGap: section?.imageGap !== undefined && section?.imageGap !== null ? String(section.imageGap) : '',
+      bentoHeaderImage: section?.headerImage || '',
+      bentoHeroImage: hero?.imageUrl || hero?.image || '',
+      bentoHeroLink: hero?.deepLink || hero?.targetUrl || '',
+      bentoHeroLabel: hero?.label || hero?.title || '',
+      bentoHeroBadge: hero?.badge || hero?.badgeText || hero?.priceTag || '',
+      bentoTiles: tiles,
       collectionIds: Array.isArray(section?.collectionIds)
         ? section.collectionIds.map((value) => normalizeCollectionId(value)).filter(Boolean)
         : [],
@@ -2045,9 +2501,32 @@ function AppConfigPage({ token }) {
       );
     }
     if (blockType === 'horizontalPills') {
+      const allIndustries = Array.isArray(industries)
+        ? industries
+            .map((industry) => {
+              const id = resolveIndustryId(industry);
+              const label = resolveIndustryLabel(industry);
+              if (!id && !label) return null;
+              return { id: id || label, label };
+            })
+            .filter(Boolean)
+        : [];
+      const allowed = Array.isArray(block?.industryIds) && block.industryIds.length > 0
+        ? new Set(block.industryIds.map(normalizeMatchValue).filter(Boolean))
+        : null;
+      let pillItems = allIndustries;
+      if (allowed) {
+        pillItems = allIndustries.filter((item) =>
+          allowed.has(normalizeMatchValue(item.id)) || allowed.has(normalizeMatchValue(item.label))
+        );
+      }
+      if (!pillItems.length) {
+        pillItems = allIndustries;
+      }
+      const labels = pillItems.length ? pillItems.map((item) => item.label) : ['All', 'Electronics', 'Beauty', 'Grocery'];
       return (
         <div className="preview-pills">
-          {['All', 'Holi', 'Ramzan', 'Electronics', 'Beauty'].map((label) => (
+          {labels.map((label) => (
             <span key={label} className="preview-pill">
               {label}
             </span>
@@ -2076,7 +2555,7 @@ function AppConfigPage({ token }) {
             ? 4
             : 3;
     let items = getPreviewItems(section, fallbackCount);
-    if (blockType === 'multiItemGrid' && collectionIds.length > 0) {
+    if ((blockType === 'multiItemGrid' || blockType === 'categoryPreviewGrid') && collectionIds.length > 0) {
       items = collectionIds.map((value) => ({ title: value || 'Collection' }));
     }
     const renderCard = (item, itemIndex) => {
@@ -2156,6 +2635,111 @@ function AppConfigPage({ token }) {
       );
     }
 
+    if (blockType === 'categoryPreviewGrid') {
+      const columns = section?.columns || 2;
+      const cardBg = section?.cardBgColor;
+      const titleColor = section?.titleColor;
+      const badgeBg = section?.badgeBgColor;
+      const badgeText = section?.badgeTextColor;
+      const imageShellBg = section?.imageShellBg;
+      const sectionBg = section?.sectionBgColor;
+      const paddingY = section?.paddingY;
+      const cardRadius = section?.cardRadius;
+      const cardPadding = section?.cardPadding;
+      const imageSize = section?.imageSize;
+      const imageRadius = section?.imageRadius;
+      const imageGap = section?.imageGap;
+      return (
+        <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+          {title ? <div className="preview-title">{title}</div> : null}
+          <div
+            className="preview-category-grid"
+            style={{
+              '--cols': columns,
+              backgroundColor: sectionBg || undefined,
+              paddingTop: paddingY ?? undefined,
+              paddingBottom: paddingY ?? undefined,
+            }}
+          >
+            {items.map((item, itemIndex) => {
+              const label = getPreviewTitle(item);
+              return (
+                <div
+                  key={`preview-category-${index}-${itemIndex}`}
+                  className="preview-category-card"
+                  style={{
+                    backgroundColor: cardBg || undefined,
+                    borderRadius: cardRadius || undefined,
+                    padding: cardPadding || undefined,
+                  }}
+                >
+                  <div
+                    className="preview-category-images"
+                    style={{ backgroundColor: imageShellBg || undefined, gap: imageGap || undefined }}
+                  >
+                    <div
+                      className="preview-category-image"
+                      style={{ borderRadius: imageRadius || undefined, height: imageSize ?? undefined }}
+                    />
+                    <div
+                      className="preview-category-image"
+                      style={{ borderRadius: imageRadius || undefined, height: imageSize ?? undefined }}
+                    />
+                  </div>
+                  <div
+                    className="preview-category-more"
+                    style={{ backgroundColor: badgeBg || undefined, color: badgeText || undefined }}
+                  >
+                    +3 more
+                  </div>
+                  <div className="preview-category-title" style={{ color: titleColor || undefined }}>
+                    {label}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    if (blockType === 'campaignBento') {
+      const background = section?.sectionBgColor;
+      const headerImage = section?.headerImage || getPreviewImage(items[0]);
+      const hero = section?.hero && typeof section.hero === 'object' ? section.hero : {};
+      const heroImage = hero?.imageUrl || getPreviewImage(items[1]);
+      const heroBadge = hero?.badgeText || hero?.badge || hero?.priceTag || '';
+      const heroLabel = hero?.label || hero?.title || '';
+      const tiles = ensureBentoTiles(section?.tiles);
+      return (
+        <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+          {title ? <div className="preview-title">{title}</div> : null}
+          <div className="preview-bento" style={{ backgroundColor: background || undefined }}>
+            <div className="preview-bento-header">
+              {headerImage ? <img src={headerImage} alt="" draggable={false} /> : <div className="preview-bento-placeholder" />}
+            </div>
+            <div className="preview-bento-grid">
+              <div className="preview-bento-hero">
+                {heroImage ? <img src={heroImage} alt="" draggable={false} /> : <div className="preview-bento-placeholder" />}
+                {heroBadge ? <span className="preview-bento-badge">{heroBadge}</span> : null}
+                {heroLabel ? <span className="preview-bento-hero-label">{heroLabel}</span> : null}
+              </div>
+              <div className="preview-bento-tiles">
+                {tiles.map((tile, tileIndex) => (
+                  <div key={`preview-bento-${index}-${tileIndex}`} className="preview-bento-tile">
+                    {tile.imageUrl ? <img src={tile.imageUrl} alt="" draggable={false} /> : <div className="preview-bento-placeholder" />}
+                    <span className="preview-bento-label">
+                      {tile.label || `Tile ${tileIndex + 1}`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     if (blockType === 'multiItemGrid' || type === 'grid' || type === 'twoColumn' || type === 'heroGrid') {
       const columns = type === 'twoColumn' ? 2 : section?.columns || (type === 'heroGrid' ? 3 : 2);
       return (
@@ -2179,7 +2763,12 @@ function AppConfigPage({ token }) {
   const screenBlockType = sectionForm.blockType || sectionForm.type;
   const headerBlockType = headerSectionForm.blockType || headerSectionForm.type;
   const isHeroBanner = screenBlockType === 'heroBanner' || sectionForm.type === 'banner';
-  const isMultiItemGrid = screenBlockType === 'multiItemGrid' || sectionForm.type === 'grid';
+  const isCategoryPreviewGrid = screenBlockType === 'categoryPreviewGrid';
+  const isCampaignBento = screenBlockType === 'campaignBento';
+  const isMultiItemGrid =
+    screenBlockType === 'multiItemGrid' ||
+    isCategoryPreviewGrid ||
+    sectionForm.type === 'grid';
   const isSectionTitleBlock = screenBlockType === 'sectionTitle' || sectionForm.type === 'title';
   const isScreenSpacer = sectionForm.type === 'spacer';
   const isScreenVideo = sectionForm.type === 'video';
@@ -2264,6 +2853,7 @@ function AppConfigPage({ token }) {
                   setSelectedPageKey(event.target.value);
                   resetSectionForm();
                   resetHeaderSectionForm();
+                  setShowCustomPageFields(false);
                   setActivePanel(null);
                 }}
               >
@@ -2340,6 +2930,7 @@ function AppConfigPage({ token }) {
                       isOver={headerDrop.isOver}
                       className="preview-header"
                       style={previewHeaderStyle}
+                      onClick={openHeaderSettings}
                     >
                       <div className="preview-header-title">
                         {selectedPage?.route || selectedPage?.id || 'Home'}
@@ -2376,7 +2967,10 @@ function AppConfigPage({ token }) {
                               <div
                                 key={`header-attached-${entry.index}`}
                                 className={`preview-attached-item ${isActive ? 'is-active' : ''}`}
-                                onClick={() => openEditSection(entry.index)}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  openEditSection(entry.index);
+                                }}
                               >
                                 {renderPreviewSection(entry.section, entry.index)}
                               </div>
@@ -2419,7 +3013,14 @@ function AppConfigPage({ token }) {
                     <h3 className="panel-subheading">Block Properties</h3>
                     <p className="field-help">Select a block to edit its settings.</p>
                   </div>
-                  {activePanel ? <span className="chip subtle">{activePanel === 'header' ? 'Header' : 'Body'}</span> : null}
+                  <div className="inline-row">
+                    {activePanel ? (
+                      <span className="chip subtle">{activePanel === 'header' ? 'Header' : 'Body'}</span>
+                    ) : null}
+                    <button type="button" className="ghost-btn small" onClick={openHeaderSettings}>
+                      Header settings
+                    </button>
+                  </div>
                 </div>
                 {activePanel === 'screen' ? (
                   <form className="field-grid" onSubmit={handleSectionSubmit}>
@@ -2466,7 +3067,7 @@ function AppConfigPage({ token }) {
                         </label>
                       ) : null}
                     </div>
-                    {(isHeroBanner || isMultiItemGrid) ? (
+                    {(isHeroBanner || isMultiItemGrid || isCampaignBento) ? (
                       <label className="field field-span">
                         <span>{isHeroBanner ? 'Banner title (optional)' : 'Section title'}</span>
                         <input
@@ -2596,6 +3197,476 @@ function AppConfigPage({ token }) {
                             }
                             placeholder="Veg_Fruits, Dairy, Chocolates"
                           />
+                        </label>
+                        {isCategoryPreviewGrid ? (
+                          <>
+                            <label className="field field-span">
+                              <span>Quick layout</span>
+                              <div className="option-row">
+                                {categoryLayoutPresets.map((preset) => (
+                                  <button
+                                    key={`layout-${preset.key}`}
+                                    type="button"
+                                    className={`option-chip ${
+                                      matchesLayoutPreset(preset, sectionForm) ? 'is-active' : ''
+                                    }`}
+                                    onClick={() =>
+                                      setSectionForm((prev) => ({
+                                        ...prev,
+                                        paddingY: String(preset.values.paddingY),
+                                        cardPadding: String(preset.values.cardPadding),
+                                        cardRadius: String(preset.values.cardRadius),
+                                        imageSize: String(preset.values.imageSize),
+                                        imageRadius: String(preset.values.imageRadius),
+                                        imageGap: String(preset.values.imageGap),
+                                      }))
+                                    }
+                                  >
+                                    {preset.label}
+                                  </button>
+                                ))}
+                              </div>
+                              <p className="field-help">
+                                Picks a ready-made layout (padding, radius, image size, gap).
+                              </p>
+                            </label>
+                            <label className="field field-span">
+                              <span>Section spacing</span>
+                              <div className="option-row">
+                                {sizePresets.padding.map((preset) => (
+                                  <button
+                                    key={`padding-${preset.key}`}
+                                    type="button"
+                                    className={`option-chip ${
+                                      findPresetKey(sizePresets.padding, sectionForm.paddingY) === preset.key
+                                        ? 'is-active'
+                                        : ''
+                                    }`}
+                                    onClick={() =>
+                                      setSectionForm((prev) => ({
+                                        ...prev,
+                                        paddingY: String(preset.value),
+                                      }))
+                                    }
+                                  >
+                                    {preset.label}
+                                  </button>
+                                ))}
+                              </div>
+                            </label>
+                            <label className="field field-span">
+                              <span>Card shape</span>
+                              <div className="option-row">
+                                {sizePresets.radius.map((preset) => (
+                                  <button
+                                    key={`radius-${preset.key}`}
+                                    type="button"
+                                    className={`option-chip ${
+                                      findPresetKey(sizePresets.radius, sectionForm.cardRadius) === preset.key
+                                        ? 'is-active'
+                                        : ''
+                                    }`}
+                                    onClick={() =>
+                                      setSectionForm((prev) => ({
+                                        ...prev,
+                                        cardRadius: String(preset.value),
+                                      }))
+                                    }
+                                  >
+                                    {preset.label}
+                                  </button>
+                                ))}
+                              </div>
+                            </label>
+                            <label className="field field-span">
+                              <span>Card padding</span>
+                              <div className="option-row">
+                                {sizePresets.padding.map((preset) => (
+                                  <button
+                                    key={`cardpad-${preset.key}`}
+                                    type="button"
+                                    className={`option-chip ${
+                                      findPresetKey(sizePresets.padding, sectionForm.cardPadding) === preset.key
+                                        ? 'is-active'
+                                        : ''
+                                    }`}
+                                    onClick={() =>
+                                      setSectionForm((prev) => ({
+                                        ...prev,
+                                        cardPadding: String(preset.value),
+                                      }))
+                                    }
+                                  >
+                                    {preset.label}
+                                  </button>
+                                ))}
+                              </div>
+                            </label>
+                            <label className="field field-span">
+                              <span>Image size</span>
+                              <div className="option-row">
+                                {sizePresets.imageSize.map((preset) => (
+                                  <button
+                                    key={`imagesize-${preset.key}`}
+                                    type="button"
+                                    className={`option-chip ${
+                                      findPresetKey(sizePresets.imageSize, sectionForm.imageSize) === preset.key
+                                        ? 'is-active'
+                                        : ''
+                                    }`}
+                                    onClick={() =>
+                                      setSectionForm((prev) => ({
+                                        ...prev,
+                                        imageSize: String(preset.value),
+                                      }))
+                                    }
+                                  >
+                                    {preset.label}
+                                  </button>
+                                ))}
+                              </div>
+                            </label>
+                            <label className="field field-span">
+                              <span>Image corner</span>
+                              <div className="option-row">
+                                {sizePresets.radius.map((preset) => (
+                                  <button
+                                    key={`imageradius-${preset.key}`}
+                                    type="button"
+                                    className={`option-chip ${
+                                      findPresetKey(sizePresets.radius, sectionForm.imageRadius) === preset.key
+                                        ? 'is-active'
+                                        : ''
+                                    }`}
+                                    onClick={() =>
+                                      setSectionForm((prev) => ({
+                                        ...prev,
+                                        imageRadius: String(preset.value),
+                                      }))
+                                    }
+                                  >
+                                    {preset.label}
+                                  </button>
+                                ))}
+                              </div>
+                            </label>
+                            <label className="field field-span">
+                              <span>Image gap</span>
+                              <div className="option-row">
+                                {sizePresets.imageGap.map((preset) => (
+                                  <button
+                                    key={`imagegap-${preset.key}`}
+                                    type="button"
+                                    className={`option-chip ${
+                                      findPresetKey(sizePresets.imageGap, sectionForm.imageGap) === preset.key
+                                        ? 'is-active'
+                                        : ''
+                                    }`}
+                                    onClick={() =>
+                                      setSectionForm((prev) => ({
+                                        ...prev,
+                                        imageGap: String(preset.value),
+                                      }))
+                                    }
+                                  >
+                                    {preset.label}
+                                  </button>
+                                ))}
+                              </div>
+                            </label>
+                            <label className="field">
+                              <span>Section background</span>
+                              <div className="inline-row">
+                                <input
+                                  type="text"
+                                  value={sectionForm.sectionBgColor}
+                                  onChange={(event) =>
+                                    setSectionForm((prev) => ({ ...prev, sectionBgColor: event.target.value }))
+                                  }
+                                  placeholder="#eaf4f6"
+                                />
+                                <input
+                                  type="color"
+                                  className="color-input"
+                                  value={
+                                    sectionForm.sectionBgColor && sectionForm.sectionBgColor.startsWith('#')
+                                      ? sectionForm.sectionBgColor
+                                      : '#eaf4f6'
+                                  }
+                                  onChange={(event) =>
+                                    setSectionForm((prev) => ({ ...prev, sectionBgColor: event.target.value }))
+                                  }
+                                />
+                              </div>
+                            </label>
+                            <label className="field">
+                              <span>Card background</span>
+                              <div className="inline-row">
+                                <input
+                                  type="text"
+                                  value={sectionForm.cardBgColor}
+                                  onChange={(event) =>
+                                    setSectionForm((prev) => ({ ...prev, cardBgColor: event.target.value }))
+                                  }
+                                  placeholder="#eaf4f6"
+                                />
+                                <input
+                                  type="color"
+                                  className="color-input"
+                                  value={
+                                    sectionForm.cardBgColor && sectionForm.cardBgColor.startsWith('#')
+                                      ? sectionForm.cardBgColor
+                                      : '#eaf4f6'
+                                  }
+                                  onChange={(event) =>
+                                    setSectionForm((prev) => ({ ...prev, cardBgColor: event.target.value }))
+                                  }
+                                />
+                              </div>
+                            </label>
+                            <label className="field">
+                              <span>Title color</span>
+                              <div className="inline-row">
+                                <input
+                                  type="text"
+                                  value={sectionForm.titleColor}
+                                  onChange={(event) =>
+                                    setSectionForm((prev) => ({ ...prev, titleColor: event.target.value }))
+                                  }
+                                  placeholder="#1f2a2e"
+                                />
+                                <input
+                                  type="color"
+                                  className="color-input"
+                                  value={
+                                    sectionForm.titleColor && sectionForm.titleColor.startsWith('#')
+                                      ? sectionForm.titleColor
+                                      : '#1f2a2e'
+                                  }
+                                  onChange={(event) =>
+                                    setSectionForm((prev) => ({ ...prev, titleColor: event.target.value }))
+                                  }
+                                />
+                              </div>
+                            </label>
+                            <label className="field">
+                              <span>Badge background</span>
+                              <div className="inline-row">
+                                <input
+                                  type="text"
+                                  value={sectionForm.badgeBgColor}
+                                  onChange={(event) =>
+                                    setSectionForm((prev) => ({ ...prev, badgeBgColor: event.target.value }))
+                                  }
+                                  placeholder="#ffffff"
+                                />
+                                <input
+                                  type="color"
+                                  className="color-input"
+                                  value={
+                                    sectionForm.badgeBgColor && sectionForm.badgeBgColor.startsWith('#')
+                                      ? sectionForm.badgeBgColor
+                                      : '#ffffff'
+                                  }
+                                  onChange={(event) =>
+                                    setSectionForm((prev) => ({ ...prev, badgeBgColor: event.target.value }))
+                                  }
+                                />
+                              </div>
+                            </label>
+                            <label className="field">
+                              <span>Badge text color</span>
+                              <div className="inline-row">
+                                <input
+                                  type="text"
+                                  value={sectionForm.badgeTextColor}
+                                  onChange={(event) =>
+                                    setSectionForm((prev) => ({ ...prev, badgeTextColor: event.target.value }))
+                                  }
+                                  placeholder="#2a7f84"
+                                />
+                                <input
+                                  type="color"
+                                  className="color-input"
+                                  value={
+                                    sectionForm.badgeTextColor && sectionForm.badgeTextColor.startsWith('#')
+                                      ? sectionForm.badgeTextColor
+                                      : '#2a7f84'
+                                  }
+                                  onChange={(event) =>
+                                    setSectionForm((prev) => ({ ...prev, badgeTextColor: event.target.value }))
+                                  }
+                                />
+                              </div>
+                            </label>
+                            <label className="field">
+                              <span>Image shell background</span>
+                              <div className="inline-row">
+                                <input
+                                  type="text"
+                                  value={sectionForm.imageShellBg}
+                                  onChange={(event) =>
+                                    setSectionForm((prev) => ({ ...prev, imageShellBg: event.target.value }))
+                                  }
+                                  placeholder="#ffffff"
+                                />
+                                <input
+                                  type="color"
+                                  className="color-input"
+                                  value={
+                                    sectionForm.imageShellBg && sectionForm.imageShellBg.startsWith('#')
+                                      ? sectionForm.imageShellBg
+                                      : '#ffffff'
+                                  }
+                                  onChange={(event) =>
+                                    setSectionForm((prev) => ({ ...prev, imageShellBg: event.target.value }))
+                                  }
+                                />
+                              </div>
+                            </label>
+                          </>
+                        ) : null}
+                      </>
+                    ) : null}
+                    {isCampaignBento ? (
+                      <>
+                        <label className="field">
+                          <span>Background color</span>
+                          <div className="inline-row">
+                            <input
+                              type="text"
+                              value={sectionForm.sectionBgColor}
+                              onChange={(event) =>
+                                setSectionForm((prev) => ({ ...prev, sectionBgColor: event.target.value }))
+                              }
+                              placeholder="#A8E0FF"
+                            />
+                            <input
+                              type="color"
+                              className="color-input"
+                              value={
+                                sectionForm.sectionBgColor && sectionForm.sectionBgColor.startsWith('#')
+                                  ? sectionForm.sectionBgColor
+                                  : '#A8E0FF'
+                              }
+                              onChange={(event) =>
+                                setSectionForm((prev) => ({ ...prev, sectionBgColor: event.target.value }))
+                              }
+                            />
+                          </div>
+                        </label>
+                        <label className="field field-span">
+                          <span>Header banner image URL</span>
+                          <div className="inline-row">
+                            <input
+                              type="text"
+                              value={sectionForm.bentoHeaderImage}
+                              onChange={(event) =>
+                                setSectionForm((prev) => ({ ...prev, bentoHeaderImage: event.target.value }))
+                              }
+                              placeholder="https://cdn.example.com/campaign-header.jpg"
+                            />
+                            <button
+                              type="button"
+                              className="ghost-btn small"
+                              onClick={() => handleBentoImageClick({ kind: 'header' })}
+                              disabled={isUploadingBentoImage}
+                            >
+                              {isUploadingBentoImage ? 'Uploading...' : 'Upload'}
+                            </button>
+                          </div>
+                        </label>
+                        <label className="field field-span">
+                          <span>Main tile image URL</span>
+                          <div className="inline-row">
+                            <input
+                              type="text"
+                              value={sectionForm.bentoHeroImage}
+                              onChange={(event) =>
+                                setSectionForm((prev) => ({ ...prev, bentoHeroImage: event.target.value }))
+                              }
+                              placeholder="https://cdn.example.com/hero-tile.jpg"
+                            />
+                            <button
+                              type="button"
+                              className="ghost-btn small"
+                              onClick={() => handleBentoImageClick({ kind: 'hero' })}
+                              disabled={isUploadingBentoImage}
+                            >
+                              {isUploadingBentoImage ? 'Uploading...' : 'Upload'}
+                            </button>
+                          </div>
+                        </label>
+                        <label className="field field-span">
+                          <span>Main tile deep link</span>
+                          <input
+                            type="text"
+                            value={sectionForm.bentoHeroLink}
+                            onChange={(event) =>
+                              setSectionForm((prev) => ({ ...prev, bentoHeroLink: event.target.value }))
+                            }
+                            placeholder="app://campaign/gulal"
+                          />
+                        </label>
+                        <label className="field field-span">
+                          <span>Main tile label (optional)</span>
+                          <input
+                            type="text"
+                            value={sectionForm.bentoHeroLabel}
+                            onChange={(event) =>
+                              setSectionForm((prev) => ({ ...prev, bentoHeroLabel: event.target.value }))
+                            }
+                            placeholder="Gulal"
+                          />
+                        </label>
+                        <label className="field field-span">
+                          <span>Main tile badge (optional)</span>
+                          <input
+                            type="text"
+                            value={sectionForm.bentoHeroBadge}
+                            onChange={(event) =>
+                              setSectionForm((prev) => ({ ...prev, bentoHeroBadge: event.target.value }))
+                            }
+                            placeholder="₹59"
+                          />
+                        </label>
+                        <label className="field field-span">
+                          <span>Sub tiles</span>
+                          <div className="bento-tile-grid">
+                            {ensureBentoTiles(sectionForm.bentoTiles).map((tile, idx) => (
+                              <div key={`bento-tile-${idx}`} className="bento-tile-row">
+                                <div className="bento-tile-title">Tile {idx + 1}</div>
+                                <div className="inline-row">
+                                  <input
+                                    type="text"
+                                    value={tile.imageUrl}
+                                    onChange={(event) => updateBentoTile(idx, 'imageUrl', event.target.value)}
+                                    placeholder="Image URL"
+                                  />
+                                  <button
+                                    type="button"
+                                    className="ghost-btn small"
+                                    onClick={() => handleBentoImageClick({ kind: 'tile', index: idx })}
+                                    disabled={isUploadingBentoImage}
+                                  >
+                                    {isUploadingBentoImage ? 'Uploading...' : 'Upload'}
+                                  </button>
+                                </div>
+                                <input
+                                  type="text"
+                                  value={tile.deepLink}
+                                  onChange={(event) => updateBentoTile(idx, 'deepLink', event.target.value)}
+                                  placeholder="Deep link"
+                                />
+                                <input
+                                  type="text"
+                                  value={tile.label}
+                                  onChange={(event) => updateBentoTile(idx, 'label', event.target.value)}
+                                  placeholder="Label (optional)"
+                                />
+                              </div>
+                            ))}
+                          </div>
                         </label>
                       </>
                     ) : null}
@@ -2817,7 +3888,7 @@ function AppConfigPage({ token }) {
                           {industries.length ? (
                             <div className="checkbox-grid">
                               {industries.map((industry) => {
-                                const id = normalizeCollectionId(industry?.id ?? industry?._id ?? industry?.slug);
+                                const id = normalizeCollectionId(industry?.id ?? industry?._id ?? industry?.slug ?? industry?.industryId ?? industry?.industry_id ?? industry?.name);
                                 if (!id) return null;
                                 const label = industry?.name || industry?.label || industry?.title || `Industry ${id}`;
                                 const isChecked = Array.isArray(headerSectionForm.industryIds)
@@ -2864,6 +3935,26 @@ function AppConfigPage({ token }) {
                             placeholder="grocery, electronics"
                           />
                         </label>
+                        <label className="field field-span">
+                          <span>Add new industry pill</span>
+                          <div className="inline-row">
+                            <input
+                              type="text"
+                              value={newIndustryName}
+                              onChange={(event) => setNewIndustryName(event.target.value)}
+                              placeholder="e.g., Electronics"
+                            />
+                            <button
+                              type="button"
+                              className="ghost-btn small"
+                              onClick={handleCreateIndustry}
+                              disabled={isCreatingIndustry}
+                            >
+                              {isCreatingIndustry ? 'Adding...' : 'Add'}
+                            </button>
+                          </div>
+                          <p className="field-help">Creates a new industry and syncs a page for it.</p>
+                        </label>
                       </>
                     ) : null}
                     {isGenericHeaderBlock ? (
@@ -2909,22 +4000,22 @@ function AppConfigPage({ token }) {
                   <div className="properties-empty">Select a block in the preview.</div>
                 )}
               </div>
-              <div className="properties-card">
-                <div className="panel-split">
-                  <div>
-                    <h3 className="panel-subheading">Page Settings</h3>
-                    <p className="field-help">Header background image and overlay gradient.</p>
+              {showCustomPageFields ? (
+                <div className="properties-card">
+                  <div className="panel-split">
+                    <div>
+                      <h3 className="panel-subheading">Page Settings</h3>
+                      <p className="field-help">Header background image and overlay gradient.</p>
+                    </div>
+                    <button
+                      type="button"
+                      className="ghost-btn small"
+                      onClick={() => setShowCustomPageFields(false)}
+                    >
+                      Hide
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    className="ghost-btn small"
-                    onClick={() => setShowCustomPageFields((prev) => !prev)}
-                  >
-                    {showCustomPageFields ? 'Hide' : 'Edit'}
-                  </button>
-                </div>
-                {showCustomPageFields ? (
-                  selectedPage ? (
+                  {selectedPage ? (
                     <form className="field-grid" onSubmit={handleHeaderSubmit}>
                       <label className="field field-span">
                         <span>Header background image URL</span>
@@ -2946,17 +4037,247 @@ function AppConfigPage({ token }) {
                             {isUploadingHeaderImage ? 'Uploading...' : 'Upload'}
                           </button>
                         </div>
+                        {headerPresets.images?.length ? (
+                          <div className="preset-grid">
+                            {headerPresets.images.map((preset) => {
+                              const isSelected = headerForm.backgroundImage === preset.url;
+                              return (
+                                <button
+                                  key={preset.id}
+                                  type="button"
+                                  className={`preset-image ${isSelected ? 'is-selected' : ''}`}
+                                  onClick={() =>
+                                    setHeaderForm((prev) => ({ ...prev, backgroundImage: preset.url }))
+                                  }
+                                >
+                                  <img src={preset.url} alt={preset.label || 'Header preset'} />
+                                  <span>{preset.label || 'Preset'}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ) : null}
                       </label>
                       <label className="field">
                         <span>Header background color</span>
-                        <input
-                          type="text"
-                          value={headerForm.backgroundColor}
-                          onChange={(event) =>
-                            setHeaderForm((prev) => ({ ...prev, backgroundColor: event.target.value }))
-                          }
-                          placeholder="#6E46FF"
-                        />
+                        <div className="inline-row">
+                          <input
+                            type="text"
+                            value={headerForm.backgroundColor}
+                            onChange={(event) =>
+                              setHeaderForm((prev) => ({ ...prev, backgroundColor: event.target.value }))
+                            }
+                            placeholder="#6E46FF"
+                          />
+                          <input
+                            type="color"
+                            className="color-input"
+                            value={
+                              headerForm.backgroundColor && headerForm.backgroundColor.startsWith('#')
+                                ? headerForm.backgroundColor
+                                : '#6E46FF'
+                            }
+                            onChange={(event) =>
+                              setHeaderForm((prev) => ({ ...prev, backgroundColor: event.target.value }))
+                            }
+                          />
+                        </div>
+                        {headerPresets.colors?.length ? (
+                          <div className="preset-row">
+                            {headerPresets.colors.map((preset) => {
+                              const isSelected =
+                                (headerForm.backgroundColor || '').toLowerCase() ===
+                                (preset.value || '').toLowerCase();
+                              return (
+                                <button
+                                  key={preset.id}
+                                  type="button"
+                                  className={`preset-swatch ${isSelected ? 'is-selected' : ''}`}
+                                  style={{ background: preset.value }}
+                                  title={preset.label}
+                                  onClick={() =>
+                                    setHeaderForm((prev) => ({ ...prev, backgroundColor: preset.value }))
+                                  }
+                                />
+                              );
+                            })}
+                          </div>
+                        ) : null}
+                      </label>
+                      <label className="field">
+                        <span>Search bar background</span>
+                        <div className="inline-row">
+                          <input
+                            type="text"
+                            value={headerForm.searchBg}
+                            onChange={(event) =>
+                              setHeaderForm((prev) => ({ ...prev, searchBg: event.target.value }))
+                            }
+                            placeholder="#7F5DFF"
+                          />
+                          <input
+                            type="color"
+                            className="color-input"
+                            value={
+                              headerForm.searchBg && headerForm.searchBg.startsWith('#')
+                                ? headerForm.searchBg
+                                : '#7F5DFF'
+                            }
+                            onChange={(event) =>
+                              setHeaderForm((prev) => ({ ...prev, searchBg: event.target.value }))
+                            }
+                          />
+                        </div>
+                      </label>
+                      <label className="field">
+                        <span>Search text color</span>
+                        <div className="inline-row">
+                          <input
+                            type="text"
+                            value={headerForm.searchText}
+                            onChange={(event) =>
+                              setHeaderForm((prev) => ({ ...prev, searchText: event.target.value }))
+                            }
+                            placeholder="#FFFFFF"
+                          />
+                          <input
+                            type="color"
+                            className="color-input"
+                            value={
+                              headerForm.searchText && headerForm.searchText.startsWith('#')
+                                ? headerForm.searchText
+                                : '#FFFFFF'
+                            }
+                            onChange={(event) =>
+                              setHeaderForm((prev) => ({ ...prev, searchText: event.target.value }))
+                            }
+                          />
+                        </div>
+                      </label>
+                      <label className="field">
+                        <span>Header icon color</span>
+                        <div className="inline-row">
+                          <input
+                            type="text"
+                            value={headerForm.iconColor}
+                            onChange={(event) =>
+                              setHeaderForm((prev) => ({ ...prev, iconColor: event.target.value }))
+                            }
+                            placeholder="#FFFFFF"
+                          />
+                          <input
+                            type="color"
+                            className="color-input"
+                            value={
+                              headerForm.iconColor && headerForm.iconColor.startsWith('#')
+                                ? headerForm.iconColor
+                                : '#FFFFFF'
+                            }
+                            onChange={(event) =>
+                              setHeaderForm((prev) => ({ ...prev, iconColor: event.target.value }))
+                            }
+                          />
+                        </div>
+                      </label>
+                      <label className="field">
+                        <span>Location text color</span>
+                        <div className="inline-row">
+                          <input
+                            type="text"
+                            value={headerForm.locationColor}
+                            onChange={(event) =>
+                              setHeaderForm((prev) => ({ ...prev, locationColor: event.target.value }))
+                            }
+                            placeholder="#FFFFFF"
+                          />
+                          <input
+                            type="color"
+                            className="color-input"
+                            value={
+                              headerForm.locationColor && headerForm.locationColor.startsWith('#')
+                                ? headerForm.locationColor
+                                : '#FFFFFF'
+                            }
+                            onChange={(event) =>
+                              setHeaderForm((prev) => ({ ...prev, locationColor: event.target.value }))
+                            }
+                          />
+                        </div>
+                      </label>
+                      <label className="field">
+                        <span>Profile bubble background</span>
+                        <div className="inline-row">
+                          <input
+                            type="text"
+                            value={headerForm.profileBg}
+                            onChange={(event) =>
+                              setHeaderForm((prev) => ({ ...prev, profileBg: event.target.value }))
+                            }
+                            placeholder="#FFFFFF"
+                          />
+                          <input
+                            type="color"
+                            className="color-input"
+                            value={
+                              headerForm.profileBg && headerForm.profileBg.startsWith('#')
+                                ? headerForm.profileBg
+                                : '#FFFFFF'
+                            }
+                            onChange={(event) =>
+                              setHeaderForm((prev) => ({ ...prev, profileBg: event.target.value }))
+                            }
+                          />
+                        </div>
+                      </label>
+                      <label className="field">
+                        <span>Profile icon color</span>
+                        <div className="inline-row">
+                          <input
+                            type="text"
+                            value={headerForm.profileIconColor}
+                            onChange={(event) =>
+                              setHeaderForm((prev) => ({ ...prev, profileIconColor: event.target.value }))
+                            }
+                            placeholder="#1A1A1A"
+                          />
+                          <input
+                            type="color"
+                            className="color-input"
+                            value={
+                              headerForm.profileIconColor && headerForm.profileIconColor.startsWith('#')
+                                ? headerForm.profileIconColor
+                                : '#1A1A1A'
+                            }
+                            onChange={(event) =>
+                              setHeaderForm((prev) => ({ ...prev, profileIconColor: event.target.value }))
+                            }
+                          />
+                        </div>
+                      </label>
+                      <label className="field">
+                        <span>Category label color</span>
+                        <div className="inline-row">
+                          <input
+                            type="text"
+                            value={headerForm.categoryColor}
+                            onChange={(event) =>
+                              setHeaderForm((prev) => ({ ...prev, categoryColor: event.target.value }))
+                            }
+                            placeholder="#1A1A1A"
+                          />
+                          <input
+                            type="color"
+                            className="color-input"
+                            value={
+                              headerForm.categoryColor && headerForm.categoryColor.startsWith('#')
+                                ? headerForm.categoryColor
+                                : '#1A1A1A'
+                            }
+                            onChange={(event) =>
+                              setHeaderForm((prev) => ({ ...prev, categoryColor: event.target.value }))
+                            }
+                          />
+                        </div>
                       </label>
                       <label className="field">
                         <span>Header min height</span>
@@ -3018,9 +4339,9 @@ function AppConfigPage({ token }) {
                     </form>
                   ) : (
                     <p className="field-help">Select a page to edit header settings.</p>
-                  )
-                ) : null}
-              </div>
+                  )}
+                </div>
+              ) : null}
             </div>
             </div>
           </DndContext>
@@ -3047,6 +4368,13 @@ function AppConfigPage({ token }) {
           multiple
           style={{ display: 'none' }}
           onChange={handleHeroBannerFiles}
+        />
+        <input
+          ref={bentoInputRef}
+          type="file"
+          accept="image/*"
+          style={{ display: 'none' }}
+          onChange={handleBentoImageFiles}
         />
       </div>
       {showAdvancedJson ? (
