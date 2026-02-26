@@ -36,6 +36,86 @@ const createVariantEntry = () => ({
 });
 
 const normalize = (value) => String(value || '').toLowerCase();
+const normalizeDynamicKey = (value) =>
+  String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+const humanizeKey = (value) =>
+  String(value || '')
+    .replace(/[_-]+/g, ' ')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/^./, (char) => char.toUpperCase());
+const formatDynamicByType = (type, value, unit) => {
+  if (value === null || value === undefined || value === '') return '-';
+  const normalized = String(type || '').toUpperCase();
+  if (normalized === 'BOOLEAN') {
+    if (value === true || value === 'true') return 'Yes';
+    if (value === false || value === 'false') return 'No';
+  }
+  if (normalized === 'LIST') {
+    if (Array.isArray(value)) return value.join(', ');
+    if (typeof value === 'string') return value;
+  }
+  if (normalized === 'NUMBER') {
+    const numeric = typeof value === 'number' ? value : Number(value);
+    const base = Number.isFinite(numeric) ? String(numeric) : String(value);
+    return unit ? `${base} ${unit}` : base;
+  }
+  if (normalized === 'OBJECT') {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return '[Object]';
+    }
+  }
+  return String(value);
+};
+
+const ACTION_ICONS = {
+  view: (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M12 5c5.2 0 9.3 3.6 10.6 6.7a1 1 0 0 1 0 .6C21.3 15.4 17.2 19 12 19S2.7 15.4 1.4 12.3a1 1 0 0 1 0-.6C2.7 8.6 6.8 5 12 5Zm0 2c-4 0-7.2 2.7-8.4 5 1.2 2.3 4.4 5 8.4 5s7.2-2.7 8.4-5c-1.2-2.3-4.4-5-8.4-5Zm0 2.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7Zm0 2a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z"
+        fill="currentColor"
+      />
+    </svg>
+  ),
+  edit: (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M5 16.7V19h2.3l9.9-9.9-2.3-2.3-9.9 9.9Zm13.7-8.4a1 1 0 0 0 0-1.4l-1.6-1.6a1 1 0 0 0-1.4 0l-1.3 1.3 2.3 2.3 1.3-1.3Z"
+        fill="currentColor"
+      />
+    </svg>
+  ),
+  trash: (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M9 3h6l1 2h4v2H4V5h4l1-2Zm1 6h2v9h-2V9Zm4 0h2v9h-2V9ZM7 9h2v9H7V9Z"
+        fill="currentColor"
+      />
+    </svg>
+  ),
+  approve: (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M9.5 16.2 5.8 12.5l1.4-1.4 2.3 2.3 6.3-6.3 1.4 1.4-7.7 7.7Z"
+        fill="currentColor"
+      />
+    </svg>
+  ),
+  reject: (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="m7.4 6 10.6 10.6-1.4 1.4L6 7.4 7.4 6Zm9.2 0 1.4 1.4L8.4 18.9 7 17.5 16.6 6Z"
+        fill="currentColor"
+      />
+    </svg>
+  ),
+};
 
 const initialForm = {
   productName: '',
@@ -63,6 +143,7 @@ function ProductPage({ token, adminUserId }) {
   const [form, setForm] = useState(initialForm);
   const [attributeDefinitions, setAttributeDefinitions] = useState([]);
   const [attributeMappings, setAttributeMappings] = useState([]);
+  const [viewAttributeMappings, setViewAttributeMappings] = useState([]);
   const [dynamicValues, setDynamicValues] = useState({});
   const [uoms, setUoms] = useState([]);
   const [uomForm, setUomForm] = useState({
@@ -93,6 +174,16 @@ function ProductPage({ token, adminUserId }) {
     return mapping;
   }, [attributeDefinitions]);
 
+  const definitionByKey = useMemo(() => {
+    const mapping = new Map();
+    attributeDefinitions.forEach((definition) => {
+      const key = definition.key || definition.attributeKey;
+      if (!key) return;
+      mapping.set(normalizeDynamicKey(key), definition);
+    });
+    return mapping;
+  }, [attributeDefinitions]);
+
   const filteredProducts = useMemo(() => {
     const term = normalize(query);
     if (!term) return products;
@@ -115,6 +206,7 @@ function ProductPage({ token, adminUserId }) {
   const selectedProductId = id && !Number.isNaN(Number(id)) ? Number(id) : null;
   const isEditing = Boolean(editingProductId);
   const isViewing = Boolean(selectedProductId);
+  const showViewOnly = isViewing && !showForm;
   const isEditRoute = Boolean(editMatch);
 
   const loadProducts = async () => {
@@ -215,6 +307,30 @@ function ProductPage({ token, adminUserId }) {
     });
   };
 
+  const loadViewAttributeMappings = async (mainCategoryId, categoryId, subCategoryId) => {
+    if (!mainCategoryId && !categoryId && !subCategoryId) {
+      setViewAttributeMappings([]);
+      return;
+    }
+    const [mainMappings, categoryMappings, subMappings] = await Promise.all([
+      mainCategoryId
+        ? listAttributeMappings(token, { mainCategoryId, active: true })
+        : Promise.resolve({ data: { mappings: [] } }),
+      categoryId
+        ? listAttributeMappings(token, { categoryId, active: true })
+        : Promise.resolve({ data: { mappings: [] } }),
+      subCategoryId
+        ? listAttributeMappings(token, { subCategoryId, active: true })
+        : Promise.resolve({ data: { mappings: [] } }),
+    ]);
+    const merged = mergeAttributeMappings([
+      mainMappings?.data?.mappings || [],
+      categoryMappings?.data?.mappings || [],
+      subMappings?.data?.mappings || [],
+    ]);
+    setViewAttributeMappings(merged);
+  };
+
   const normalizeListValue = (value) => {
     if (value === null || value === undefined) return '';
     if (Array.isArray(value)) return value.join(', ');
@@ -244,6 +360,32 @@ function ProductPage({ token, adminUserId }) {
       }
     }
     return String(value);
+  };
+
+  const parseDateValue = (value) => {
+    if (!value) return null;
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  };
+
+  const formatDateOnlyFromDate = (date) => {
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const formatDateOnly = (value) => {
+    const date = parseDateValue(value);
+    return date ? formatDateOnlyFromDate(date) : formatValue(value);
+  };
+
+  const formatDateTime = (value) => {
+    const date = parseDateValue(value);
+    if (!date) return formatValue(value);
+    const hh = String(date.getHours()).padStart(2, '0');
+    const min = String(date.getMinutes()).padStart(2, '0');
+    return `${formatDateOnlyFromDate(date)} ${hh}:${min}`;
   };
 
   const formatStatus = (status) => {
@@ -481,6 +623,20 @@ function ProductPage({ token, adminUserId }) {
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProductId, token]);
+
+  useEffect(() => {
+    const category = selectedProduct?.category;
+    const mainId = category?.mainCategoryId ? Number(category.mainCategoryId) : null;
+    const categoryId = category?.categoryId ? Number(category.categoryId) : null;
+    const subCategoryId = category?.subCategoryId ? Number(category.subCategoryId) : null;
+    if (!mainId && !categoryId && !subCategoryId) {
+      setViewAttributeMappings([]);
+      return;
+    }
+    loadViewAttributeMappings(mainId, categoryId, subCategoryId).catch(() => {
+      setViewAttributeMappings([]);
+    });
+  }, [selectedProduct?.category?.mainCategoryId, selectedProduct?.category?.categoryId, selectedProduct?.category?.subCategoryId]);
 
   useEffect(() => {
     if (!isEditRoute) {
@@ -1101,6 +1257,25 @@ function ProductPage({ token, adminUserId }) {
     }
   };
 
+  const handleRowStatusUpdate = async (productId, nextStatus) => {
+    if (!productId) return;
+    const adminId = getAdminId();
+    if (!adminId) return;
+    try {
+      setIsLoading(true);
+      await updateProduct(token, productId, { approvalStatus: nextStatus, userId: adminId });
+      await loadProducts();
+      setMessage({
+        type: 'success',
+        text: `Product ${nextStatus === 'APPROVED' ? 'approved' : 'rejected'} successfully.`,
+      });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to update product status.' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleVariantStatusUpdate = async (variantId, nextStatus) => {
     if (!selectedProductId || !variantId) return;
     const adminId = getAdminId();
@@ -1126,9 +1301,70 @@ function ProductPage({ token, adminUserId }) {
   const statusValue = selectedProduct?.approvalStatus || '';
   const statusLabel = formatStatus(statusValue);
   const statusClass = `status-pill ${statusValue ? statusValue.toLowerCase().replace(/_/g, '-') : 'pending'}`;
-  const dynamicEntries = selectedProduct?.dynamicAttributes
-    ? Object.entries(selectedProduct.dynamicAttributes)
-    : [];
+  const dynamicViewGroups = useMemo(() => {
+    const attributes = selectedProduct?.dynamicAttributes;
+    if (!attributes) return [];
+    const normalizedMap = new Map();
+    Object.entries(attributes).forEach(([rawKey, value]) => {
+      const normalized = normalizeDynamicKey(rawKey);
+      if (!normalized || normalizedMap.has(normalized)) return;
+      normalizedMap.set(normalized, { rawKey, value });
+    });
+
+    const groupOrder = [
+      { id: 'sub', label: 'Subcategory Fields' },
+      { id: 'cat', label: 'Category Fields' },
+      { id: 'main', label: 'Main Category Fields' },
+      { id: 'other', label: 'Other Fields' },
+    ];
+    const groups = new Map(groupOrder.map((group) => [group.id, { ...group, items: [] }]));
+    const used = new Set();
+
+    viewAttributeMappings.forEach((mapping) => {
+      const mappingKey = mapping.attributeKey || mapping.key || mapping.label || '';
+      const normalized = normalizeDynamicKey(mappingKey);
+      if (!normalized) return;
+      used.add(normalized);
+      const definition =
+        (mapping.attributeId !== null && mapping.attributeId !== undefined
+          ? definitionById.get(mapping.attributeId)
+          : null) || definitionByKey.get(normalized);
+      const unit = definition?.unit;
+      const label = mapping.label || definition?.label || humanizeKey(mappingKey || normalized);
+      const rawValue = normalizedMap.get(normalized)?.value;
+      const value = formatDynamicByType(mapping.dataType || definition?.dataType, rawValue, unit);
+      if (value === '-') return;
+      const groupId = mapping.subCategoryId
+        ? 'sub'
+        : mapping.categoryId
+          ? 'cat'
+          : mapping.mainCategoryId
+            ? 'main'
+            : 'other';
+      const target = groups.get(groupId);
+      if (target) {
+        target.items.push({ label, value, unit });
+      }
+    });
+
+    Object.entries(attributes)
+      .filter(([rawKey, value]) => {
+        const normalized = normalizeDynamicKey(rawKey);
+        return normalized && !used.has(normalized) && value !== null && value !== undefined && value !== '';
+      })
+      .forEach(([rawKey, value]) => {
+        const target = groups.get('other');
+        if (!target) return;
+        target.items.push({
+          label: humanizeKey(rawKey),
+          value: formatDynamicByType(null, value, null),
+        });
+      });
+
+    return groupOrder
+      .map((group) => groups.get(group.id))
+      .filter((group) => group && group.items.length > 0);
+  }, [selectedProduct?.dynamicAttributes, viewAttributeMappings, definitionById, definitionByKey]);
   const variants = Array.isArray(selectedProduct?.variants) ? selectedProduct.variants : [];
   const disableApprove = isLoading || !selectedProduct || statusValue === 'APPROVED';
   const disableReject = isLoading || !selectedProduct || statusValue === 'REJECTED';
@@ -1146,19 +1382,19 @@ function ProductPage({ token, adminUserId }) {
   const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selectedIds.has(id));
 
   return (
-    <div className="users-page">
-      {isViewing ? (
-        <div className="panel-head">
-          <div>
-            <div className="inline-row">
-              <button type="button" className="ghost-btn small" onClick={handleBackToList}>
-                Back
-              </button>
-              <h2 className="panel-title">Product view</h2>
+    <div className="users-page product-page">
+      {showViewOnly ? (
+        <div className="panel-head product-view-head">
+          <div className="product-view-title">
+            <button type="button" className="ghost-btn small" onClick={handleBackToList}>
+              Back
+            </button>
+            <div>
+              <h2 className="product-title">{selectedProduct?.productName || 'Product'}</h2>
+              <p className="product-subtitle">{selectedProduct?.sku || 'SKU unavailable'}</p>
             </div>
-            <p className="panel-subtitle">Review, approve, or edit product details.</p>
           </div>
-          <div className="inline-row">
+          <div className="inline-row product-view-actions">
             <button
               type="button"
               className="primary-btn compact"
@@ -1187,71 +1423,75 @@ function ProductPage({ token, adminUserId }) {
             <p className="panel-subtitle">Create and manage products for businesses.</p>
           </div>
           <div className="users-head-actions">
-            <button type="button" className="ghost-btn" onClick={handleRefresh} disabled={isLoading}>
-              {isLoading ? 'Refreshing...' : 'Refresh'}
-            </button>
-            <button
-              type="button"
-              className="ghost-btn"
-              onClick={handleBulkDelete}
-              disabled={isBulkDeleting || selectedCount === 0}
-            >
-              Delete Selected{selectedCount ? ` (${selectedCount})` : ''}
-            </button>
+            {!showForm ? (
+              <>
+                <button type="button" className="ghost-btn" onClick={handleRefresh} disabled={isLoading}>
+                  {isLoading ? 'Refreshing...' : 'Refresh'}
+                </button>
+                <button
+                  type="button"
+                  className="ghost-btn"
+                  onClick={handleBulkDelete}
+                  disabled={isBulkDeleting || selectedCount === 0}
+                >
+                  Delete Selected{selectedCount ? ` (${selectedCount})` : ''}
+                </button>
+              </>
+            ) : null}
             <button
               type="button"
               className="primary-btn"
               onClick={showForm ? handleCloseForm : handleOpenCreateForm}
             >
-              {showForm ? 'Close' : 'Create'}
+              {showForm ? 'Back to list' : 'Create'}
             </button>
           </div>
         </div>
       )}
       <Banner message={message} />
-      <div className="stat-grid">
-        <div className="stat-card admin-stat" style={{ '--stat-accent': '#14B8A6' }}>
-          <p className="stat-label">Total products</p>
-          <p className="stat-value">{totalProducts}</p>
-          <p className="stat-sub">All listings</p>
-        </div>
-        <div className="stat-card admin-stat" style={{ '--stat-accent': '#16A34A' }}>
-          <p className="stat-label">Approved</p>
-          <p className="stat-value">{approvedCount}</p>
-          <p className="stat-sub">Live products</p>
-        </div>
-        <div className="stat-card admin-stat" style={{ '--stat-accent': '#F59E0B' }}>
-          <p className="stat-label">Pending</p>
-          <p className="stat-value">{pendingCount}</p>
-          <p className="stat-sub">Needs review</p>
-        </div>
-        <div className="stat-card admin-stat" style={{ '--stat-accent': '#EF4444' }}>
-          <p className="stat-label">Rejected</p>
-          <p className="stat-value">{rejectedCount}</p>
-          <p className="stat-sub">Declined items</p>
-        </div>
-      </div>
-      {!isViewing ? (
-        <div className="users-filters">
-          <span className="status-chip approved">{approvedCount} Approved</span>
-          <span className="status-chip pending">{pendingCount} Pending</span>
-          <span className="status-chip rejected">{rejectedCount} Rejected</span>
-        </div>
+      {!isViewing && !showForm ? (
+        <>
+          <div className="stat-grid">
+            <div className="stat-card admin-stat" style={{ '--stat-accent': '#14B8A6' }}>
+              <p className="stat-label">Total products</p>
+              <p className="stat-value">{totalProducts}</p>
+              <p className="stat-sub">All listings</p>
+            </div>
+            <div className="stat-card admin-stat" style={{ '--stat-accent': '#16A34A' }}>
+              <p className="stat-label">Approved</p>
+              <p className="stat-value">{approvedCount}</p>
+              <p className="stat-sub">Live products</p>
+            </div>
+            <div className="stat-card admin-stat" style={{ '--stat-accent': '#F59E0B' }}>
+              <p className="stat-label">Pending</p>
+              <p className="stat-value">{pendingCount}</p>
+              <p className="stat-sub">Needs review</p>
+            </div>
+            <div className="stat-card admin-stat" style={{ '--stat-accent': '#EF4444' }}>
+              <p className="stat-label">Rejected</p>
+              <p className="stat-value">{rejectedCount}</p>
+              <p className="stat-sub">Declined items</p>
+            </div>
+          </div>
+          <div className="users-filters">
+            <span className="status-chip approved">{approvedCount} Approved</span>
+            <span className="status-chip pending">{pendingCount} Pending</span>
+            <span className="status-chip rejected">{rejectedCount} Rejected</span>
+          </div>
+        </>
       ) : null}
       {showForm ? (
-        <div className="admin-modal-backdrop" onClick={handleCloseForm}>
-          <form
-            className="admin-modal"
-            onSubmit={handleSubmit}
-            onClick={(event) => event.stopPropagation()}
-          >
+        <form className="panel card product-form" onSubmit={handleSubmit}>
             <div className="panel-split">
               <h3 className="panel-subheading">{isEditing ? 'Edit product' : 'Create product'}</h3>
               <button type="button" className="ghost-btn small" onClick={handleCloseForm}>
-                Close
+                Back to list
               </button>
             </div>
-            <div className="field-grid">
+            <div className="field-grid form-grid">
+              <div className="field-span section-heading">
+                <h4 className="panel-subheading">Basic information</h4>
+              </div>
               <label className="field">
                 <span>Product name</span>
                 <input
@@ -1271,6 +1511,29 @@ function ProductPage({ token, adminUserId }) {
                   placeholder="Brand"
                 />
               </label>
+              <label className="field field-span">
+                <span>Short description</span>
+                <input
+                  type="text"
+                  value={form.shortDescription}
+                  onChange={(event) => handleChange('shortDescription', event.target.value)}
+                  placeholder="Short description"
+                />
+              </label>
+              {!isEditing ? (
+                <label className="field">
+                  <span>Business user ID (optional)</span>
+                  <input
+                    type="number"
+                    value={form.userId}
+                    onChange={(event) => handleChange('userId', event.target.value)}
+                    placeholder="User ID"
+                  />
+                </label>
+              ) : null}
+              <div className="field-span section-heading">
+                <h4 className="panel-subheading">Category &amp; subcategory</h4>
+              </div>
               <label className="field">
                 <span>Main category</span>
                 <select
@@ -1316,6 +1579,9 @@ function ProductPage({ token, adminUserId }) {
                   ))}
                 </select>
               </label>
+              <div className="field-span section-heading">
+                <h4 className="panel-subheading">Pricing</h4>
+              </div>
               <label className="field">
                 <span>Selling price</span>
                 <input
@@ -1346,8 +1612,11 @@ function ProductPage({ token, adminUserId }) {
                   required
                 />
               </label>
+              <div className="field-span section-heading">
+                <h4 className="panel-subheading">Units of measure</h4>
+              </div>
               <div className="field-span">
-                <div className="panel-grid">
+                <div className="panel-grid form-panel-grid">
                   <div className="panel card">
                     <h4 className="panel-subheading">UOM setup</h4>
                     <div className="field-grid">
@@ -1595,7 +1864,7 @@ function ProductPage({ token, adminUserId }) {
                   </div>
                 </div>
               </div>
-              <div className="field-span">
+              <div className="field-span section-heading">
                 <div className="panel-split">
                   <h4 className="panel-subheading">Variants</h4>
                   <button
@@ -1753,27 +2022,7 @@ function ProductPage({ token, adminUserId }) {
                   </div>
                 ))
               )}
-              <label className="field field-span">
-                <span>Short description</span>
-                <input
-                  type="text"
-                  value={form.shortDescription}
-                  onChange={(event) => handleChange('shortDescription', event.target.value)}
-                  placeholder="Short description"
-                />
-              </label>
-              {!isEditing ? (
-                <label className="field">
-                  <span>Business user ID (optional)</span>
-                  <input
-                    type="number"
-                    value={form.userId}
-                    onChange={(event) => handleChange('userId', event.target.value)}
-                    placeholder="User ID"
-                  />
-                </label>
-              ) : null}
-              <div className="field-span">
+              <div className="field-span section-heading">
                 <h4 className="panel-subheading">Dynamic fields</h4>
               </div>
               {attributeMappings.length === 0 ? (
@@ -1881,17 +2130,18 @@ function ProductPage({ token, adminUserId }) {
                 })
               )}
             </div>
-            <button type="submit" className="primary-btn full" disabled={isLoading}>
-              {isLoading ? 'Saving...' : isEditing ? 'Update product' : 'Save product'}
-            </button>
-          </form>
-        </div>
+            <div className="form-actions">
+              <button type="submit" className="primary-btn" disabled={isLoading}>
+                {isLoading ? 'Saving...' : isEditing ? 'Update product' : 'Save product'}
+              </button>
+            </div>
+        </form>
       ) : null}
-      {isViewing ? (
-        <div className="panel-grid">
+      {showViewOnly ? (
+        <div className="panel-grid product-view-grid">
           {selectedProduct ? (
             <>
-              <div className="panel card">
+              <div className="panel card product-view-card">
                 <div className="panel-split">
                   <h3 className="panel-subheading">Overview</h3>
                   <span className={statusClass}>{statusLabel}</span>
@@ -1923,15 +2173,15 @@ function ProductPage({ token, adminUserId }) {
                   </div>
                   <div className="field">
                     <span>Created</span>
-                    <p className="field-value">{formatValue(selectedProduct.createdOn)}</p>
+                    <p className="field-value">{formatDateTime(selectedProduct.createdOn)}</p>
                   </div>
                   <div className="field">
                     <span>Updated</span>
-                    <p className="field-value">{formatValue(selectedProduct.updatedOn)}</p>
+                    <p className="field-value">{formatDateTime(selectedProduct.updatedOn)}</p>
                   </div>
                 </div>
               </div>
-              <div className="panel card">
+              <div className="panel card product-view-card">
                 <h3 className="panel-subheading">Pricing</h3>
                 <div className="field-grid">
                   <div className="field">
@@ -1960,7 +2210,7 @@ function ProductPage({ token, adminUserId }) {
                   </div>
                 </div>
               </div>
-              <div className="panel card">
+              <div className="panel card product-view-card">
                 <h3 className="panel-subheading">Units of measure</h3>
                 <div className="field-grid">
                   <div className="field">
@@ -1997,7 +2247,7 @@ function ProductPage({ token, adminUserId }) {
                   </div>
                 </div>
               </div>
-              <div className="panel card">
+              <div className="panel card product-view-card">
                 <h3 className="panel-subheading">Inventory &amp; shipping</h3>
                 <div className="field-grid">
                   <div className="field">
@@ -2026,7 +2276,7 @@ function ProductPage({ token, adminUserId }) {
                   </div>
                 </div>
               </div>
-              <div className="panel card">
+              <div className="panel card product-view-card">
                 <div className="panel-split">
                   <h3 className="panel-subheading">Variants</h3>
                   <span className="muted">{variants.length} total</span>
@@ -2113,7 +2363,7 @@ function ProductPage({ token, adminUserId }) {
                   </div>
                 )}
               </div>
-              <div className="panel card">
+              <div className="panel card product-view-card">
                 <h3 className="panel-subheading">Descriptions</h3>
                 <div className="field-grid">
                   <div className="field field-span">
@@ -2126,16 +2376,30 @@ function ProductPage({ token, adminUserId }) {
                   </div>
                 </div>
               </div>
-              <div className="panel card">
+              <div className="panel card product-view-card">
                 <h3 className="panel-subheading">Dynamic fields</h3>
-                {dynamicEntries.length === 0 ? (
+                {dynamicViewGroups.length === 0 ? (
                   <p className="empty-state">No dynamic fields provided.</p>
                 ) : (
                   <div className="field-grid">
-                    {dynamicEntries.map(([key, value]) => (
-                      <div className="field" key={key}>
-                        <span>{key}</span>
-                        <p className="field-value">{formatValue(value)}</p>
+                    {dynamicViewGroups.map((group) => (
+                      <div className="field field-span" key={group.id}>
+                        <span className="field-label">{group.label}</span>
+                        <div className="field-grid">
+                          {group.items.map((entry) => {
+                            const hasUnit =
+                              entry.unit &&
+                              entry.label &&
+                              !String(entry.label).toLowerCase().includes(String(entry.unit).toLowerCase());
+                            const label = hasUnit ? `${entry.label} (${entry.unit})` : entry.label;
+                            return (
+                              <div className="field" key={`${group.id}-${label}`}>
+                                <span>{label}</span>
+                                <p className="field-value">{entry.value}</p>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -2150,7 +2414,8 @@ function ProductPage({ token, adminUserId }) {
             </div>
           )}
         </div>
-      ) : (
+      ) : null}
+      {!isViewing && !showForm ? (
         <div className="panel card users-table-card">
           <div className="users-search">
             <span className="icon icon-search" />
@@ -2171,7 +2436,7 @@ function ProductPage({ token, adminUserId }) {
             <p className="empty-state">No products found.</p>
           ) : (
             <div className="table-shell">
-              <table className="admin-table users-table">
+              <table className="admin-table users-table product-table">
                 <thead>
                   <tr>
                     <th>
@@ -2198,12 +2463,12 @@ function ProductPage({ token, adminUserId }) {
                     const statusClass = `status-pill ${
                       statusValue ? statusValue.toLowerCase().replace(/_/g, '-') : 'pending'
                     }`;
-                    return (
-                      <tr
-                        key={product?.id || product?.productId}
-                        className="table-row-clickable"
-                        onClick={() => handleViewProduct(product.id)}
-                      >
+                      return (
+                        <tr
+                          key={product?.id || product?.productId}
+                          className="table-row-clickable"
+                          onClick={() => handleViewProduct(product.id)}
+                        >
                         <td>
                           <input
                             type="checkbox"
@@ -2226,39 +2491,68 @@ function ProductPage({ token, adminUserId }) {
                         <td>
                           <span className={statusClass}>{formatStatus(statusValue)}</span>
                         </td>
-                        <td>{formatValue(product?.updatedOn || product?.updated_on || product?.createdOn)}</td>
+                        <td>{formatDateOnly(product?.updatedOn || product?.updated_on || product?.createdOn)}</td>
                         <td className="table-actions">
                           <div className="table-action-group">
                             <button
                               type="button"
-                              className="ghost-btn small"
+                              className="icon-btn view"
+                              aria-label="View product"
                               onClick={(event) => {
                                 event.stopPropagation();
                                 handleViewProduct(product.id);
                               }}
                             >
-                              View
+                              {ACTION_ICONS.view}
                             </button>
                             <button
                               type="button"
-                              className="ghost-btn small"
+                              className="icon-btn edit"
+                              aria-label="Edit product"
                               onClick={(event) => {
                                 event.stopPropagation();
                                 navigate(`/admin/products/${product.id}/edit`);
                               }}
                             >
-                              Edit
+                              {ACTION_ICONS.edit}
                             </button>
                             <button
                               type="button"
-                              className="ghost-btn small"
+                              className="icon-btn delete"
+                              aria-label="Delete product"
                               onClick={(event) => {
                                 event.stopPropagation();
                                 handleDelete(product.id);
                               }}
                             >
-                              Delete
+                              {ACTION_ICONS.trash}
                             </button>
+                            {String(statusValue || '').toUpperCase() === 'PENDING' ? (
+                              <>
+                                <button
+                                  type="button"
+                                  className="icon-btn approve"
+                                  aria-label="Approve product"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    handleRowStatusUpdate(product.id, 'APPROVED');
+                                  }}
+                                >
+                                  {ACTION_ICONS.approve}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="icon-btn reject"
+                                  aria-label="Reject product"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    handleRowStatusUpdate(product.id, 'REJECTED');
+                                  }}
+                                >
+                                  {ACTION_ICONS.reject}
+                                </button>
+                              </>
+                            ) : null}
                           </div>
                         </td>
                       </tr>
@@ -2269,7 +2563,7 @@ function ProductPage({ token, adminUserId }) {
             </div>
           )}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
