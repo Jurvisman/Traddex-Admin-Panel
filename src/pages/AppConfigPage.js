@@ -79,8 +79,13 @@ const isHomeMainPage = (page) => page?.id === 'home_main' || page?.route === '/h
 
 const screenSectionTypeOptions = [
   { value: 'carousel', label: 'Carousel' },
+  { value: 'hero_carousel', label: 'Hero carousel (SDUI)' },
   { value: 'horizontalList', label: 'Horizontal list' },
+  { value: 'horizontal_scroll_list', label: 'Horizontal featured list (SDUI)' },
   { value: 'grid', label: 'Grid' },
+  { value: 'column_grid', label: 'Column grid (SDUI)' },
+  { value: 'category_icon_grid', label: 'Category icon grid (SDUI)' },
+  { value: 'brand_logo_grid', label: 'Brand logo grid (SDUI)' },
   { value: 'categoryPreviewGrid', label: 'Category preview grid' },
   { value: 'campaignBento', label: 'Campaign bento' },
   { value: 'list', label: 'List' },
@@ -91,6 +96,15 @@ const screenSectionTypeOptions = [
   { value: 'title', label: 'Title' },
   { value: 'video', label: 'Video' },
 ];
+
+const defaultBlockTypeBySectionType = {
+  banner: 'heroBanner',
+  title: 'sectionTitle',
+  grid: 'multiItemGrid',
+  categoryPreviewGrid: 'categoryPreviewGrid',
+  campaignBento: 'campaignBento',
+  campaign: 'campaignBento',
+};
 
 const headerSectionTypeOptions = [
   { value: 'addressHeader', label: 'Address Header' },
@@ -141,6 +155,89 @@ const screenToolboxItems = [
       imageUrl: '',
       aspectRatio: '2:1',
       deepLink: '',
+    },
+  },
+  {
+    key: 'phaseOneHeroCarousel',
+    label: 'Hero Carousel Block',
+    hint: 'Full-width campaign banners',
+    section: {
+      id: 'hero_carousel',
+      type: 'carousel',
+      blockType: 'hero_carousel',
+      title: 'Spotlight deals',
+      items: [
+        { title: 'Hero 1', imageUrl: '', deepLink: '' },
+        { title: 'Hero 2', imageUrl: '', deepLink: '' },
+      ],
+    },
+  },
+  {
+    key: 'phaseOneHorizontalScrollList',
+    label: 'Featured Cards Block',
+    hint: 'Festive cards with badge + subtitle',
+    section: {
+      id: 'featured_cards',
+      type: 'horizontalList',
+      blockType: 'horizontal_scroll_list',
+      title: 'Featured this week',
+      items: [
+        { title: '', subtitle: 'For you', badgeText: 'Newly launched', imageUrl: '', deepLink: '' },
+        { title: 'Gujiya', badgeText: 'Festive finds', imageUrl: '', deepLink: '' },
+        { title: 'Thandai', badgeText: 'Festive finds', imageUrl: '', deepLink: '' },
+      ],
+    },
+  },
+  {
+    key: 'phaseOneColumnGrid',
+    label: 'Festive Column Grid',
+    hint: '3-column cards with dual images',
+    section: {
+      id: 'festive_column_grid',
+      type: 'grid',
+      blockType: 'column_grid',
+      title: 'Festive finds',
+      items: [
+        { title: 'T-shirts & Mobile Pouch', imageUrl: '', secondaryImageUrl: '', deepLink: '' },
+        { title: 'Holika Dahan', imageUrl: '', secondaryImageUrl: '', deepLink: '' },
+        { title: 'Gujiya Mould & Ingredients', imageUrl: '', secondaryImageUrl: '', deepLink: '' },
+      ],
+    },
+  },
+  {
+    key: 'phaseOneCategoryIconGrid',
+    label: 'Category Icon Grid',
+    hint: '4-column category blocks',
+    section: {
+      id: 'category_icon_grid',
+      type: 'grid',
+      blockType: 'category_icon_grid',
+      title: 'Grocery & Kitchen',
+      items: [
+        { title: 'Vegetables & Fruits', imageUrl: '', deepLink: '' },
+        { title: 'Atta, Rice & Dal', imageUrl: '', deepLink: '' },
+        { title: 'Oil, Ghee & Masala', imageUrl: '', deepLink: '' },
+        { title: 'Dairy, Bread & Eggs', imageUrl: '', deepLink: '' },
+      ],
+    },
+  },
+  {
+    key: 'phaseOneBrandLogoGrid',
+    label: 'Brand Layout Block',
+    hint: 'Hero + 4 tiles + CTA strip',
+    section: {
+      id: 'brand_layout_grid',
+      type: 'grid',
+      blockType: 'brand_logo_grid',
+      title: '',
+      items: [
+        { kind: 'hero', title: 'Hero', imageUrl: '', deepLink: '' },
+        { kind: 'tile', title: 'Beverage Corner', imageUrl: '', deepLink: '' },
+        { kind: 'tile', title: 'Snacks & Munchies', imageUrl: '', deepLink: '' },
+        { kind: 'tile', title: 'Toofani Party Zone', imageUrl: '', deepLink: '' },
+        { kind: 'tile', title: 'Sweet Delights', imageUrl: '', deepLink: '' },
+        { kind: 'cta', title: 'CTA', imageUrl: '', deepLink: '' },
+      ],
     },
   },
   {
@@ -200,6 +297,11 @@ const blockLabels = {
   searchBar: 'Search Bar Block',
   horizontalPills: 'Horizontal Pills Block',
   heroBanner: 'Hero Banner Block',
+  hero_carousel: 'Hero Carousel Block',
+  horizontal_scroll_list: 'Featured Cards Block',
+  column_grid: 'Festive Column Grid',
+  category_icon_grid: 'Category Icon Grid',
+  brand_logo_grid: 'Brand Layout Block',
   sectionTitle: 'Section Title Block',
   multiItemGrid: 'Multi Item Grid Block',
   categoryPreviewGrid: 'Category Preview Grid',
@@ -212,6 +314,11 @@ const resolveBlockLabel = (blockType, fallback) =>
 const resolveBlockType = (section) => {
   if (!section) return '';
   if (section.blockType) return section.blockType;
+  if (section.type === 'hero_carousel') return 'hero_carousel';
+  if (section.type === 'horizontal_scroll_list') return 'horizontal_scroll_list';
+  if (section.type === 'column_grid') return 'column_grid';
+  if (section.type === 'category_icon_grid') return 'category_icon_grid';
+  if (section.type === 'brand_logo_grid') return 'brand_logo_grid';
   if (section.type === 'banner') return 'heroBanner';
   if (section.type === 'title') return 'sectionTitle';
   if (section.type === 'grid') return 'multiItemGrid';
@@ -308,6 +415,71 @@ const ensureBentoTiles = (tiles, count = 4) => {
     normalized.push({ imageUrl: '', deepLink: '', label: '' });
   }
   return normalized.slice(0, count);
+};
+
+const phaseOneBlockTypes = new Set([
+  'hero_carousel',
+  'horizontal_scroll_list',
+  'column_grid',
+  'category_icon_grid',
+  'brand_logo_grid',
+]);
+
+const getPhaseOneDefaultItem = (blockType, index = 0) => {
+  if (blockType === 'brand_logo_grid') {
+    const kinds = ['hero', 'tile', 'tile', 'tile', 'tile', 'cta'];
+    return {
+      id: '',
+      kind: kinds[index] || 'tile',
+      title: '',
+      subtitle: '',
+      badgeText: '',
+      imageUrl: '',
+      secondaryImageUrl: '',
+      deepLink: '',
+      bgColor: '',
+      frameColor: '',
+      titleColor: '',
+      badgeTextColor: '',
+    };
+  }
+  return {
+    id: '',
+    kind: '',
+    title: '',
+    subtitle: '',
+    badgeText: '',
+    imageUrl: '',
+    secondaryImageUrl: '',
+    deepLink: '',
+    bgColor: '',
+    frameColor: '',
+    titleColor: '',
+    badgeTextColor: '',
+  };
+};
+
+const normalizePhaseOneItems = (items, blockType) => {
+  const list = Array.isArray(items) ? items : [];
+  const normalized = list.map((item, index) => {
+    const base = getPhaseOneDefaultItem(blockType, index);
+    return {
+      ...base,
+      id: item?.id ? String(item.id) : '',
+      kind: item?.kind ? String(item.kind) : base.kind,
+      title: item?.title || item?.name || item?.label || '',
+      subtitle: item?.subtitle || '',
+      badgeText: item?.badgeText || '',
+      imageUrl: item?.imageUrl || item?.imageUri || item?.thumbnailImage || '',
+      secondaryImageUrl: item?.secondaryImageUrl || '',
+      deepLink: item?.deepLink || item?.targetUrl || '',
+      bgColor: item?.bgColor || '',
+      frameColor: item?.frameColor || '',
+      titleColor: item?.titleColor || '',
+      badgeTextColor: item?.badgeTextColor || '',
+    };
+  });
+  return normalized.length > 0 ? normalized : [getPhaseOneDefaultItem(blockType, 0)];
 };
 
 const matchesLayoutPreset = (preset, form) => {
@@ -668,6 +840,7 @@ const defaultSectionForm = {
   bentoHeroLabel: '',
   bentoHeroBadge: '',
   bentoTiles: Array.from({ length: 4 }, () => ({ imageUrl: '', deepLink: '', label: '' })),
+  sduiItems: [],
   enabled: true,
   itemsPath: '',
   itemTemplateRef: '',
@@ -756,6 +929,8 @@ const getPreviewItems = (section, fallbackCount = 4) => {
 
 const getPreviewImage = (item) =>
   item?.imageUrl || item?.imageUri || item?.thumbnailImage || item?.galleryImages?.[0]?.url || '';
+
+const getPreviewSecondaryImage = (item) => item?.secondaryImageUrl || '';
 
 const getPreviewTitle = (item) => item?.title || item?.name || item?.label || 'Item';
 
@@ -1312,6 +1487,35 @@ function AppConfigPage({ token }) {
     });
   };
 
+  const updatePhaseOneItem = (index, field, value) => {
+    setSectionForm((prev) => {
+      const blockType = prev.blockType || prev.type || '';
+      const nextItems = normalizePhaseOneItems(prev.sduiItems, blockType);
+      nextItems[index] = { ...nextItems[index], [field]: value };
+      return { ...prev, sduiItems: nextItems };
+    });
+  };
+
+  const addPhaseOneItem = () => {
+    setSectionForm((prev) => {
+      const blockType = prev.blockType || prev.type || '';
+      const nextItems = normalizePhaseOneItems(prev.sduiItems, blockType);
+      const nextDefault = getPhaseOneDefaultItem(blockType, nextItems.length);
+      return { ...prev, sduiItems: [...nextItems, nextDefault] };
+    });
+  };
+
+  const removePhaseOneItem = (index) => {
+    setSectionForm((prev) => {
+      const blockType = prev.blockType || prev.type || '';
+      const nextItems = normalizePhaseOneItems(prev.sduiItems, blockType).filter((_, itemIndex) => itemIndex !== index);
+      return {
+        ...prev,
+        sduiItems: nextItems.length ? nextItems : [getPhaseOneDefaultItem(blockType, 0)],
+      };
+    });
+  };
+
   const closeEditor = () => {
     setActivePanel(null);
     resetSectionForm();
@@ -1610,6 +1814,9 @@ function AppConfigPage({ token }) {
         setSectionForm((prev) => ({ ...prev, bentoHeroImage: url }));
       } else if (bentoUploadTarget.kind === 'tile') {
         updateBentoTile(bentoUploadTarget.index, 'imageUrl', url);
+      } else if (bentoUploadTarget.kind === 'sdui') {
+        const field = bentoUploadTarget.field === 'secondaryImageUrl' ? 'secondaryImageUrl' : 'imageUrl';
+        updatePhaseOneItem(bentoUploadTarget.index, field, url);
       }
       setMessage({ type: 'success', text: 'Image uploaded.' });
     } catch (error) {
@@ -1739,6 +1946,38 @@ function AppConfigPage({ token }) {
       next.tiles = normalizedTiles;
     } else {
       delete next.tiles;
+    }
+    const resolvedBlockType = form.blockType?.trim() || form.type?.trim() || '';
+    if (phaseOneBlockTypes.has(resolvedBlockType)) {
+      const normalizedItems = normalizePhaseOneItems(form.sduiItems, resolvedBlockType)
+        .map((item) => {
+          const clean = {};
+          const assign = (key, value) => {
+            if (value === undefined || value === null) return;
+            const text = String(value).trim();
+            if (!text) return;
+            clean[key] = text;
+          };
+          assign('id', item.id);
+          if (item.kind && item.kind !== 'tile') assign('kind', item.kind);
+          assign('title', item.title);
+          assign('subtitle', item.subtitle);
+          assign('badgeText', item.badgeText);
+          assign('imageUrl', item.imageUrl);
+          assign('secondaryImageUrl', item.secondaryImageUrl);
+          assign('deepLink', item.deepLink);
+          assign('bgColor', item.bgColor);
+          assign('frameColor', item.frameColor);
+          assign('titleColor', item.titleColor);
+          assign('badgeTextColor', item.badgeTextColor);
+          return clean;
+        })
+        .filter((item) => Object.keys(item).length > 0);
+      if (normalizedItems.length > 0) {
+        next.items = normalizedItems;
+      } else {
+        delete next.items;
+      }
     }
     setOrDelete('itemsPath', form.itemsPath?.trim());
     setOrDelete('itemTemplateRef', form.itemTemplateRef?.trim());
@@ -2206,6 +2445,9 @@ function AppConfigPage({ token }) {
       bentoHeroLabel: hero?.label || hero?.title || '',
       bentoHeroBadge: hero?.badge || hero?.badgeText || hero?.priceTag || '',
       bentoTiles: tiles,
+      sduiItems: phaseOneBlockTypes.has(resolveBlockType(section))
+        ? normalizePhaseOneItems(items, resolveBlockType(section))
+        : [],
       collectionIds: Array.isArray(section?.collectionIds)
         ? section.collectionIds.map((value) => normalizeCollectionId(value)).filter(Boolean)
         : [],
@@ -2547,13 +2789,17 @@ function AppConfigPage({ token }) {
       ? section.collectionIds.map((value) => normalizeCollectionId(value)).filter(Boolean)
       : [];
     const fallbackCount =
-      type === 'banner'
-        ? 1
-        : type === 'list'
-          ? 3
-          : type === 'grid' || type === 'twoColumn' || type === 'heroGrid'
-            ? 4
-            : 3;
+      blockType === 'hero_carousel'
+        ? 2
+        : blockType === 'brand_logo_grid'
+          ? 6
+          : type === 'banner'
+            ? 1
+            : type === 'list'
+              ? 3
+              : type === 'grid' || type === 'twoColumn' || type === 'heroGrid'
+                ? 4
+                : 3;
     let items = getPreviewItems(section, fallbackCount);
     if ((blockType === 'multiItemGrid' || blockType === 'categoryPreviewGrid') && collectionIds.length > 0) {
       items = collectionIds.map((value) => ({ title: value || 'Collection' }));
@@ -2630,6 +2876,151 @@ function AppConfigPage({ token }) {
                 </div>
               );
             })}
+          </div>
+        </div>
+      );
+    }
+
+    if (blockType === 'hero_carousel') {
+      return (
+        <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+          {title ? <div className="preview-title">{title}</div> : null}
+          <div className="preview-phase-one-carousel">
+            {items.map((item, itemIndex) => {
+              const image = getPreviewImage(item);
+              return (
+                <div key={`preview-hero-carousel-${index}-${itemIndex}`} className="preview-phase-one-hero-card">
+                  {image ? <img src={image} alt="" /> : <div className="preview-banner-placeholder" />}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    if (blockType === 'horizontal_scroll_list') {
+      return (
+        <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+          {title ? <div className="preview-title">{title}</div> : null}
+          <div className="preview-phase-one-featured-row">
+            {items.map((item, itemIndex) => {
+              const image = getPreviewImage(item);
+              const label = item?.title || item?.name || item?.label || '';
+              const badge = item?.badgeText || '';
+              const subtitle = item?.subtitle || '';
+              return (
+                <div
+                  key={`preview-featured-${index}-${itemIndex}`}
+                  className="preview-phase-one-featured-card"
+                  style={{
+                    backgroundColor: item?.bgColor || undefined,
+                    borderColor: item?.frameColor || undefined,
+                  }}
+                >
+                  {badge ? (
+                    <span className="preview-phase-one-featured-badge" style={{ color: item?.badgeTextColor || undefined }}>
+                      {badge}
+                    </span>
+                  ) : null}
+                  {label ? (
+                    <div className="preview-phase-one-featured-title" style={{ color: item?.titleColor || undefined }}>
+                      {label}
+                    </div>
+                  ) : null}
+                  <div className="preview-phase-one-featured-image-wrap">
+                    {image ? <img src={image} alt="" /> : <div className="preview-image-placeholder" />}
+                  </div>
+                  {subtitle ? <span className="preview-phase-one-featured-subtitle">{subtitle}</span> : null}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    if (blockType === 'column_grid') {
+      return (
+        <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+          {title ? <div className="preview-title">{title}</div> : null}
+          <div className="preview-phase-one-column-grid">
+            {items.map((item, itemIndex) => {
+              const image = getPreviewImage(item);
+              const secondary = getPreviewSecondaryImage(item);
+              const label = getPreviewTitle(item);
+              return (
+                <div key={`preview-column-grid-${index}-${itemIndex}`} className="preview-phase-one-column-card">
+                  <div className="preview-phase-one-column-title">{label}</div>
+                  <div className="preview-phase-one-column-images">
+                    <div className="preview-phase-one-column-image">
+                      {image ? <img src={image} alt="" /> : <div className="preview-image-placeholder" />}
+                    </div>
+                    <div className="preview-phase-one-column-image">
+                      {secondary ? <img src={secondary} alt="" /> : <div className="preview-image-placeholder" />}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    if (blockType === 'category_icon_grid') {
+      return (
+        <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+          {title ? <div className="preview-title">{title}</div> : null}
+          <div className="preview-phase-one-category-grid">
+            {items.map((item, itemIndex) => {
+              const image = getPreviewImage(item);
+              const label = getPreviewTitle(item);
+              return (
+                <div key={`preview-category-icon-grid-${index}-${itemIndex}`} className="preview-phase-one-category-cell">
+                  <div className="preview-phase-one-category-image">
+                    {image ? <img src={image} alt="" /> : <div className="preview-image-placeholder" />}
+                  </div>
+                  <div className="preview-phase-one-category-label">{label}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    if (blockType === 'brand_logo_grid') {
+      const hero = items.find((item) => item?.kind === 'hero') || items[0] || null;
+      const cta = items.find((item) => item?.kind === 'cta') || items[items.length - 1] || null;
+      let tiles = items.filter((item) => item?.kind !== 'hero' && item?.kind !== 'cta');
+      if (!tiles.length) {
+        tiles = items.slice(1, 5);
+      }
+      return (
+        <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+          {title ? <div className="preview-title">{title}</div> : null}
+          <div className="preview-phase-one-brand-wrap">
+            {hero ? (
+              <div className="preview-phase-one-brand-hero">
+                {getPreviewImage(hero) ? <img src={getPreviewImage(hero)} alt="" /> : <div className="preview-banner-placeholder" />}
+              </div>
+            ) : null}
+            <div className="preview-phase-one-brand-grid">
+              {tiles.slice(0, 4).map((item, itemIndex) => (
+                <div key={`preview-brand-grid-${index}-${itemIndex}`} className="preview-phase-one-brand-card">
+                  <div className="preview-phase-one-brand-title">{getPreviewTitle(item)}</div>
+                  <div className="preview-phase-one-brand-image">
+                    {getPreviewImage(item) ? <img src={getPreviewImage(item)} alt="" /> : <div className="preview-image-placeholder" />}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {cta ? (
+              <div className="preview-phase-one-brand-cta">
+                {getPreviewImage(cta) ? <img src={getPreviewImage(cta)} alt="" /> : <div className="preview-banner-placeholder" />}
+              </div>
+            ) : null}
           </div>
         </div>
       );
@@ -2762,13 +3153,18 @@ function AppConfigPage({ token }) {
 
   const screenBlockType = sectionForm.blockType || sectionForm.type;
   const headerBlockType = headerSectionForm.blockType || headerSectionForm.type;
+  const isPhaseOneBlock = phaseOneBlockTypes.has(screenBlockType);
   const isHeroBanner = screenBlockType === 'heroBanner' || sectionForm.type === 'banner';
+  const isPhaseOneHorizontalList = screenBlockType === 'horizontal_scroll_list';
+  const isPhaseOneColumnGrid = screenBlockType === 'column_grid';
+  const isPhaseOneBrandGrid = screenBlockType === 'brand_logo_grid';
   const isCategoryPreviewGrid = screenBlockType === 'categoryPreviewGrid';
   const isCampaignBento = screenBlockType === 'campaignBento';
   const isMultiItemGrid =
-    screenBlockType === 'multiItemGrid' ||
-    isCategoryPreviewGrid ||
-    sectionForm.type === 'grid';
+    !isPhaseOneBlock &&
+    (screenBlockType === 'multiItemGrid' ||
+      isCategoryPreviewGrid ||
+      sectionForm.type === 'grid');
   const isSectionTitleBlock = screenBlockType === 'sectionTitle' || sectionForm.type === 'title';
   const isScreenSpacer = sectionForm.type === 'spacer';
   const isScreenVideo = sectionForm.type === 'video';
@@ -3067,7 +3463,7 @@ function AppConfigPage({ token }) {
                         </label>
                       ) : null}
                     </div>
-                    {(isHeroBanner || isMultiItemGrid || isCampaignBento) ? (
+                    {(isHeroBanner || isMultiItemGrid || isCampaignBento || isPhaseOneBlock) ? (
                       <label className="field field-span">
                         <span>{isHeroBanner ? 'Banner title (optional)' : 'Section title'}</span>
                         <input
@@ -3134,6 +3530,184 @@ function AppConfigPage({ token }) {
                             onChange={(event) => setSectionForm((prev) => ({ ...prev, scheduleEnd: event.target.value }))}
                           />
                         </label>
+                      </>
+                    ) : null}
+                    {isPhaseOneBlock ? (
+                      <>
+                        <label className="field field-span">
+                          <span>Block items</span>
+                          <div className="inline-row">
+                            <button type="button" className="ghost-btn small" onClick={addPhaseOneItem}>
+                              + Add item
+                            </button>
+                            <span className="field-help">
+                              {isPhaseOneBrandGrid
+                                ? 'Use kind = hero / tile / cta for brand layout.'
+                                : 'Set image + text + deep link for each card.'}
+                            </span>
+                          </div>
+                        </label>
+                        <div className="field field-span phase-one-item-grid">
+                          {normalizePhaseOneItems(sectionForm.sduiItems, screenBlockType).map((item, idx) => (
+                            <div key={`phase-one-item-${idx}`} className="phase-one-item-card">
+                              <div className="panel-split">
+                                <div className="bento-tile-title">Item {idx + 1}</div>
+                                <button
+                                  type="button"
+                                  className="ghost-btn small"
+                                  onClick={() => removePhaseOneItem(idx)}
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                              {isPhaseOneBrandGrid ? (
+                                <label className="field">
+                                  <span>Kind</span>
+                                  <select
+                                    value={item.kind || 'tile'}
+                                    onChange={(event) => updatePhaseOneItem(idx, 'kind', event.target.value)}
+                                  >
+                                    <option value="hero">Hero</option>
+                                    <option value="tile">Tile</option>
+                                    <option value="cta">CTA</option>
+                                  </select>
+                                </label>
+                              ) : null}
+                              <label className="field">
+                                <span>Title</span>
+                                <input
+                                  type="text"
+                                  value={item.title || ''}
+                                  onChange={(event) => updatePhaseOneItem(idx, 'title', event.target.value)}
+                                  placeholder="Item title"
+                                />
+                              </label>
+                              {(isPhaseOneHorizontalList || isPhaseOneColumnGrid) ? (
+                                <label className="field">
+                                  <span>{isPhaseOneHorizontalList ? 'Badge text' : 'Subtitle'}</span>
+                                  <input
+                                    type="text"
+                                    value={isPhaseOneHorizontalList ? item.badgeText || '' : item.subtitle || ''}
+                                    onChange={(event) =>
+                                      updatePhaseOneItem(
+                                        idx,
+                                        isPhaseOneHorizontalList ? 'badgeText' : 'subtitle',
+                                        event.target.value
+                                      )
+                                    }
+                                    placeholder={isPhaseOneHorizontalList ? 'Festive finds' : 'Optional subtitle'}
+                                  />
+                                </label>
+                              ) : null}
+                              {isPhaseOneHorizontalList ? (
+                                <label className="field">
+                                  <span>Bottom label</span>
+                                  <input
+                                    type="text"
+                                    value={item.subtitle || ''}
+                                    onChange={(event) => updatePhaseOneItem(idx, 'subtitle', event.target.value)}
+                                    placeholder="For you"
+                                  />
+                                </label>
+                              ) : null}
+                              <label className="field">
+                                <span>Image URL</span>
+                                <div className="inline-row">
+                                  <input
+                                    type="text"
+                                    value={item.imageUrl || ''}
+                                    onChange={(event) => updatePhaseOneItem(idx, 'imageUrl', event.target.value)}
+                                    placeholder="https://cdn.example.com/item.jpg"
+                                  />
+                                  <button
+                                    type="button"
+                                    className="ghost-btn small"
+                                    onClick={() => handleBentoImageClick({ kind: 'sdui', index: idx, field: 'imageUrl' })}
+                                    disabled={isUploadingBentoImage}
+                                  >
+                                    {isUploadingBentoImage ? 'Uploading...' : 'Upload'}
+                                  </button>
+                                </div>
+                              </label>
+                              {isPhaseOneColumnGrid ? (
+                                <label className="field">
+                                  <span>Secondary image URL</span>
+                                  <div className="inline-row">
+                                    <input
+                                      type="text"
+                                      value={item.secondaryImageUrl || ''}
+                                      onChange={(event) =>
+                                        updatePhaseOneItem(idx, 'secondaryImageUrl', event.target.value)
+                                      }
+                                      placeholder="https://cdn.example.com/item-2.jpg"
+                                    />
+                                    <button
+                                      type="button"
+                                      className="ghost-btn small"
+                                      onClick={() =>
+                                        handleBentoImageClick({ kind: 'sdui', index: idx, field: 'secondaryImageUrl' })
+                                      }
+                                      disabled={isUploadingBentoImage}
+                                    >
+                                      {isUploadingBentoImage ? 'Uploading...' : 'Upload'}
+                                    </button>
+                                  </div>
+                                </label>
+                              ) : null}
+                              <label className="field">
+                                <span>Deep link</span>
+                                <input
+                                  type="text"
+                                  value={item.deepLink || ''}
+                                  onChange={(event) => updatePhaseOneItem(idx, 'deepLink', event.target.value)}
+                                  placeholder="app://collection/featured"
+                                />
+                              </label>
+                              {isPhaseOneHorizontalList ? (
+                                <div className="phase-one-color-grid">
+                                  <label className="field">
+                                    <span>Card BG</span>
+                                    <input
+                                      type="text"
+                                      value={item.bgColor || ''}
+                                      onChange={(event) => updatePhaseOneItem(idx, 'bgColor', event.target.value)}
+                                      placeholder="#ff8f4f"
+                                    />
+                                  </label>
+                                  <label className="field">
+                                    <span>Frame color</span>
+                                    <input
+                                      type="text"
+                                      value={item.frameColor || ''}
+                                      onChange={(event) => updatePhaseOneItem(idx, 'frameColor', event.target.value)}
+                                      placeholder="#3874e8"
+                                    />
+                                  </label>
+                                  <label className="field">
+                                    <span>Title color</span>
+                                    <input
+                                      type="text"
+                                      value={item.titleColor || ''}
+                                      onChange={(event) => updatePhaseOneItem(idx, 'titleColor', event.target.value)}
+                                      placeholder="#ffffff"
+                                    />
+                                  </label>
+                                  <label className="field">
+                                    <span>Badge text color</span>
+                                    <input
+                                      type="text"
+                                      value={item.badgeTextColor || ''}
+                                      onChange={(event) =>
+                                        updatePhaseOneItem(idx, 'badgeTextColor', event.target.value)
+                                      }
+                                      placeholder="#d04667"
+                                    />
+                                  </label>
+                                </div>
+                              ) : null}
+                            </div>
+                          ))}
+                        </div>
                       </>
                     ) : null}
                     {isMultiItemGrid ? (
@@ -4534,7 +5108,24 @@ function AppConfigPage({ token }) {
                   <span>Section type</span>
                   <select
                     value={sectionForm.type}
-                    onChange={(event) => setSectionForm((prev) => ({ ...prev, type: event.target.value }))}
+                    onChange={(event) =>
+                      setSectionForm((prev) => {
+                        const nextType = event.target.value;
+                        if (phaseOneBlockTypes.has(nextType)) {
+                          return {
+                            ...prev,
+                            type: nextType,
+                            blockType: nextType,
+                            sduiItems: normalizePhaseOneItems(prev.sduiItems, nextType),
+                          };
+                        }
+                        return {
+                          ...prev,
+                          type: nextType,
+                          blockType: defaultBlockTypeBySectionType[nextType] || '',
+                        };
+                      })
+                    }
                   >
                     {screenSectionTypeOptions.map((opt) => (
                       <option key={opt.value} value={opt.value}>
