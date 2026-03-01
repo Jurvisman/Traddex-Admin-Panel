@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Banner } from '../components';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
+  createUserAccount,
   deleteUser,
   deleteUsersBulk,
   fetchUserDetails,
   fetchUsers,
   getUserBusinessScore,
   getUserBusinessScoreHistory,
+  listRoles,
   listProductsByUser,
   updateBusinessProfile,
   updateBusinessProfileStatus,
@@ -207,13 +209,31 @@ const buildBusinessPayload = (form) =>
     return acc;
   }, {});
 
-function AdminUsersPage({ token }) {
+const USER_TYPE_OPTIONS = [
+  { value: 'USER', label: 'User' },
+  { value: 'BUSINESS', label: 'Business' },
+  { value: 'LOGISTIC', label: 'Logistic' },
+  { value: 'INSURANCE', label: 'Insurance' },
+];
+
+const INITIAL_CREATE_FORM = {
+  name: '',
+  number: '',
+  userType: 'USER',
+  role: '',
+  timeZone: '',
+};
+
+function AdminUsersPage({ token, allowedActions }) {
   const navigate = useNavigate();
+  const { id: routeUserId } = useParams();
+  const isDetailRoute = Boolean(routeUserId);
   const [users, setUsers] = useState([]);
   const [query, setQuery] = useState('');
   const [message, setMessage] = useState({ type: 'info', text: '' });
   const [isLoading, setIsLoading] = useState(false);
   const [viewDetails, setViewDetails] = useState(null);
+  const [activeViewTab, setActiveViewTab] = useState('overview');
   const [isViewLoading, setIsViewLoading] = useState(false);
   const [editUser, setEditUser] = useState(null);
   const [editForm, setEditForm] = useState({
@@ -235,8 +255,37 @@ function AdminUsersPage({ token }) {
   const [editBusinessForm, setEditBusinessForm] = useState(() => buildBusinessFormState(null));
   const [isBusinessSaving, setIsBusinessSaving] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createForm, setCreateForm] = useState(INITIAL_CREATE_FORM);
+  const [createRoles, setCreateRoles] = useState([]);
+  const [isCreateRoleLoading, setIsCreateRoleLoading] = useState(false);
+  const [isCreateSaving, setIsCreateSaving] = useState(false);
+
+  const allowedActionSet = useMemo(() => {
+    const next = new Set();
+    const source = allowedActions instanceof Set ? Array.from(allowedActions) : Array.isArray(allowedActions) ? allowedActions : [];
+    source.forEach((code) => {
+      const normalizedCode = String(code || '').trim().toUpperCase();
+      if (normalizedCode) {
+        next.add(normalizedCode);
+      }
+    });
+    return next;
+  }, [allowedActions]);
+
+  const hasActionModel = allowedActionSet.size > 0;
+  const canUserCreate = !hasActionModel || allowedActionSet.has('ADMIN_USERS_CREATE');
+  const canUserRead = !hasActionModel || allowedActionSet.has('ADMIN_USERS_READ');
+  const canUserUpdate = !hasActionModel || allowedActionSet.has('ADMIN_USERS_UPDATE');
+  const canUserDelete = !hasActionModel || allowedActionSet.has('ADMIN_USERS_DELETE');
 
   const loadUsers = async () => {
+    if (!canUserRead) {
+      setUsers([]);
+      setSelectedIds(new Set());
+      setMessage({ type: 'error', text: 'You do not have permission to view users.' });
+      return;
+    }
     setIsLoading(true);
     setMessage({ type: 'info', text: '' });
     try {
@@ -257,9 +306,10 @@ function AdminUsersPage({ token }) {
   };
 
   useEffect(() => {
+    if (isDetailRoute) return;
     loadUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isDetailRoute]);
 
   const filteredUsers = useMemo(() => {
     const term = normalize(query);
@@ -311,7 +361,45 @@ function AdminUsersPage({ token }) {
     });
   };
 
+  const loadCreateRoles = async () => {
+    setIsCreateRoleLoading(true);
+    try {
+      const response = await listRoles(token);
+      const roles = Array.isArray(response?.data) ? response.data : [];
+      setCreateRoles(roles);
+      if (roles.length > 0) {
+        const firstRole = roles[0];
+        const firstRoleId = firstRole?.id || firstRole?.roles_id || firstRole?.roleId;
+        if (firstRoleId) {
+          setCreateForm((prev) => (prev.role ? prev : { ...prev, role: String(firstRoleId) }));
+        }
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to load roles.' });
+    } finally {
+      setIsCreateRoleLoading(false);
+    }
+  };
+
+  const openCreateUserModal = async () => {
+    if (!canUserCreate) {
+      setMessage({ type: 'error', text: 'You do not have permission to create users.' });
+      return;
+    }
+    setCreateForm(INITIAL_CREATE_FORM);
+    setShowCreateModal(true);
+    await loadCreateRoles();
+  };
+
+  const handleCreateChange = (key, value) => {
+    setCreateForm((prev) => ({ ...prev, [key]: value }));
+  };
+
   const openEdit = (user) => {
+    if (!canUserUpdate) {
+      setMessage({ type: 'error', text: 'You do not have permission to update users.' });
+      return;
+    }
     setEditUser(user);
     setEditForm({
       name: user?.name || '',
@@ -329,6 +417,10 @@ function AdminUsersPage({ token }) {
 
   const handleUpdate = async (event) => {
     event.preventDefault();
+    if (!canUserUpdate) {
+      setMessage({ type: 'error', text: 'You do not have permission to update users.' });
+      return;
+    }
     if (!editUser?.id) return;
     setIsSaving(true);
     setMessage({ type: 'info', text: '' });
@@ -351,7 +443,55 @@ function AdminUsersPage({ token }) {
     }
   };
 
+  const handleCreateUser = async (event) => {
+    event.preventDefault();
+    if (!canUserCreate) {
+      setMessage({ type: 'error', text: 'You do not have permission to create users.' });
+      return;
+    }
+
+    const payload = {
+      name: createForm.name.trim(),
+      number: createForm.number.trim(),
+      userType: createForm.userType,
+      role: createForm.role,
+      timeZone: createForm.timeZone.trim() || null,
+    };
+
+    if (payload.userType === 'BUSINESS') {
+      payload.businessGeneral = {
+        businessName: payload.name,
+        phoneNumber: payload.number,
+        industry: 'GENERAL',
+        type: 'B2B',
+      };
+    }
+
+    if (!payload.name || !payload.number || !payload.userType || !payload.role) {
+      setMessage({ type: 'error', text: 'Name, number, type and role are required.' });
+      return;
+    }
+
+    setIsCreateSaving(true);
+    setMessage({ type: 'info', text: '' });
+    try {
+      await createUserAccount(token, payload);
+      await loadUsers();
+      setShowCreateModal(false);
+      setCreateForm(INITIAL_CREATE_FORM);
+      setMessage({ type: 'success', text: 'User created successfully.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to create user.' });
+    } finally {
+      setIsCreateSaving(false);
+    }
+  };
+
   const handleVerify = async (user) => {
+    if (!canUserUpdate) {
+      setMessage({ type: 'error', text: 'You do not have permission to update users.' });
+      return;
+    }
     if (!user?.id) return;
     setIsSaving(true);
     setMessage({ type: 'info', text: '' });
@@ -367,6 +507,10 @@ function AdminUsersPage({ token }) {
   };
 
   const handleDelete = async (user) => {
+    if (!canUserDelete) {
+      setMessage({ type: 'error', text: 'You do not have permission to delete users.' });
+      return;
+    }
     if (!user?.id) return;
     const ok = window.confirm(`Delete ${getUserName(user)}? This will remove the user from the list.`);
     if (!ok) return;
@@ -384,6 +528,10 @@ function AdminUsersPage({ token }) {
   };
 
   const handleBulkDelete = async () => {
+    if (!canUserDelete) {
+      setMessage({ type: 'error', text: 'You do not have permission to delete users.' });
+      return;
+    }
     if (!selectedCount) return;
     const ok = window.confirm(`Delete ${selectedCount} users? This will remove them from the list.`);
     if (!ok) return;
@@ -400,8 +548,13 @@ function AdminUsersPage({ token }) {
     }
   };
 
-  const handleView = async (user) => {
+  const loadUserDetails = async (user) => {
+    if (!canUserRead) {
+      setMessage({ type: 'error', text: 'You do not have permission to view users.' });
+      return;
+    }
     if (!user?.id) return;
+    setActiveViewTab('overview');
     setViewDetails({ user });
     setIsViewLoading(true);
     setMessage({ type: 'info', text: '' });
@@ -421,6 +574,15 @@ function AdminUsersPage({ token }) {
     } finally {
       setIsViewLoading(false);
     }
+  };
+
+  const handleView = (user) => {
+    if (!canUserRead) {
+      setMessage({ type: 'error', text: 'You do not have permission to view users.' });
+      return;
+    }
+    if (!user?.id) return;
+    navigate(`/admin/users/${user.id}`);
   };
 
   const loadLinkedProducts = async (userId) => {
@@ -469,6 +631,23 @@ function AdminUsersPage({ token }) {
     }
   };
 
+  useEffect(() => {
+    if (!isDetailRoute) {
+      setViewDetails(null);
+      setIsViewLoading(false);
+      setLinkedProducts([]);
+      setBusinessScore(null);
+      setBusinessScoreHistory([]);
+      setBusinessScoreError('');
+      setActiveViewTab('overview');
+      return;
+    }
+    const parsedId = Number(routeUserId);
+    const safeId = Number.isNaN(parsedId) ? routeUserId : parsedId;
+    loadUserDetails({ id: safeId });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDetailRoute, routeUserId]);
+
   const openBusinessEdit = (profile) => {
     if (!profile) return;
     setEditBusinessProfile(profile);
@@ -481,6 +660,10 @@ function AdminUsersPage({ token }) {
 
   const handleBusinessSave = async (event) => {
     event.preventDefault();
+    if (!canUserUpdate) {
+      setMessage({ type: 'error', text: 'You do not have permission to update users.' });
+      return;
+    }
     if (!editBusinessProfile?.userId) return;
     setIsBusinessSaving(true);
     setMessage({ type: 'info', text: '' });
@@ -502,6 +685,10 @@ function AdminUsersPage({ token }) {
   };
 
   const handleBusinessApprove = async () => {
+    if (!canUserUpdate) {
+      setMessage({ type: 'error', text: 'You do not have permission to update users.' });
+      return;
+    }
     if (!viewBusinessProfile?.profileId) return;
     setIsBusinessSaving(true);
     setMessage({ type: 'info', text: '' });
@@ -525,34 +712,100 @@ function AdminUsersPage({ token }) {
   const businessStatusMeta = viewBusinessProfile
     ? resolveBusinessVerification(viewBusinessProfile?.status || viewUser?.kycStatus)
     : null;
+  const formatFieldLabel = (key) =>
+    String(key || '')
+      .replace(/_/g, ' ')
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+  const accountPrimaryFields = [
+    { label: 'Phone', value: viewUser?.number || viewUser?.mobile || '-' },
+    { label: 'User Type', value: getUserType(viewUser) },
+    { label: 'Role', value: viewUser?.roleName || '-' },
+    { label: 'Time Zone', value: viewUser?.timeZone || '-' },
+  ];
+
+  const accountSecondaryFields = [
+    { label: 'Subscription', value: getSubscriptionLabel(viewUser) },
+    { label: 'Login Status', value: resolveLoginStatus(viewUser) ? 'Login' : 'Logout' },
+    { label: 'Verification', value: resolveVerification(viewUser).label },
+  ];
+
+  const accountMetaFields = [
+    { label: 'Active', value: viewUser?.active !== undefined && viewUser?.active !== null ? String(viewUser.active) : '-' },
+    { label: 'Joined', value: formatDate(viewUser?.createdAt || viewUser?.created_at || viewUser?.joined_at) },
+    { label: 'Last Active', value: formatDate(viewUser?.lastActive || viewUser?.last_active) },
+    { label: 'Subscription Status', value: viewUser?.subscriptionStatus || '-' },
+  ];
+
+  const viewTabs = [
+    { key: 'overview', label: 'General Details' },
+    { key: 'score', label: 'Business Score' },
+    {
+      key: 'profiles',
+      label: 'Profiles',
+      visible: Boolean(viewUserProfile || viewBusinessProfile || viewLogisticProfile || viewInsuranceProfile),
+    },
+    { key: 'products', label: 'Linked Products', visible: Boolean(viewUser && isBusinessUser(viewUser)) },
+  ].filter((tab) => tab.visible !== false);
+  const resolvedViewTab = viewTabs.some((tab) => tab.key === activeViewTab)
+    ? activeViewTab
+    : viewTabs[0]?.key || 'overview';
 
   return (
     <div className="users-page">
       <div className="users-head">
         <div>
-          <h2 className="panel-title">Users</h2>
-          <p className="panel-subtitle">Manage all {users.length} registered users.</p>
+          <h2 className="panel-title">{isDetailRoute ? 'User Details' : 'Users'}</h2>
+          <p className="panel-subtitle">
+            {isDetailRoute ? (viewUser ? getUserName(viewUser) : 'Loading user details...') : `Manage all ${users.length} registered users.`}
+          </p>
         </div>
         <div className="users-head-actions">
-          <button type="button" className="ghost-btn" onClick={loadUsers} disabled={isLoading}>
-            {isLoading ? 'Refreshing...' : 'Refresh'}
-          </button>
-          <button
-            type="button"
-            className="ghost-btn"
-            onClick={handleBulkDelete}
-            disabled={isLoading || selectedCount === 0}
-          >
-            Delete Selected{selectedCount ? ` (${selectedCount})` : ''}
-          </button>
-          <button type="button" className="primary-btn">
-            Add User
-          </button>
+          {isDetailRoute ? (
+            <>
+              <button type="button" className="ghost-btn" onClick={() => navigate('/admin/users')}>
+                Back to Users
+              </button>
+              <button
+                type="button"
+                className="ghost-btn"
+                onClick={() => refreshViewDetails(viewUser?.id || routeUserId)}
+                disabled={isViewLoading}
+              >
+                {isViewLoading ? 'Refreshing...' : 'Refresh'}
+              </button>
+            </>
+          ) : (
+            <>
+              <button type="button" className="ghost-btn" onClick={loadUsers} disabled={isLoading}>
+                {isLoading ? 'Refreshing...' : 'Refresh'}
+              </button>
+              {canUserDelete ? (
+                <button
+                  type="button"
+                  className="ghost-btn"
+                  onClick={handleBulkDelete}
+                  disabled={isLoading || selectedCount === 0}
+                >
+                  Delete Selected{selectedCount ? ` (${selectedCount})` : ''}
+                </button>
+              ) : null}
+              {canUserCreate ? (
+                <button type="button" className="primary-btn" onClick={openCreateUserModal}>
+                  Add User
+                </button>
+              ) : null}
+            </>
+          )}
         </div>
       </div>
 
       <Banner message={message} />
 
+      {!isDetailRoute ? (
+        <>
       <div className="stat-grid">
         <div className="stat-card admin-stat" style={{ '--stat-accent': '#4F46E5' }}>
           <p className="stat-label">Total users</p>
@@ -611,6 +864,7 @@ function AdminUsersPage({ token }) {
                       className="select-checkbox"
                       checked={allSelected}
                       onChange={toggleSelectAll}
+                      disabled={!canUserDelete}
                       aria-label="Select all users"
                     />
                   </th>
@@ -640,6 +894,7 @@ function AdminUsersPage({ token }) {
                           className="select-checkbox"
                           checked={user?.id ? selectedIds.has(user.id) : false}
                           onChange={() => toggleSelect(user?.id)}
+                          disabled={!canUserDelete}
                           aria-label={`Select ${getUserName(user)}`}
                         />
                       </td>
@@ -670,13 +925,17 @@ function AdminUsersPage({ token }) {
                       <td>{formatDate(user?.created_at || user?.createdAt || user?.joined_at)}</td>
                       <td className="table-actions">
                         <div className="table-action-group">
-                          <button type="button" className="ghost-btn small" onClick={() => handleView(user)}>
-                            View
-                          </button>
-                          <button type="button" className="ghost-btn small" onClick={() => openEdit(user)}>
-                            Edit
-                          </button>
-                          {verificationStatus !== 'Verified' && !isBusinessUser(user) ? (
+                          {canUserRead ? (
+                            <button type="button" className="ghost-btn small" onClick={() => handleView(user)}>
+                              View
+                            </button>
+                          ) : null}
+                          {canUserUpdate ? (
+                            <button type="button" className="ghost-btn small" onClick={() => openEdit(user)}>
+                              Edit
+                            </button>
+                          ) : null}
+                          {canUserUpdate && verificationStatus !== 'Verified' && !isBusinessUser(user) ? (
                             <button
                               type="button"
                               className="ghost-btn small"
@@ -686,9 +945,11 @@ function AdminUsersPage({ token }) {
                               Verify
                             </button>
                           ) : null}
-                          <button type="button" className="ghost-btn small" onClick={() => handleDelete(user)}>
-                            Delete
-                          </button>
+                          {canUserDelete ? (
+                            <button type="button" className="ghost-btn small" onClick={() => handleDelete(user)}>
+                              Delete
+                            </button>
+                          ) : null}
                         </div>
                       </td>
                     </tr>
@@ -699,17 +960,18 @@ function AdminUsersPage({ token }) {
           </div>
         )}
       </div>
+        </>
+      ) : null}
 
-      {viewDetails ? (
-        <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
-          <div className="admin-modal">
+      {isDetailRoute ? (
+        <div className="panel card users-detail-page">
             <div className="panel-split">
               <div>
                 <h3 className="panel-subheading">User Details</h3>
                 <p className="panel-subtitle">{viewUser ? getUserName(viewUser) : 'Loading...'}</p>
               </div>
-              <button type="button" className="ghost-btn small" onClick={() => setViewDetails(null)}>
-                Close
+              <button type="button" className="ghost-btn small" onClick={() => navigate('/admin/users')}>
+                Back
               </button>
             </div>
 
@@ -717,61 +979,52 @@ function AdminUsersPage({ token }) {
 
             {viewUser ? (
               <>
-                <div className="detail-section">
-                  <h4 className="detail-section-title">Account</h4>
-                  <div className="user-detail-grid">
-                    <div className="user-detail-card">
-                      <p className="user-detail-label">Phone</p>
-                      <p className="user-detail-value">{viewUser?.number || viewUser?.mobile || '-'}</p>
-                    </div>
-                    <div className="user-detail-card">
-                      <p className="user-detail-label">User Type</p>
-                      <p className="user-detail-value">{getUserType(viewUser)}</p>
-                    </div>
-                    <div className="user-detail-card">
-                      <p className="user-detail-label">Subscription</p>
-                      <p className="user-detail-value">{getSubscriptionLabel(viewUser)}</p>
-                    </div>
-                    <div className="user-detail-card">
-                      <p className="user-detail-label">Subscription Status</p>
-                      <p className="user-detail-value">{viewUser?.subscriptionStatus || '-'}</p>
-                    </div>
-                    <div className="user-detail-card">
-                      <p className="user-detail-label">Login Status</p>
-                      <p className="user-detail-value">{resolveLoginStatus(viewUser) ? 'Login' : 'Logout'}</p>
-                    </div>
-                    <div className="user-detail-card">
-                      <p className="user-detail-label">Active</p>
-                      <p className="user-detail-value">
-                        {viewUser?.active !== undefined && viewUser?.active !== null ? String(viewUser.active) : '-'}
-                      </p>
-                    </div>
-                    <div className="user-detail-card">
-                      <p className="user-detail-label">Verified</p>
-                      <p className="user-detail-value">{resolveVerification(viewUser).label}</p>
-                    </div>
-                    <div className="user-detail-card">
-                      <p className="user-detail-label">Joined</p>
-                      <p className="user-detail-value">
-                        {formatDate(viewUser?.createdAt || viewUser?.created_at || viewUser?.joined_at)}
-                      </p>
-                    </div>
-                    <div className="user-detail-card">
-                      <p className="user-detail-label">Last Active</p>
-                      <p className="user-detail-value">{formatDate(viewUser?.lastActive || viewUser?.last_active)}</p>
-                    </div>
-                    <div className="user-detail-card">
-                      <p className="user-detail-label">Role</p>
-                      <p className="user-detail-value">{viewUser?.roleName || '-'}</p>
-                    </div>
-                    <div className="user-detail-card">
-                      <p className="user-detail-label">Time Zone</p>
-                      <p className="user-detail-value">{viewUser?.timeZone || '-'}</p>
-                    </div>
+                <div className="user-view-shell">
+                  <div className="user-view-tabs">
+                    {viewTabs.map((tab) => (
+                      <button
+                        key={tab.key}
+                        type="button"
+                        className={`user-view-tab ${resolvedViewTab === tab.key ? 'active' : ''}`}
+                        onClick={() => setActiveViewTab(tab.key)}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
                   </div>
-                </div>
+                  <div className="user-view-panel">
+                    {resolvedViewTab === 'overview' ? (
+                      <div className="detail-section user-view-section">
+                        <h4 className="detail-section-title">Account</h4>
+                        <div className="user-view-grid user-view-grid-4">
+                          {accountPrimaryFields.map((field) => (
+                            <div key={`primary-${field.label}`} className="user-view-card">
+                              <p className="user-view-label">{field.label}</p>
+                              <p className="user-view-value">{field.value || '-'}</p>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="user-view-grid user-view-grid-3">
+                          {accountSecondaryFields.map((field) => (
+                            <div key={`secondary-${field.label}`} className="user-view-card">
+                              <p className="user-view-label">{field.label}</p>
+                              <p className="user-view-value">{field.value || '-'}</p>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="user-view-grid user-view-grid-4">
+                          {accountMetaFields.map((field) => (
+                            <div key={`meta-${field.label}`} className="user-view-card">
+                              <p className="user-view-label">{field.label}</p>
+                              <p className="user-view-value">{field.value || '-'}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
 
-                <div className="detail-section">
+                    {resolvedViewTab === 'score' ? (
+                      <div className="detail-section">
                   <div className="panel-split">
                     <div>
                       <h4 className="detail-section-title">Business Score</h4>
@@ -848,8 +1101,9 @@ function AdminUsersPage({ token }) {
                     </div>
                   ) : null}
                 </div>
+                    ) : null}
 
-                {viewUserProfile ? (
+                {resolvedViewTab === 'profiles' && viewUserProfile ? (
                   <div className="detail-section">
                     <h4 className="detail-section-title">User Profile</h4>
                     <div className="user-detail-grid">
@@ -857,7 +1111,7 @@ function AdminUsersPage({ token }) {
                         if (value === null || value === undefined || value === '') return null;
                         return (
                           <div key={`user-${key}`} className="user-detail-card">
-                            <p className="user-detail-label">{key.replace(/([A-Z])/g, ' $1')}</p>
+                            <p className="user-detail-label">{formatFieldLabel(key)}</p>
                             <p className="user-detail-value">{String(value)}</p>
                           </div>
                         );
@@ -866,16 +1120,19 @@ function AdminUsersPage({ token }) {
                   </div>
                 ) : null}
 
-                {viewBusinessProfile ? (
+                {resolvedViewTab === 'profiles' && viewBusinessProfile ? (
                   <div className="detail-section">
-                    <div className="panel-split">
-                      <div className="inline-row">
+                    <div className="panel-split detail-section-head">
+                      <div className="detail-heading-wrap">
                         <h4 className="detail-section-title">Business Profile</h4>
                         {businessStatusMeta ? (
-                          <span className={`verify-pill ${businessStatusMeta.className}`}>{businessStatusMeta.label}</span>
+                          <span className={`verify-pill profile-status-pill ${businessStatusMeta.className}`}>
+                            <span className="profile-status-dot" />
+                            <span>{businessStatusMeta.label}</span>
+                          </span>
                         ) : null}
                       </div>
-                      <div className="inline-row">
+                      <div className="inline-row detail-section-actions">
                         <button
                           type="button"
                           className="ghost-btn small"
@@ -898,7 +1155,7 @@ function AdminUsersPage({ token }) {
                         if (value === null || value === undefined || value === '') return null;
                         return (
                           <div key={`biz-${key}`} className="user-detail-card">
-                            <p className="user-detail-label">{key.replace(/([A-Z])/g, ' $1')}</p>
+                            <p className="user-detail-label">{formatFieldLabel(key)}</p>
                             <p className="user-detail-value">{String(value)}</p>
                           </div>
                         );
@@ -907,7 +1164,7 @@ function AdminUsersPage({ token }) {
                   </div>
                 ) : null}
 
-                {viewUser && isBusinessUser(viewUser) ? (
+                {resolvedViewTab === 'products' && viewUser && isBusinessUser(viewUser) ? (
                   <div className="detail-section">
                     <div className="panel-split">
                       <div>
@@ -990,7 +1247,7 @@ function AdminUsersPage({ token }) {
                   </div>
                 ) : null}
 
-                {viewLogisticProfile ? (
+                {resolvedViewTab === 'profiles' && viewLogisticProfile ? (
                   <div className="detail-section">
                     <h4 className="detail-section-title">Logistic Profile</h4>
                     <div className="user-detail-grid">
@@ -998,7 +1255,7 @@ function AdminUsersPage({ token }) {
                         if (value === null || value === undefined || value === '') return null;
                         return (
                           <div key={`log-${key}`} className="user-detail-card">
-                            <p className="user-detail-label">{key.replace(/([A-Z])/g, ' $1')}</p>
+                            <p className="user-detail-label">{formatFieldLabel(key)}</p>
                             <p className="user-detail-value">{String(value)}</p>
                           </div>
                         );
@@ -1007,7 +1264,7 @@ function AdminUsersPage({ token }) {
                   </div>
                 ) : null}
 
-                {viewInsuranceProfile ? (
+                {resolvedViewTab === 'profiles' && viewInsuranceProfile ? (
                   <div className="detail-section">
                     <h4 className="detail-section-title">Insurance Profile</h4>
                     <div className="user-detail-grid">
@@ -1017,7 +1274,7 @@ function AdminUsersPage({ token }) {
                           typeof value === 'object' && value !== null ? JSON.stringify(value) : String(value);
                         return (
                           <div key={`ins-${key}`} className="user-detail-card">
-                            <p className="user-detail-label">{key.replace(/([A-Z])/g, ' $1')}</p>
+                            <p className="user-detail-label">{formatFieldLabel(key)}</p>
                             <p className="user-detail-value">{display}</p>
                           </div>
                         );
@@ -1025,13 +1282,99 @@ function AdminUsersPage({ token }) {
                     </div>
                   </div>
                 ) : null}
+                  </div>
+                </div>
               </>
             ) : null}
+        </div>
+      ) : null}
+
+      {!isDetailRoute && showCreateModal ? (
+        <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
+          <div className="admin-modal">
+            <div className="panel-split">
+              <div>
+                <h3 className="panel-subheading">Add User</h3>
+                <p className="panel-subtitle">Create a customer/business/logistic/insurance account.</p>
+              </div>
+              <button type="button" className="ghost-btn small" onClick={() => setShowCreateModal(false)}>
+                Close
+              </button>
+            </div>
+
+            <form className="field-grid" onSubmit={handleCreateUser}>
+              <label className="field field-span">
+                <span>Name</span>
+                <input
+                  type="text"
+                  value={createForm.name}
+                  onChange={(event) => handleCreateChange('name', event.target.value)}
+                  required
+                />
+              </label>
+              <label className="field field-span">
+                <span>Phone</span>
+                <input
+                  type="text"
+                  value={createForm.number}
+                  onChange={(event) => handleCreateChange('number', event.target.value)}
+                  placeholder="10-digit mobile"
+                  required
+                />
+              </label>
+              <label className="field">
+                <span>User Type</span>
+                <select value={createForm.userType} onChange={(event) => handleCreateChange('userType', event.target.value)}>
+                  {USER_TYPE_OPTIONS.map((type) => (
+                    <option key={type.value} value={type.value}>
+                      {type.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>Role</span>
+                <select
+                  value={createForm.role}
+                  onChange={(event) => handleCreateChange('role', event.target.value)}
+                  disabled={isCreateRoleLoading}
+                  required
+                >
+                  <option value="">{isCreateRoleLoading ? 'Loading roles...' : 'Select role'}</option>
+                  {createRoles.map((role) => {
+                    const roleId = role?.id || role?.roles_id || role?.roleId;
+                    const roleName = role?.name || role?.role_name || role?.roleName;
+                    return (
+                      <option key={roleId || roleName} value={roleId ? String(roleId) : roleName}>
+                        {roleName}
+                      </option>
+                    );
+                  })}
+                </select>
+              </label>
+              <label className="field field-span">
+                <span>Time Zone</span>
+                <input
+                  type="text"
+                  value={createForm.timeZone}
+                  onChange={(event) => handleCreateChange('timeZone', event.target.value)}
+                  placeholder="Asia/Kolkata"
+                />
+              </label>
+              <div className="field field-span form-actions">
+                <button type="button" className="ghost-btn" onClick={() => setShowCreateModal(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="primary-btn" disabled={isCreateSaving || isCreateRoleLoading}>
+                  {isCreateSaving ? 'Creating...' : 'Create User'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       ) : null}
 
-      {editUser ? (
+      {!isDetailRoute && editUser ? (
         <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
           <div className="admin-modal">
             <div className="panel-split">

@@ -40,11 +40,28 @@ const request = async (path, { method = 'GET', body, token } = {}) => {
 };
 
 export const fetchUsers = (token) => request('/users/all', { token });
+export const createUserAccount = (token, payload) =>
+  request('/users/register', { method: 'POST', body: payload, token });
+export const fetchEmployees = (token) => request('/admin/employees', { token });
 export const updateUser = (token, id, payload) => request(`/users/${id}`, { method: 'PUT', body: payload, token });
 export const blockUser = (token, id) => request(`/users/${id}/block`, { method: 'POST', token });
 export const deleteUser = (token, id) => request(`/users/${id}/delete`, { method: 'POST', token });
 export const deleteUsersBulk = (token, userIds) =>
   request('/users/delete-bulk', { method: 'POST', body: { user_ids: userIds }, token });
+export const createEmployee = (token, payload) =>
+  request('/admin/employees', { method: 'POST', body: payload, token });
+export const updateEmployee = (token, id, payload) =>
+  request(`/admin/employees/${id}`, { method: 'PUT', body: payload, token });
+export const deleteEmployee = (token, id) => request(`/admin/employees/${id}`, { method: 'DELETE', token });
+export const listRoles = (token) => request('/roles', { token });
+export const createRole = (token, payload) => request('/roles', { method: 'POST', body: payload, token });
+export const updateRole = (token, id, payload) => request(`/roles/${id}`, { method: 'PUT', body: payload, token });
+export const deleteRole = (token, id) => request(`/roles/${id}`, { method: 'DELETE', token });
+export const fetchPermissionCatalog = (token) => request('/admin/rbac/catalog', { token });
+export const fetchRolePermissions = (token, roleId) => request(`/admin/rbac/roles/${roleId}/permissions`, { token });
+export const saveRolePermissions = (token, roleId, actionIds) =>
+  request(`/admin/rbac/roles/${roleId}/permissions`, { method: 'PUT', body: { actionIds }, token });
+export const fetchMyPermissions = (token) => request('/admin/permissions', { token });
 export const fetchUserDetails = (token, id) => request(`/users/${id}/details`, { token });
 export const logoutUser = (token, id) => request(`/users/${id}/logout`, { method: 'POST', token });
 export const updateBusinessProfile = (token, userId, payload, status) => {

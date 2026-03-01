@@ -161,6 +161,7 @@ function ProductPage({ token, adminUserId }) {
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingProductId, setEditingProductId] = useState(null);
+  const [activeProductViewTab, setActiveProductViewTab] = useState('overview');
   const didInitRef = useRef(false);
   const navigate = useNavigate();
   const { id } = useParams();
@@ -623,6 +624,11 @@ function ProductPage({ token, adminUserId }) {
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProductId, token]);
+
+  useEffect(() => {
+    if (!showViewOnly) return;
+    setActiveProductViewTab('overview');
+  }, [showViewOnly, selectedProductId]);
 
   useEffect(() => {
     const category = selectedProduct?.category;
@@ -1369,6 +1375,16 @@ function ProductPage({ token, adminUserId }) {
   const disableApprove = isLoading || !selectedProduct || statusValue === 'APPROVED';
   const disableReject = isLoading || !selectedProduct || statusValue === 'REJECTED';
   const disableEdit = isLoading || !selectedProduct;
+  const productViewTabs = [
+    { key: 'overview', label: 'Overview' },
+    { key: 'commerce', label: 'Pricing & Inventory' },
+    { key: 'variants', label: `Variants (${variants.length})` },
+    { key: 'content', label: 'Descriptions' },
+    { key: 'dynamic', label: 'Dynamic Fields', visible: dynamicViewGroups.length > 0 },
+  ].filter((tab) => tab.visible !== false);
+  const resolvedProductViewTab = productViewTabs.some((tab) => tab.key === activeProductViewTab)
+    ? activeProductViewTab
+    : productViewTabs[0]?.key || 'overview';
   const totalProducts = products.length;
   const approvedCount = products.filter(
     (product) => String(product?.approvalStatus || '').toUpperCase() === 'APPROVED'
@@ -1389,9 +1405,12 @@ function ProductPage({ token, adminUserId }) {
             <button type="button" className="ghost-btn small" onClick={handleBackToList}>
               Back
             </button>
-            <div>
+            <div className="product-title-wrap">
               <h2 className="product-title">{selectedProduct?.productName || 'Product'}</h2>
               <p className="product-subtitle">{selectedProduct?.sku || 'SKU unavailable'}</p>
+              <span className={`status-pill product-status-pill ${statusValue ? statusValue.toLowerCase().replace(/_/g, '-') : 'pending'}`}>
+                {statusLabel}
+              </span>
             </div>
           </div>
           <div className="inline-row product-view-actions">
@@ -2138,13 +2157,27 @@ function ProductPage({ token, adminUserId }) {
         </form>
       ) : null}
       {showViewOnly ? (
-        <div className="panel-grid product-view-grid">
-          {selectedProduct ? (
-            <>
-              <div className="panel card product-view-card">
+        <div className="product-view-shell">
+          <div className="product-view-tabs">
+            {productViewTabs.map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                className={`product-view-tab ${resolvedProductViewTab === tab.key ? 'active' : ''}`}
+                onClick={() => setActiveProductViewTab(tab.key)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          <div className="panel-grid product-view-grid">
+            {selectedProduct ? (
+              <>
+              {resolvedProductViewTab === 'overview' ? (
+              <div className="panel card product-view-card product-view-card-overview">
                 <div className="panel-split">
                   <h3 className="panel-subheading">Overview</h3>
-                  <span className={statusClass}>{statusLabel}</span>
+                  <span className={`${statusClass} product-status-pill compact`}>{statusLabel}</span>
                 </div>
                 <div className="field-grid">
                   <div className="field">
@@ -2181,7 +2214,10 @@ function ProductPage({ token, adminUserId }) {
                   </div>
                 </div>
               </div>
-              <div className="panel card product-view-card">
+              ) : null}
+              {resolvedProductViewTab === 'commerce' ? (
+              <>
+              <div className="panel card product-view-card product-view-card-pricing">
                 <h3 className="panel-subheading">Pricing</h3>
                 <div className="field-grid">
                   <div className="field">
@@ -2210,7 +2246,7 @@ function ProductPage({ token, adminUserId }) {
                   </div>
                 </div>
               </div>
-              <div className="panel card product-view-card">
+              <div className="panel card product-view-card product-view-card-uom">
                 <h3 className="panel-subheading">Units of measure</h3>
                 <div className="field-grid">
                   <div className="field">
@@ -2247,7 +2283,7 @@ function ProductPage({ token, adminUserId }) {
                   </div>
                 </div>
               </div>
-              <div className="panel card product-view-card">
+              <div className="panel card product-view-card product-view-card-inventory">
                 <h3 className="panel-subheading">Inventory &amp; shipping</h3>
                 <div className="field-grid">
                   <div className="field">
@@ -2276,7 +2312,10 @@ function ProductPage({ token, adminUserId }) {
                   </div>
                 </div>
               </div>
-              <div className="panel card product-view-card">
+              </>
+              ) : null}
+              {resolvedProductViewTab === 'variants' ? (
+              <div className="panel card product-view-card product-view-card-variants">
                 <div className="panel-split">
                   <h3 className="panel-subheading">Variants</h3>
                   <span className="muted">{variants.length} total</span>
@@ -2363,7 +2402,9 @@ function ProductPage({ token, adminUserId }) {
                   </div>
                 )}
               </div>
-              <div className="panel card product-view-card">
+              ) : null}
+              {resolvedProductViewTab === 'content' ? (
+              <div className="panel card product-view-card product-view-card-descriptions">
                 <h3 className="panel-subheading">Descriptions</h3>
                 <div className="field-grid">
                   <div className="field field-span">
@@ -2376,7 +2417,9 @@ function ProductPage({ token, adminUserId }) {
                   </div>
                 </div>
               </div>
-              <div className="panel card product-view-card">
+              ) : null}
+              {resolvedProductViewTab === 'dynamic' ? (
+              <div className="panel card product-view-card product-view-card-dynamic">
                 <h3 className="panel-subheading">Dynamic fields</h3>
                 {dynamicViewGroups.length === 0 ? (
                   <p className="empty-state">No dynamic fields provided.</p>
@@ -2405,14 +2448,16 @@ function ProductPage({ token, adminUserId }) {
                   </div>
                 )}
               </div>
-            </>
-          ) : (
-            <div className="panel card">
-              <p className="empty-state">
-                {isLoading ? 'Loading product details...' : 'Product details not available.'}
-              </p>
-            </div>
-          )}
+              ) : null}
+              </>
+            ) : (
+              <div className="panel card">
+                <p className="empty-state">
+                  {isLoading ? 'Loading product details...' : 'Product details not available.'}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       ) : null}
       {!isViewing && !showForm ? (
