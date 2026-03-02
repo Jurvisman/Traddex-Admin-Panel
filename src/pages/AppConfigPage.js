@@ -15,9 +15,11 @@ import {
   getAppConfigDraft,
   getPublishedAppConfig,
   getAppConfigPresets,
+  getHomeCategoryPreview,
   listAppConfigVersions,
   listCategories,
   listIndustries,
+  listMainCategories,
   createIndustry,
   publishAppConfig,
   rollbackAppConfig,
@@ -104,6 +106,7 @@ const defaultBlockTypeBySectionType = {
   categoryPreviewGrid: 'categoryPreviewGrid',
   campaignBento: 'campaignBento',
   campaign: 'campaignBento',
+  product_shelf_horizontal: 'product_shelf_horizontal',
 };
 
 const headerSectionTypeOptions = [
@@ -186,6 +189,19 @@ const screenToolboxItems = [
         { title: 'Gujiya', badgeText: 'Festive finds', imageUrl: '', deepLink: '' },
         { title: 'Thandai', badgeText: 'Festive finds', imageUrl: '', deepLink: '' },
       ],
+    },
+  },
+  {
+    key: 'phaseOneProductShelfHorizontal',
+    label: 'Product Shelf Block',
+    hint: 'Horizontal product list with price + ADD',
+    section: {
+      id: 'product_shelf_horizontal',
+      type: 'horizontalList',
+      blockType: 'product_shelf_horizontal',
+      title: 'Lowest prices ever',
+      itemsPath: '$.products',
+      dataSourceRef: 'home_top_selling_products',
     },
   },
   {
@@ -302,6 +318,8 @@ const blockLabels = {
   column_grid: 'Festive Column Grid',
   category_icon_grid: 'Category Icon Grid',
   brand_logo_grid: 'Brand Layout Block',
+  product_shelf_horizontal: 'Product Shelf Block',
+  bestseller_shelf: 'Bestsellers Shelf Block',
   sectionTitle: 'Section Title Block',
   multiItemGrid: 'Multi Item Grid Block',
   categoryPreviewGrid: 'Category Preview Grid',
@@ -334,6 +352,22 @@ const resolveIndustryId = (industry) =>
     industry?.id ?? industry?._id ?? industry?.slug ?? industry?.industryId ?? industry?.industry_id ?? industry?.name
   );
 const resolveIndustryLabel = (industry) => industry?.name || industry?.label || industry?.title || 'Industry';
+const resolveMainCategoryId = (mainCategory) =>
+  normalizeCollectionId(mainCategory?.id ?? mainCategory?.mainCategoryId ?? mainCategory?.main_category_id);
+const resolveMainCategoryIndustryId = (mainCategory) =>
+  normalizeCollectionId(
+    mainCategory?.industryId ??
+      mainCategory?.industry_id ??
+      mainCategory?.industry?.industryId ??
+      mainCategory?.industry?.id ??
+      mainCategory?.industry?.industry_id
+  );
+const resolveMainCategoryName = (mainCategory) =>
+  mainCategory?.name || mainCategory?.label || mainCategory?.title || 'Main category';
+const resolveCategoryId = (category) =>
+  normalizeCollectionId(category?.id ?? category?.categoryId ?? category?._id ?? category?.code);
+const resolveCategoryMainCategoryId = (category) =>
+  normalizeCollectionId(category?.mainCategoryId ?? category?.main_category_id ?? category?.mainCategory?.id);
 
 const sizePresets = {
   padding: [
@@ -423,6 +457,7 @@ const phaseOneBlockTypes = new Set([
   'column_grid',
   'category_icon_grid',
   'brand_logo_grid',
+  'product_shelf_horizontal',
 ]);
 
 const getPhaseOneDefaultItem = (blockType, index = 0) => {
@@ -431,6 +466,7 @@ const getPhaseOneDefaultItem = (blockType, index = 0) => {
     return {
       id: '',
       kind: kinds[index] || 'tile',
+      collectionId: '',
       title: '',
       subtitle: '',
       badgeText: '',
@@ -446,6 +482,7 @@ const getPhaseOneDefaultItem = (blockType, index = 0) => {
   return {
     id: '',
     kind: '',
+    collectionId: '',
     title: '',
     subtitle: '',
     badgeText: '',
@@ -467,6 +504,7 @@ const normalizePhaseOneItems = (items, blockType) => {
       ...base,
       id: item?.id ? String(item.id) : '',
       kind: item?.kind ? String(item.kind) : base.kind,
+      collectionId: item?.collectionId ? String(item.collectionId) : '',
       title: item?.title || item?.name || item?.label || '',
       subtitle: item?.subtitle || '',
       badgeText: item?.badgeText || '',
@@ -480,6 +518,90 @@ const normalizePhaseOneItems = (items, blockType) => {
     };
   });
   return normalized.length > 0 ? normalized : [getPhaseOneDefaultItem(blockType, 0)];
+};
+
+const imageExtensionRegex = /\.(png|jpe?g|webp|gif|avif|svg)(\?.*)?$/i;
+const imageLikeFieldRegex = /(image|thumbnail|poster|logo|icon|banner)/i;
+
+const getImageExtension = (url) => {
+  if (!url || typeof url !== 'string') return '';
+  const clean = url.split('#')[0].split('?')[0];
+  const match = clean.match(/\.([a-zA-Z0-9]+)$/);
+  return match ? match[1].toLowerCase() : '';
+};
+
+const isLikelyImageUrl = (value) => {
+  if (!value || typeof value !== 'string') return false;
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  if (!(trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('/uploads/'))) {
+    return false;
+  }
+  return imageExtensionRegex.test(trimmed) || trimmed.includes('/uploads/products/');
+};
+
+const collectImageUrls = (node, bucket, visited = new WeakSet()) => {
+  if (!node) return;
+  if (typeof node === 'string') {
+    if (isLikelyImageUrl(node)) bucket.add(node);
+    return;
+  }
+  if (Array.isArray(node)) {
+    node.forEach((item) => collectImageUrls(item, bucket, visited));
+    return;
+  }
+  if (typeof node !== 'object') return;
+  if (visited.has(node)) return;
+  visited.add(node);
+  Object.entries(node).forEach(([key, value]) => {
+    if (typeof value === 'string') {
+      if (isLikelyImageUrl(value) && (imageLikeFieldRegex.test(key) || value.includes('/uploads/products/'))) {
+        bucket.add(value);
+      }
+      return;
+    }
+    collectImageUrls(value, bucket, visited);
+  });
+};
+
+const isHexColor = (value) => /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(String(value || '').trim());
+const resolveHexColor = (value, fallback) => (isHexColor(value) ? String(value).trim() : fallback);
+
+const FEATURED_CARD_BG_PALETTE = ['#f8d67a', '#ff8f4e', '#4f2a87', '#53baf6', '#e7c8ff', '#e9f8d4'];
+const FEATURED_CARD_FRAME_PALETTE = ['#3e75f0', '#1d4ed8', '#7c3aed', '#0ea5e9', '#f97316', '#16a34a'];
+const FEATURED_CARD_TITLE_PALETTE = ['#ffffff', '#0f172a', '#111827', '#1f2937', '#4f46e5', '#f8fafc'];
+const FEATURED_CARD_BADGE_TEXT_PALETTE = ['#d04563', '#be123c', '#1d4ed8', '#0f766e', '#7c2d12', '#4f46e5'];
+const CATEGORY_FEED_SORT_OPTIONS = [
+  { value: 'MANUAL_RANK', label: 'Manual rank' },
+  { value: 'NAME', label: 'Name' },
+  { value: 'LATEST', label: 'Latest' },
+];
+const CATEGORY_ICON_FEED_MODE_OPTIONS = [
+  { value: 'TOP_SELLING', label: 'Top selling categories' },
+  { value: 'MAIN_CATEGORY', label: 'Selected main category categories' },
+];
+const SOURCE_TYPE_OPTIONS = [
+  { value: 'MANUAL', label: 'Manual' },
+  { value: 'CATEGORY_FEED', label: 'Category feed' },
+];
+
+const DEEP_LINK_TEMPLATE_PRESETS = [
+  { value: 'app://category/{id}', label: 'Category details (app://category/{id})' },
+  { value: 'app://collection/{id}', label: 'Collection listing (app://collection/{id})' },
+  { value: 'app://campaign/{slug}', label: 'Campaign (app://campaign/{slug})' },
+];
+
+const ITEM_DEEP_LINK_PRESETS = [
+  { value: 'app://category/', label: 'Category (append category id)' },
+  { value: 'app://collection/', label: 'Collection (append collection id)' },
+  { value: 'app://campaign/', label: 'Campaign (append slug)' },
+  { value: 'app://product/', label: 'Product (append product id)' },
+];
+
+const toNumberOrNull = (value) => {
+  if (value === undefined || value === null || value === '') return null;
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
 };
 
 const matchesLayoutPreset = (preset, form) => {
@@ -634,6 +756,7 @@ const quickSectionPresets = [
     section: {
       id: 'todays_deals',
       type: 'horizontalList',
+      blockType: 'horizontal_scroll_list',
       title: "Today's Deals",
       itemsPath: '$.todaysDeals',
       itemTemplateRef: 'actionCard',
@@ -677,6 +800,9 @@ const buildDataSources = (pagePresets = []) => {
     }
   });
   sources.todaydealproducts = { method: 'GET', url: '/api/user/todaydealproducts' };
+  sources.home_top_selling_products = { method: 'GET', url: '/api/home/products/top-selling' };
+  sources.home_most_rated_products = { method: 'GET', url: '/api/home/products/most-rated' };
+  sources.home_recommended_products = { method: 'GET', url: '/api/home/products/recommended' };
   return sources;
 };
 
@@ -855,6 +981,20 @@ const defaultSectionForm = {
   targetRoles: '',
   targetIndustries: '',
   targetSubscriptionStatuses: '',
+  sourceType: 'MANUAL',
+  sourceIndustryId: '',
+  sourceFeedMode: 'TOP_SELLING',
+  sourceMainCategoryId: '',
+  sourceCategoryIds: [],
+  sourceLimit: '8',
+  sourceSortBy: 'MANUAL_RANK',
+  sourceLevel: 'CATEGORY',
+  sourceActiveOnly: true,
+  sourceHasImageOnly: true,
+  mappingTitleField: 'name',
+  mappingImageField: 'imageUrl',
+  mappingSecondaryImageField: '',
+  mappingDeepLinkTemplate: 'app://category/{id}',
 };
 
 const defaultHeaderForm = {
@@ -1017,6 +1157,10 @@ function AppConfigPage({ token }) {
   const [isUploadingHeroBanner, setIsUploadingHeroBanner] = useState(false);
   const [isUploadingBentoImage, setIsUploadingBentoImage] = useState(false);
   const [bentoUploadTarget, setBentoUploadTarget] = useState(null);
+  const [uploadedMediaUrls, setUploadedMediaUrls] = useState([]);
+  const [mediaPickerTarget, setMediaPickerTarget] = useState(null);
+  const [mediaSearchText, setMediaSearchText] = useState('');
+  const [phaseOneImageWarnings, setPhaseOneImageWarnings] = useState({});
   const [versions, setVersions] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [selectedPageKey, setSelectedPageKey] = useState('');
@@ -1035,6 +1179,10 @@ function AppConfigPage({ token }) {
   const [pagePresetKey, setPagePresetKey] = useState('');
   const [collections, setCollections] = useState([]);
   const [isLoadingCollections, setIsLoadingCollections] = useState(false);
+  const [mainCategories, setMainCategories] = useState([]);
+  const [sourceCategories, setSourceCategories] = useState([]);
+  const [isLoadingSourceCategories, setIsLoadingSourceCategories] = useState(false);
+  const [isResolvingSource, setIsResolvingSource] = useState(false);
   const bannerInputRef = useRef(null);
   const headerInputRef = useRef(null);
   const heroBannerInputRef = useRef(null);
@@ -1085,6 +1233,27 @@ function AppConfigPage({ token }) {
   const activeHeaderSection =
     editingHeaderSectionIndex !== null ? selectedHeaderSections[editingHeaderSectionIndex] : null;
   const isEditingFixed = isHardcodedSection(activeSection);
+
+  const mediaLibraryUrls = useMemo(() => {
+    const bucket = new Set();
+    uploadedMediaUrls.forEach((url) => {
+      if (isLikelyImageUrl(url)) bucket.add(url);
+    });
+    collectImageUrls(configSnapshot, bucket);
+    if (Array.isArray(headerPresets?.images)) {
+      headerPresets.images.forEach((item) => {
+        const url = item?.url || item?.imageUrl || '';
+        if (isLikelyImageUrl(url)) bucket.add(url);
+      });
+    }
+    return Array.from(bucket);
+  }, [uploadedMediaUrls, configSnapshot, headerPresets]);
+
+  const filteredMediaLibraryUrls = useMemo(() => {
+    const query = (mediaSearchText || '').trim().toLowerCase();
+    if (!query) return mediaLibraryUrls;
+    return mediaLibraryUrls.filter((url) => url.toLowerCase().includes(query));
+  }, [mediaLibraryUrls, mediaSearchText]);
 
   const pageCount = pages.length;
   const sectionCount = selectedSections.length;
@@ -1157,6 +1326,28 @@ function AppConfigPage({ token }) {
     }
   }, [pagePresets, pagePresetKey]);
 
+  useEffect(() => {
+    setPhaseOneImageWarnings({});
+    closeMediaPicker();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingSectionIndex, sectionForm.blockType, sectionForm.type]);
+
+  useEffect(() => {
+    const resolvedBlockType = sectionForm.blockType || sectionForm.type || '';
+    if (!phaseOneBlockTypes.has(resolvedBlockType)) return;
+    if ((sectionForm.sourceType || 'MANUAL') !== 'CATEGORY_FEED') {
+      setSourceCategories([]);
+      return;
+    }
+    const mainId = normalizeCollectionId(sectionForm.sourceMainCategoryId);
+    if (!mainId) {
+      setSourceCategories([]);
+      return;
+    }
+    loadSourceCategories(mainId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sectionForm.blockType, sectionForm.type, sectionForm.sourceType, sectionForm.sourceMainCategoryId]);
+
   const loadDraft = async () => {
     setIsLoading(true);
     setMessage(emptyMessage);
@@ -1217,6 +1408,40 @@ function AppConfigPage({ token }) {
     }
   };
 
+  const loadMainCategories = async () => {
+    try {
+      const response = await listMainCategories(token);
+      const items = response?.data || response;
+      const sorted = Array.isArray(items)
+        ? [...items].sort((a, b) => (a?.ordering ?? 0) - (b?.ordering ?? 0))
+        : [];
+      setMainCategories(sorted);
+    } catch (error) {
+      setMainCategories([]);
+    }
+  };
+
+  const loadSourceCategories = async (mainCategoryId) => {
+    const normalizedId = normalizeCollectionId(mainCategoryId);
+    if (!normalizedId) {
+      setSourceCategories([]);
+      return;
+    }
+    setIsLoadingSourceCategories(true);
+    try {
+      const response = await listCategories(token, normalizedId);
+      const items = response?.data || response;
+      const sorted = Array.isArray(items)
+        ? [...items].sort((a, b) => (a?.ordering ?? 0) - (b?.ordering ?? 0))
+        : [];
+      setSourceCategories(sorted);
+    } catch (error) {
+      setSourceCategories([]);
+    } finally {
+      setIsLoadingSourceCategories(false);
+    }
+  };
+
   const handleCreateIndustry = async () => {
     const trimmed = newIndustryName.trim();
     if (!trimmed) {
@@ -1270,6 +1495,7 @@ function AppConfigPage({ token }) {
     loadVersions();
     loadIndustries();
     loadCollections();
+    loadMainCategories();
     loadHeaderPresets();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -1350,7 +1576,7 @@ function AppConfigPage({ token }) {
   };
 
   const handleRefresh = async () => {
-    await Promise.all([loadDraft(), loadVersions(), loadIndustries(), loadCollections()]);
+    await Promise.all([loadDraft(), loadVersions(), loadIndustries(), loadCollections(), loadMainCategories()]);
   };
 
   const handleCreateBaseConfig = () => {
@@ -1487,6 +1713,125 @@ function AppConfigPage({ token }) {
     });
   };
 
+  const addMediaUrlToLibrary = (url) => {
+    if (!isLikelyImageUrl(url)) return;
+    setUploadedMediaUrls((prev) => [url, ...prev.filter((item) => item !== url)]);
+  };
+
+  const openMediaPicker = (target) => {
+    setMediaPickerTarget(target || null);
+    setMediaSearchText('');
+  };
+
+  const closeMediaPicker = () => {
+    setMediaPickerTarget(null);
+    setMediaSearchText('');
+  };
+
+  const isTransparentImageRequired = (blockType, field = 'imageUrl') => {
+    if (!blockType) return false;
+    if (blockType === 'horizontal_scroll_list') return field === 'imageUrl';
+    if (blockType === 'category_icon_grid') return field === 'imageUrl';
+    if (blockType === 'column_grid') return field === 'imageUrl' || field === 'secondaryImageUrl';
+    return false;
+  };
+
+  const getWarningKey = (index, field) => `${index}:${field}`;
+
+  const detectImageAlpha = async (url) => new Promise((resolve) => {
+    try {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          const maxSize = 64;
+          const ratio = Math.max(img.width, img.height) / maxSize || 1;
+          canvas.width = Math.max(1, Math.round(img.width / ratio));
+          canvas.height = Math.max(1, Math.round(img.height / ratio));
+          const ctx = canvas.getContext('2d', { willReadFrequently: true });
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+          let hasAlpha = false;
+          for (let i = 3; i < pixels.length; i += 4) {
+            if (pixels[i] < 250) {
+              hasAlpha = true;
+              break;
+            }
+          }
+          resolve({ checked: true, hasAlpha });
+        } catch (error) {
+          resolve({ checked: false, hasAlpha: false });
+        }
+      };
+      img.onerror = () => resolve({ checked: false, hasAlpha: false });
+      img.src = url;
+    } catch (error) {
+      resolve({ checked: false, hasAlpha: false });
+    }
+  });
+
+  const validatePhaseOneTransparency = async (index, field, url) => {
+    const blockType = sectionForm.blockType || sectionForm.type || '';
+    const warningKey = getWarningKey(index, field);
+    if (!url || !isTransparentImageRequired(blockType, field)) {
+      setPhaseOneImageWarnings((prev) => {
+        const next = { ...prev };
+        delete next[warningKey];
+        return next;
+      });
+      return;
+    }
+
+    const ext = getImageExtension(url);
+    if (ext === 'jpg' || ext === 'jpeg') {
+      setPhaseOneImageWarnings((prev) => ({
+        ...prev,
+        [warningKey]: 'JPG ma transparency nathi hoti. PNG/WebP use karo.',
+      }));
+      return;
+    }
+
+    if (!['png', 'webp', 'gif', 'avif', 'svg'].includes(ext)) {
+      setPhaseOneImageWarnings((prev) => {
+        const next = { ...prev };
+        delete next[warningKey];
+        return next;
+      });
+      return;
+    }
+
+    if (ext === 'svg') {
+      setPhaseOneImageWarnings((prev) => {
+        const next = { ...prev };
+        delete next[warningKey];
+        return next;
+      });
+      return;
+    }
+
+    const result = await detectImageAlpha(url);
+    if (result.checked && !result.hasAlpha) {
+      setPhaseOneImageWarnings((prev) => ({
+        ...prev,
+        [warningKey]: 'Image ma transparent pixels nathi. White box dekhai shake.',
+      }));
+      return;
+    }
+    if (!result.checked) {
+      setPhaseOneImageWarnings((prev) => ({
+        ...prev,
+        [warningKey]: 'Transparency auto-check na thai. Upload PNG/WebP from media library.',
+      }));
+      return;
+    }
+    setPhaseOneImageWarnings((prev) => {
+      const next = { ...prev };
+      delete next[warningKey];
+      return next;
+    });
+  };
+
   const updatePhaseOneItem = (index, field, value) => {
     setSectionForm((prev) => {
       const blockType = prev.blockType || prev.type || '';
@@ -1503,6 +1848,7 @@ function AppConfigPage({ token }) {
       const nextDefault = getPhaseOneDefaultItem(blockType, nextItems.length);
       return { ...prev, sduiItems: [...nextItems, nextDefault] };
     });
+    setPhaseOneImageWarnings({});
   };
 
   const removePhaseOneItem = (index) => {
@@ -1514,6 +1860,377 @@ function AppConfigPage({ token }) {
         sduiItems: nextItems.length ? nextItems : [getPhaseOneDefaultItem(blockType, 0)],
       };
     });
+    setPhaseOneImageWarnings({});
+  };
+
+  const duplicatePhaseOneItem = (index) => {
+    setSectionForm((prev) => {
+      const blockType = prev.blockType || prev.type || '';
+      const nextItems = normalizePhaseOneItems(prev.sduiItems, blockType);
+      const current = nextItems[index];
+      if (!current) return prev;
+      const clone = { ...current, id: '' };
+      nextItems.splice(index + 1, 0, clone);
+      return { ...prev, sduiItems: nextItems };
+    });
+    setPhaseOneImageWarnings({});
+  };
+
+  const movePhaseOneItem = (index, direction) => {
+    setSectionForm((prev) => {
+      const blockType = prev.blockType || prev.type || '';
+      const nextItems = normalizePhaseOneItems(prev.sduiItems, blockType);
+      const target = index + direction;
+      if (target < 0 || target >= nextItems.length) return prev;
+      const swapped = [...nextItems];
+      [swapped[index], swapped[target]] = [swapped[target], swapped[index]];
+      return { ...prev, sduiItems: swapped };
+    });
+    setPhaseOneImageWarnings({});
+  };
+
+  const handlePhaseOneImageChange = (index, field, value) => {
+    updatePhaseOneItem(index, field, value);
+    validatePhaseOneTransparency(index, field, value);
+  };
+
+  const resolveCategoryName = (category) =>
+    category?.name || category?.label || category?.title || `Category ${category?.id || ''}`;
+
+  const resolveCategoryImage = (category) =>
+    category?.categoryIcon ||
+    category?.iconUrl ||
+    category?.imageUrl ||
+    category?.categoryImage ||
+    category?.thumbnailImage ||
+    '';
+
+  const isCategoryActive = (category) => {
+    if (category?.active === undefined || category?.active === null) return true;
+    if (typeof category.active === 'boolean') return category.active;
+    return Number(category.active) === 1;
+  };
+
+  const resolveDeepLinkFromTemplate = (template, payload) => {
+    const safeTemplate = template && typeof template === 'string' ? template : 'app://category/{id}';
+    return safeTemplate
+      .replaceAll('{id}', String(payload?.id ?? ''))
+      .replaceAll('{categoryId}', String(payload?.id ?? ''))
+      .replaceAll('{name}', encodeURIComponent(String(payload?.name ?? '')))
+      .replaceAll('{slug}', encodeURIComponent(String(payload?.slug ?? payload?.name ?? '')));
+  };
+
+  const sortCategoryFeed = (list, sortBy) => {
+    const items = Array.isArray(list) ? [...list] : [];
+    const mode = String(sortBy || 'MANUAL_RANK').toUpperCase();
+    if (mode === 'NAME') {
+      return items.sort((a, b) => String(resolveCategoryName(a)).localeCompare(String(resolveCategoryName(b))));
+    }
+    if (mode === 'LATEST') {
+      return items.sort((a, b) => Number(b?.id || 0) - Number(a?.id || 0));
+    }
+    return items.sort((a, b) => {
+      const rankA = Number(a?.ordering ?? a?.rank ?? 999999);
+      const rankB = Number(b?.ordering ?? b?.rank ?? 999999);
+      if (rankA !== rankB) return rankA - rankB;
+      return Number(a?.id || 0) - Number(b?.id || 0);
+    });
+  };
+
+  const resolveSourceCategoriesForForm = async (mainCategoryIdOverride = '') => {
+    const mainCategoryId = normalizeCollectionId(mainCategoryIdOverride || sectionForm.sourceMainCategoryId);
+    if (!mainCategoryId) {
+      throw new Error('Select main category first.');
+    }
+    if (
+      normalizeCollectionId(sectionForm.sourceMainCategoryId) === mainCategoryId &&
+      Array.isArray(sourceCategories) &&
+      sourceCategories.length
+    ) {
+      return sourceCategories;
+    }
+    const response = await listCategories(token, mainCategoryId);
+    const items = response?.data || response;
+    return Array.isArray(items) ? items : [];
+  };
+
+  const handleApplyCategoryFeed = async () => {
+    const resolvedBlockType = sectionForm.blockType || sectionForm.type || '';
+    if (!phaseOneBlockTypes.has(resolvedBlockType)) {
+      setMessage({ type: 'error', text: 'Data source currently supported only for SDUI phase-one blocks.' });
+      return;
+    }
+    const sourceType =
+      resolvedBlockType === 'category_icon_grid'
+        ? 'CATEGORY_FEED'
+        : String(sectionForm.sourceType || 'MANUAL').toUpperCase();
+    if (sourceType !== 'CATEGORY_FEED') {
+      setMessage({ type: 'error', text: 'Select source type as Category feed.' });
+      return;
+    }
+    setIsResolvingSource(true);
+    setMessage(emptyMessage);
+    try {
+      const selectedIds = Array.isArray(sectionForm.sourceCategoryIds)
+        ? new Set(sectionForm.sourceCategoryIds.map((id) => normalizeCollectionId(id)).filter(Boolean))
+        : new Set();
+      const industryId = normalizeCollectionId(sectionForm.sourceIndustryId);
+      const feedMode = String(sectionForm.sourceFeedMode || 'TOP_SELLING').toUpperCase();
+
+      let resolvedMainCategoryId = normalizeCollectionId(sectionForm.sourceMainCategoryId);
+      let allCategories = [];
+      if (resolvedBlockType === 'category_icon_grid') {
+        if (!industryId) {
+          throw new Error('Select industry first.');
+        }
+        const industryMainCategories = mainCategories.filter(
+          (item) => normalizeMatchValue(resolveMainCategoryIndustryId(item)) === normalizeMatchValue(industryId)
+        );
+        if (!industryMainCategories.length) {
+          throw new Error('No main categories found for selected industry.');
+        }
+        const isTopSellingMode = feedMode === 'TOP_SELLING';
+        if (!resolvedMainCategoryId && isTopSellingMode) {
+          const industryCategoryGroups = await Promise.all(
+            industryMainCategories.map(async (mainCategory) => {
+              const mainId = resolveMainCategoryId(mainCategory);
+              if (!mainId) return [];
+              const response = await listCategories(token, mainId);
+              const items = response?.data || response;
+              return Array.isArray(items) ? items : [];
+            })
+          );
+          allCategories = industryCategoryGroups.flat();
+        } else {
+          if (!resolvedMainCategoryId) {
+            resolvedMainCategoryId = resolveMainCategoryId(industryMainCategories[0]);
+          }
+          allCategories = await resolveSourceCategoriesForForm(resolvedMainCategoryId);
+        }
+      } else {
+        allCategories = await resolveSourceCategoriesForForm(resolvedMainCategoryId);
+      }
+
+      let filtered = allCategories.filter((item) => {
+        const categoryId = resolveCategoryId(item);
+        if (!categoryId) return false;
+        if (selectedIds.size > 0 && !selectedIds.has(categoryId)) return false;
+        if (sectionForm.sourceActiveOnly && !isCategoryActive(item)) return false;
+        if (sectionForm.sourceHasImageOnly && !resolveCategoryImage(item)) return false;
+        return true;
+      });
+
+      if (resolvedBlockType === 'category_icon_grid' && feedMode === 'TOP_SELLING') {
+        const ids = filtered.map((item) => resolveCategoryId(item)).filter(Boolean);
+        if (!ids.length) {
+          throw new Error('No categories available for top-selling feed.');
+        }
+        const response = await getHomeCategoryPreview(token, {
+          ids,
+          limit: 2,
+        });
+        const previewCategories = response?.data?.categories;
+        const scoreById = new Map(
+          (Array.isArray(previewCategories) ? previewCategories : []).map((item) => {
+            const id = resolveCategoryId(item);
+            const itemCount = Array.isArray(item?.items) ? item.items.length : 0;
+            const score = itemCount + Number(item?.moreCount || 0);
+            return [id, score];
+          })
+        );
+        filtered = [...filtered].sort((a, b) => {
+          const aScore = Number(scoreById.get(resolveCategoryId(a)) || 0);
+          const bScore = Number(scoreById.get(resolveCategoryId(b)) || 0);
+          if (aScore !== bScore) return bScore - aScore;
+          return Number(a?.ordering ?? 999999) - Number(b?.ordering ?? 999999);
+        });
+      } else {
+        filtered = sortCategoryFeed(filtered, sectionForm.sourceSortBy);
+      }
+
+      const limit = Math.max(1, Math.min(20, Number(sectionForm.sourceLimit || 8)));
+      const picked = filtered.slice(0, limit);
+      if (!picked.length) {
+        throw new Error('No categories matched current source filters.');
+      }
+
+      const deepLinkTemplate = sectionForm.mappingDeepLinkTemplate || 'app://category/{id}';
+      const titleField = sectionForm.mappingTitleField || 'name';
+      const imageField = sectionForm.mappingImageField || 'imageUrl';
+
+      let nextItems = picked.map((item, index) => {
+        const title =
+          (titleField === 'name' ? resolveCategoryName(item) : item?.[titleField]) || resolveCategoryName(item);
+        const image = (imageField && item?.[imageField]) || resolveCategoryImage(item);
+        const categoryId = resolveCategoryId(item);
+        return {
+          id: categoryId,
+          collectionId: categoryId,
+          title: String(title || ''),
+          imageUrl: image || '',
+          deepLink: resolveDeepLinkFromTemplate(deepLinkTemplate, {
+            id: categoryId,
+            name: resolveCategoryName(item),
+            slug: item?.path || resolveCategoryName(item),
+          }),
+          subtitle: resolvedBlockType === 'horizontal_scroll_list' ? 'For you' : '',
+          badgeText: resolvedBlockType === 'horizontal_scroll_list' ? 'Featured' : '',
+          bgColor: FEATURED_CARD_BG_PALETTE[index % FEATURED_CARD_BG_PALETTE.length],
+          frameColor: FEATURED_CARD_FRAME_PALETTE[index % FEATURED_CARD_FRAME_PALETTE.length],
+          titleColor: FEATURED_CARD_TITLE_PALETTE[index % FEATURED_CARD_TITLE_PALETTE.length],
+          badgeTextColor: FEATURED_CARD_BADGE_TEXT_PALETTE[index % FEATURED_CARD_BADGE_TEXT_PALETTE.length],
+        };
+      });
+
+      if (resolvedBlockType === 'column_grid') {
+        const response = await getHomeCategoryPreview(token, {
+          ids: picked.map((item) => resolveCategoryId(item)).filter(Boolean),
+          limit: 2,
+        });
+        const categoryPreview = response?.data?.categories;
+        const byId = new Map(
+          (Array.isArray(categoryPreview) ? categoryPreview : [])
+            .map((item) => [normalizeCollectionId(item?.id), item])
+        );
+        nextItems = picked.map((item) => {
+          const categoryId = resolveCategoryId(item);
+          const preview = byId.get(categoryId);
+          const previewItems = Array.isArray(preview?.items) ? preview.items : [];
+          const first = previewItems[0] || null;
+          const second = previewItems[1] || null;
+          const title =
+            (titleField === 'name' ? resolveCategoryName(item) : item?.[titleField]) || resolveCategoryName(item);
+          return {
+            id: categoryId,
+            collectionId: categoryId,
+            title: String(title || ''),
+            imageUrl: first?.imageUrl || resolveCategoryImage(item) || '',
+            secondaryImageUrl: second?.imageUrl || '',
+            deepLink: resolveDeepLinkFromTemplate(deepLinkTemplate, {
+              id: categoryId,
+              name: resolveCategoryName(item),
+              slug: item?.path || resolveCategoryName(item),
+            }),
+          };
+        });
+      }
+
+      const selectedMainCategory = mainCategories.find(
+        (item) => resolveMainCategoryId(item) === normalizeCollectionId(resolvedMainCategoryId)
+      );
+      const selectedIndustry = industries.find(
+        (item) => normalizeMatchValue(resolveIndustryId(item)) === normalizeMatchValue(industryId)
+      );
+
+      setSectionForm((prev) => ({
+        ...prev,
+        sourceType: 'CATEGORY_FEED',
+        sourceFeedMode: feedMode,
+        sourceIndustryId: industryId,
+        sourceMainCategoryId: normalizeCollectionId(resolvedMainCategoryId),
+        sourceLimit: String(limit),
+        title:
+          resolvedBlockType === 'category_icon_grid'
+            ? resolveMainCategoryName(selectedMainCategory) ||
+              (selectedIndustry ? `${resolveIndustryLabel(selectedIndustry)} top categories` : prev.title)
+            : prev.title,
+        sduiItems: nextItems,
+      }));
+      setMessage({ type: 'success', text: `Loaded ${nextItems.length} items from category feed.` });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to resolve category feed.' });
+    } finally {
+      setIsResolvingSource(false);
+    }
+  };
+
+  const handleApplyBrandCollections = async () => {
+    const resolvedBlockType = sectionForm.blockType || sectionForm.type || '';
+    if (resolvedBlockType !== 'brand_logo_grid') {
+      setMessage({ type: 'error', text: 'Collection auto-fill is only for Brand Layout block.' });
+      return;
+    }
+    setIsResolvingSource(true);
+    setMessage(emptyMessage);
+    try {
+      const items = normalizePhaseOneItems(sectionForm.sduiItems, resolvedBlockType);
+      const tileIndexes = items
+        .map((item, idx) => ({ item, idx }))
+        .filter(({ item }) => (item?.kind || 'tile') === 'tile')
+        .slice(0, 4);
+      const selectedIds = tileIndexes
+        .map(({ item }) => normalizeCollectionId(item.collectionId || item.id))
+        .filter(Boolean);
+      if (!selectedIds.length) {
+        throw new Error('Select at least one collection in middle cards.');
+      }
+
+      const response = await getHomeCategoryPreview(token, { ids: selectedIds, limit: 1 });
+      const previews = Array.isArray(response?.data?.categories) ? response.data.categories : [];
+      const previewById = new Map(previews.map((item) => [resolveCategoryId(item), item]));
+      const collectionById = new Map(
+        (Array.isArray(collections) ? collections : [])
+          .map((item) => [resolveCategoryId(item), item])
+          .filter(([id]) => Boolean(id))
+      );
+
+      const nextItems = [...items];
+      tileIndexes.forEach(({ idx }) => {
+        const current = nextItems[idx] || {};
+        const collectionId = normalizeCollectionId(current.collectionId || current.id);
+        if (!collectionId) return;
+        const selectedCollection = collectionById.get(collectionId);
+        const preview = previewById.get(collectionId);
+        const previewItems = Array.isArray(preview?.items) ? preview.items : [];
+        const firstProduct = previewItems[0] || null;
+        nextItems[idx] = {
+          ...current,
+          id: collectionId,
+          collectionId,
+          title: resolveCategoryName(selectedCollection || preview || current),
+          imageUrl: firstProduct?.imageUrl || resolveCategoryImage(selectedCollection || preview || current) || '',
+          deepLink:
+            current.deepLink ||
+            resolveDeepLinkFromTemplate('app://category/{id}', {
+              id: collectionId,
+              name: resolveCategoryName(selectedCollection || preview || current),
+            }),
+        };
+      });
+
+      setSectionForm((prev) => ({ ...prev, sourceType: 'BRAND_COLLECTIONS', sduiItems: nextItems }));
+      setMessage({ type: 'success', text: 'Brand layout collections loaded from API.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to resolve brand layout collections.' });
+    } finally {
+      setIsResolvingSource(false);
+    }
+  };
+
+  const applyImageToTarget = (target, url) => {
+    if (!target || !url) return;
+    if (target.kind === 'header') {
+      setSectionForm((prev) => ({ ...prev, bentoHeaderImage: url }));
+    } else if (target.kind === 'hero') {
+      setSectionForm((prev) => ({ ...prev, bentoHeroImage: url }));
+    } else if (target.kind === 'tile') {
+      updateBentoTile(target.index, 'imageUrl', url);
+    } else if (target.kind === 'sdui') {
+      const field = target.field === 'secondaryImageUrl' ? 'secondaryImageUrl' : 'imageUrl';
+      handlePhaseOneImageChange(target.index, field, url);
+    } else if (target.kind === 'sectionField') {
+      setSectionForm((prev) => ({ ...prev, [target.field]: url }));
+    } else if (target.kind === 'headerField') {
+      setHeaderForm((prev) => ({ ...prev, [target.field]: url }));
+    }
+    addMediaUrlToLibrary(url);
+  };
+
+  const handlePickMediaUrl = (url) => {
+    if (!mediaPickerTarget) return;
+    applyImageToTarget(mediaPickerTarget, url);
+    closeMediaPicker();
+    setMessage({ type: 'success', text: 'Image selected from media library.' });
   };
 
   const closeEditor = () => {
@@ -1688,6 +2405,7 @@ function AppConfigPage({ token }) {
       if (!urls.length) {
         throw new Error('Upload failed. No URLs returned.');
       }
+      urls.forEach(addMediaUrlToLibrary);
       const items = urls.map((url) => ({ imageUrl: url }));
       addSectionFromPreset(
         { section: { id: 'ad_banner', type: 'carousel', title: 'Advertisement', itemTemplateRef: 'bannerCard' } },
@@ -1730,6 +2448,7 @@ function AppConfigPage({ token }) {
         throw new Error('Upload failed. No URLs returned.');
       }
       setHeaderForm((prev) => ({ ...prev, backgroundImage: urls[0] }));
+      addMediaUrlToLibrary(urls[0]);
       setMessage({ type: 'success', text: 'Header image uploaded. Click "Apply Header" to save.' });
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to upload header image.' });
@@ -1765,6 +2484,7 @@ function AppConfigPage({ token }) {
       if (!urls.length) {
         throw new Error('Upload failed. No URLs returned.');
       }
+      urls.forEach(addMediaUrlToLibrary);
       const items = urls.map((url) => ({ imageUrl: url }));
       addSectionFromPreset(
         { section: { id: 'hero_banner', type: 'carousel', title: 'Hero Banner' } },
@@ -1808,16 +2528,7 @@ function AppConfigPage({ token }) {
         throw new Error('Upload failed. No URLs returned.');
       }
       const url = urls[0];
-      if (bentoUploadTarget.kind === 'header') {
-        setSectionForm((prev) => ({ ...prev, bentoHeaderImage: url }));
-      } else if (bentoUploadTarget.kind === 'hero') {
-        setSectionForm((prev) => ({ ...prev, bentoHeroImage: url }));
-      } else if (bentoUploadTarget.kind === 'tile') {
-        updateBentoTile(bentoUploadTarget.index, 'imageUrl', url);
-      } else if (bentoUploadTarget.kind === 'sdui') {
-        const field = bentoUploadTarget.field === 'secondaryImageUrl' ? 'secondaryImageUrl' : 'imageUrl';
-        updatePhaseOneItem(bentoUploadTarget.index, field, url);
-      }
+      applyImageToTarget(bentoUploadTarget, url);
       setMessage({ type: 'success', text: 'Image uploaded.' });
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to upload image.' });
@@ -1960,6 +2671,7 @@ function AppConfigPage({ token }) {
           };
           assign('id', item.id);
           if (item.kind && item.kind !== 'tile') assign('kind', item.kind);
+          assign('collectionId', item.collectionId);
           assign('title', item.title);
           assign('subtitle', item.subtitle);
           assign('badgeText', item.badgeText);
@@ -1982,6 +2694,52 @@ function AppConfigPage({ token }) {
     setOrDelete('itemsPath', form.itemsPath?.trim());
     setOrDelete('itemTemplateRef', form.itemTemplateRef?.trim());
     setOrDelete('dataSourceRef', form.dataSourceRef?.trim());
+    const sourceType = String(form.sourceType || 'MANUAL').trim().toUpperCase();
+    if (sourceType && sourceType !== 'MANUAL') {
+      const sourcePayload = { sourceType };
+      const sourceIndustryId = normalizeCollectionId(form.sourceIndustryId);
+      if (sourceIndustryId) sourcePayload.industryId = sourceIndustryId;
+      if (sourceType === 'CATEGORY_FEED' && form.sourceFeedMode) {
+        sourcePayload.mode = String(form.sourceFeedMode).trim().toUpperCase();
+      }
+      const mainCategoryId = normalizeCollectionId(form.sourceMainCategoryId);
+      if (mainCategoryId) sourcePayload.mainCategoryId = mainCategoryId;
+      const sourceCategoryIds = Array.isArray(form.sourceCategoryIds)
+        ? form.sourceCategoryIds.map((value) => normalizeCollectionId(value)).filter(Boolean)
+        : [];
+      if (sourceCategoryIds.length) sourcePayload.categoryIds = sourceCategoryIds;
+      const sourceLimit = toNumberOrNull(form.sourceLimit);
+      if (sourceLimit) sourcePayload.limit = Math.max(1, Math.min(20, sourceLimit));
+      if (sourceType === 'CATEGORY_FEED') {
+        if (form.sourceSortBy) sourcePayload.sortBy = String(form.sourceSortBy).trim().toUpperCase();
+        if (form.sourceLevel) sourcePayload.level = String(form.sourceLevel).trim().toUpperCase();
+        sourcePayload.filters = {
+          activeOnly: form.sourceActiveOnly !== false,
+          hasImageOnly: form.sourceHasImageOnly !== false,
+        };
+      }
+      next.dataSource = sourcePayload;
+    } else {
+      delete next.dataSource;
+    }
+    if (sourceType === 'CATEGORY_FEED') {
+      const mappingPayload = {};
+      const titleField = String(form.mappingTitleField || '').trim();
+      const imageField = String(form.mappingImageField || '').trim();
+      const secondaryImageField = String(form.mappingSecondaryImageField || '').trim();
+      const deepLinkTemplate = String(form.mappingDeepLinkTemplate || '').trim();
+      if (titleField) mappingPayload.titleField = titleField;
+      if (imageField) mappingPayload.imageField = imageField;
+      if (secondaryImageField) mappingPayload.secondaryImageField = secondaryImageField;
+      if (deepLinkTemplate) mappingPayload.deepLinkTemplate = deepLinkTemplate;
+      if (Object.keys(mappingPayload).length) {
+        next.mapping = mappingPayload;
+      } else {
+        delete next.mapping;
+      }
+    } else {
+      delete next.mapping;
+    }
     const columns = form.columns !== '' ? Number(form.columns) : null;
     if (columns && !Number.isNaN(columns)) {
       next.columns = columns;
@@ -2417,6 +3175,8 @@ function AppConfigPage({ token }) {
     const firstItem = items[0] || {};
     const hero = section?.hero && typeof section.hero === 'object' ? section.hero : {};
     const tiles = ensureBentoTiles(section?.tiles);
+    const source = section?.dataSource && typeof section.dataSource === 'object' ? section.dataSource : {};
+    const mapping = section?.mapping && typeof section.mapping === 'object' ? section.mapping : {};
     const resolvedType = section?.type === 'campaign' ? 'campaignBento' : section?.type || fallbackType;
     return {
       id: section?.id || '',
@@ -2470,6 +3230,23 @@ function AppConfigPage({ token }) {
       targetRoles: formatCsvList(section?.targeting?.roles),
       targetIndustries: formatCsvList(section?.targeting?.industries),
       targetSubscriptionStatuses: formatCsvList(section?.targeting?.subscriptionStatuses),
+      sourceType: source?.sourceType || 'MANUAL',
+      sourceIndustryId: source?.industryId ? String(source.industryId) : '',
+      sourceFeedMode: source?.mode || defaultSectionForm.sourceFeedMode,
+      sourceMainCategoryId: source?.mainCategoryId ? String(source.mainCategoryId) : '',
+      sourceCategoryIds: Array.isArray(source?.categoryIds)
+        ? source.categoryIds.map((value) => normalizeCollectionId(value)).filter(Boolean)
+        : [],
+      sourceLimit:
+        source?.limit !== undefined && source?.limit !== null ? String(source.limit) : defaultSectionForm.sourceLimit,
+      sourceSortBy: source?.sortBy || defaultSectionForm.sourceSortBy,
+      sourceLevel: source?.level || defaultSectionForm.sourceLevel,
+      sourceActiveOnly: source?.filters?.activeOnly !== false,
+      sourceHasImageOnly: source?.filters?.hasImageOnly !== false,
+      mappingTitleField: mapping?.titleField || defaultSectionForm.mappingTitleField,
+      mappingImageField: mapping?.imageField || defaultSectionForm.mappingImageField,
+      mappingSecondaryImageField: mapping?.secondaryImageField || '',
+      mappingDeepLinkTemplate: mapping?.deepLinkTemplate || defaultSectionForm.mappingDeepLinkTemplate,
     };
   };
 
@@ -3154,10 +3931,16 @@ function AppConfigPage({ token }) {
   const screenBlockType = sectionForm.blockType || sectionForm.type;
   const headerBlockType = headerSectionForm.blockType || headerSectionForm.type;
   const isPhaseOneBlock = phaseOneBlockTypes.has(screenBlockType);
+  const isCategoryFeedEligible =
+    screenBlockType === 'category_icon_grid' ||
+    screenBlockType === 'horizontal_scroll_list' ||
+    screenBlockType === 'column_grid';
   const isHeroBanner = screenBlockType === 'heroBanner' || sectionForm.type === 'banner';
   const isPhaseOneHorizontalList = screenBlockType === 'horizontal_scroll_list';
   const isPhaseOneColumnGrid = screenBlockType === 'column_grid';
+  const isPhaseOneCategoryIconGrid = screenBlockType === 'category_icon_grid';
   const isPhaseOneBrandGrid = screenBlockType === 'brand_logo_grid';
+  const isPhaseOneProductShelf = screenBlockType === 'product_shelf_horizontal';
   const isCategoryPreviewGrid = screenBlockType === 'categoryPreviewGrid';
   const isCampaignBento = screenBlockType === 'campaignBento';
   const isMultiItemGrid =
@@ -3173,6 +3956,26 @@ function AppConfigPage({ token }) {
   const isGenericHeaderBlock = !isHeaderSearch && !isHeaderPills;
   const screenBlockLabel = resolveBlockLabel(screenBlockType, sectionForm.type || 'Block');
   const headerBlockLabel = resolveBlockLabel(headerBlockType, headerSectionForm.type || 'Block');
+
+  const filteredMainCategoryOptions = useMemo(() => {
+    const industryId = normalizeCollectionId(sectionForm.sourceIndustryId);
+    const items = Array.isArray(mainCategories) ? mainCategories : [];
+    if (!industryId) return items;
+    return items.filter(
+      (item) => normalizeMatchValue(resolveMainCategoryIndustryId(item)) === normalizeMatchValue(industryId)
+    );
+  }, [mainCategories, sectionForm.sourceIndustryId]);
+
+  const brandCollectionOptions = useMemo(() => {
+    const selectedMainCategoryId = normalizeCollectionId(sectionForm.sourceMainCategoryId);
+    let items = Array.isArray(collections) ? [...collections] : [];
+    if (selectedMainCategoryId) {
+      items = items.filter(
+        (item) => resolveCategoryMainCategoryId(item) === selectedMainCategoryId
+      );
+    }
+    return items.sort((a, b) => Number(a?.ordering ?? 999999) - Number(b?.ordering ?? 999999));
+  }, [collections, sectionForm.sourceMainCategoryId]);
 
   const headerAttachedEntries = useMemo(
     () =>
@@ -3424,17 +4227,55 @@ function AppConfigPage({ token }) {
                       <span>Block type</span>
                       <input type="text" value={isEditingFixed ? 'Fixed' : screenBlockLabel} disabled />
                     </label>
-                    <label className="field">
-                      <span>Block id</span>
-                      <input
-                        type="text"
-                        value={sectionForm.id}
-                        onChange={(event) => setSectionForm((prev) => ({ ...prev, id: event.target.value }))}
-                        placeholder="hero_banner"
-                        disabled={isEditingFixed}
-                        required={!isEditingFixed}
-                      />
-                    </label>
+                    {!isPhaseOneBlock ? (
+                      <label className="field">
+                        <span>Block id</span>
+                        <input
+                          type="text"
+                          value={sectionForm.id}
+                          onChange={(event) => setSectionForm((prev) => ({ ...prev, id: event.target.value }))}
+                          placeholder="hero_banner"
+                          disabled={isEditingFixed}
+                          required={!isEditingFixed}
+                        />
+                      </label>
+                    ) : null}
+                    {mediaPickerTarget ? (
+                      <div className="field field-span media-library-panel">
+                        <div className="panel-split">
+                          <span className="bento-tile-title">Media library</span>
+                          <button type="button" className="ghost-btn small" onClick={closeMediaPicker}>
+                            Close
+                          </button>
+                        </div>
+                        <input
+                          type="text"
+                          value={mediaSearchText}
+                          onChange={(event) => setMediaSearchText(event.target.value)}
+                          placeholder="Search uploaded images"
+                        />
+                        <div className="media-library-grid">
+                          {filteredMediaLibraryUrls.length ? (
+                            filteredMediaLibraryUrls.slice(0, 120).map((url) => (
+                              <button
+                                key={url}
+                                type="button"
+                                className="media-library-item"
+                                onClick={() => handlePickMediaUrl(url)}
+                                title={url}
+                              >
+                                <div className="media-library-thumb checkerboard">
+                                  <img src={url} alt="" />
+                                </div>
+                                <span>{url.split('/').pop() || 'image'}</span>
+                              </button>
+                            ))
+                          ) : (
+                            <p className="field-help">No images in library yet. Upload at least one image.</p>
+                          )}
+                        </div>
+                      </div>
+                    ) : null}
                     <div className="field">
                       <span>Visibility</span>
                       <label className="checkbox-row">
@@ -3489,12 +4330,29 @@ function AppConfigPage({ token }) {
                       <>
                         <label className="field field-span">
                           <span>Image URL</span>
-                          <input
-                            type="text"
-                            value={sectionForm.imageUrl}
-                            onChange={(event) => setSectionForm((prev) => ({ ...prev, imageUrl: event.target.value }))}
-                            placeholder="https://cdn.example.com/hero.jpg"
-                          />
+                          <div className="inline-row">
+                            <input
+                              type="text"
+                              value={sectionForm.imageUrl}
+                              onChange={(event) => setSectionForm((prev) => ({ ...prev, imageUrl: event.target.value }))}
+                              placeholder="https://cdn.example.com/hero.jpg"
+                            />
+                            <button
+                              type="button"
+                              className="ghost-btn small"
+                              onClick={() => handleBentoImageClick({ kind: 'sectionField', field: 'imageUrl' })}
+                              disabled={isUploadingBentoImage}
+                            >
+                              {isUploadingBentoImage ? 'Uploading...' : 'Upload'}
+                            </button>
+                            <button
+                              type="button"
+                              className="ghost-btn small"
+                              onClick={() => openMediaPicker({ kind: 'sectionField', field: 'imageUrl' })}
+                            >
+                              Library
+                            </button>
+                          </div>
                         </label>
                         <label className="field">
                           <span>Aspect ratio</span>
@@ -3535,53 +4393,521 @@ function AppConfigPage({ token }) {
                     {isPhaseOneBlock ? (
                       <>
                         <label className="field field-span">
+                          <span>Data source</span>
+                          <div className="field-grid source-config-grid">
+                            {isPhaseOneProductShelf ? (
+                              <label className="field field-span">
+                                <span>Product feed</span>
+                                <select
+                                  value={sectionForm.dataSourceRef || ''}
+                                  onChange={(event) =>
+                                    setSectionForm((prev) => ({
+                                      ...prev,
+                                      dataSourceRef: event.target.value,
+                                    }))
+                                  }
+                                >
+                                  <option value="">Manual (no API)</option>
+                                  <option value="todaydealproducts">Today&apos;s deals</option>
+                                  <option value="home_top_selling_products">Top selling products</option>
+                                  <option value="home_most_rated_products">Most rated products</option>
+                                  <option value="home_recommended_products">Recommended products</option>
+                                </select>
+                                <p className="field-help">
+                                  Products aa feed mathi avse. Manual mode ma niche item list edit kari sako cho.
+                                </p>
+                              </label>
+                            ) : (
+                              <>
+                                {!isPhaseOneCategoryIconGrid && !isPhaseOneBrandGrid ? (
+                                  <label className="field">
+                                    <span>Source type</span>
+                                    <select
+                                      value={sectionForm.sourceType || 'MANUAL'}
+                                      onChange={(event) =>
+                                        setSectionForm((prev) => ({
+                                          ...prev,
+                                          sourceType: event.target.value,
+                                        }))
+                                      }
+                                    >
+                                      {SOURCE_TYPE_OPTIONS.map((opt) => (
+                                        <option
+                                          key={opt.value}
+                                          value={opt.value}
+                                          disabled={opt.value === 'CATEGORY_FEED' && !isCategoryFeedEligible}
+                                        >
+                                          {opt.label}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </label>
+                                ) : null}
+                                {isPhaseOneCategoryIconGrid ? (
+                                  <>
+                                    <label className="field">
+                                      <span>Industry</span>
+                                      <select
+                                        value={sectionForm.sourceIndustryId || ''}
+                                        onChange={(event) =>
+                                          setSectionForm((prev) => ({
+                                            ...prev,
+                                            sourceType: 'CATEGORY_FEED',
+                                            sourceIndustryId: event.target.value,
+                                            sourceMainCategoryId: '',
+                                            sourceCategoryIds: [],
+                                          }))
+                                        }
+                                      >
+                                        <option value="">Select industry</option>
+                                        {industries.map((item) => {
+                                          const id = resolveIndustryId(item);
+                                          if (!id) return null;
+                                          return (
+                                            <option key={id} value={id}>
+                                              {resolveIndustryLabel(item)}
+                                            </option>
+                                          );
+                                        })}
+                                      </select>
+                                    </label>
+                                    <label className="field">
+                                      <span>Feed mode</span>
+                                      <select
+                                        value={sectionForm.sourceFeedMode || 'TOP_SELLING'}
+                                        onChange={(event) =>
+                                          setSectionForm((prev) => ({
+                                            ...prev,
+                                            sourceType: 'CATEGORY_FEED',
+                                            sourceFeedMode: event.target.value,
+                                          }))
+                                        }
+                                      >
+                                        {CATEGORY_ICON_FEED_MODE_OPTIONS.map((opt) => (
+                                          <option key={opt.value} value={opt.value}>
+                                            {opt.label}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    </label>
+                                  </>
+                                ) : null}
+                                {isPhaseOneBrandGrid ? (
+                                  <label className="field">
+                                    <span>Main category filter</span>
+                                    <select
+                                      value={sectionForm.sourceMainCategoryId || ''}
+                                      onChange={(event) =>
+                                        setSectionForm((prev) => ({
+                                          ...prev,
+                                          sourceType: 'BRAND_COLLECTIONS',
+                                          sourceMainCategoryId: event.target.value,
+                                        }))
+                                      }
+                                    >
+                                      <option value="">All main categories</option>
+                                      {mainCategories.map((item) => {
+                                        const id = resolveMainCategoryId(item);
+                                        if (!id) return null;
+                                        return (
+                                          <option key={id} value={id}>
+                                            {resolveMainCategoryName(item)}
+                                          </option>
+                                        );
+                                      })}
+                                    </select>
+                                  </label>
+                                ) : null}
+                                {((isPhaseOneCategoryIconGrid
+                                  ? 'CATEGORY_FEED'
+                                  : String(sectionForm.sourceType || 'MANUAL').toUpperCase()) === 'CATEGORY_FEED') &&
+                                (isCategoryFeedEligible || isPhaseOneCategoryIconGrid) ? (
+                                  <>
+                                    <label className="field">
+                                      <span>
+                                        {isPhaseOneCategoryIconGrid &&
+                                        String(sectionForm.sourceFeedMode || 'TOP_SELLING').toUpperCase() === 'TOP_SELLING'
+                                          ? 'Main category (optional)'
+                                          : 'Main category'}
+                                      </span>
+                                      <select
+                                        value={sectionForm.sourceMainCategoryId || ''}
+                                        onChange={(event) =>
+                                          setSectionForm((prev) => ({
+                                            ...prev,
+                                            sourceType: isPhaseOneCategoryIconGrid ? 'CATEGORY_FEED' : prev.sourceType,
+                                            sourceMainCategoryId: event.target.value,
+                                            sourceCategoryIds: [],
+                                          }))
+                                        }
+                                      >
+                                        <option value="">Select main category</option>
+                                        {(isPhaseOneCategoryIconGrid ? filteredMainCategoryOptions : mainCategories).map((item) => {
+                                          const id = resolveMainCategoryId(item);
+                                          if (!id) return null;
+                                          return (
+                                            <option key={id} value={id}>
+                                              {resolveMainCategoryName(item)}
+                                            </option>
+                                          );
+                                        })}
+                                      </select>
+                                    </label>
+                                    <label className="field">
+                                      <span>Limit</span>
+                                      <input
+                                        type="number"
+                                        min="1"
+                                        max="20"
+                                        value={sectionForm.sourceLimit || '8'}
+                                        onChange={(event) =>
+                                          setSectionForm((prev) => ({
+                                            ...prev,
+                                            sourceLimit: event.target.value,
+                                          }))
+                                        }
+                                      />
+                                    </label>
+                                    {!isPhaseOneCategoryIconGrid ? (
+                                      <label className="field">
+                                        <span>Sort</span>
+                                        <select
+                                          value={sectionForm.sourceSortBy || 'MANUAL_RANK'}
+                                          onChange={(event) =>
+                                            setSectionForm((prev) => ({
+                                              ...prev,
+                                              sourceSortBy: event.target.value,
+                                            }))
+                                          }
+                                        >
+                                          {CATEGORY_FEED_SORT_OPTIONS.map((opt) => (
+                                            <option key={opt.value} value={opt.value}>
+                                              {opt.label}
+                                            </option>
+                                          ))}
+                                        </select>
+                                      </label>
+                                    ) : null}
+                                    <div className="field">
+                                      <span>Filters</span>
+                                      <label className="checkbox-row">
+                                        <input
+                                          type="checkbox"
+                                          checked={sectionForm.sourceActiveOnly !== false}
+                                          onChange={(event) =>
+                                            setSectionForm((prev) => ({
+                                              ...prev,
+                                              sourceActiveOnly: event.target.checked,
+                                            }))
+                                          }
+                                        />
+                                        Active only
+                                      </label>
+                                      <label className="checkbox-row">
+                                        <input
+                                          type="checkbox"
+                                          checked={sectionForm.sourceHasImageOnly !== false}
+                                          onChange={(event) =>
+                                            setSectionForm((prev) => ({
+                                              ...prev,
+                                              sourceHasImageOnly: event.target.checked,
+                                            }))
+                                          }
+                                        />
+                                        With image only
+                                      </label>
+                                    </div>
+                                    {(!isPhaseOneCategoryIconGrid ||
+                                      String(sectionForm.sourceFeedMode || 'TOP_SELLING').toUpperCase() ===
+                                        'MAIN_CATEGORY') ? (
+                                      <label className="field field-span">
+                                        <span>Pick categories (optional)</span>
+                                        {isLoadingSourceCategories ? (
+                                          <p className="field-help">Loading categories...</p>
+                                        ) : sourceCategories.length ? (
+                                          <div className="checkbox-grid">
+                                            {sourceCategories.map((item) => {
+                                              const id = resolveCategoryId(item);
+                                              if (!id) return null;
+                                              const checked = Array.isArray(sectionForm.sourceCategoryIds)
+                                                ? sectionForm.sourceCategoryIds.includes(id)
+                                                : false;
+                                              return (
+                                                <label key={id} className="checkbox-row">
+                                                  <input
+                                                    type="checkbox"
+                                                    checked={checked}
+                                                    onChange={() =>
+                                                      setSectionForm((prev) => {
+                                                        const current = Array.isArray(prev.sourceCategoryIds)
+                                                          ? prev.sourceCategoryIds
+                                                          : [];
+                                                        const next = new Set(current);
+                                                        if (next.has(id)) {
+                                                          next.delete(id);
+                                                        } else {
+                                                          next.add(id);
+                                                        }
+                                                        return { ...prev, sourceCategoryIds: Array.from(next) };
+                                                      })
+                                                    }
+                                                  />
+                                                  {resolveCategoryName(item)} <span className="muted">({id})</span>
+                                                </label>
+                                              );
+                                            })}
+                                          </div>
+                                        ) : (
+                                          <p className="field-help">Select main category to load categories.</p>
+                                        )}
+                                      </label>
+                                    ) : null}
+                                    {!isPhaseOneCategoryIconGrid ? (
+                                      <label className="field field-span">
+                                        <span>Deep link template</span>
+                                        <div className="inline-row">
+                                          <select
+                                            value={
+                                              DEEP_LINK_TEMPLATE_PRESETS.some(
+                                                (opt) =>
+                                                  opt.value ===
+                                                  (sectionForm.mappingDeepLinkTemplate || 'app://category/{id}')
+                                              )
+                                                ? sectionForm.mappingDeepLinkTemplate || 'app://category/{id}'
+                                                : ''
+                                            }
+                                            onChange={(event) =>
+                                              setSectionForm((prev) => ({
+                                                ...prev,
+                                                mappingDeepLinkTemplate:
+                                                  event.target.value || prev.mappingDeepLinkTemplate,
+                                              }))
+                                            }
+                                          >
+                                            <option value="">Custom</option>
+                                            {DEEP_LINK_TEMPLATE_PRESETS.map((opt) => (
+                                              <option key={opt.value} value={opt.value}>
+                                                {opt.label}
+                                              </option>
+                                            ))}
+                                          </select>
+                                          <input
+                                            type="text"
+                                            value={sectionForm.mappingDeepLinkTemplate || 'app://category/{id}'}
+                                            onChange={(event) =>
+                                              setSectionForm((prev) => ({
+                                                ...prev,
+                                                mappingDeepLinkTemplate: event.target.value,
+                                              }))
+                                            }
+                                            placeholder="app://category/{id}"
+                                          />
+                                        </div>
+                                        <p className="field-help">
+                                          Use {'{id}'}, {'{name}'}, {'{slug}'} placeholders. Example:{' '}
+                                          <code>app://category/{'{id}'}</code>, <code>app://campaign/{'{slug}'}</code>.
+                                        </p>
+                                      </label>
+                                    ) : null}
+                                    <div className="field field-span">
+                                      <div className="inline-row">
+                                        <button
+                                          type="button"
+                                          className="ghost-btn small"
+                                          onClick={handleApplyCategoryFeed}
+                                          disabled={isResolvingSource}
+                                        >
+                                          {isResolvingSource ? 'Loading...' : 'Apply source'}
+                                        </button>
+                                        <span className="field-help">
+                                          {isPhaseOneCategoryIconGrid
+                                            ? 'Main category title + category icons auto-fill thase.'
+                                            : 'Top categories load thase and below item cards auto fill thase.'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </>
+                                ) : (
+                                  isPhaseOneBrandGrid ? (
+                                    <div className="field field-span">
+                                      <div className="inline-row">
+                                        <button
+                                          type="button"
+                                          className="ghost-btn small"
+                                          onClick={handleApplyBrandCollections}
+                                          disabled={isResolvingSource}
+                                        >
+                                          {isResolvingSource ? 'Loading...' : 'Load selected collections'}
+                                        </button>
+                                        <span className="field-help">
+                                          Middle 4 tiles category preview API mathi auto set thase.
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <p className="field-help field-span">Manual mode ma tame items direct edit kari sako cho.</p>
+                                  )
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </label>
+                        {isPhaseOneProductShelf ? (
+                          <label className="field">
+                            <span>Columns</span>
+                            <input
+                              type="number"
+                              min="1"
+                              max="4"
+                              value={sectionForm.columns || '2'}
+                              onChange={(event) =>
+                                setSectionForm((prev) => ({
+                                  ...prev,
+                                  columns: event.target.value,
+                                }))
+                              }
+                              placeholder="2 (e.g. 2 ya 3)"
+                            />
+                          </label>
+                        ) : null}
+                        <label className="field field-span">
                           <span>Block items</span>
                           <div className="inline-row">
-                            <button type="button" className="ghost-btn small" onClick={addPhaseOneItem}>
-                              + Add item
-                            </button>
+                            {!isPhaseOneCategoryIconGrid && !isPhaseOneBrandGrid ? (
+                              <button type="button" className="ghost-btn small" onClick={addPhaseOneItem}>
+                                + Add item
+                              </button>
+                            ) : null}
                             <span className="field-help">
-                              {isPhaseOneBrandGrid
-                                ? 'Use kind = hero / tile / cta for brand layout.'
-                                : 'Set image + text + deep link for each card.'}
+                              {isPhaseOneCategoryIconGrid
+                                ? 'Category images auto category master mathi avse.'
+                                : isPhaseOneBrandGrid
+                                  ? 'Top/Bottom banner editable. Middle cards collection dropdown thi control thase.'
+                                  : isPhaseOneProductShelf
+                                    ? 'Products data source thi avse. Aa list mate product API / collection select karo.'
+                                    : 'Set image + text + deep link for each card.'}
                             </span>
                           </div>
                         </label>
                         <div className="field field-span phase-one-item-grid">
-                          {normalizePhaseOneItems(sectionForm.sduiItems, screenBlockType).map((item, idx) => (
-                            <div key={`phase-one-item-${idx}`} className="phase-one-item-card">
-                              <div className="panel-split">
-                                <div className="bento-tile-title">Item {idx + 1}</div>
-                                <button
-                                  type="button"
-                                  className="ghost-btn small"
-                                  onClick={() => removePhaseOneItem(idx)}
-                                >
-                                  Remove
-                                </button>
-                              </div>
-                              {isPhaseOneBrandGrid ? (
+                          {normalizePhaseOneItems(sectionForm.sduiItems, screenBlockType).map((item, idx, allItems) => {
+                            const imageWarning = phaseOneImageWarnings[getWarningKey(idx, 'imageUrl')];
+                            const secondaryImageWarning =
+                              phaseOneImageWarnings[getWarningKey(idx, 'secondaryImageUrl')];
+                            const itemKind = item?.kind || 'tile';
+                            const isBrandHeroItem = isPhaseOneBrandGrid && itemKind === 'hero';
+                            const isBrandCtaItem = isPhaseOneBrandGrid && itemKind === 'cta';
+                            const isBrandTileItem = isPhaseOneBrandGrid && itemKind !== 'hero' && itemKind !== 'cta';
+                            const showItemActions =
+                              !isPhaseOneBrandGrid && !isPhaseOneCategoryIconGrid && !isPhaseOneProductShelf;
+                            return (
+                              <div key={`phase-one-item-${idx}`} className="phase-one-item-card">
+                                <div className="phase-one-item-header">
+                                  <div className="bento-tile-title">
+                                    {isBrandHeroItem
+                                      ? 'Top banner'
+                                      : isBrandCtaItem
+                                        ? 'Bottom banner'
+                                        : `Item ${idx + 1}`}
+                                  </div>
+                                  {showItemActions ? (
+                                    <div className="phase-one-item-actions">
+                                      <button
+                                        type="button"
+                                        className="ghost-btn small phase-one-icon-btn"
+                                        title="Move up"
+                                        onClick={() => movePhaseOneItem(idx, -1)}
+                                        disabled={idx === 0}
+                                      >
+                                        Up
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className="ghost-btn small phase-one-icon-btn"
+                                        title="Move down"
+                                        onClick={() => movePhaseOneItem(idx, 1)}
+                                        disabled={idx >= allItems.length - 1}
+                                      >
+                                        Down
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className="ghost-btn small"
+                                        onClick={() => duplicatePhaseOneItem(idx)}
+                                      >
+                                        Duplicate
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className="ghost-btn small danger"
+                                        onClick={() => removePhaseOneItem(idx)}
+                                      >
+                                        Remove
+                                      </button>
+                                    </div>
+                                  ) : null}
+                                </div>
+                                <div className="phase-one-thumb-row">
+                                  <div className="phase-one-thumb checkerboard">
+                                    {item.imageUrl ? <img src={item.imageUrl} alt="" /> : <span>Main image</span>}
+                                  </div>
+                                  {isPhaseOneColumnGrid ? (
+                                    <div className="phase-one-thumb checkerboard">
+                                      {item.secondaryImageUrl ? (
+                                        <img src={item.secondaryImageUrl} alt="" />
+                                      ) : (
+                                        <span>Second image</span>
+                                      )}
+                                    </div>
+                                  ) : null}
+                                </div>
+                              {!isBrandHeroItem && !isBrandCtaItem ? (
                                 <label className="field">
-                                  <span>Kind</span>
+                                  <span>Title</span>
+                                  <input
+                                    type="text"
+                                    value={item.title || ''}
+                                    onChange={(event) => updatePhaseOneItem(idx, 'title', event.target.value)}
+                                    placeholder="Item title"
+                                    disabled={isBrandTileItem || isPhaseOneCategoryIconGrid}
+                                  />
+                                </label>
+                              ) : null}
+                              {isBrandTileItem ? (
+                                <label className="field">
+                                  <span>Collection</span>
                                   <select
-                                    value={item.kind || 'tile'}
-                                    onChange={(event) => updatePhaseOneItem(idx, 'kind', event.target.value)}
+                                    value={item.collectionId || item.id || ''}
+                                    onChange={(event) => {
+                                      const selectedId = normalizeCollectionId(event.target.value);
+                                      const selectedCollection = brandCollectionOptions.find(
+                                        (entry) => resolveCategoryId(entry) === selectedId
+                                      );
+                                      updatePhaseOneItem(idx, 'collectionId', selectedId);
+                                      updatePhaseOneItem(idx, 'id', selectedId);
+                                      updatePhaseOneItem(
+                                        idx,
+                                        'title',
+                                        selectedCollection ? resolveCategoryName(selectedCollection) : ''
+                                      );
+                                      if (!selectedId) {
+                                        updatePhaseOneItem(idx, 'imageUrl', '');
+                                      }
+                                    }}
                                   >
-                                    <option value="hero">Hero</option>
-                                    <option value="tile">Tile</option>
-                                    <option value="cta">CTA</option>
+                                    <option value="">Select collection</option>
+                                    {brandCollectionOptions.map((collection) => {
+                                      const id = resolveCategoryId(collection);
+                                      if (!id) return null;
+                                      return (
+                                        <option key={id} value={id}>
+                                          {resolveCategoryName(collection)}
+                                        </option>
+                                      );
+                                    })}
                                   </select>
                                 </label>
                               ) : null}
-                              <label className="field">
-                                <span>Title</span>
-                                <input
-                                  type="text"
-                                  value={item.title || ''}
-                                  onChange={(event) => updatePhaseOneItem(idx, 'title', event.target.value)}
-                                  placeholder="Item title"
-                                />
-                              </label>
                               {(isPhaseOneHorizontalList || isPhaseOneColumnGrid) ? (
                                 <label className="field">
                                   <span>{isPhaseOneHorizontalList ? 'Badge text' : 'Subtitle'}</span>
@@ -3610,25 +4936,35 @@ function AppConfigPage({ token }) {
                                   />
                                 </label>
                               ) : null}
-                              <label className="field">
-                                <span>Image URL</span>
-                                <div className="inline-row">
-                                  <input
-                                    type="text"
-                                    value={item.imageUrl || ''}
-                                    onChange={(event) => updatePhaseOneItem(idx, 'imageUrl', event.target.value)}
-                                    placeholder="https://cdn.example.com/item.jpg"
-                                  />
-                                  <button
-                                    type="button"
-                                    className="ghost-btn small"
-                                    onClick={() => handleBentoImageClick({ kind: 'sdui', index: idx, field: 'imageUrl' })}
-                                    disabled={isUploadingBentoImage}
-                                  >
-                                    {isUploadingBentoImage ? 'Uploading...' : 'Upload'}
-                                  </button>
-                                </div>
-                              </label>
+                              {!isPhaseOneCategoryIconGrid && !isBrandTileItem && !isPhaseOneProductShelf ? (
+                                <label className="field">
+                                  <span>Image URL</span>
+                                  <div className="inline-row">
+                                    <input
+                                      type="text"
+                                      value={item.imageUrl || ''}
+                                      onChange={(event) => handlePhaseOneImageChange(idx, 'imageUrl', event.target.value)}
+                                      placeholder="https://cdn.example.com/item.jpg"
+                                    />
+                                    <button
+                                      type="button"
+                                      className="ghost-btn small"
+                                      onClick={() => handleBentoImageClick({ kind: 'sdui', index: idx, field: 'imageUrl' })}
+                                      disabled={isUploadingBentoImage}
+                                    >
+                                      {isUploadingBentoImage ? 'Uploading...' : 'Upload'}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="ghost-btn small"
+                                      onClick={() => openMediaPicker({ kind: 'sdui', index: idx, field: 'imageUrl' })}
+                                    >
+                                      Library
+                                    </button>
+                                  </div>
+                                  {imageWarning ? <span className="field-warning">{imageWarning}</span> : null}
+                                </label>
+                              ) : null}
                               {isPhaseOneColumnGrid ? (
                                 <label className="field">
                                   <span>Secondary image URL</span>
@@ -3636,9 +4972,7 @@ function AppConfigPage({ token }) {
                                     <input
                                       type="text"
                                       value={item.secondaryImageUrl || ''}
-                                      onChange={(event) =>
-                                        updatePhaseOneItem(idx, 'secondaryImageUrl', event.target.value)
-                                      }
+                                      onChange={(event) => handlePhaseOneImageChange(idx, 'secondaryImageUrl', event.target.value)}
                                       placeholder="https://cdn.example.com/item-2.jpg"
                                     />
                                     <button
@@ -3651,62 +4985,205 @@ function AppConfigPage({ token }) {
                                     >
                                       {isUploadingBentoImage ? 'Uploading...' : 'Upload'}
                                     </button>
+                                    <button
+                                      type="button"
+                                      className="ghost-btn small"
+                                      onClick={() =>
+                                        openMediaPicker({ kind: 'sdui', index: idx, field: 'secondaryImageUrl' })
+                                      }
+                                    >
+                                      Library
+                                    </button>
+                                  </div>
+                                  {secondaryImageWarning ? (
+                                    <span className="field-warning">{secondaryImageWarning}</span>
+                                  ) : null}
+                                </label>
+                              ) : null}
+                              {!isPhaseOneCategoryIconGrid && !isPhaseOneProductShelf ? (
+                                <label className="field">
+                                  <span>Deep link</span>
+                                  <div className="inline-row">
+                                    <select
+                                      value={
+                                        ITEM_DEEP_LINK_PRESETS.some(
+                                          (opt) =>
+                                            opt.value &&
+                                            (item.deepLink || '').toLowerCase().startsWith(opt.value.toLowerCase())
+                                        )
+                                          ? ITEM_DEEP_LINK_PRESETS.find((opt) =>
+                                              (item.deepLink || '')
+                                                .toLowerCase()
+                                                .startsWith(opt.value.toLowerCase())
+                                            )?.value || ''
+                                          : ''
+                                      }
+                                      onChange={(event) => {
+                                        const preset = ITEM_DEEP_LINK_PRESETS.find(
+                                          (opt) => opt.value === event.target.value
+                                        );
+                                        if (preset) {
+                                          updatePhaseOneItem(idx, 'deepLink', preset.value);
+                                        } else {
+                                          updatePhaseOneItem(idx, 'deepLink', item.deepLink || '');
+                                        }
+                                      }}
+                                    >
+                                      <option value="">Custom</option>
+                                      {ITEM_DEEP_LINK_PRESETS.map((opt) => (
+                                        <option key={opt.value} value={opt.value}>
+                                          {opt.label}
+                                        </option>
+                                      ))}
+                                    </select>
+                                    <input
+                                      type="text"
+                                      value={item.deepLink || ''}
+                                      onChange={(event) => updatePhaseOneItem(idx, 'deepLink', event.target.value)}
+                                      placeholder="app://collection/featured"
+                                    />
                                   </div>
                                 </label>
                               ) : null}
-                              <label className="field">
-                                <span>Deep link</span>
-                                <input
-                                  type="text"
-                                  value={item.deepLink || ''}
-                                  onChange={(event) => updatePhaseOneItem(idx, 'deepLink', event.target.value)}
-                                  placeholder="app://collection/featured"
-                                />
-                              </label>
                               {isPhaseOneHorizontalList ? (
                                 <div className="phase-one-color-grid">
                                   <label className="field">
                                     <span>Card BG</span>
-                                    <input
-                                      type="text"
-                                      value={item.bgColor || ''}
-                                      onChange={(event) => updatePhaseOneItem(idx, 'bgColor', event.target.value)}
-                                      placeholder="#ff8f4f"
-                                    />
+                                    <div className="inline-row">
+                                      <input
+                                        type="text"
+                                        value={item.bgColor || ''}
+                                        onChange={(event) => updatePhaseOneItem(idx, 'bgColor', event.target.value)}
+                                        placeholder="#ff8f4f"
+                                      />
+                                      <input
+                                        type="color"
+                                        className="color-input"
+                                        value={resolveHexColor(item.bgColor, '#ff8f4f')}
+                                        onChange={(event) => updatePhaseOneItem(idx, 'bgColor', event.target.value)}
+                                      />
+                                    </div>
+                                    <div className="color-palette-row">
+                                      {FEATURED_CARD_BG_PALETTE.map((color) => (
+                                        <button
+                                          key={`bg-${idx}-${color}`}
+                                          type="button"
+                                          className={`color-palette-swatch ${
+                                            (item.bgColor || '').toLowerCase() === color.toLowerCase() ? 'is-selected' : ''
+                                          }`}
+                                          style={{ backgroundColor: color }}
+                                          title={color}
+                                          onClick={() => updatePhaseOneItem(idx, 'bgColor', color)}
+                                        />
+                                      ))}
+                                    </div>
                                   </label>
                                   <label className="field">
                                     <span>Frame color</span>
-                                    <input
-                                      type="text"
-                                      value={item.frameColor || ''}
-                                      onChange={(event) => updatePhaseOneItem(idx, 'frameColor', event.target.value)}
-                                      placeholder="#3874e8"
-                                    />
+                                    <div className="inline-row">
+                                      <input
+                                        type="text"
+                                        value={item.frameColor || ''}
+                                        onChange={(event) => updatePhaseOneItem(idx, 'frameColor', event.target.value)}
+                                        placeholder="#3874e8"
+                                      />
+                                      <input
+                                        type="color"
+                                        className="color-input"
+                                        value={resolveHexColor(item.frameColor, '#3874e8')}
+                                        onChange={(event) => updatePhaseOneItem(idx, 'frameColor', event.target.value)}
+                                      />
+                                    </div>
+                                    <div className="color-palette-row">
+                                      {FEATURED_CARD_FRAME_PALETTE.map((color) => (
+                                        <button
+                                          key={`frame-${idx}-${color}`}
+                                          type="button"
+                                          className={`color-palette-swatch ${
+                                            (item.frameColor || '').toLowerCase() === color.toLowerCase() ? 'is-selected' : ''
+                                          }`}
+                                          style={{ backgroundColor: color }}
+                                          title={color}
+                                          onClick={() => updatePhaseOneItem(idx, 'frameColor', color)}
+                                        />
+                                      ))}
+                                    </div>
                                   </label>
                                   <label className="field">
                                     <span>Title color</span>
-                                    <input
-                                      type="text"
-                                      value={item.titleColor || ''}
-                                      onChange={(event) => updatePhaseOneItem(idx, 'titleColor', event.target.value)}
-                                      placeholder="#ffffff"
-                                    />
+                                    <div className="inline-row">
+                                      <input
+                                        type="text"
+                                        value={item.titleColor || ''}
+                                        onChange={(event) => updatePhaseOneItem(idx, 'titleColor', event.target.value)}
+                                        placeholder="#ffffff"
+                                      />
+                                      <input
+                                        type="color"
+                                        className="color-input"
+                                        value={resolveHexColor(item.titleColor, '#ffffff')}
+                                        onChange={(event) => updatePhaseOneItem(idx, 'titleColor', event.target.value)}
+                                      />
+                                    </div>
+                                    <div className="color-palette-row">
+                                      {FEATURED_CARD_TITLE_PALETTE.map((color) => (
+                                        <button
+                                          key={`title-${idx}-${color}`}
+                                          type="button"
+                                          className={`color-palette-swatch ${
+                                            (item.titleColor || '').toLowerCase() === color.toLowerCase()
+                                              ? 'is-selected'
+                                              : ''
+                                          }`}
+                                          style={{ backgroundColor: color }}
+                                          title={color}
+                                          onClick={() => updatePhaseOneItem(idx, 'titleColor', color)}
+                                        />
+                                      ))}
+                                    </div>
                                   </label>
                                   <label className="field">
                                     <span>Badge text color</span>
-                                    <input
-                                      type="text"
-                                      value={item.badgeTextColor || ''}
-                                      onChange={(event) =>
-                                        updatePhaseOneItem(idx, 'badgeTextColor', event.target.value)
-                                      }
-                                      placeholder="#d04667"
-                                    />
+                                    <div className="inline-row">
+                                      <input
+                                        type="text"
+                                        value={item.badgeTextColor || ''}
+                                        onChange={(event) =>
+                                          updatePhaseOneItem(idx, 'badgeTextColor', event.target.value)
+                                        }
+                                        placeholder="#d04667"
+                                      />
+                                      <input
+                                        type="color"
+                                        className="color-input"
+                                        value={resolveHexColor(item.badgeTextColor, '#d04667')}
+                                        onChange={(event) =>
+                                          updatePhaseOneItem(idx, 'badgeTextColor', event.target.value)
+                                        }
+                                      />
+                                    </div>
+                                    <div className="color-palette-row">
+                                      {FEATURED_CARD_BADGE_TEXT_PALETTE.map((color) => (
+                                        <button
+                                          key={`badge-${idx}-${color}`}
+                                          type="button"
+                                          className={`color-palette-swatch ${
+                                            (item.badgeTextColor || '').toLowerCase() === color.toLowerCase()
+                                              ? 'is-selected'
+                                              : ''
+                                          }`}
+                                          style={{ backgroundColor: color }}
+                                          title={color}
+                                          onClick={() => updatePhaseOneItem(idx, 'badgeTextColor', color)}
+                                        />
+                                      ))}
+                                    </div>
                                   </label>
                                 </div>
                               ) : null}
-                            </div>
-                          ))}
+                              </div>
+                            );
+                          })}
                         </div>
                       </>
                     ) : null}
@@ -4148,6 +5625,13 @@ function AppConfigPage({ token }) {
                             >
                               {isUploadingBentoImage ? 'Uploading...' : 'Upload'}
                             </button>
+                            <button
+                              type="button"
+                              className="ghost-btn small"
+                              onClick={() => openMediaPicker({ kind: 'header' })}
+                            >
+                              Library
+                            </button>
                           </div>
                         </label>
                         <label className="field field-span">
@@ -4168,6 +5652,13 @@ function AppConfigPage({ token }) {
                               disabled={isUploadingBentoImage}
                             >
                               {isUploadingBentoImage ? 'Uploading...' : 'Upload'}
+                            </button>
+                            <button
+                              type="button"
+                              className="ghost-btn small"
+                              onClick={() => openMediaPicker({ kind: 'hero' })}
+                            >
+                              Library
                             </button>
                           </div>
                         </label>
@@ -4225,6 +5716,13 @@ function AppConfigPage({ token }) {
                                   >
                                     {isUploadingBentoImage ? 'Uploading...' : 'Upload'}
                                   </button>
+                                  <button
+                                    type="button"
+                                    className="ghost-btn small"
+                                    onClick={() => openMediaPicker({ kind: 'tile', index: idx })}
+                                  >
+                                    Library
+                                  </button>
                                 </div>
                                 <input
                                   type="text"
@@ -4278,7 +5776,7 @@ function AppConfigPage({ token }) {
                         </label>
                       </>
                     ) : null}
-                    {!isEditingFixed ? (
+                    {!isEditingFixed && !isPhaseOneBlock ? (
                       <div className="field field-span">
                         <button
                           type="button"
@@ -4289,7 +5787,7 @@ function AppConfigPage({ token }) {
                         </button>
                       </div>
                     ) : null}
-                    {showAdvancedFields && !isEditingFixed ? (
+                    {showAdvancedFields && !isEditingFixed && !isPhaseOneBlock ? (
                       <>
                         <label className="field">
                           <span>Items path</span>
@@ -4319,13 +5817,13 @@ function AppConfigPage({ token }) {
                           />
                         </label>
                         <label className="field">
-                          <span>Columns (grid only)</span>
+                          <span>Columns (grid / shelves)</span>
                           <input
                             type="number"
                             min="1"
                             value={sectionForm.columns}
                             onChange={(event) => setSectionForm((prev) => ({ ...prev, columns: event.target.value }))}
-                            placeholder="2"
+                            placeholder="2 (e.g. 2 ya 3)"
                           />
                         </label>
                         {!isHeroBanner ? (

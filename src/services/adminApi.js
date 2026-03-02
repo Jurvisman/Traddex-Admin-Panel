@@ -165,6 +165,17 @@ export const rollbackAppConfig = (token, payload) =>
   request('/admin/app-config/rollback', { method: 'POST', body: payload, token });
 export const getAppConfigPresets = (token) => request('/admin/app-config/presets', { token });
 export const getPublishedAppConfig = () => request('/app-config');
+export const getHomeCategoryPreview = (token, { ids = [], limit = 2 } = {}) => {
+  const cleanIds = Array.isArray(ids)
+    ? ids
+        .map((id) => String(id || '').trim())
+        .filter(Boolean)
+    : [];
+  const params = new URLSearchParams();
+  params.set('ids', cleanIds.join(','));
+  params.set('limit', String(limit || 2));
+  return request(`/home/category-preview?${params.toString()}`, { token });
+};
 
 export const uploadBannerImages = async (token, files) => {
   const headers = {};
