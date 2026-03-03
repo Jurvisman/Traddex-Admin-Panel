@@ -1,6 +1,7 @@
 ﻿@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&display=swap');
 
 :root {
+  --font-sans: 'Lexend', 'Segoe UI', system-ui, sans-serif;
   --bg: #f3f0ff;
   --panel: #ffffff;
   --panel-soft: #f6f3ff;
@@ -21,7 +22,7 @@
 
 body {
   margin: 0;
-  font-family: 'Lexend', 'Segoe UI', system-ui, sans-serif;
+  font-family: var(--font-sans);
   background: radial-gradient(120% 90% at 10% 10%, #f2eaff 0%, #f8f7ff 45%, #ffffff 100%);
   color: var(--ink);
 }
@@ -31,6 +32,7 @@ input,
 select,
 textarea {
   font: inherit;
+  font-family: var(--font-sans);
 }
 
 .app-surface {
