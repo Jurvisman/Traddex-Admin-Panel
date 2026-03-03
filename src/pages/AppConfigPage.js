@@ -213,6 +213,26 @@ const screenToolboxItems = [
       type: 'grid',
       blockType: 'column_grid',
       title: 'Festive finds',
+      sectionBgColor: '#f5f0dc',
+      cardBgColor: '#9ad8f8',
+      columnTopLineStyle: 'curve',
+      dataSource: {
+        sourceType: 'CATEGORY_FEED',
+        mode: 'TOP_SELLING',
+        limit: 8,
+        rankingWindowDays: 30,
+        sortBy: 'MANUAL_RANK',
+        filters: {
+          activeOnly: true,
+          hasImageOnly: true,
+        },
+      },
+      mapping: {
+        titleField: 'name',
+        imageField: 'imageUrl',
+        secondaryImageField: 'categoryImage',
+        deepLinkTemplate: 'app://category/{id}',
+      },
       items: [
         { title: 'T-shirts & Mobile Pouch', imageUrl: '', secondaryImageUrl: '', deepLink: '' },
         { title: 'Holika Dahan', imageUrl: '', secondaryImageUrl: '', deepLink: '' },
@@ -566,11 +586,22 @@ const collectImageUrls = (node, bucket, visited = new WeakSet()) => {
 
 const isHexColor = (value) => /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(String(value || '').trim());
 const resolveHexColor = (value, fallback) => (isHexColor(value) ? String(value).trim() : fallback);
+const normalizeColumnTopLineStyle = (value) => {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'curve' || normalized === 'image') return 'curve';
+  return 'flat';
+};
 
 const FEATURED_CARD_BG_PALETTE = ['#f8d67a', '#ff8f4e', '#4f2a87', '#53baf6', '#e7c8ff', '#e9f8d4'];
 const FEATURED_CARD_FRAME_PALETTE = ['#3e75f0', '#1d4ed8', '#7c3aed', '#0ea5e9', '#f97316', '#16a34a'];
 const FEATURED_CARD_TITLE_PALETTE = ['#ffffff', '#0f172a', '#111827', '#1f2937', '#4f46e5', '#f8fafc'];
 const FEATURED_CARD_BADGE_TEXT_PALETTE = ['#d04563', '#be123c', '#1d4ed8', '#0f766e', '#7c2d12', '#4f46e5'];
+const COLUMN_GRID_BG_PALETTE = ['#f5f0dc', '#f9f3de', '#eef9ff', '#eaf7ff', '#f6f7ff', '#fff7ef'];
+const COLUMN_GRID_CARD_BG_PALETTE = ['#9ad8f8', '#b6e2ff', '#d5ecff', '#c3dbff', '#d8d4ff', '#ffd8f3'];
+const COLUMN_GRID_TOP_LINE_STYLES = [
+  { value: 'flat', label: 'Flat line' },
+  { value: 'curve', label: 'Curve line' },
+];
 const CATEGORY_FEED_SORT_OPTIONS = [
   { value: 'MANUAL_RANK', label: 'Manual rank' },
   { value: 'NAME', label: 'Name' },
@@ -602,6 +633,43 @@ const toNumberOrNull = (value) => {
   if (value === undefined || value === null || value === '') return null;
   const numeric = Number(value);
   return Number.isFinite(numeric) ? numeric : null;
+};
+
+const buildCategoryFeedFingerprint = (form, blockTypeOverride) => {
+  const blockType = String(blockTypeOverride || form?.blockType || form?.type || '').trim();
+  const sourceType = String(form?.sourceType || 'MANUAL').trim().toUpperCase();
+  if (!phaseOneBlockTypes.has(blockType) || sourceType !== 'CATEGORY_FEED') return '';
+  return JSON.stringify({
+    blockType,
+    sourceType,
+    sourceIndustryId: normalizeCollectionId(form?.sourceIndustryId),
+    sourceFeedMode: String(form?.sourceFeedMode || 'TOP_SELLING').trim().toUpperCase(),
+    sourceMainCategoryId: normalizeCollectionId(form?.sourceMainCategoryId),
+    sourceCategoryIds: Array.isArray(form?.sourceCategoryIds)
+      ? form.sourceCategoryIds.map((value) => normalizeCollectionId(value)).filter(Boolean).sort()
+      : [],
+    sourceLimit: String(form?.sourceLimit || '').trim(),
+    sourceSortBy: String(form?.sourceSortBy || '').trim().toUpperCase(),
+    sourceActiveOnly: form?.sourceActiveOnly !== false,
+    sourceHasImageOnly: form?.sourceHasImageOnly !== false,
+    sourceRankingWindowDays: String(form?.sourceRankingWindowDays || '30').trim(),
+    mappingTitleField: String(form?.mappingTitleField || '').trim(),
+    mappingImageField: String(form?.mappingImageField || '').trim(),
+    mappingSecondaryImageField: String(form?.mappingSecondaryImageField || '').trim(),
+    mappingDeepLinkTemplate: String(form?.mappingDeepLinkTemplate || '').trim(),
+  });
+};
+
+const isValidDeepLinkValue = (value) => {
+  const link = String(value || '').trim();
+  if (!link) return true;
+  return (
+    link.startsWith('app://') ||
+    link.startsWith('traddex://') ||
+    link.startsWith('/') ||
+    link.startsWith('http://') ||
+    link.startsWith('https://')
+  );
 };
 
 const matchesLayoutPreset = (preset, form) => {
@@ -949,6 +1017,8 @@ const defaultSectionForm = {
   placement: '',
   placeholder: '',
   sectionBgColor: '',
+  sectionBgImage: '',
+  columnTopLineStyle: 'curve',
   cardBgColor: '',
   titleColor: '',
   badgeBgColor: '',
@@ -987,6 +1057,7 @@ const defaultSectionForm = {
   sourceMainCategoryId: '',
   sourceCategoryIds: [],
   sourceLimit: '8',
+  sourceRankingWindowDays: '30',
   sourceSortBy: 'MANUAL_RANK',
   sourceLevel: 'CATEGORY',
   sourceActiveOnly: true,
@@ -1183,6 +1254,9 @@ function AppConfigPage({ token }) {
   const [sourceCategories, setSourceCategories] = useState([]);
   const [isLoadingSourceCategories, setIsLoadingSourceCategories] = useState(false);
   const [isResolvingSource, setIsResolvingSource] = useState(false);
+  const [lastAppliedSourceFingerprint, setLastAppliedSourceFingerprint] = useState('');
+  const [sourceAutoRefresh, setSourceAutoRefresh] = useState(true);
+  const [showAdvancedSourceSettings, setShowAdvancedSourceSettings] = useState(false);
   const bannerInputRef = useRef(null);
   const headerInputRef = useRef(null);
   const heroBannerInputRef = useRef(null);
@@ -1329,6 +1403,9 @@ function AppConfigPage({ token }) {
   useEffect(() => {
     setPhaseOneImageWarnings({});
     closeMediaPicker();
+    const blockType = sectionForm.blockType || sectionForm.type || '';
+    setLastAppliedSourceFingerprint(buildCategoryFeedFingerprint(sectionForm, blockType));
+    setShowAdvancedSourceSettings(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingSectionIndex, sectionForm.blockType, sectionForm.type]);
 
@@ -1347,6 +1424,39 @@ function AppConfigPage({ token }) {
     loadSourceCategories(mainId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sectionForm.blockType, sectionForm.type, sectionForm.sourceType, sectionForm.sourceMainCategoryId]);
+
+  useEffect(() => {
+    const resolvedBlockType = sectionForm.blockType || sectionForm.type || '';
+    if (resolvedBlockType !== 'column_grid') return;
+    if (!sourceAutoRefresh || isResolvingSource) return;
+    const fingerprint = buildCategoryFeedFingerprint(sectionForm, resolvedBlockType);
+    if (!fingerprint || fingerprint === lastAppliedSourceFingerprint) return;
+    const timer = setTimeout(() => {
+      handleApplyCategoryFeed();
+    }, 500);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    sectionForm.blockType,
+    sectionForm.type,
+    sectionForm.sourceType,
+    sectionForm.sourceIndustryId,
+    sectionForm.sourceFeedMode,
+    sectionForm.sourceMainCategoryId,
+    sectionForm.sourceCategoryIds,
+    sectionForm.sourceLimit,
+    sectionForm.sourceSortBy,
+    sectionForm.sourceActiveOnly,
+    sectionForm.sourceHasImageOnly,
+    sectionForm.sourceRankingWindowDays,
+    sectionForm.mappingTitleField,
+    sectionForm.mappingImageField,
+    sectionForm.mappingSecondaryImageField,
+    sectionForm.mappingDeepLinkTemplate,
+    sourceAutoRefresh,
+    isResolvingSource,
+    lastAppliedSourceFingerprint,
+  ]);
 
   const loadDraft = async () => {
     setIsLoading(true);
@@ -1954,6 +2064,44 @@ function AppConfigPage({ token }) {
     return Array.isArray(items) ? items : [];
   };
 
+  const applyFestiveColumnGridPreset = () => {
+    if ((sectionForm.blockType || sectionForm.type || '') !== 'column_grid') return;
+    setSectionForm((prev) => {
+      const normalizedItems = normalizePhaseOneItems(prev.sduiItems, 'column_grid');
+      return {
+        ...prev,
+        title: (prev.title || '').trim() || 'Festive finds',
+        sectionBgColor: resolveHexColor(prev.sectionBgColor, '#f5f0dc'),
+        cardBgColor: resolveHexColor(prev.cardBgColor, '#9ad8f8'),
+        columnTopLineStyle: normalizeColumnTopLineStyle(prev.columnTopLineStyle || 'curve'),
+        sourceType: 'CATEGORY_FEED',
+        sourceFeedMode: 'TOP_SELLING',
+        sourceLimit: String(Math.max(1, Math.min(20, Number(prev.sourceLimit || 8)))),
+        sourceSortBy: prev.sourceSortBy || 'MANUAL_RANK',
+        sourceActiveOnly: true,
+        sourceHasImageOnly: true,
+        sourceRankingWindowDays: String(Math.max(1, Math.min(365, Number(prev.sourceRankingWindowDays || 30)))),
+        mappingTitleField: prev.mappingTitleField || 'name',
+        mappingImageField: prev.mappingImageField || 'imageUrl',
+        mappingSecondaryImageField: prev.mappingSecondaryImageField || 'categoryImage',
+        mappingDeepLinkTemplate: prev.mappingDeepLinkTemplate || 'app://category/{id}',
+        sduiItems: normalizedItems.map((item) => ({
+          ...item,
+          title: item.title || '',
+          imageUrl: item.imageUrl || '',
+          secondaryImageUrl: item.secondaryImageUrl || '',
+          deepLink: item.deepLink || '',
+        })),
+      };
+    });
+    setSourceAutoRefresh(true);
+    setShowAdvancedSourceSettings(false);
+    setMessage({
+      type: 'info',
+      text: 'Festive preset applied. Main category / categories select karo, pachi Refresh feed karo.',
+    });
+  };
+
   const handleApplyCategoryFeed = async () => {
     const resolvedBlockType = sectionForm.blockType || sectionForm.type || '';
     if (!phaseOneBlockTypes.has(resolvedBlockType)) {
@@ -1976,6 +2124,7 @@ function AppConfigPage({ token }) {
         : new Set();
       const industryId = normalizeCollectionId(sectionForm.sourceIndustryId);
       const feedMode = String(sectionForm.sourceFeedMode || 'TOP_SELLING').toUpperCase();
+      const rankingWindowDays = Math.max(1, Math.min(365, Number(sectionForm.sourceRankingWindowDays || 30)));
 
       let resolvedMainCategoryId = normalizeCollectionId(sectionForm.sourceMainCategoryId);
       let allCategories = [];
@@ -2028,13 +2177,15 @@ function AppConfigPage({ token }) {
         const response = await getHomeCategoryPreview(token, {
           ids,
           limit: 2,
+          rankingWindowDays,
         });
         const previewCategories = response?.data?.categories;
         const scoreById = new Map(
           (Array.isArray(previewCategories) ? previewCategories : []).map((item) => {
             const id = resolveCategoryId(item);
+            const salesScore = Number(item?.salesScore || 0);
             const itemCount = Array.isArray(item?.items) ? item.items.length : 0;
-            const score = itemCount + Number(item?.moreCount || 0);
+            const score = salesScore > 0 ? salesScore : itemCount + Number(item?.moreCount || 0);
             return [id, score];
           })
         );
@@ -2057,6 +2208,7 @@ function AppConfigPage({ token }) {
       const deepLinkTemplate = sectionForm.mappingDeepLinkTemplate || 'app://category/{id}';
       const titleField = sectionForm.mappingTitleField || 'name';
       const imageField = sectionForm.mappingImageField || 'imageUrl';
+      const secondaryImageField = sectionForm.mappingSecondaryImageField || '';
 
       let nextItems = picked.map((item, index) => {
         const title =
@@ -2086,6 +2238,7 @@ function AppConfigPage({ token }) {
         const response = await getHomeCategoryPreview(token, {
           ids: picked.map((item) => resolveCategoryId(item)).filter(Boolean),
           limit: 2,
+          rankingWindowDays,
         });
         const categoryPreview = response?.data?.categories;
         const byId = new Map(
@@ -2098,14 +2251,18 @@ function AppConfigPage({ token }) {
           const previewItems = Array.isArray(preview?.items) ? preview.items : [];
           const first = previewItems[0] || null;
           const second = previewItems[1] || null;
+          const mappedPrimaryImage =
+            (imageField && item?.[imageField]) || resolveCategoryImage(item) || '';
+          const mappedSecondaryImage =
+            (secondaryImageField && item?.[secondaryImageField]) || '';
           const title =
             (titleField === 'name' ? resolveCategoryName(item) : item?.[titleField]) || resolveCategoryName(item);
           return {
             id: categoryId,
             collectionId: categoryId,
             title: String(title || ''),
-            imageUrl: first?.imageUrl || resolveCategoryImage(item) || '',
-            secondaryImageUrl: second?.imageUrl || '',
+            imageUrl: first?.imageUrl || mappedPrimaryImage,
+            secondaryImageUrl: second?.imageUrl || mappedSecondaryImage,
             deepLink: resolveDeepLinkFromTemplate(deepLinkTemplate, {
               id: categoryId,
               name: resolveCategoryName(item),
@@ -2136,6 +2293,19 @@ function AppConfigPage({ token }) {
             : prev.title,
         sduiItems: nextItems,
       }));
+      setLastAppliedSourceFingerprint(
+        buildCategoryFeedFingerprint(
+          {
+            ...sectionForm,
+            sourceType: 'CATEGORY_FEED',
+            sourceFeedMode: feedMode,
+            sourceIndustryId: industryId,
+            sourceMainCategoryId: normalizeCollectionId(resolvedMainCategoryId),
+            sourceLimit: String(limit),
+          },
+          resolvedBlockType
+        )
+      );
       setMessage({ type: 'success', text: `Loaded ${nextItems.length} items from category feed.` });
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to resolve category feed.' });
@@ -2567,6 +2737,9 @@ function AppConfigPage({ token }) {
 
   const buildSectionFromForm = (base, form) => {
     const next = { ...(base || {}) };
+    const resolvedBlockType = form.blockType?.trim() || form.type?.trim() || '';
+    const isColumnGridBlock = resolvedBlockType === 'column_grid';
+    const isCampaignBentoBlock = resolvedBlockType === 'campaignBento';
     const setOrDelete = (key, value) => {
       if (value === undefined || value === null || String(value).trim() === '') {
         delete next[key];
@@ -2584,6 +2757,17 @@ function AppConfigPage({ token }) {
     setOrDelete('deepLink', form.deepLink?.trim());
     setOrDelete('placeholder', form.placeholder?.trim());
     setOrDelete('sectionBgColor', form.sectionBgColor?.trim());
+    if (isColumnGridBlock) {
+      setOrDelete('sectionBgImage', form.sectionBgImage?.trim());
+      next.columnTopLineStyle = normalizeColumnTopLineStyle(form.columnTopLineStyle);
+      delete next.columnTopLineColor;
+      delete next.columnTopLineImage;
+    } else {
+      delete next.sectionBgImage;
+      delete next.columnTopLineStyle;
+      delete next.columnTopLineColor;
+      delete next.columnTopLineImage;
+    }
     setOrDelete('cardBgColor', form.cardBgColor?.trim());
     setOrDelete('titleColor', form.titleColor?.trim());
     setOrDelete('badgeBgColor', form.badgeBgColor?.trim());
@@ -2625,40 +2809,47 @@ function AppConfigPage({ token }) {
     } else {
       delete next.imageGap;
     }
-    const headerImage = form.bentoHeaderImage?.trim();
-    if (headerImage) {
-      next.headerImage = headerImage;
-    } else {
-      delete next.headerImage;
-    }
-    const heroImage = form.bentoHeroImage?.trim();
-    const heroLink = form.bentoHeroLink?.trim();
-    const heroLabel = form.bentoHeroLabel?.trim();
-    const heroBadge = form.bentoHeroBadge?.trim();
-    if (heroImage || heroLink || heroLabel || heroBadge) {
-      next.hero = {
-        ...(heroImage ? { imageUrl: heroImage } : {}),
-        ...(heroLink ? { deepLink: heroLink } : {}),
-        ...(heroLabel ? { label: heroLabel } : {}),
-        ...(heroBadge ? { badgeText: heroBadge } : {}),
-      };
+    if (isCampaignBentoBlock) {
+      const headerImage = form.bentoHeaderImage?.trim();
+      if (headerImage) {
+        next.headerImage = headerImage;
+      } else {
+        delete next.headerImage;
+      }
+      const heroImage = form.bentoHeroImage?.trim();
+      const heroLink = form.bentoHeroLink?.trim();
+      const heroLabel = form.bentoHeroLabel?.trim();
+      const heroBadge = form.bentoHeroBadge?.trim();
+      if (heroImage || heroLink || heroLabel || heroBadge) {
+        next.hero = {
+          ...(heroImage ? { imageUrl: heroImage } : {}),
+          ...(heroLink ? { deepLink: heroLink } : {}),
+          ...(heroLabel ? { label: heroLabel } : {}),
+          ...(heroBadge ? { badgeText: heroBadge } : {}),
+        };
+      } else {
+        delete next.hero;
+      }
+      const tiles = Array.isArray(form.bentoTiles) ? form.bentoTiles : [];
+      const normalizedTiles = tiles
+        .map((tile) => ({
+          imageUrl: tile?.imageUrl ? String(tile.imageUrl).trim() : '',
+          deepLink: tile?.deepLink ? String(tile.deepLink).trim() : '',
+          label: tile?.label ? String(tile.label).trim() : '',
+        }))
+        .filter((tile) => tile.imageUrl || tile.deepLink || tile.label);
+      if (normalizedTiles.length > 0) {
+        next.tiles = normalizedTiles;
+      } else {
+        delete next.tiles;
+      }
     } else {
       delete next.hero;
-    }
-    const tiles = Array.isArray(form.bentoTiles) ? form.bentoTiles : [];
-    const normalizedTiles = tiles
-      .map((tile) => ({
-        imageUrl: tile?.imageUrl ? String(tile.imageUrl).trim() : '',
-        deepLink: tile?.deepLink ? String(tile.deepLink).trim() : '',
-        label: tile?.label ? String(tile.label).trim() : '',
-      }))
-      .filter((tile) => tile.imageUrl || tile.deepLink || tile.label);
-    if (normalizedTiles.length > 0) {
-      next.tiles = normalizedTiles;
-    } else {
       delete next.tiles;
+      if (!isColumnGridBlock) {
+        delete next.headerImage;
+      }
     }
-    const resolvedBlockType = form.blockType?.trim() || form.type?.trim() || '';
     if (phaseOneBlockTypes.has(resolvedBlockType)) {
       const normalizedItems = normalizePhaseOneItems(form.sduiItems, resolvedBlockType)
         .map((item) => {
@@ -2711,6 +2902,8 @@ function AppConfigPage({ token }) {
       const sourceLimit = toNumberOrNull(form.sourceLimit);
       if (sourceLimit) sourcePayload.limit = Math.max(1, Math.min(20, sourceLimit));
       if (sourceType === 'CATEGORY_FEED') {
+        const rankingWindowDays = toNumberOrNull(form.sourceRankingWindowDays);
+        if (rankingWindowDays) sourcePayload.rankingWindowDays = Math.max(1, Math.min(365, rankingWindowDays));
         if (form.sourceSortBy) sourcePayload.sortBy = String(form.sourceSortBy).trim().toUpperCase();
         if (form.sourceLevel) sourcePayload.level = String(form.sourceLevel).trim().toUpperCase();
         sourcePayload.filters = {
@@ -3188,6 +3381,8 @@ function AppConfigPage({ token }) {
       aspectRatio: section?.aspectRatio || '',
       deepLink: section?.deepLink || firstItem?.deepLink || firstItem?.targetUrl || '',
       sectionBgColor: section?.sectionBgColor || '',
+      sectionBgImage: section?.sectionBgImage || '',
+      columnTopLineStyle: normalizeColumnTopLineStyle(section?.columnTopLineStyle),
       cardBgColor: section?.cardBgColor || '',
       titleColor: section?.titleColor || '',
       badgeBgColor: section?.badgeBgColor || '',
@@ -3239,6 +3434,10 @@ function AppConfigPage({ token }) {
         : [],
       sourceLimit:
         source?.limit !== undefined && source?.limit !== null ? String(source.limit) : defaultSectionForm.sourceLimit,
+      sourceRankingWindowDays:
+        source?.rankingWindowDays !== undefined && source?.rankingWindowDays !== null
+          ? String(source.rankingWindowDays)
+          : defaultSectionForm.sourceRankingWindowDays,
       sourceSortBy: source?.sortBy || defaultSectionForm.sourceSortBy,
       sourceLevel: source?.level || defaultSectionForm.sourceLevel,
       sourceActiveOnly: source?.filters?.activeOnly !== false,
@@ -3718,28 +3917,57 @@ function AppConfigPage({ token }) {
     }
 
     if (blockType === 'column_grid') {
+      const sectionBgColor = section?.sectionBgColor || '#f5f0dc';
+      const sectionBgImage = section?.sectionBgImage || '';
+      const cardBgColor = section?.cardBgColor || '#9ad8f8';
+      const topLineStyle = normalizeColumnTopLineStyle(section?.columnTopLineStyle);
       return (
         <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
-          {title ? <div className="preview-title">{title}</div> : null}
-          <div className="preview-phase-one-column-grid">
-            {items.map((item, itemIndex) => {
-              const image = getPreviewImage(item);
-              const secondary = getPreviewSecondaryImage(item);
-              const label = getPreviewTitle(item);
-              return (
-                <div key={`preview-column-grid-${index}-${itemIndex}`} className="preview-phase-one-column-card">
-                  <div className="preview-phase-one-column-title">{label}</div>
-                  <div className="preview-phase-one-column-images">
-                    <div className="preview-phase-one-column-image">
-                      {image ? <img src={image} alt="" /> : <div className="preview-image-placeholder" />}
+          <div
+            className="preview-phase-one-column-shell"
+            style={
+              sectionBgColor
+                ? { backgroundColor: sectionBgColor, '--column-shell-bg': sectionBgColor }
+                : { '--column-shell-bg': '#f5f0dc' }
+            }
+          >
+            {sectionBgImage ? (
+              <img className="preview-phase-one-column-bg-image" src={sectionBgImage} alt="" />
+            ) : null}
+            <div
+              className={`preview-phase-one-column-topline ${
+                topLineStyle === 'curve'
+                  ? 'preview-phase-one-column-topline-curve'
+                  : 'preview-phase-one-column-topline-flat'
+              }`}
+            />
+            <div className="preview-phase-one-column-content">
+              {title ? <div className="preview-title">{title}</div> : null}
+              <div className="preview-phase-one-column-grid">
+                {items.map((item, itemIndex) => {
+                  const image = getPreviewImage(item);
+                  const secondary = getPreviewSecondaryImage(item);
+                  const label = getPreviewTitle(item);
+                  return (
+                    <div
+                      key={`preview-column-grid-${index}-${itemIndex}`}
+                      className="preview-phase-one-column-card"
+                      style={{ backgroundColor: cardBgColor }}
+                    >
+                      <div className="preview-phase-one-column-title">{label}</div>
+                      <div className="preview-phase-one-column-images">
+                        <div className="preview-phase-one-column-image">
+                          {image ? <img src={image} alt="" /> : <div className="preview-image-placeholder" />}
+                        </div>
+                        <div className="preview-phase-one-column-image">
+                          {secondary ? <img src={secondary} alt="" /> : <div className="preview-image-placeholder" />}
+                        </div>
+                      </div>
                     </div>
-                    <div className="preview-phase-one-column-image">
-                      {secondary ? <img src={secondary} alt="" /> : <div className="preview-image-placeholder" />}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
       );
@@ -3941,6 +4169,16 @@ function AppConfigPage({ token }) {
   const isPhaseOneCategoryIconGrid = screenBlockType === 'category_icon_grid';
   const isPhaseOneBrandGrid = screenBlockType === 'brand_logo_grid';
   const isPhaseOneProductShelf = screenBlockType === 'product_shelf_horizontal';
+  const currentSourceFingerprint = buildCategoryFeedFingerprint(sectionForm, screenBlockType);
+  const hasPendingSourceChanges = Boolean(
+    isPhaseOneColumnGrid &&
+      String(sectionForm.sourceType || 'MANUAL').toUpperCase() === 'CATEGORY_FEED' &&
+      currentSourceFingerprint &&
+      currentSourceFingerprint !== lastAppliedSourceFingerprint
+  );
+  const isMappingDeepLinkTemplateValid = isValidDeepLinkValue(
+    sectionForm.mappingDeepLinkTemplate || 'app://category/{id}'
+  );
   const isCategoryPreviewGrid = screenBlockType === 'categoryPreviewGrid';
   const isCampaignBento = screenBlockType === 'campaignBento';
   const isMultiItemGrid =
@@ -4662,52 +4900,156 @@ function AppConfigPage({ token }) {
                                         )}
                                       </label>
                                     ) : null}
-                                    {!isPhaseOneCategoryIconGrid ? (
-                                      <label className="field field-span">
-                                        <span>Deep link template</span>
-                                        <div className="inline-row">
-                                          <select
-                                            value={
-                                              DEEP_LINK_TEMPLATE_PRESETS.some(
-                                                (opt) =>
-                                                  opt.value ===
-                                                  (sectionForm.mappingDeepLinkTemplate || 'app://category/{id}')
-                                              )
-                                                ? sectionForm.mappingDeepLinkTemplate || 'app://category/{id}'
-                                                : ''
-                                            }
-                                            onChange={(event) =>
-                                              setSectionForm((prev) => ({
-                                                ...prev,
-                                                mappingDeepLinkTemplate:
-                                                  event.target.value || prev.mappingDeepLinkTemplate,
-                                              }))
-                                            }
-                                          >
-                                            <option value="">Custom</option>
-                                            {DEEP_LINK_TEMPLATE_PRESETS.map((opt) => (
-                                              <option key={opt.value} value={opt.value}>
-                                                {opt.label}
-                                              </option>
-                                            ))}
-                                          </select>
-                                          <input
-                                            type="text"
-                                            value={sectionForm.mappingDeepLinkTemplate || 'app://category/{id}'}
-                                            onChange={(event) =>
-                                              setSectionForm((prev) => ({
-                                                ...prev,
-                                                mappingDeepLinkTemplate: event.target.value,
-                                              }))
-                                            }
-                                            placeholder="app://category/{id}"
-                                          />
-                                        </div>
-                                        <p className="field-help">
-                                          Use {'{id}'}, {'{name}'}, {'{slug}'} placeholders. Example:{' '}
-                                          <code>app://category/{'{id}'}</code>, <code>app://campaign/{'{slug}'}</code>.
+                                    <div className="field field-span">
+                                      <div className="inline-row">
+                                        {isPhaseOneColumnGrid ? (
+                                          <label className="checkbox-row">
+                                            <input
+                                              type="checkbox"
+                                              checked={sourceAutoRefresh}
+                                              onChange={(event) => setSourceAutoRefresh(event.target.checked)}
+                                            />
+                                            Auto-refresh on source change
+                                          </label>
+                                        ) : null}
+                                        <button
+                                          type="button"
+                                          className="ghost-btn small"
+                                          onClick={() => setShowAdvancedSourceSettings((prev) => !prev)}
+                                        >
+                                          {showAdvancedSourceSettings
+                                            ? 'Hide advanced source settings'
+                                            : 'Show advanced source settings'}
+                                        </button>
+                                      </div>
+                                      {!sourceAutoRefresh && hasPendingSourceChanges ? (
+                                        <p className="field-warning">
+                                          Source settings changed. Click Refresh feed to update preview items.
                                         </p>
-                                      </label>
+                                      ) : null}
+                                    </div>
+                                    {showAdvancedSourceSettings ? (
+                                      <div className="field field-span source-advanced-grid">
+                                        {(isPhaseOneColumnGrid || isPhaseOneCategoryIconGrid) ? (
+                                          <label className="field">
+                                            <span>Top-selling window (days)</span>
+                                            <input
+                                              type="number"
+                                              min="1"
+                                              max="365"
+                                              value={sectionForm.sourceRankingWindowDays || '30'}
+                                              onChange={(event) =>
+                                                setSectionForm((prev) => ({
+                                                  ...prev,
+                                                  sourceRankingWindowDays: event.target.value,
+                                                }))
+                                              }
+                                            />
+                                            <p className="field-help">
+                                              Last N days order data thi category ranking calculate thase.
+                                            </p>
+                                          </label>
+                                        ) : null}
+                                        {!isPhaseOneCategoryIconGrid ? (
+                                          <>
+                                            <label className="field">
+                                              <span>Title field</span>
+                                              <input
+                                                type="text"
+                                                value={sectionForm.mappingTitleField || 'name'}
+                                                onChange={(event) =>
+                                                  setSectionForm((prev) => ({
+                                                    ...prev,
+                                                    mappingTitleField: event.target.value,
+                                                  }))
+                                                }
+                                                placeholder="name"
+                                              />
+                                            </label>
+                                            <label className="field">
+                                              <span>Primary image field</span>
+                                              <input
+                                                type="text"
+                                                value={sectionForm.mappingImageField || 'imageUrl'}
+                                                onChange={(event) =>
+                                                  setSectionForm((prev) => ({
+                                                    ...prev,
+                                                    mappingImageField: event.target.value,
+                                                  }))
+                                                }
+                                                placeholder="imageUrl"
+                                              />
+                                            </label>
+                                            {isPhaseOneColumnGrid ? (
+                                              <label className="field">
+                                                <span>Secondary image field</span>
+                                                <input
+                                                  type="text"
+                                                  value={sectionForm.mappingSecondaryImageField || ''}
+                                                  onChange={(event) =>
+                                                    setSectionForm((prev) => ({
+                                                      ...prev,
+                                                      mappingSecondaryImageField: event.target.value,
+                                                    }))
+                                                  }
+                                                  placeholder="secondaryImageUrl"
+                                                />
+                                              </label>
+                                            ) : null}
+                                            <label className="field field-span">
+                                              <span>Deep link template</span>
+                                              <div className="inline-row">
+                                                <select
+                                                  value={
+                                                    DEEP_LINK_TEMPLATE_PRESETS.some(
+                                                      (opt) =>
+                                                        opt.value ===
+                                                        (sectionForm.mappingDeepLinkTemplate || 'app://category/{id}')
+                                                    )
+                                                      ? sectionForm.mappingDeepLinkTemplate || 'app://category/{id}'
+                                                      : ''
+                                                  }
+                                                  onChange={(event) =>
+                                                    setSectionForm((prev) => ({
+                                                      ...prev,
+                                                      mappingDeepLinkTemplate:
+                                                        event.target.value || prev.mappingDeepLinkTemplate,
+                                                    }))
+                                                  }
+                                                >
+                                                  <option value="">Custom</option>
+                                                  {DEEP_LINK_TEMPLATE_PRESETS.map((opt) => (
+                                                    <option key={opt.value} value={opt.value}>
+                                                      {opt.label}
+                                                    </option>
+                                                  ))}
+                                                </select>
+                                                <input
+                                                  type="text"
+                                                  value={sectionForm.mappingDeepLinkTemplate || 'app://category/{id}'}
+                                                  onChange={(event) =>
+                                                    setSectionForm((prev) => ({
+                                                      ...prev,
+                                                      mappingDeepLinkTemplate: event.target.value,
+                                                    }))
+                                                  }
+                                                  placeholder="app://category/{id}"
+                                                />
+                                              </div>
+                                              <p className="field-help">
+                                                Use {'{id}'}, {'{name}'}, {'{slug}'} placeholders. Example:{' '}
+                                                <code>app://category/{'{id}'}</code>,{' '}
+                                                <code>app://campaign/{'{slug}'}</code>.
+                                              </p>
+                                              {!isMappingDeepLinkTemplateValid ? (
+                                                <span className="field-warning">
+                                                  Deep link should start with app://, traddex://, / or http(s)://
+                                                </span>
+                                              ) : null}
+                                            </label>
+                                          </>
+                                        ) : null}
+                                      </div>
                                     ) : null}
                                     <div className="field field-span">
                                       <div className="inline-row">
@@ -4717,12 +5059,18 @@ function AppConfigPage({ token }) {
                                           onClick={handleApplyCategoryFeed}
                                           disabled={isResolvingSource}
                                         >
-                                          {isResolvingSource ? 'Loading...' : 'Apply source'}
+                                          {isResolvingSource
+                                            ? 'Loading...'
+                                            : isPhaseOneColumnGrid
+                                              ? 'Refresh feed'
+                                              : 'Apply source'}
                                         </button>
                                         <span className="field-help">
                                           {isPhaseOneCategoryIconGrid
                                             ? 'Main category title + category icons auto-fill thase.'
-                                            : 'Top categories load thase and below item cards auto fill thase.'}
+                                            : isPhaseOneColumnGrid
+                                              ? 'Selected categories ni live preview images refresh thase.'
+                                              : 'Top categories load thase and below item cards auto fill thase.'}
                                         </span>
                                       </div>
                                     </div>
@@ -4908,20 +5256,14 @@ function AppConfigPage({ token }) {
                                   </select>
                                 </label>
                               ) : null}
-                              {(isPhaseOneHorizontalList || isPhaseOneColumnGrid) ? (
+                              {isPhaseOneHorizontalList ? (
                                 <label className="field">
-                                  <span>{isPhaseOneHorizontalList ? 'Badge text' : 'Subtitle'}</span>
+                                  <span>Badge text</span>
                                   <input
                                     type="text"
-                                    value={isPhaseOneHorizontalList ? item.badgeText || '' : item.subtitle || ''}
-                                    onChange={(event) =>
-                                      updatePhaseOneItem(
-                                        idx,
-                                        isPhaseOneHorizontalList ? 'badgeText' : 'subtitle',
-                                        event.target.value
-                                      )
-                                    }
-                                    placeholder={isPhaseOneHorizontalList ? 'Festive finds' : 'Optional subtitle'}
+                                    value={item.badgeText || ''}
+                                    onChange={(event) => updatePhaseOneItem(idx, 'badgeText', event.target.value)}
+                                    placeholder="Festive finds"
                                   />
                                 </label>
                               ) : null}
@@ -5185,6 +5527,160 @@ function AppConfigPage({ token }) {
                             );
                           })}
                         </div>
+                        {isPhaseOneColumnGrid ? (
+                          <>
+                            <div className="field field-span">
+                              <div className="inline-row">
+                                <button
+                                  type="button"
+                                  className="ghost-btn small"
+                                  onClick={applyFestiveColumnGridPreset}
+                                >
+                                  Apply market preset
+                                </button>
+                                <span className="field-help">
+                                  Recommended festive defaults + CATEGORY_FEED mapping auto set thase.
+                                </span>
+                              </div>
+                            </div>
+                            <label className="field">
+                              <span>Section background color</span>
+                              <div className="inline-row">
+                                <input
+                                  type="text"
+                                  value={sectionForm.sectionBgColor}
+                                  onChange={(event) =>
+                                    setSectionForm((prev) => ({ ...prev, sectionBgColor: event.target.value }))
+                                  }
+                                  placeholder="#f5f0dc"
+                                />
+                                <input
+                                  type="color"
+                                  className="color-input"
+                                  value={resolveHexColor(sectionForm.sectionBgColor, '#f5f0dc')}
+                                  onChange={(event) =>
+                                    setSectionForm((prev) => ({ ...prev, sectionBgColor: event.target.value }))
+                                  }
+                                />
+                              </div>
+                              <div className="color-palette-row">
+                                {COLUMN_GRID_BG_PALETTE.map((color) => (
+                                  <button
+                                    key={`col-grid-bg-${color}`}
+                                    type="button"
+                                    className={`color-palette-swatch ${
+                                      (sectionForm.sectionBgColor || '').toLowerCase() === color.toLowerCase()
+                                        ? 'is-selected'
+                                        : ''
+                                    }`}
+                                    style={{ backgroundColor: color }}
+                                    title={color}
+                                    onClick={() =>
+                                      setSectionForm((prev) => ({
+                                        ...prev,
+                                        sectionBgColor: color,
+                                      }))
+                                    }
+                                  />
+                                ))}
+                              </div>
+                            </label>
+                            <label className="field">
+                              <span>Card color (all cards)</span>
+                              <div className="inline-row">
+                                <input
+                                  type="text"
+                                  value={sectionForm.cardBgColor}
+                                  onChange={(event) =>
+                                    setSectionForm((prev) => ({ ...prev, cardBgColor: event.target.value }))
+                                  }
+                                  placeholder="#9ad8f8"
+                                />
+                                <input
+                                  type="color"
+                                  className="color-input"
+                                  value={resolveHexColor(sectionForm.cardBgColor, '#9ad8f8')}
+                                  onChange={(event) =>
+                                    setSectionForm((prev) => ({ ...prev, cardBgColor: event.target.value }))
+                                  }
+                                />
+                              </div>
+                              <div className="color-palette-row">
+                                {COLUMN_GRID_CARD_BG_PALETTE.map((color) => (
+                                  <button
+                                    key={`col-grid-card-${color}`}
+                                    type="button"
+                                    className={`color-palette-swatch ${
+                                      (sectionForm.cardBgColor || '').toLowerCase() === color.toLowerCase()
+                                        ? 'is-selected'
+                                        : ''
+                                    }`}
+                                    style={{ backgroundColor: color }}
+                                    title={color}
+                                    onClick={() =>
+                                      setSectionForm((prev) => ({
+                                        ...prev,
+                                        cardBgColor: color,
+                                      }))
+                                    }
+                                  />
+                                ))}
+                              </div>
+                            </label>
+                            <label className="field field-span">
+                              <span>Section background image URL (optional)</span>
+                              <div className="inline-row">
+                                <input
+                                  type="text"
+                                  value={sectionForm.sectionBgImage || ''}
+                                  onChange={(event) =>
+                                    setSectionForm((prev) => ({ ...prev, sectionBgImage: event.target.value }))
+                                  }
+                                  placeholder="https://cdn.example.com/festive-bg.png"
+                                />
+                                <button
+                                  type="button"
+                                  className="ghost-btn small"
+                                  onClick={() => handleBentoImageClick({ kind: 'sectionField', field: 'sectionBgImage' })}
+                                  disabled={isUploadingBentoImage}
+                                >
+                                  {isUploadingBentoImage ? 'Uploading...' : 'Upload'}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="ghost-btn small"
+                                  onClick={() => openMediaPicker({ kind: 'sectionField', field: 'sectionBgImage' })}
+                                >
+                                  Library
+                                </button>
+                              </div>
+                              <p className="field-help">
+                                Background image set karsho to section ma image render thase, color fallback tarike use thase.
+                              </p>
+                            </label>
+                            <label className="field">
+                              <span>Top line style</span>
+                              <select
+                                value={normalizeColumnTopLineStyle(sectionForm.columnTopLineStyle)}
+                                onChange={(event) =>
+                                  setSectionForm((prev) => ({
+                                    ...prev,
+                                    columnTopLineStyle: normalizeColumnTopLineStyle(event.target.value),
+                                  }))
+                                }
+                              >
+                                {COLUMN_GRID_TOP_LINE_STYLES.map((item) => (
+                                  <option key={item.value} value={item.value}>
+                                    {item.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                            <p className="field-help field-span">
+                              Curve line ma festive curvy edge dekhase, Flat line ma straight top strip dekhase.
+                            </p>
+                          </>
+                        ) : null}
                       </>
                     ) : null}
                     {isMultiItemGrid ? (
@@ -6952,4 +7448,3 @@ function AppConfigPage({ token }) {
 }
 
 export default AppConfigPage;
-
