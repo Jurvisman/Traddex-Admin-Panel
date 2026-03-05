@@ -285,14 +285,17 @@ const screenToolboxItems = [
   {
     key: 'multiItemGrid',
     label: 'Multi Item Grid Block',
-    hint: 'Grid of collections',
+    hint: 'Product feed grid',
     section: {
       id: 'multi_item_grid',
       type: 'grid',
       blockType: 'multiItemGrid',
       title: 'Frequently bought',
-      collectionIds: [],
-      columns: 2,
+      productFeedMode: 'FREQUENTLY_BOUGHT',
+      dataSourceRef: 'home_frequently_bought_products',
+      itemsPath: '$.products',
+      columns: 3,
+      productLimit: 9,
     },
   },
   {
@@ -612,6 +615,29 @@ const SOURCE_TYPE_OPTIONS = [
   { value: 'CATEGORY_FEED', label: 'Category feed' },
 ];
 
+const MULTI_ITEM_GRID_FEED_OPTIONS = [
+  { value: 'FREQUENTLY_BOUGHT', label: 'Frequently bought', dataSourceRef: 'home_frequently_bought_products' },
+  { value: 'LOWEST_PRICE', label: 'Lowest price', dataSourceRef: 'home_lowest_price_products' },
+  { value: 'TRENDING', label: 'Trending', dataSourceRef: 'home_trending_products' },
+  { value: 'BESTSELLER', label: 'Bestseller', dataSourceRef: 'home_bestseller_products' },
+];
+
+const resolveMultiItemGridDataSourceRef = (mode) => {
+  const normalizedMode = String(mode || '').trim().toUpperCase();
+  const match = MULTI_ITEM_GRID_FEED_OPTIONS.find((option) => option.value === normalizedMode);
+  return match?.dataSourceRef || MULTI_ITEM_GRID_FEED_OPTIONS[0].dataSourceRef;
+};
+
+const resolveMultiItemGridFeedMode = (dataSourceRef, fallbackMode = 'FREQUENTLY_BOUGHT') => {
+  const normalizedRef = String(dataSourceRef || '').trim();
+  const match = MULTI_ITEM_GRID_FEED_OPTIONS.find((option) => option.dataSourceRef === normalizedRef);
+  if (match?.value) return match.value;
+  if (normalizedRef === 'home_top_selling_products') return 'BESTSELLER';
+  if (normalizedRef === 'home_recommended_products') return 'FREQUENTLY_BOUGHT';
+  if (normalizedRef === 'home_most_rated_products') return 'TRENDING';
+  return String(fallbackMode || 'FREQUENTLY_BOUGHT').trim().toUpperCase();
+};
+
 const DEEP_LINK_TEMPLATE_PRESETS = [
   { value: 'app://category/{id}', label: 'Category details (app://category/{id})' },
   { value: 'app://collection/{id}', label: 'Collection listing (app://collection/{id})' },
@@ -867,7 +893,18 @@ const buildDataSources = (pagePresets = []) => {
   sources.home_top_selling_products = { method: 'GET', url: '/api/home/products/top-selling' };
   sources.home_most_rated_products = { method: 'GET', url: '/api/home/products/most-rated' };
   sources.home_recommended_products = { method: 'GET', url: '/api/home/products/recommended' };
+  sources.home_frequently_bought_products = { method: 'GET', url: '/api/home/products/frequently-bought' };
+  sources.home_lowest_price_products = { method: 'GET', url: '/api/home/products/lowest-price' };
+  sources.home_trending_products = { method: 'GET', url: '/api/home/products/trending' };
+  sources.home_bestseller_products = { method: 'GET', url: '/api/home/products/bestseller' };
   return sources;
+};
+
+const resolveDefaultDataSourceByRef = (ref) => {
+  if (!ref) return null;
+  const builtIn = buildDataSources([]);
+  if (builtIn[ref]) return builtIn[ref];
+  return { method: 'GET', url: `/api/${ref}` };
 };
 
 const buildDefaultConfig = (pagePresets, headerTabs) => ({
@@ -1050,6 +1087,8 @@ const defaultSectionForm = {
   sourceType: 'MANUAL',
   sourceIndustryId: '',
   sourceFeedMode: 'TOP_SELLING',
+  productFeedMode: 'FREQUENTLY_BOUGHT',
+  productLimit: '9',
   sourceMainCategoryId: '',
   sourceCategoryIds: [],
   sourceLimit: '8',
@@ -2509,7 +2548,7 @@ function AppConfigPage({ token }) {
       next.dataSources = {};
     }
     if (base.dataSourceRef && !next.dataSources[base.dataSourceRef]) {
-      next.dataSources[base.dataSourceRef] = { method: 'GET', url: `/api/${base.dataSourceRef}` };
+      next.dataSources[base.dataSourceRef] = resolveDefaultDataSourceByRef(base.dataSourceRef);
     }
     updateConfigFromBuilder(next, 'Section added. Remember to save draft.');
     const resolvedIndex = insertIndex !== null && insertIndex >= 0 ? insertIndex : sections.length - 1;
@@ -2877,59 +2916,80 @@ function AppConfigPage({ token }) {
     setOrDelete('itemsPath', form.itemsPath?.trim());
     setOrDelete('itemTemplateRef', form.itemTemplateRef?.trim());
     setOrDelete('dataSourceRef', form.dataSourceRef?.trim());
+    const isLegacyMultiItemGrid =
+      !phaseOneBlockTypes.has(resolvedBlockType) && resolvedBlockType === 'multiItemGrid';
     const sourceType = String(form.sourceType || 'MANUAL').trim().toUpperCase();
-    if (sourceType && sourceType !== 'MANUAL') {
-      const sourcePayload = { sourceType };
-      const sourceIndustryId = normalizeCollectionId(form.sourceIndustryId);
-      if (sourceIndustryId) sourcePayload.industryId = sourceIndustryId;
-      if (sourceType === 'CATEGORY_FEED' && form.sourceFeedMode) {
-        sourcePayload.mode = String(form.sourceFeedMode).trim().toUpperCase();
-      }
-      const mainCategoryId = normalizeCollectionId(form.sourceMainCategoryId);
-      if (mainCategoryId) sourcePayload.mainCategoryId = mainCategoryId;
-      const sourceCategoryIds = Array.isArray(form.sourceCategoryIds)
-        ? form.sourceCategoryIds.map((value) => normalizeCollectionId(value)).filter(Boolean)
-        : [];
-      if (sourceCategoryIds.length) sourcePayload.categoryIds = sourceCategoryIds;
-      const sourceLimit = toNumberOrNull(form.sourceLimit);
-      if (sourceLimit) sourcePayload.limit = Math.max(1, Math.min(20, sourceLimit));
-      if (sourceType === 'CATEGORY_FEED') {
-        const rankingWindowDays = toNumberOrNull(form.sourceRankingWindowDays);
-        if (rankingWindowDays) sourcePayload.rankingWindowDays = Math.max(1, Math.min(365, rankingWindowDays));
-        if (form.sourceSortBy) sourcePayload.sortBy = String(form.sourceSortBy).trim().toUpperCase();
-        if (form.sourceLevel) sourcePayload.level = String(form.sourceLevel).trim().toUpperCase();
-        sourcePayload.filters = {
-          activeOnly: form.sourceActiveOnly !== false,
-          hasImageOnly: form.sourceHasImageOnly !== false,
-        };
-      }
-      next.dataSource = sourcePayload;
-    } else {
+    if (isLegacyMultiItemGrid) {
+      const feedMode = String(form.productFeedMode || 'FREQUENTLY_BOUGHT').trim().toUpperCase();
+      const productLimitRaw = toNumberOrNull(form.productLimit);
+      const productLimit = productLimitRaw ? Math.max(1, Math.min(60, productLimitRaw)) : 9;
+      next.productFeedMode = feedMode;
+      next.dataSourceRef = resolveMultiItemGridDataSourceRef(feedMode);
+      next.itemsPath = '$.products';
+      next.columns = 3;
+      next.productLimit = productLimit;
       delete next.dataSource;
-    }
-    if (sourceType === 'CATEGORY_FEED') {
-      const mappingPayload = {};
-      const titleField = String(form.mappingTitleField || '').trim();
-      const imageField = String(form.mappingImageField || '').trim();
-      const secondaryImageField = String(form.mappingSecondaryImageField || '').trim();
-      const deepLinkTemplate = String(form.mappingDeepLinkTemplate || '').trim();
-      if (titleField) mappingPayload.titleField = titleField;
-      if (imageField) mappingPayload.imageField = imageField;
-      if (secondaryImageField) mappingPayload.secondaryImageField = secondaryImageField;
-      if (deepLinkTemplate) mappingPayload.deepLinkTemplate = deepLinkTemplate;
-      if (Object.keys(mappingPayload).length) {
-        next.mapping = mappingPayload;
+      delete next.mapping;
+    } else {
+      if (sourceType && sourceType !== 'MANUAL') {
+        const sourcePayload = { sourceType };
+        const sourceIndustryId = normalizeCollectionId(form.sourceIndustryId);
+        if (sourceIndustryId) sourcePayload.industryId = sourceIndustryId;
+        if (sourceType === 'CATEGORY_FEED' && form.sourceFeedMode) {
+          sourcePayload.mode = String(form.sourceFeedMode).trim().toUpperCase();
+        }
+        const mainCategoryId = normalizeCollectionId(form.sourceMainCategoryId);
+        if (mainCategoryId) sourcePayload.mainCategoryId = mainCategoryId;
+        const sourceCategoryIds = Array.isArray(form.sourceCategoryIds)
+          ? form.sourceCategoryIds.map((value) => normalizeCollectionId(value)).filter(Boolean)
+          : [];
+        if (sourceCategoryIds.length) sourcePayload.categoryIds = sourceCategoryIds;
+        const sourceLimit = toNumberOrNull(form.sourceLimit);
+        if (sourceLimit) sourcePayload.limit = Math.max(1, Math.min(20, sourceLimit));
+        if (sourceType === 'CATEGORY_FEED') {
+          const rankingWindowDays = toNumberOrNull(form.sourceRankingWindowDays);
+          if (rankingWindowDays) sourcePayload.rankingWindowDays = Math.max(1, Math.min(365, rankingWindowDays));
+          if (form.sourceSortBy) sourcePayload.sortBy = String(form.sourceSortBy).trim().toUpperCase();
+          if (form.sourceLevel) sourcePayload.level = String(form.sourceLevel).trim().toUpperCase();
+          sourcePayload.filters = {
+            activeOnly: form.sourceActiveOnly !== false,
+            hasImageOnly: form.sourceHasImageOnly !== false,
+          };
+        }
+        next.dataSource = sourcePayload;
+      } else {
+        delete next.dataSource;
+      }
+      if (sourceType === 'CATEGORY_FEED') {
+        const mappingPayload = {};
+        const titleField = String(form.mappingTitleField || '').trim();
+        const imageField = String(form.mappingImageField || '').trim();
+        const secondaryImageField = String(form.mappingSecondaryImageField || '').trim();
+        const deepLinkTemplate = String(form.mappingDeepLinkTemplate || '').trim();
+        if (titleField) mappingPayload.titleField = titleField;
+        if (imageField) mappingPayload.imageField = imageField;
+        if (secondaryImageField) mappingPayload.secondaryImageField = secondaryImageField;
+        if (deepLinkTemplate) mappingPayload.deepLinkTemplate = deepLinkTemplate;
+        if (Object.keys(mappingPayload).length) {
+          next.mapping = mappingPayload;
+        } else {
+          delete next.mapping;
+        }
       } else {
         delete next.mapping;
       }
-    } else {
-      delete next.mapping;
+      delete next.productFeedMode;
+      delete next.productLimit;
     }
-    const columns = form.columns !== '' ? Number(form.columns) : null;
-    if (columns && !Number.isNaN(columns)) {
-      next.columns = columns;
+    if (isLegacyMultiItemGrid) {
+      next.columns = 3;
     } else {
-      delete next.columns;
+      const columns = form.columns !== '' ? Number(form.columns) : null;
+      if (columns && !Number.isNaN(columns)) {
+        next.columns = columns;
+      } else {
+        delete next.columns;
+      }
     }
     const height = form.height !== '' ? Number(form.height) : null;
     if (height && !Number.isNaN(height)) {
@@ -2943,7 +3003,7 @@ function AppConfigPage({ token }) {
     const collectionIds = Array.isArray(form.collectionIds)
       ? form.collectionIds.map((value) => normalizeCollectionId(value)).filter(Boolean)
       : [];
-    if (collectionIds.length > 0) {
+    if (!isLegacyMultiItemGrid && collectionIds.length > 0) {
       next.collectionIds = collectionIds;
     } else {
       delete next.collectionIds;
@@ -3242,6 +3302,12 @@ function AppConfigPage({ token }) {
     }
     const newSection = buildSectionFromForm(null, sectionForm);
     sections.push(newSection);
+    if (!next.dataSources || typeof next.dataSources !== 'object') {
+      next.dataSources = {};
+    }
+    if (newSection?.dataSourceRef && !next.dataSources[newSection.dataSourceRef]) {
+      next.dataSources[newSection.dataSourceRef] = resolveDefaultDataSourceByRef(newSection.dataSourceRef);
+    }
     updateConfigFromBuilder(next, 'Section added. Remember to save draft.');
     resetSectionForm();
     setShowEditor(false);
@@ -3315,6 +3381,12 @@ function AppConfigPage({ token }) {
       return;
     }
     sections[editingSectionIndex] = updated;
+    if (!next.dataSources || typeof next.dataSources !== 'object') {
+      next.dataSources = {};
+    }
+    if (updated?.dataSourceRef && !next.dataSources[updated.dataSourceRef]) {
+      next.dataSources[updated.dataSourceRef] = resolveDefaultDataSourceByRef(updated.dataSourceRef);
+    }
     updateConfigFromBuilder(next, 'Section updated. Remember to save draft.');
     resetSectionForm();
     setShowEditor(false);
@@ -3420,6 +3492,14 @@ function AppConfigPage({ token }) {
       sourceType: source?.sourceType || 'MANUAL',
       sourceIndustryId: source?.industryId ? String(source.industryId) : '',
       sourceFeedMode: source?.mode || defaultSectionForm.sourceFeedMode,
+      productFeedMode: resolveMultiItemGridFeedMode(
+        section?.dataSourceRef,
+        section?.productFeedMode || defaultSectionForm.productFeedMode
+      ),
+      productLimit:
+        section?.productLimit !== undefined && section?.productLimit !== null
+          ? String(section.productLimit)
+          : defaultSectionForm.productLimit,
       sourceMainCategoryId: source?.mainCategoryId ? String(source.mainCategoryId) : '',
       sourceCategoryIds: Array.isArray(source?.categoryIds)
         ? source.categoryIds.map((value) => normalizeCollectionId(value)).filter(Boolean)
@@ -4169,8 +4249,7 @@ function AppConfigPage({ token }) {
   const isMultiItemGrid =
     !isPhaseOneBlock &&
     (screenBlockType === 'multiItemGrid' ||
-      isCategoryPreviewGrid ||
-      sectionForm.type === 'grid');
+      isCategoryPreviewGrid);
   const isSectionTitleBlock = screenBlockType === 'sectionTitle' || sectionForm.type === 'title';
   const isScreenSpacer = sectionForm.type === 'spacer';
   const isScreenVideo = sectionForm.type === 'video';
@@ -5539,66 +5618,112 @@ function AppConfigPage({ token }) {
                     ) : null}
                     {isMultiItemGrid ? (
                       <>
-                        <label className="field field-span">
-                          <span>Select collections</span>
-                          {isLoadingCollections ? (
-                            <p className="field-help">Loading collections...</p>
-                          ) : collections.length ? (
-                            <div className="checkbox-grid">
-                              {collections.map((collection) => {
-                                const rawId =
-                                  collection?.id ?? collection?.categoryId ?? collection?._id ?? collection?.code;
-                                const id = normalizeCollectionId(rawId);
-                                if (!id) return null;
-                                const label =
-                                  collection?.name ||
-                                  collection?.label ||
-                                  collection?.title ||
-                                  `Collection ${id}`;
-                                const isChecked = Array.isArray(sectionForm.collectionIds)
-                                  ? sectionForm.collectionIds.includes(id)
-                                  : false;
-                                return (
-                                  <label key={id} className="checkbox-row">
-                                    <input
-                                      type="checkbox"
-                                      checked={isChecked}
-                                      onChange={() =>
-                                        setSectionForm((prev) => {
-                                          const current = Array.isArray(prev.collectionIds) ? prev.collectionIds : [];
-                                          const next = new Set(current);
-                                          if (next.has(id)) {
-                                            next.delete(id);
-                                          } else {
-                                            next.add(id);
+                        {!isCategoryPreviewGrid ? (
+                          <>
+                            <label className="field field-span">
+                              <span>Product feed</span>
+                              <select
+                                value={sectionForm.productFeedMode || 'FREQUENTLY_BOUGHT'}
+                                onChange={(event) =>
+                                  setSectionForm((prev) => ({
+                                    ...prev,
+                                    productFeedMode: event.target.value,
+                                    dataSourceRef: resolveMultiItemGridDataSourceRef(event.target.value),
+                                    itemsPath: '$.products',
+                                  }))
+                                }
+                              >
+                                {MULTI_ITEM_GRID_FEED_OPTIONS.map((option) => (
+                                  <option key={option.value} value={option.value}>
+                                    {option.label}
+                                  </option>
+                                ))}
+                              </select>
+                              <p className="field-help">
+                                Aa block products-only chhe. Dropdown ma je feed select karso e products app ma render thase.
+                              </p>
+                            </label>
+                            <label className="field">
+                              <span>Initial visible products</span>
+                              <input
+                                type="number"
+                                min="1"
+                                max="60"
+                                value={sectionForm.productLimit || '9'}
+                                onChange={(event) =>
+                                  setSectionForm((prev) => ({
+                                    ...prev,
+                                    productLimit: event.target.value,
+                                  }))
+                                }
+                              />
+                              <p className="field-help">Grid always 3-column ma render thase. Aa value pehla ketla products dekhadva e control kare chhe.</p>
+                            </label>
+                          </>
+                        ) : (
+                          <>
+                            <label className="field field-span">
+                              <span>Select collections</span>
+                              {isLoadingCollections ? (
+                                <p className="field-help">Loading collections...</p>
+                              ) : collections.length ? (
+                                <div className="checkbox-grid">
+                                  {collections.map((collection) => {
+                                    const rawId =
+                                      collection?.id ?? collection?.categoryId ?? collection?._id ?? collection?.code;
+                                    const id = normalizeCollectionId(rawId);
+                                    if (!id) return null;
+                                    const label =
+                                      collection?.name ||
+                                      collection?.label ||
+                                      collection?.title ||
+                                      `Collection ${id}`;
+                                    const isChecked = Array.isArray(sectionForm.collectionIds)
+                                      ? sectionForm.collectionIds.includes(id)
+                                      : false;
+                                    return (
+                                      <label key={id} className="checkbox-row">
+                                        <input
+                                          type="checkbox"
+                                          checked={isChecked}
+                                          onChange={() =>
+                                            setSectionForm((prev) => {
+                                              const current = Array.isArray(prev.collectionIds) ? prev.collectionIds : [];
+                                              const next = new Set(current);
+                                              if (next.has(id)) {
+                                                next.delete(id);
+                                              } else {
+                                                next.add(id);
+                                              }
+                                              return { ...prev, collectionIds: Array.from(next) };
+                                            })
                                           }
-                                          return { ...prev, collectionIds: Array.from(next) };
-                                        })
-                                      }
-                                    />
-                                    {label} <span className="muted">({id})</span>
-                                  </label>
-                                );
-                              })}
-                            </div>
-                          ) : (
-                            <p className="field-help">No collections found yet.</p>
-                          )}
-                        </label>
-                        <label className="field field-span">
-                          <span>Collection IDs (comma separated)</span>
-                          <input
-                            type="text"
-                            value={(sectionForm.collectionIds || []).join(', ')}
-                            onChange={(event) =>
-                              setSectionForm((prev) => ({
-                                ...prev,
-                                collectionIds: parseCsvList(event.target.value),
-                              }))
-                            }
-                            placeholder="Veg_Fruits, Dairy, Chocolates"
-                          />
-                        </label>
+                                        />
+                                        {label} <span className="muted">({id})</span>
+                                      </label>
+                                    );
+                                  })}
+                                </div>
+                              ) : (
+                                <p className="field-help">No collections found yet.</p>
+                              )}
+                            </label>
+                            <label className="field field-span">
+                              <span>Collection IDs (comma separated)</span>
+                              <input
+                                type="text"
+                                value={(sectionForm.collectionIds || []).join(', ')}
+                                onChange={(event) =>
+                                  setSectionForm((prev) => ({
+                                    ...prev,
+                                    collectionIds: parseCsvList(event.target.value),
+                                  }))
+                                }
+                                placeholder="Veg_Fruits, Dairy, Chocolates"
+                              />
+                            </label>
+                          </>
+                        )}
                         {isCategoryPreviewGrid ? (
                           <>
                             <label className="field field-span">
