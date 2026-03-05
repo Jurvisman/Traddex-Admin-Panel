@@ -14,6 +14,10 @@ import {
   listIndustries,
   listMainCategories,
   listSubCategories,
+  updateCategory,
+  updateIndustry,
+  updateMainCategory,
+  updateSubCategory,
 } from '../services/adminApi';
 
 const initialIndustryForm = {
@@ -56,6 +60,8 @@ const initialSubForm = {
   active: '1',
 };
 
+const isImageUrl = (value) => typeof value === 'string' && /^https?:\/\//i.test(value.trim());
+
 function CatalogManagerPage({ token }) {
   const [industries, setIndustries] = useState([]);
   const [mainCategories, setMainCategories] = useState([]);
@@ -71,6 +77,10 @@ function CatalogManagerPage({ token }) {
   const [mainForm, setMainForm] = useState(initialMainForm);
   const [categoryForm, setCategoryForm] = useState(initialCategoryForm);
   const [subForm, setSubForm] = useState(initialSubForm);
+  const [editingIndustryId, setEditingIndustryId] = useState(null);
+  const [editingMainId, setEditingMainId] = useState(null);
+  const [editingCategoryId, setEditingCategoryId] = useState(null);
+  const [editingSubId, setEditingSubId] = useState(null);
 
   const loadIndustries = async (keepSelection = true) => {
     setIsLoading(true);
@@ -93,7 +103,7 @@ function CatalogManagerPage({ token }) {
     }
   };
 
-  const loadMainCategories = async (industryId) => {
+  const loadMainCategories = async (industryId, preferredId) => {
     if (!industryId) {
       setMainCategories([]);
       return;
@@ -104,7 +114,9 @@ function CatalogManagerPage({ token }) {
       const response = await listMainCategories(token);
       const list = (response?.data || []).filter((item) => String(item.industryId) === String(industryId));
       setMainCategories(list);
-      const nextId = list[0]?.id ? String(list[0].id) : '';
+      const preferred = preferredId ? String(preferredId) : '';
+      const hasPreferred = preferred.length > 0 && list.some((item) => String(item.id) === preferred);
+      const nextId = hasPreferred ? preferred : list[0]?.id ? String(list[0].id) : '';
       setSelectedMainId(nextId);
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to fetch main categories.' });
@@ -113,7 +125,7 @@ function CatalogManagerPage({ token }) {
     }
   };
 
-  const loadCategories = async (mainCategoryId) => {
+  const loadCategories = async (mainCategoryId, preferredId) => {
     if (!mainCategoryId) {
       setCategories([]);
       return;
@@ -124,7 +136,9 @@ function CatalogManagerPage({ token }) {
       const response = await listCategories(token, mainCategoryId);
       const list = response?.data || [];
       setCategories(list);
-      const nextId = list[0]?.id ? String(list[0].id) : '';
+      const preferred = preferredId ? String(preferredId) : '';
+      const hasPreferred = preferred.length > 0 && list.some((item) => String(item.id) === preferred);
+      const nextId = hasPreferred ? preferred : list[0]?.id ? String(list[0].id) : '';
       setSelectedCategoryId(nextId);
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to fetch categories.' });
@@ -202,6 +216,32 @@ function CatalogManagerPage({ token }) {
   const selectedIndustry = industryLookup.get(String(selectedIndustryId));
   const selectedMain = mainLookup.get(String(selectedMainId));
   const selectedCategory = categories.find((item) => String(item.id) === String(selectedCategoryId));
+
+  const resetIndustryEditor = () => {
+    setEditingIndustryId(null);
+    setIndustryForm(initialIndustryForm);
+  };
+
+  const resetMainEditor = () => {
+    setEditingMainId(null);
+    setMainForm((prev) => ({ ...initialMainForm, industryId: prev.industryId || selectedIndustryId || '' }));
+  };
+
+  const resetCategoryEditor = () => {
+    setEditingCategoryId(null);
+    setCategoryForm((prev) => ({ ...initialCategoryForm, mainCategoryId: prev.mainCategoryId || selectedMainId || '' }));
+  };
+
+  const resetSubEditor = () => {
+    setEditingSubId(null);
+    setSubForm((prev) => ({ ...initialSubForm, categoryId: prev.categoryId || selectedCategoryId || '' }));
+  };
+
+  const renderImageCell = (value, fallback = '-') => {
+    if (!isImageUrl(value)) return fallback;
+    return <img src={value.trim()} alt="" className="catalog-thumb" loading="lazy" />;
+  };
+
   const handleIndustrySubmit = async (event) => {
     event.preventDefault();
     if (!industryForm.name.trim()) {
@@ -210,19 +250,27 @@ function CatalogManagerPage({ token }) {
     }
     try {
       setIsLoading(true);
-      await createIndustry(token, {
+      const payload = {
         name: industryForm.name.trim(),
         industryIcon: industryForm.industryIcon || null,
         industryImage: industryForm.industryImage || null,
         ordering: industryForm.ordering ? Number(industryForm.ordering) : null,
         path: industryForm.path || null,
         active: Number(industryForm.active),
-      });
-      setIndustryForm(initialIndustryForm);
-      await loadIndustries(false);
-      setMessage({ type: 'success', text: 'Industry created.' });
+      };
+      if (editingIndustryId) {
+        await updateIndustry(token, editingIndustryId, payload);
+        await loadIndustries(true);
+        resetIndustryEditor();
+        setMessage({ type: 'success', text: 'Industry updated.' });
+      } else {
+        await createIndustry(token, payload);
+        setIndustryForm(initialIndustryForm);
+        await loadIndustries(false);
+        setMessage({ type: 'success', text: 'Industry created.' });
+      }
     } catch (error) {
-      setMessage({ type: 'error', text: error.message || 'Failed to create industry.' });
+      setMessage({ type: 'error', text: error.message || 'Failed to save industry.' });
     } finally {
       setIsLoading(false);
     }
@@ -236,7 +284,7 @@ function CatalogManagerPage({ token }) {
     }
     try {
       setIsLoading(true);
-      await createMainCategory(token, {
+      const payload = {
         name: mainForm.name.trim(),
         industryId: Number(mainForm.industryId),
         mainCategoryIcon: mainForm.mainCategoryIcon || null,
@@ -244,12 +292,20 @@ function CatalogManagerPage({ token }) {
         ordering: mainForm.ordering ? Number(mainForm.ordering) : null,
         path: mainForm.path || null,
         active: Number(mainForm.active),
-      });
-      setMainForm((prev) => ({ ...initialMainForm, industryId: prev.industryId }));
-      await loadMainCategories(mainForm.industryId);
-      setMessage({ type: 'success', text: 'Main category created.' });
+      };
+      if (editingMainId) {
+        await updateMainCategory(token, editingMainId, payload);
+        await loadMainCategories(mainForm.industryId, editingMainId);
+        resetMainEditor();
+        setMessage({ type: 'success', text: 'Main category updated.' });
+      } else {
+        await createMainCategory(token, payload);
+        setMainForm((prev) => ({ ...initialMainForm, industryId: prev.industryId }));
+        await loadMainCategories(mainForm.industryId);
+        setMessage({ type: 'success', text: 'Main category created.' });
+      }
     } catch (error) {
-      setMessage({ type: 'error', text: error.message || 'Failed to create main category.' });
+      setMessage({ type: 'error', text: error.message || 'Failed to save main category.' });
     } finally {
       setIsLoading(false);
     }
@@ -263,7 +319,7 @@ function CatalogManagerPage({ token }) {
     }
     try {
       setIsLoading(true);
-      await createCategory(token, {
+      const payload = {
         name: categoryForm.name.trim(),
         mainCategoryId: Number(categoryForm.mainCategoryId),
         categoryIcon: categoryForm.categoryIcon || null,
@@ -272,12 +328,20 @@ function CatalogManagerPage({ token }) {
         path: categoryForm.path || null,
         active: Number(categoryForm.active),
         hasSubCategory: Number(categoryForm.hasSubCategory),
-      });
-      setCategoryForm((prev) => ({ ...initialCategoryForm, mainCategoryId: prev.mainCategoryId }));
-      await loadCategories(categoryForm.mainCategoryId);
-      setMessage({ type: 'success', text: 'Category created.' });
+      };
+      if (editingCategoryId) {
+        await updateCategory(token, editingCategoryId, payload);
+        await loadCategories(categoryForm.mainCategoryId, editingCategoryId);
+        resetCategoryEditor();
+        setMessage({ type: 'success', text: 'Category updated.' });
+      } else {
+        await createCategory(token, payload);
+        setCategoryForm((prev) => ({ ...initialCategoryForm, mainCategoryId: prev.mainCategoryId }));
+        await loadCategories(categoryForm.mainCategoryId);
+        setMessage({ type: 'success', text: 'Category created.' });
+      }
     } catch (error) {
-      setMessage({ type: 'error', text: error.message || 'Failed to create category.' });
+      setMessage({ type: 'error', text: error.message || 'Failed to save category.' });
     } finally {
       setIsLoading(false);
     }
@@ -291,7 +355,7 @@ function CatalogManagerPage({ token }) {
     }
     try {
       setIsLoading(true);
-      await createSubCategory(token, {
+      const payload = {
         name: subForm.name.trim(),
         categoryId: Number(subForm.categoryId),
         subCategoryIcon: subForm.subCategoryIcon || null,
@@ -299,12 +363,20 @@ function CatalogManagerPage({ token }) {
         ordering: subForm.ordering ? Number(subForm.ordering) : null,
         path: subForm.path || null,
         active: Number(subForm.active),
-      });
-      setSubForm((prev) => ({ ...initialSubForm, categoryId: prev.categoryId }));
-      await loadSubCategories(subForm.categoryId);
-      setMessage({ type: 'success', text: 'Sub-category created.' });
+      };
+      if (editingSubId) {
+        await updateSubCategory(token, editingSubId, payload);
+        await loadSubCategories(subForm.categoryId);
+        resetSubEditor();
+        setMessage({ type: 'success', text: 'Sub-category updated.' });
+      } else {
+        await createSubCategory(token, payload);
+        setSubForm((prev) => ({ ...initialSubForm, categoryId: prev.categoryId }));
+        await loadSubCategories(subForm.categoryId);
+        setMessage({ type: 'success', text: 'Sub-category created.' });
+      }
     } catch (error) {
-      setMessage({ type: 'error', text: error.message || 'Failed to create sub-category.' });
+      setMessage({ type: 'error', text: error.message || 'Failed to save sub-category.' });
     } finally {
       setIsLoading(false);
     }
@@ -321,6 +393,68 @@ function CatalogManagerPage({ token }) {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleEditIndustry = (item) => {
+    setActiveForm('industry');
+    setEditingIndustryId(item.id);
+    setIndustryForm({
+      name: item.name ?? '',
+      industryIcon: item.industryIcon ?? '',
+      industryImage: item.industryImage ?? '',
+      ordering: item.ordering?.toString?.() ?? '',
+      path: item.path ?? '',
+      active: String(item.active ?? 1),
+    });
+    setMessage({ type: 'info', text: `Editing industry: ${item.name}` });
+  };
+
+  const handleEditMain = (item) => {
+    setActiveForm('main');
+    setEditingMainId(item.id);
+    setSelectedIndustryId(String(item.industryId ?? selectedIndustryId));
+    setMainForm({
+      name: item.name ?? '',
+      industryId: String(item.industryId ?? selectedIndustryId ?? ''),
+      mainCategoryIcon: item.mainCategoryIcon ?? '',
+      imageUrl: item.imageUrl ?? '',
+      ordering: item.ordering?.toString?.() ?? '',
+      path: item.path ?? '',
+      active: String(item.active ?? 1),
+    });
+    setMessage({ type: 'info', text: `Editing main category: ${item.name}` });
+  };
+
+  const handleEditCategory = (item) => {
+    setActiveForm('category');
+    setEditingCategoryId(item.id);
+    setSelectedMainId(String(item.mainCategoryId ?? selectedMainId));
+    setCategoryForm({
+      name: item.name ?? '',
+      mainCategoryId: String(item.mainCategoryId ?? selectedMainId ?? ''),
+      categoryIcon: item.categoryIcon ?? '',
+      imageUrl: item.imageUrl ?? '',
+      ordering: item.ordering?.toString?.() ?? '',
+      path: item.path ?? '',
+      active: String(item.active ?? 1),
+      hasSubCategory: String(item.hasSubCategory ?? 1),
+    });
+    setMessage({ type: 'info', text: `Editing category: ${item.name}` });
+  };
+
+  const handleEditSubCategory = (item) => {
+    setActiveForm('sub');
+    setEditingSubId(item.id);
+    setSubForm({
+      name: item.name ?? '',
+      categoryId: String(item.categoryId ?? selectedCategoryId ?? ''),
+      subCategoryIcon: item.subCategoryIcon ?? '',
+      imageUrl: item.imageUrl ?? '',
+      ordering: item.ordering?.toString?.() ?? '',
+      path: item.path ?? '',
+      active: String(item.active ?? 1),
+    });
+    setMessage({ type: 'info', text: `Editing sub-category: ${item.name}` });
   };
 
   const handleDeleteMain = async (id) => {
@@ -439,9 +573,16 @@ function CatalogManagerPage({ token }) {
                 />
               </label>
             </div>
-            <button type="submit" className="primary-btn full" disabled={isLoading}>
-              {isLoading ? 'Saving...' : 'Add main category'}
-            </button>
+            <div className="catalog-form-actions">
+              {editingMainId ? (
+                <button type="button" className="ghost-btn" onClick={resetMainEditor} disabled={isLoading}>
+                  Cancel edit
+                </button>
+              ) : null}
+              <button type="submit" className="primary-btn full" disabled={isLoading}>
+                {isLoading ? 'Saving...' : editingMainId ? 'Update main category' : 'Add main category'}
+              </button>
+            </div>
           </form>
         );
       case 'category':
@@ -528,9 +669,16 @@ function CatalogManagerPage({ token }) {
                 />
               </label>
             </div>
-            <button type="submit" className="primary-btn full" disabled={isLoading}>
-              {isLoading ? 'Saving...' : 'Add category'}
-            </button>
+            <div className="catalog-form-actions">
+              {editingCategoryId ? (
+                <button type="button" className="ghost-btn" onClick={resetCategoryEditor} disabled={isLoading}>
+                  Cancel edit
+                </button>
+              ) : null}
+              <button type="submit" className="primary-btn full" disabled={isLoading}>
+                {isLoading ? 'Saving...' : editingCategoryId ? 'Update category' : 'Add category'}
+              </button>
+            </div>
           </form>
         );
       case 'sub':
@@ -607,9 +755,16 @@ function CatalogManagerPage({ token }) {
                 />
               </label>
             </div>
-            <button type="submit" className="primary-btn full" disabled={isLoading}>
-              {isLoading ? 'Saving...' : 'Add sub-category'}
-            </button>
+            <div className="catalog-form-actions">
+              {editingSubId ? (
+                <button type="button" className="ghost-btn" onClick={resetSubEditor} disabled={isLoading}>
+                  Cancel edit
+                </button>
+              ) : null}
+              <button type="submit" className="primary-btn full" disabled={isLoading}>
+                {isLoading ? 'Saving...' : editingSubId ? 'Update sub-category' : 'Add sub-category'}
+              </button>
+            </div>
           </form>
         );
       default:
@@ -673,9 +828,16 @@ function CatalogManagerPage({ token }) {
                 />
               </label>
             </div>
-            <button type="submit" className="primary-btn full" disabled={isLoading}>
-              {isLoading ? 'Saving...' : 'Add industry'}
-            </button>
+            <div className="catalog-form-actions">
+              {editingIndustryId ? (
+                <button type="button" className="ghost-btn" onClick={resetIndustryEditor} disabled={isLoading}>
+                  Cancel edit
+                </button>
+              ) : null}
+              <button type="submit" className="primary-btn full" disabled={isLoading}>
+                {isLoading ? 'Saving...' : editingIndustryId ? 'Update industry' : 'Add industry'}
+              </button>
+            </div>
           </form>
         );
     }
@@ -736,6 +898,7 @@ function CatalogManagerPage({ token }) {
                 <thead>
                   <tr>
                     <th>Name</th>
+                    <th>Icon</th>
                     <th>Active</th>
                     <th />
                   </tr>
@@ -743,7 +906,7 @@ function CatalogManagerPage({ token }) {
                 <tbody>
                   {industries.length === 0 ? (
                     <tr>
-                      <td colSpan={3} className="empty-cell">No industries yet.</td>
+                      <td colSpan={4} className="empty-cell">No industries yet.</td>
                     </tr>
                   ) : (
                     industries.map((item) => {
@@ -755,8 +918,15 @@ function CatalogManagerPage({ token }) {
                           onClick={() => setSelectedIndustryId(String(item.id))}
                         >
                           <td>{item.name}</td>
+                          <td>{renderImageCell(item.industryIcon || item.industryImage)}</td>
                           <td>{item.active === 1 ? 'Yes' : 'No'}</td>
                           <td className="table-actions">
+                            <button type="button" className="ghost-btn small" onClick={(event) => {
+                              event.stopPropagation();
+                              handleEditIndustry(item);
+                            }}>
+                              Edit
+                            </button>
                             <button type="button" className="ghost-btn small" onClick={(event) => {
                               event.stopPropagation();
                               handleDeleteIndustry(item.id);
@@ -786,6 +956,7 @@ function CatalogManagerPage({ token }) {
                 <thead>
                   <tr>
                     <th>Name</th>
+                    <th>Icon</th>
                     <th>Order</th>
                     <th />
                   </tr>
@@ -793,7 +964,7 @@ function CatalogManagerPage({ token }) {
                 <tbody>
                   {mainCategories.length === 0 ? (
                     <tr>
-                      <td colSpan={3} className="empty-cell">No main categories yet.</td>
+                      <td colSpan={4} className="empty-cell">No main categories yet.</td>
                     </tr>
                   ) : (
                     mainCategories.map((item) => {
@@ -805,8 +976,15 @@ function CatalogManagerPage({ token }) {
                           onClick={() => setSelectedMainId(String(item.id))}
                         >
                           <td>{item.name}</td>
+                          <td>{renderImageCell(item.mainCategoryIcon || item.imageUrl)}</td>
                           <td>{item.ordering ?? '-'}</td>
                           <td className="table-actions">
+                            <button type="button" className="ghost-btn small" onClick={(event) => {
+                              event.stopPropagation();
+                              handleEditMain(item);
+                            }}>
+                              Edit
+                            </button>
                             <button type="button" className="ghost-btn small" onClick={(event) => {
                               event.stopPropagation();
                               handleDeleteMain(item.id);
@@ -835,13 +1013,14 @@ function CatalogManagerPage({ token }) {
                 <thead>
                   <tr>
                     <th>Name</th>
+                    <th>Icon</th>
                     <th />
                   </tr>
                 </thead>
                 <tbody>
                   {categories.length === 0 ? (
                     <tr>
-                      <td colSpan={2} className="empty-cell">No categories yet.</td>
+                      <td colSpan={3} className="empty-cell">No categories yet.</td>
                     </tr>
                   ) : (
                     categories.map((item) => {
@@ -853,7 +1032,14 @@ function CatalogManagerPage({ token }) {
                           onClick={() => setSelectedCategoryId(String(item.id))}
                         >
                           <td>{item.name}</td>
+                          <td>{renderImageCell(item.categoryIcon || item.imageUrl)}</td>
                           <td className="table-actions">
+                            <button type="button" className="ghost-btn small" onClick={(event) => {
+                              event.stopPropagation();
+                              handleEditCategory(item);
+                            }}>
+                              Edit
+                            </button>
                             <button type="button" className="ghost-btn small" onClick={(event) => {
                               event.stopPropagation();
                               handleDeleteCategory(item.id);
@@ -883,19 +1069,24 @@ function CatalogManagerPage({ token }) {
                 <thead>
                   <tr>
                     <th>Name</th>
+                    <th>Icon</th>
                     <th />
                   </tr>
                 </thead>
                 <tbody>
                   {subCategories.length === 0 ? (
                     <tr>
-                      <td colSpan={2} className="empty-cell">No sub-categories yet.</td>
+                      <td colSpan={3} className="empty-cell">No sub-categories yet.</td>
                     </tr>
                   ) : (
                     subCategories.map((item) => (
                       <tr key={item.id} className="catalog-row">
                         <td>{item.name}</td>
+                        <td>{renderImageCell(item.subCategoryIcon || item.imageUrl)}</td>
                         <td className="table-actions">
+                          <button type="button" className="ghost-btn small" onClick={() => handleEditSubCategory(item)}>
+                            Edit
+                          </button>
                           <button type="button" className="ghost-btn small" onClick={() => handleDeleteSubCategory(item.id)}>
                             Delete
                           </button>

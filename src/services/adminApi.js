@@ -73,11 +73,15 @@ export const updateBusinessProfileStatus = (token, profileId, status) =>
 
 export const listIndustries = (token) => request('/industries', { token });
 export const createIndustry = (token, payload) => request('/industries', { method: 'POST', body: payload, token });
+export const updateIndustry = (token, id, payload) =>
+  request(`/industries/${id}`, { method: 'PUT', body: payload, token });
 export const deleteIndustry = (token, id) => request(`/industries/${id}`, { method: 'DELETE', token });
 
 export const listMainCategories = (token) => request('/main-categories', { token });
 export const createMainCategory = (token, payload) =>
   request('/main-categories', { method: 'POST', body: payload, token });
+export const updateMainCategory = (token, id, payload) =>
+  request(`/main-categories/${id}`, { method: 'PUT', body: payload, token });
 export const deleteMainCategory = (token, id) => request(`/main-categories/${id}`, { method: 'DELETE', token });
 
 export const listCategories = (token, mainCategoryId) => {
@@ -85,6 +89,8 @@ export const listCategories = (token, mainCategoryId) => {
   return request(`/categories${query}`, { token });
 };
 export const createCategory = (token, payload) => request('/categories', { method: 'POST', body: payload, token });
+export const updateCategory = (token, id, payload) =>
+  request(`/categories/${id}`, { method: 'PUT', body: payload, token });
 export const deleteCategory = (token, id) => request(`/categories/${id}`, { method: 'DELETE', token });
 
 export const listSubCategories = (token, categoryId) => {
@@ -93,6 +99,8 @@ export const listSubCategories = (token, categoryId) => {
 };
 export const createSubCategory = (token, payload) =>
   request('/sub-categories', { method: 'POST', body: payload, token });
+export const updateSubCategory = (token, id, payload) =>
+  request(`/sub-categories/${id}`, { method: 'PUT', body: payload, token });
 export const deleteSubCategory = (token, id) => request(`/sub-categories/${id}`, { method: 'DELETE', token });
 
 export const listProducts = (token) => request('/admin/product/getall', { token });

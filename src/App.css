@@ -4001,6 +4001,25 @@ textarea {
   color: #ffffff;
 }
 
+.catalog-form-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.catalog-form-actions .primary-btn.full {
+  flex: 1;
+}
+
+.catalog-thumb {
+  width: 34px;
+  height: 34px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid var(--cm-line);
+  background: #fff;
+}
+
 .catalog-summary {
   background: linear-gradient(160deg, #fffaf2 0%, #fff 100%);
 }
