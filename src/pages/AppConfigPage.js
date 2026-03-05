@@ -592,10 +592,6 @@ const normalizeColumnTopLineStyle = (value) => {
   return 'flat';
 };
 
-const FEATURED_CARD_BG_PALETTE = ['#f8d67a', '#ff8f4e', '#4f2a87', '#53baf6', '#e7c8ff', '#e9f8d4'];
-const FEATURED_CARD_FRAME_PALETTE = ['#3e75f0', '#1d4ed8', '#7c3aed', '#0ea5e9', '#f97316', '#16a34a'];
-const FEATURED_CARD_TITLE_PALETTE = ['#ffffff', '#0f172a', '#111827', '#1f2937', '#4f46e5', '#f8fafc'];
-const FEATURED_CARD_BADGE_TEXT_PALETTE = ['#d04563', '#be123c', '#1d4ed8', '#0f766e', '#7c2d12', '#4f46e5'];
 const COLUMN_GRID_BG_PALETTE = ['#f5f0dc', '#f9f3de', '#eef9ff', '#eaf7ff', '#f6f7ff', '#fff7ef'];
 const COLUMN_GRID_CARD_BG_PALETTE = ['#9ad8f8', '#b6e2ff', '#d5ecff', '#c3dbff', '#d8d4ff', '#ffd8f3'];
 const COLUMN_GRID_TOP_LINE_STYLES = [
@@ -2210,7 +2206,7 @@ function AppConfigPage({ token }) {
       const imageField = sectionForm.mappingImageField || 'imageUrl';
       const secondaryImageField = sectionForm.mappingSecondaryImageField || '';
 
-      let nextItems = picked.map((item, index) => {
+      let nextItems = picked.map((item) => {
         const title =
           (titleField === 'name' ? resolveCategoryName(item) : item?.[titleField]) || resolveCategoryName(item);
         const image = (imageField && item?.[imageField]) || resolveCategoryImage(item);
@@ -2218,19 +2214,15 @@ function AppConfigPage({ token }) {
         return {
           id: categoryId,
           collectionId: categoryId,
-          title: String(title || ''),
+          title: resolvedBlockType === 'horizontal_scroll_list' ? '' : String(title || ''),
           imageUrl: image || '',
           deepLink: resolveDeepLinkFromTemplate(deepLinkTemplate, {
             id: categoryId,
             name: resolveCategoryName(item),
             slug: item?.path || resolveCategoryName(item),
           }),
-          subtitle: resolvedBlockType === 'horizontal_scroll_list' ? 'For you' : '',
-          badgeText: resolvedBlockType === 'horizontal_scroll_list' ? 'Featured' : '',
-          bgColor: FEATURED_CARD_BG_PALETTE[index % FEATURED_CARD_BG_PALETTE.length],
-          frameColor: FEATURED_CARD_FRAME_PALETTE[index % FEATURED_CARD_FRAME_PALETTE.length],
-          titleColor: FEATURED_CARD_TITLE_PALETTE[index % FEATURED_CARD_TITLE_PALETTE.length],
-          badgeTextColor: FEATURED_CARD_BADGE_TEXT_PALETTE[index % FEATURED_CARD_BADGE_TEXT_PALETTE.length],
+          subtitle: '',
+          badgeText: '',
         };
       });
 
@@ -3886,14 +3878,7 @@ function AppConfigPage({ token }) {
               const badge = item?.badgeText || '';
               const subtitle = item?.subtitle || '';
               return (
-                <div
-                  key={`preview-featured-${index}-${itemIndex}`}
-                  className="preview-phase-one-featured-card"
-                  style={{
-                    backgroundColor: item?.bgColor || undefined,
-                    borderColor: item?.frameColor || undefined,
-                  }}
-                >
+                <div key={`preview-featured-${index}-${itemIndex}`} className="preview-phase-one-featured-card">
                   {badge ? (
                     <span className="preview-phase-one-featured-badge" style={{ color: item?.badgeTextColor || undefined }}>
                       {badge}
@@ -5388,140 +5373,9 @@ function AppConfigPage({ token }) {
                                 </label>
                               ) : null}
                               {isPhaseOneHorizontalList ? (
-                                <div className="phase-one-color-grid">
-                                  <label className="field">
-                                    <span>Card BG</span>
-                                    <div className="inline-row">
-                                      <input
-                                        type="text"
-                                        value={item.bgColor || ''}
-                                        onChange={(event) => updatePhaseOneItem(idx, 'bgColor', event.target.value)}
-                                        placeholder="#ff8f4f"
-                                      />
-                                      <input
-                                        type="color"
-                                        className="color-input"
-                                        value={resolveHexColor(item.bgColor, '#ff8f4f')}
-                                        onChange={(event) => updatePhaseOneItem(idx, 'bgColor', event.target.value)}
-                                      />
-                                    </div>
-                                    <div className="color-palette-row">
-                                      {FEATURED_CARD_BG_PALETTE.map((color) => (
-                                        <button
-                                          key={`bg-${idx}-${color}`}
-                                          type="button"
-                                          className={`color-palette-swatch ${
-                                            (item.bgColor || '').toLowerCase() === color.toLowerCase() ? 'is-selected' : ''
-                                          }`}
-                                          style={{ backgroundColor: color }}
-                                          title={color}
-                                          onClick={() => updatePhaseOneItem(idx, 'bgColor', color)}
-                                        />
-                                      ))}
-                                    </div>
-                                  </label>
-                                  <label className="field">
-                                    <span>Frame color</span>
-                                    <div className="inline-row">
-                                      <input
-                                        type="text"
-                                        value={item.frameColor || ''}
-                                        onChange={(event) => updatePhaseOneItem(idx, 'frameColor', event.target.value)}
-                                        placeholder="#3874e8"
-                                      />
-                                      <input
-                                        type="color"
-                                        className="color-input"
-                                        value={resolveHexColor(item.frameColor, '#3874e8')}
-                                        onChange={(event) => updatePhaseOneItem(idx, 'frameColor', event.target.value)}
-                                      />
-                                    </div>
-                                    <div className="color-palette-row">
-                                      {FEATURED_CARD_FRAME_PALETTE.map((color) => (
-                                        <button
-                                          key={`frame-${idx}-${color}`}
-                                          type="button"
-                                          className={`color-palette-swatch ${
-                                            (item.frameColor || '').toLowerCase() === color.toLowerCase() ? 'is-selected' : ''
-                                          }`}
-                                          style={{ backgroundColor: color }}
-                                          title={color}
-                                          onClick={() => updatePhaseOneItem(idx, 'frameColor', color)}
-                                        />
-                                      ))}
-                                    </div>
-                                  </label>
-                                  <label className="field">
-                                    <span>Title color</span>
-                                    <div className="inline-row">
-                                      <input
-                                        type="text"
-                                        value={item.titleColor || ''}
-                                        onChange={(event) => updatePhaseOneItem(idx, 'titleColor', event.target.value)}
-                                        placeholder="#ffffff"
-                                      />
-                                      <input
-                                        type="color"
-                                        className="color-input"
-                                        value={resolveHexColor(item.titleColor, '#ffffff')}
-                                        onChange={(event) => updatePhaseOneItem(idx, 'titleColor', event.target.value)}
-                                      />
-                                    </div>
-                                    <div className="color-palette-row">
-                                      {FEATURED_CARD_TITLE_PALETTE.map((color) => (
-                                        <button
-                                          key={`title-${idx}-${color}`}
-                                          type="button"
-                                          className={`color-palette-swatch ${
-                                            (item.titleColor || '').toLowerCase() === color.toLowerCase()
-                                              ? 'is-selected'
-                                              : ''
-                                          }`}
-                                          style={{ backgroundColor: color }}
-                                          title={color}
-                                          onClick={() => updatePhaseOneItem(idx, 'titleColor', color)}
-                                        />
-                                      ))}
-                                    </div>
-                                  </label>
-                                  <label className="field">
-                                    <span>Badge text color</span>
-                                    <div className="inline-row">
-                                      <input
-                                        type="text"
-                                        value={item.badgeTextColor || ''}
-                                        onChange={(event) =>
-                                          updatePhaseOneItem(idx, 'badgeTextColor', event.target.value)
-                                        }
-                                        placeholder="#d04667"
-                                      />
-                                      <input
-                                        type="color"
-                                        className="color-input"
-                                        value={resolveHexColor(item.badgeTextColor, '#d04667')}
-                                        onChange={(event) =>
-                                          updatePhaseOneItem(idx, 'badgeTextColor', event.target.value)
-                                        }
-                                      />
-                                    </div>
-                                    <div className="color-palette-row">
-                                      {FEATURED_CARD_BADGE_TEXT_PALETTE.map((color) => (
-                                        <button
-                                          key={`badge-${idx}-${color}`}
-                                          type="button"
-                                          className={`color-palette-swatch ${
-                                            (item.badgeTextColor || '').toLowerCase() === color.toLowerCase()
-                                              ? 'is-selected'
-                                              : ''
-                                          }`}
-                                          style={{ backgroundColor: color }}
-                                          title={color}
-                                          onClick={() => updatePhaseOneItem(idx, 'badgeTextColor', color)}
-                                        />
-                                      ))}
-                                    </div>
-                                  </label>
-                                </div>
+                                <span className="field-help">
+                                  Featured cards now use image-first style. Upload image and optional text/badge only.
+                                </span>
                               ) : null}
                               </div>
                             );
