@@ -72,6 +72,18 @@ const getProductGalleryUrls = (product) => extractImageUrls(product?.galleryImag
 const getPrimaryProductImage = (product) => product?.thumbnailImage || getProductGalleryUrls(product)[0] || '';
 const getVariantGalleryUrls = (variant) => extractImageUrls(variant?.images);
 const getPrimaryVariantImage = (variant) => variant?.thumbnailImage || getVariantGalleryUrls(variant)[0] || '';
+const getProductSortTimestamp = (product) => {
+  const candidates = [product?.updatedOn, product?.updated_on, product?.createdOn, product?.created_on];
+  for (const value of candidates) {
+    const timestamp = Date.parse(value || '');
+    if (Number.isFinite(timestamp)) return timestamp;
+  }
+  return 0;
+};
+const getProductSortId = (product) => {
+  const numericId = Number(product?.id ?? product?.productId ?? 0);
+  return Number.isFinite(numericId) ? numericId : 0;
+};
 const formatDynamicByType = (type, value, unit) => {
   if (value === null || value === undefined || value === '') return '-';
   const normalized = String(type || '').toUpperCase();
@@ -184,6 +196,23 @@ const CHANGE_REQUEST_OPTIONS = [
   { key: 'compliance', label: 'Compliance', hint: 'HSN, country of origin, certifications, or policy details are missing.' },
 ];
 
+function ProductTableThumbnail({ imageUrl, alt }) {
+  const [hasError, setHasError] = useState(false);
+  const resolvedImage = hasError ? '' : resolveMediaUrl(imageUrl);
+
+  return (
+    <div className={`product-row-thumb${resolvedImage ? '' : ' is-empty'}`}>
+      {resolvedImage ? (
+        <img src={resolvedImage} alt={alt} loading="lazy" onError={() => setHasError(true)} />
+      ) : (
+        <div className="product-row-thumb-placeholder">
+          <span>No image</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ProductPage({ token, adminUserId }) {
   const [products, setProducts] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -245,20 +274,27 @@ function ProductPage({ token, adminUserId }) {
 
   const filteredProducts = useMemo(() => {
     const term = normalize(query);
-    if (!term) return products;
-    return products.filter((product) => {
-      const haystack = [
-        product?.productName,
-        product?.brandName,
-        product?.businessName,
-        product?.category?.subCategoryName,
-        product?.category?.categoryName,
-        product?.category?.mainCategoryName,
-        product?.approvalStatus,
-      ]
-        .map(normalize)
-        .join(' ');
-      return haystack.includes(term);
+    const visibleProducts = term
+      ? products.filter((product) => {
+          const haystack = [
+            product?.productName,
+            product?.brandName,
+            product?.businessName,
+            product?.category?.subCategoryName,
+            product?.category?.categoryName,
+            product?.category?.mainCategoryName,
+            product?.approvalStatus,
+          ]
+            .map(normalize)
+            .join(' ');
+          return haystack.includes(term);
+        })
+      : products;
+
+    return [...visibleProducts].sort((left, right) => {
+      const timestampDiff = getProductSortTimestamp(right) - getProductSortTimestamp(left);
+      if (timestampDiff !== 0) return timestampDiff;
+      return getProductSortId(right) - getProductSortId(left);
     });
   }, [products, query]);
 
@@ -3457,6 +3493,16 @@ function ProductPage({ token, adminUserId }) {
           ) : (
             <div className="table-shell">
               <table className="admin-table users-table product-table">
+                <colgroup>
+                  <col style={{ width: '48px' }} />
+                  <col style={{ width: '30%' }} />
+                  <col style={{ width: '17%' }} />
+                  <col style={{ width: '17%' }} />
+                  <col style={{ width: '12%' }} />
+                  <col style={{ width: '11%' }} />
+                  <col style={{ width: '11%' }} />
+                  <col style={{ width: '208px' }} />
+                </colgroup>
                 <thead>
                   <tr>
                     <th>
@@ -3506,14 +3552,10 @@ function ProductPage({ token, adminUserId }) {
                         </td>
                         <td>
                           <div className="product-row-main">
-                            {resolveMediaUrl(getPrimaryProductImage(product)) ? (
-                              <div className="product-row-thumb">
-                                <img
-                                  src={resolveMediaUrl(getPrimaryProductImage(product))}
-                                  alt={product?.productName || 'Product'}
-                                />
-                              </div>
-                            ) : null}
+                            <ProductTableThumbnail
+                              imageUrl={getPrimaryProductImage(product)}
+                              alt={product?.productName || 'Product'}
+                            />
                             <div className="product-row-copy">
                               <p className="user-name">{product?.productName || '-'}</p>
                               <p className="product-row-meta">{product?.brandName || 'Unbranded'}</p>

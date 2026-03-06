@@ -7,8 +7,10 @@ import {
   deleteAttributeMapping,
   listAttributeDefinitions,
   listAttributeMappings,
+  listCategories,
   listIndustries,
   listMainCategories,
+  listSubCategories,
   updateAttributeDefinition,
   updateAttributeMapping,
 } from '../services/adminApi';
@@ -36,7 +38,7 @@ const mappingInitial = {
   key: '',
   dataType: 'STRING',
   enumOptions: [],
-  scope: 'main',
+  scope: 'category',
   mainCategoryId: '',
   categoryId: '',
   subCategoryId: '',
@@ -116,6 +118,8 @@ function ProductAttributePage({ token }) {
   const [industries, setIndustries] = useState([]);
   const [selectedIndustryId, setSelectedIndustryId] = useState('');
   const [mainCategories, setMainCategories] = useState([]);
+  const [categoryOptionsByMain, setCategoryOptionsByMain] = useState({});
+  const [subCategoryOptionsByCategory, setSubCategoryOptionsByCategory] = useState({});
 
   const definitionMap = useMemo(() => {
     const map = new Map();
@@ -138,13 +142,37 @@ function ProductAttributePage({ token }) {
     );
   }, [mainCategories, selectedIndustryId]);
 
-  const selectedMainCategory = useMemo(() => {
-    if (!filterForm.mainCategoryId) return null;
+  const filterCategories = useMemo(() => {
+    if (!filterForm.mainCategoryId) return [];
+    return categoryOptionsByMain[String(filterForm.mainCategoryId)] || [];
+  }, [categoryOptionsByMain, filterForm.mainCategoryId]);
+
+  const filterSubCategories = useMemo(() => {
+    if (!filterForm.categoryId) return [];
+    return subCategoryOptionsByCategory[String(filterForm.categoryId)] || [];
+  }, [subCategoryOptionsByCategory, filterForm.categoryId]);
+
+  const mappingCategories = useMemo(() => {
+    if (!mappingForm.mainCategoryId) return [];
+    return categoryOptionsByMain[String(mappingForm.mainCategoryId)] || [];
+  }, [categoryOptionsByMain, mappingForm.mainCategoryId]);
+
+  const mappingSubCategories = useMemo(() => {
+    if (!mappingForm.categoryId) return [];
+    return subCategoryOptionsByCategory[String(mappingForm.categoryId)] || [];
+  }, [subCategoryOptionsByCategory, mappingForm.categoryId]);
+
+  const selectedCategory = useMemo(() => {
+    if (!filterForm.categoryId) return null;
+    return filterCategories.find((item) => String(item.id) === String(filterForm.categoryId)) || null;
+  }, [filterCategories, filterForm.categoryId]);
+
+  const selectedSubCategory = useMemo(() => {
+    if (!filterForm.subCategoryId) return null;
     return (
-      mainCategories.find((item) => String(item.id) === String(filterForm.mainCategoryId)) ||
-      null
+      filterSubCategories.find((item) => String(item.id) === String(filterForm.subCategoryId)) || null
     );
-  }, [mainCategories, filterForm.mainCategoryId]);
+  }, [filterForm.subCategoryId, filterSubCategories]);
 
   const totalFields = mappings.length;
   const activeFields = mappings.filter((item) => item.active !== false).length;
@@ -158,14 +186,16 @@ function ProductAttributePage({ token }) {
 
   const loadMappings = async (overrideFilters) => {
     const source = overrideFilters || filterForm;
-    if (!source.mainCategoryId && !source.categoryId && !source.subCategoryId) {
+    if (!source.categoryId) {
       setMappings([]);
       return;
     }
     const filters = {};
-    if (source.mainCategoryId) filters.mainCategoryId = Number(source.mainCategoryId);
-    if (source.categoryId) filters.categoryId = Number(source.categoryId);
-    if (source.subCategoryId) filters.subCategoryId = Number(source.subCategoryId);
+    if (source.subCategoryId) {
+      filters.subCategoryId = Number(source.subCategoryId);
+    } else {
+      filters.categoryId = Number(source.categoryId);
+    }
     if (source.active === 'true') filters.active = true;
     if (source.active === 'false') filters.active = false;
     const response = await listAttributeMappings(token, filters);
@@ -187,6 +217,36 @@ function ProductAttributePage({ token }) {
     setMainCategories(response?.data || []);
   };
 
+  const ensureCategories = async (mainCategoryId) => {
+    if (!mainCategoryId) return [];
+    const cacheKey = String(mainCategoryId);
+    if (categoryOptionsByMain[cacheKey]) {
+      return categoryOptionsByMain[cacheKey];
+    }
+    const response = await listCategories(token, mainCategoryId);
+    const list = response?.data || [];
+    setCategoryOptionsByMain((prev) => ({
+      ...prev,
+      [cacheKey]: list,
+    }));
+    return list;
+  };
+
+  const ensureSubCategories = async (categoryId) => {
+    if (!categoryId) return [];
+    const cacheKey = String(categoryId);
+    if (subCategoryOptionsByCategory[cacheKey]) {
+      return subCategoryOptionsByCategory[cacheKey];
+    }
+    const response = await listSubCategories(token, categoryId);
+    const list = response?.data || [];
+    setSubCategoryOptionsByCategory((prev) => ({
+      ...prev,
+      [cacheKey]: list,
+    }));
+    return list;
+  };
+
   useEffect(() => {
     if (didInitRef.current) return;
     didInitRef.current = true;
@@ -204,6 +264,38 @@ function ProductAttributePage({ token }) {
     loadMappings().catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterForm.mainCategoryId, filterForm.categoryId, filterForm.subCategoryId, filterForm.active]);
+
+  useEffect(() => {
+    if (!filterForm.mainCategoryId) return;
+    ensureCategories(filterForm.mainCategoryId).catch((error) => {
+      setMessage({ type: 'error', text: error.message || 'Failed to load categories.' });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterForm.mainCategoryId]);
+
+  useEffect(() => {
+    if (!filterForm.categoryId) return;
+    ensureSubCategories(filterForm.categoryId).catch((error) => {
+      setMessage({ type: 'error', text: error.message || 'Failed to load sub-categories.' });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterForm.categoryId]);
+
+  useEffect(() => {
+    if (!showMappingForm || !mappingForm.mainCategoryId) return;
+    ensureCategories(mappingForm.mainCategoryId).catch((error) => {
+      setMessage({ type: 'error', text: error.message || 'Failed to load categories.' });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showMappingForm, mappingForm.mainCategoryId]);
+
+  useEffect(() => {
+    if (!showMappingForm || !mappingForm.categoryId) return;
+    ensureSubCategories(mappingForm.categoryId).catch((error) => {
+      setMessage({ type: 'error', text: error.message || 'Failed to load sub-categories.' });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showMappingForm, mappingForm.categoryId]);
 
   useEffect(() => {
     setMappingForm((prev) => ({
@@ -474,8 +566,8 @@ function ProductAttributePage({ token }) {
       return;
     }
 
-    if (!mappingForm.mainCategoryId) {
-      setMessage({ type: 'error', text: 'Select a main category.' });
+    if (!mappingForm.categoryId) {
+      setMessage({ type: 'error', text: 'Select a category.' });
       return;
     }
 
@@ -489,7 +581,11 @@ function ProductAttributePage({ token }) {
     const sortOrder = toInteger(mappingForm.sortOrder);
     if (sortOrder !== null) payload.sortOrder = sortOrder;
 
-    payload.mainCategoryId = Number(mappingForm.mainCategoryId);
+    if (mappingForm.subCategoryId) {
+      payload.subCategoryId = Number(mappingForm.subCategoryId);
+    } else {
+      payload.categoryId = Number(mappingForm.categoryId);
+    }
 
     const { value, error } = buildDefaultValue();
     if (error) {
@@ -640,9 +736,14 @@ function ProductAttributePage({ token }) {
       key,
       dataType: type,
       enumOptions,
-      mainCategoryId: mapping.mainCategoryId ? String(mapping.mainCategoryId) : '',
-      categoryId: '',
-      subCategoryId: '',
+      mainCategoryId:
+        mapping.mainCategoryId
+          ? String(mapping.mainCategoryId)
+          : filterForm.mainCategoryId
+          ? String(filterForm.mainCategoryId)
+          : '',
+      categoryId: mapping.categoryId ? String(mapping.categoryId) : '',
+      subCategoryId: mapping.subCategoryId ? String(mapping.subCategoryId) : '',
       required: Boolean(mapping.required),
       filterable: Boolean(mapping.filterable),
       searchable: Boolean(mapping.searchable),
@@ -712,14 +813,16 @@ function ProductAttributePage({ token }) {
   };
 
   const openMappingForm = () => {
-    if (!filterForm.mainCategoryId) {
-      setMessage({ type: 'error', text: 'Select an industry and main category first.' });
+    if (!filterForm.categoryId) {
+      setMessage({ type: 'error', text: 'Select an industry and category first.' });
       return;
     }
     setMappingForm({
       ...mappingInitial,
-      scope: 'main',
+      scope: filterForm.subCategoryId ? 'sub' : 'category',
       mainCategoryId: filterForm.mainCategoryId,
+      categoryId: filterForm.categoryId,
+      subCategoryId: filterForm.subCategoryId,
     });
     setMappingKeyEdited(false);
     setOptionDraft('');
@@ -741,7 +844,7 @@ function ProductAttributePage({ token }) {
       <div className="panel-head">
         <div>
           <h2 className="panel-title">Dynamic Fields</h2>
-          <p className="panel-subtitle">Define custom product fields per main category.</p>
+          <p className="panel-subtitle">Define custom product fields per category.</p>
         </div>
         <button type="button" className="ghost-btn" onClick={handleRefresh} disabled={isLoading}>
           Refresh
@@ -754,7 +857,11 @@ function ProductAttributePage({ token }) {
           <p className="stat-label">Total fields</p>
           <p className="stat-value">{totalFields}</p>
           <p className="stat-sub">
-            {selectedMainCategory ? `Main category: ${selectedMainCategory.name}` : 'Select a main category'}
+            {selectedSubCategory
+              ? `Sub-category: ${selectedSubCategory.name}`
+              : selectedCategory
+              ? `Category: ${selectedCategory.name}`
+              : 'Select a category'}
           </p>
         </div>
         <div className="stat-card admin-stat" style={{ '--stat-accent': '#16A34A' }}>
@@ -1152,7 +1259,7 @@ function ProductAttributePage({ token }) {
                 </div>
               ) : null}
               <label className="field">
-                <span>Main category</span>
+                <span>Category group</span>
                 <select
                   value={mappingForm.mainCategoryId}
                   onChange={(event) =>
@@ -1165,8 +1272,51 @@ function ProductAttributePage({ token }) {
                   }
                   required
                 >
-                  <option value="">Select main category</option>
+                  <option value="">Select category group</option>
                   {filteredMainCategories.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="field-help">Used only to load categories.</p>
+              </label>
+              <label className="field">
+                <span>Category</span>
+                <select
+                  value={mappingForm.categoryId}
+                  onChange={(event) =>
+                    setMappingForm((prev) => ({
+                      ...prev,
+                      categoryId: event.target.value,
+                      subCategoryId: '',
+                    }))
+                  }
+                  disabled={!mappingForm.mainCategoryId}
+                  required
+                >
+                  <option value="">Select category</option>
+                  {mappingCategories.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>Sub-category</span>
+                <select
+                  value={mappingForm.subCategoryId}
+                  onChange={(event) =>
+                    setMappingForm((prev) => ({
+                      ...prev,
+                      subCategoryId: event.target.value,
+                    }))
+                  }
+                  disabled={!mappingForm.categoryId}
+                >
+                  <option value="">All sub-categories</option>
+                  {mappingSubCategories.map((item) => (
                     <option key={item.id} value={item.id}>
                       {item.name}
                     </option>
@@ -1254,16 +1404,18 @@ function ProductAttributePage({ token }) {
             <div>
               <h3 className="panel-subheading">Dynamic fields</h3>
               <p className="panel-subtitle">
-                {selectedMainCategory
-                  ? `Fields for: ${selectedMainCategory.name}`
-                  : 'Select an industry and main category to manage fields.'}
+                {selectedSubCategory
+                  ? `Fields for sub-category: ${selectedSubCategory.name}`
+                  : selectedCategory
+                  ? `Fields for category: ${selectedCategory.name}`
+                  : 'Select an industry and category to manage fields.'}
               </p>
             </div>
             <button
               type="button"
               className="primary-btn compact"
               onClick={openMappingForm}
-              disabled={!filterForm.mainCategoryId}
+              disabled={!filterForm.categoryId}
             >
               Add Field
             </button>
@@ -1281,14 +1433,44 @@ function ProductAttributePage({ token }) {
               </select>
             </label>
             <label className="field">
-              <span>Main category</span>
+              <span>Category group</span>
               <select
                 value={filterForm.mainCategoryId}
                 onChange={(event) => handleFilterChange('mainCategoryId', event.target.value)}
                 disabled={!selectedIndustryId}
               >
-                <option value="">Select main category</option>
+                <option value="">Select category group</option>
                 {filteredMainCategories.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field">
+              <span>Category</span>
+              <select
+                value={filterForm.categoryId}
+                onChange={(event) => handleFilterChange('categoryId', event.target.value)}
+                disabled={!filterForm.mainCategoryId}
+              >
+                <option value="">Select category</option>
+                {filterCategories.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field">
+              <span>Sub-category</span>
+              <select
+                value={filterForm.subCategoryId}
+                onChange={(event) => handleFilterChange('subCategoryId', event.target.value)}
+                disabled={!filterForm.categoryId}
+              >
+                <option value="">All sub-categories</option>
+                {filterSubCategories.map((item) => (
                   <option key={item.id} value={item.id}>
                     {item.name}
                   </option>
@@ -1311,11 +1493,16 @@ function ProductAttributePage({ token }) {
               </div>
             </div>
           </div>
-          {!filterForm.mainCategoryId ? (
-            <p className="empty-state">Select an industry and main category to view fields.</p>
+          {!filterForm.categoryId ? (
+            <p className="empty-state">Select an industry and category to view fields.</p>
           ) : mappings.length === 0 ? (
             <p className="empty-state">
-              No fields yet{selectedMainCategory ? ` for ${selectedMainCategory.name}` : ''}.
+              No fields yet
+              {selectedSubCategory
+                ? ` for ${selectedSubCategory.name}`
+                : selectedCategory
+                ? ` for ${selectedCategory.name}`
+                : ''}.
             </p>
           ) : (
             <div className="table-shell">

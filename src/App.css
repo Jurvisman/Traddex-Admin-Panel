@@ -5008,6 +5008,8 @@ textarea {
 .product-page .product-table {
   border-collapse: separate;
   border-spacing: 0;
+  width: 100%;
+  table-layout: fixed;
 }
 
 .product-page .product-table thead th:first-child {
@@ -5058,15 +5060,53 @@ textarea {
   height: 60px;
   border-radius: 18px;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex: 0 0 auto;
   border: 1px solid color-mix(in srgb, var(--admin-border) 80%, var(--admin-accent) 20%);
   background: linear-gradient(180deg, #ffffff 0%, #f5f7ff 100%);
   box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
 }
 
+.product-page .product-row-thumb.is-empty {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--admin-border) 72%, var(--admin-muted) 28%);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(241, 245, 255, 0.96) 100%),
+    repeating-linear-gradient(
+      -45deg,
+      rgba(148, 163, 184, 0.08) 0,
+      rgba(148, 163, 184, 0.08) 10px,
+      rgba(148, 163, 184, 0.02) 10px,
+      rgba(148, 163, 184, 0.02) 20px
+    );
+}
+
 .product-page .product-row-thumb img {
+  width: 100%;
+  height: 100%;
   object-fit: contain;
   padding: 8px;
+  display: block;
+}
+
+.product-page .product-row-thumb-placeholder {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 8px;
+  text-align: center;
+}
+
+.product-page .product-row-thumb-placeholder span {
+  font-size: 9px;
+  line-height: 1.25;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--admin-muted);
 }
 
 .product-page .product-row-meta,
