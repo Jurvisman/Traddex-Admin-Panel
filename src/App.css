@@ -1549,6 +1549,335 @@ textarea {
   flex: 1;
 }
 
+.ghost-btn.is-selected {
+  border-color: rgba(91, 108, 255, 0.38);
+  background: rgba(91, 108, 255, 0.08);
+  color: var(--accent-strong);
+}
+
+.attribute-library-stack {
+  display: grid;
+  gap: 4px;
+}
+
+.attribute-library-primary {
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+.attribute-library-secondary {
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.attribute-admin-page .panel-grid {
+  grid-template-columns: minmax(320px, 380px) minmax(0, 1fr);
+  align-items: start;
+}
+
+.attribute-admin-page .panel-subheading {
+  font-size: 16px;
+  margin: 0;
+}
+
+.attribute-admin-page .panel-subtitle {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.attribute-admin-page .field {
+  gap: 8px;
+  font-size: 13px;
+}
+
+.attribute-admin-page .field input,
+.attribute-admin-page .field select,
+.attribute-admin-page .field textarea {
+  min-height: 44px;
+  background: #ffffff;
+  font-size: 13px;
+}
+
+.attribute-admin-page .field-help {
+  font-size: 12px;
+}
+
+.attribute-context-bar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(18, 24, 54, 0.08);
+  background: #f8faff;
+}
+
+.attribute-context-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.attribute-context-copy strong {
+  font-size: 15px;
+  color: var(--ink);
+}
+
+.attribute-context-copy p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.attribute-context-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.attribute-metric-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.attribute-metric-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(18, 24, 54, 0.08);
+  background: #ffffff;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.attribute-metric-pill strong {
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.attribute-library-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.attribute-library-list {
+  display: grid;
+  gap: 10px;
+}
+
+.attribute-accordion-item {
+  display: grid;
+  gap: 0;
+  border-radius: 18px;
+  border: 1px solid rgba(18, 24, 54, 0.08);
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.attribute-accordion-item.is-current-scope {
+  border-color: rgba(51, 103, 214, 0.24);
+  box-shadow: 0 10px 22px rgba(51, 103, 214, 0.08);
+}
+
+.attribute-accordion-trigger {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 16px;
+  border: 0;
+  background: #ffffff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.attribute-accordion-trigger.is-open {
+  background: #f8faff;
+}
+
+.attribute-accordion-main {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.attribute-accordion-caret {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(18, 24, 54, 0.08);
+  background: #f4f6fb;
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.attribute-accordion-caret.is-open {
+  background: rgba(51, 103, 214, 0.1);
+  color: #2850a8;
+}
+
+.attribute-accordion-panel {
+  display: grid;
+  gap: 14px;
+  padding: 0 16px 16px;
+  border-top: 1px solid rgba(18, 24, 54, 0.08);
+  background: #f8faff;
+}
+
+.attribute-accordion-section {
+  display: grid;
+  gap: 8px;
+  padding-top: 14px;
+}
+
+.attribute-accordion-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.attribute-library-meta-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.attribute-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  border: 1px solid rgba(18, 24, 54, 0.08);
+  background: #f4f6fb;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.attribute-badge.is-active {
+  border-color: rgba(34, 139, 87, 0.18);
+  background: rgba(34, 139, 87, 0.12);
+  color: #136b43;
+}
+
+.attribute-badge.is-inactive {
+  border-color: rgba(214, 74, 74, 0.18);
+  background: rgba(214, 74, 74, 0.12);
+  color: #9e3131;
+}
+
+.attribute-badge.is-selected {
+  border-color: rgba(51, 103, 214, 0.2);
+  background: rgba(51, 103, 214, 0.12);
+  color: #2850a8;
+}
+
+.attribute-location-list {
+  display: grid;
+  gap: 8px;
+}
+
+.attribute-location-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(18, 24, 54, 0.08);
+  background: #fbfcfe;
+}
+
+.attribute-location-item.is-current {
+  border-color: rgba(51, 103, 214, 0.2);
+  background: rgba(51, 103, 214, 0.06);
+}
+
+.attribute-location-text {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.attribute-location-button {
+  width: fit-content;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent-strong);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.attribute-admin-page .admin-table {
+  font-size: 13px;
+}
+
+.attribute-admin-page .admin-table th,
+.attribute-admin-page .admin-table td {
+  padding: 14px 10px;
+  vertical-align: top;
+}
+
+.attribute-admin-page .admin-table th {
+  font-size: 11px;
+}
+
+.attribute-admin-page .table-actions {
+  white-space: nowrap;
+}
+
+@media (max-width: 1320px) {
+  .attribute-admin-page .panel-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .attribute-accordion-trigger {
+    padding: 14px;
+  }
+
+  .attribute-location-item {
+    flex-direction: column;
+  }
+
+  .attribute-accordion-panel {
+    padding: 0 14px 14px;
+  }
+}
+
 .color-input {
   width: 42px;
   height: 36px;
