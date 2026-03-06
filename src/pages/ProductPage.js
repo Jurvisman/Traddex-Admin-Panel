@@ -15,6 +15,7 @@ import {
   listProducts,
   listSubCategories,
   listUoms,
+  uploadBannerImages,
   updateUom,
   updateProduct,
   updateProductVariantStatus,
@@ -35,6 +36,8 @@ const createVariantEntry = () => ({
   attributes: [createVariantAttributeEntry()],
 });
 
+const ADMIN_API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:8080';
+
 const normalize = (value) => String(value || '').toLowerCase();
 const normalizeDynamicKey = (value) =>
   String(value || '')
@@ -48,6 +51,27 @@ const humanizeKey = (value) =>
     .replace(/\s+/g, ' ')
     .trim()
     .replace(/^./, (char) => char.toUpperCase());
+const resolveMediaUrl = (value) => {
+  const trimmed = String(value || '').trim();
+  if (!trimmed) return '';
+  if (/^(data:|blob:|https?:\/\/)/i.test(trimmed)) return trimmed;
+  if (trimmed.startsWith('//')) return `https:${trimmed}`;
+  if (trimmed.startsWith('/')) return `${ADMIN_API_BASE}${trimmed}`;
+  return `${ADMIN_API_BASE}/${trimmed.replace(/^\.?\//, '')}`;
+};
+const extractImageUrls = (items) => {
+  if (!Array.isArray(items)) return [];
+  return items
+    .map((item) => {
+      if (typeof item === 'string') return item;
+      return item?.url || item?.imageUrl || '';
+    })
+    .filter(Boolean);
+};
+const getProductGalleryUrls = (product) => extractImageUrls(product?.galleryImages);
+const getPrimaryProductImage = (product) => product?.thumbnailImage || getProductGalleryUrls(product)[0] || '';
+const getVariantGalleryUrls = (variant) => extractImageUrls(variant?.images);
+const getPrimaryVariantImage = (variant) => variant?.thumbnailImage || getVariantGalleryUrls(variant)[0] || '';
 const formatDynamicByType = (type, value, unit) => {
   if (value === null || value === undefined || value === '') return '-';
   const normalized = String(type || '').toUpperCase();
@@ -115,12 +139,22 @@ const ACTION_ICONS = {
       />
     </svg>
   ),
+  requestChanges: (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M12 3a9 9 0 1 1-6.4 2.6L4.2 7 3 5.8l2.4-2.4L7.8 5l-1.2 1.2A7 7 0 1 0 12 5c-1.6 0-3 .5-4.2 1.4L6.6 8A9 9 0 0 1 12 3Zm-.8 5h1.6v5h-1.6V8Zm0 6.5h1.6V16h-1.6v-1.5Z"
+        fill="currentColor"
+      />
+    </svg>
+  ),
 };
 
 const initialForm = {
   productName: '',
   brandName: '',
   shortDescription: '',
+  thumbnailImage: '',
+  galleryImagesText: '',
   mainCategoryId: '',
   categoryId: '',
   subCategoryId: '',
@@ -134,6 +168,22 @@ const initialForm = {
   variants: [],
 };
 
+const createReviewForm = () => ({
+  mainCategoryId: '',
+  categoryId: '',
+  subCategoryId: '',
+});
+
+const CHANGE_REQUEST_OPTIONS = [
+  { key: 'category', label: 'Category mapping', hint: 'Main category, category, or sub-category is incorrect or incomplete.' },
+  { key: 'dynamic_fields', label: 'Dynamic fields', hint: 'Required category-specific specifications are missing or incorrect.' },
+  { key: 'pricing', label: 'Pricing', hint: 'Selling price, MRP, GST, or B2B price needs correction.' },
+  { key: 'media', label: 'Media quality', hint: 'Thumbnail/gallery images are missing, wrong, or low quality.' },
+  { key: 'description', label: 'Descriptions', hint: 'Product copy, brand, or naming needs clarification.' },
+  { key: 'inventory', label: 'Inventory & MOQ', hint: 'Stock, MOQ, shipping, or warehouse details need updates.' },
+  { key: 'compliance', label: 'Compliance', hint: 'HSN, country of origin, certifications, or policy details are missing.' },
+];
+
 function ProductPage({ token, adminUserId }) {
   const [products, setProducts] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -144,6 +194,11 @@ function ProductPage({ token, adminUserId }) {
   const [attributeDefinitions, setAttributeDefinitions] = useState([]);
   const [attributeMappings, setAttributeMappings] = useState([]);
   const [viewAttributeMappings, setViewAttributeMappings] = useState([]);
+  const [reviewForm, setReviewForm] = useState(createReviewForm);
+  const [reviewCategories, setReviewCategories] = useState([]);
+  const [reviewSubCategories, setReviewSubCategories] = useState([]);
+  const [showChangeRequestModal, setShowChangeRequestModal] = useState(false);
+  const [changeRequestForm, setChangeRequestForm] = useState({ issues: [], note: '' });
   const [dynamicValues, setDynamicValues] = useState({});
   const [uoms, setUoms] = useState([]);
   const [uomForm, setUomForm] = useState({
@@ -163,9 +218,12 @@ function ProductPage({ token, adminUserId }) {
   const [editingProductId, setEditingProductId] = useState(null);
   const [activeProductViewTab, setActiveProductViewTab] = useState('overview');
   const didInitRef = useRef(false);
+  const mediaInputRef = useRef(null);
   const navigate = useNavigate();
   const { id } = useParams();
   const editMatch = useMatch('/admin/products/:id/edit');
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+  const [mediaTarget, setMediaTarget] = useState(null);
 
   const definitionById = useMemo(() => {
     const mapping = new Map();
@@ -389,6 +447,14 @@ function ProductPage({ token, adminUserId }) {
     return `${formatDateOnlyFromDate(date)} ${hh}:${min}`;
   };
 
+  const formatTimeOnly = (value) => {
+    const date = parseDateValue(value);
+    if (!date) return '-';
+    const hh = String(date.getHours()).padStart(2, '0');
+    const min = String(date.getMinutes()).padStart(2, '0');
+    return `${hh}:${min}`;
+  };
+
   const formatStatus = (status) => {
     if (!status) return 'Pending';
     return status
@@ -402,6 +468,39 @@ function ProductPage({ token, adminUserId }) {
     if (!category) return '-';
     const parts = [category.mainCategoryName, category.categoryName, category.subCategoryName].filter(Boolean);
     return parts.length ? parts.join(' / ') : '-';
+  };
+
+  const formatCategoryParts = (category) => {
+    if (!category) return { primary: '-', secondary: '' };
+    const primary =
+      category.mainCategoryName || category.categoryName || category.subCategoryName || '-';
+    const secondary = [category.categoryName, category.subCategoryName]
+      .filter((part) => part && part !== primary)
+      .join(' / ');
+    return { primary, secondary };
+  };
+
+  const formatPrice = (value, currency = 'INR') => {
+    if (value === null || value === undefined || value === '') return '-';
+    const amount = Number(value);
+    if (!Number.isFinite(amount)) return formatValue(value);
+    const normalizedCurrency = String(currency || 'INR').trim().toUpperCase();
+    if (!normalizedCurrency || normalizedCurrency === 'INR' || normalizedCurrency === 'RS') {
+      return `Rs ${amount.toLocaleString('en-IN', {
+        minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
+        maximumFractionDigits: 2,
+      })}`;
+    }
+    try {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: normalizedCurrency,
+        minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
+        maximumFractionDigits: 2,
+      }).format(amount);
+    } catch (error) {
+      return amount.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+    }
   };
 
   const formatUomLabel = (uom) => {
@@ -422,6 +521,50 @@ function ProductPage({ token, adminUserId }) {
         ? ` • Price: ${entry.pricePerUom}`
         : '';
     return `${name || 'UOM'}${factorText}${priceText}`;
+  };
+
+  const hasReviewValue = (value) => {
+    if (value === null || value === undefined) return false;
+    if (typeof value === 'boolean') return true;
+    if (typeof value === 'number') return Number.isFinite(value);
+    if (typeof value === 'string') return value.trim().length > 0;
+    if (Array.isArray(value)) return value.length > 0;
+    if (typeof value === 'object') return Object.keys(value).length > 0;
+    return true;
+  };
+
+  const buildReviewCategoryPayload = (source) => {
+    const payload = {};
+    if (source.mainCategoryId) payload.mainCategoryId = Number(source.mainCategoryId);
+    if (source.categoryId) payload.categoryId = Number(source.categoryId);
+    if (source.subCategoryId) payload.subCategoryId = Number(source.subCategoryId);
+    return payload;
+  };
+
+  const buildChangeRequestRemarks = ({ issues, note, missingFields }) => {
+    const selectedIssues = CHANGE_REQUEST_OPTIONS.filter((item) => issues.includes(item.key));
+    const lines = ['Please update this product and resubmit it for review.'];
+
+    if (selectedIssues.length > 0) {
+      lines.push('', 'Requested updates:');
+      selectedIssues.forEach((item) => {
+        lines.push(`- ${item.label}`);
+      });
+    }
+
+    if (missingFields.length > 0) {
+      lines.push('', 'Missing required dynamic fields:');
+      missingFields.forEach((field) => {
+        lines.push(`- ${field}`);
+      });
+    }
+
+    if (String(note || '').trim()) {
+      lines.push('', 'Admin note:');
+      lines.push(String(note).trim());
+    }
+
+    return lines.join('\n');
   };
 
   const resetUomForm = () => {
@@ -631,10 +774,30 @@ function ProductPage({ token, adminUserId }) {
   }, [showViewOnly, selectedProductId]);
 
   useEffect(() => {
-    const category = selectedProduct?.category;
-    const mainId = category?.mainCategoryId ? Number(category.mainCategoryId) : null;
-    const categoryId = category?.categoryId ? Number(category.categoryId) : null;
-    const subCategoryId = category?.subCategoryId ? Number(category.subCategoryId) : null;
+    if (!selectedProduct) {
+      setReviewForm(createReviewForm());
+      setReviewCategories([]);
+      setReviewSubCategories([]);
+      return;
+    }
+    const category = selectedProduct.category;
+    const nextReviewForm = {
+      mainCategoryId: category?.mainCategoryId ? String(category.mainCategoryId) : '',
+      categoryId: category?.categoryId ? String(category.categoryId) : '',
+      subCategoryId: category?.subCategoryId ? String(category.subCategoryId) : '',
+    };
+    setReviewForm(nextReviewForm);
+    hydrateCategoryOptionsForReview(nextReviewForm.mainCategoryId, nextReviewForm.categoryId).catch(() => {
+      setReviewCategories([]);
+      setReviewSubCategories([]);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedProduct?.id, token]);
+
+  useEffect(() => {
+    const mainId = reviewForm.mainCategoryId ? Number(reviewForm.mainCategoryId) : null;
+    const categoryId = reviewForm.categoryId ? Number(reviewForm.categoryId) : null;
+    const subCategoryId = reviewForm.subCategoryId ? Number(reviewForm.subCategoryId) : null;
     if (!mainId && !categoryId && !subCategoryId) {
       setViewAttributeMappings([]);
       return;
@@ -642,7 +805,8 @@ function ProductPage({ token, adminUserId }) {
     loadViewAttributeMappings(mainId, categoryId, subCategoryId).catch(() => {
       setViewAttributeMappings([]);
     });
-  }, [selectedProduct?.category?.mainCategoryId, selectedProduct?.category?.categoryId, selectedProduct?.category?.subCategoryId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reviewForm.mainCategoryId, reviewForm.categoryId, reviewForm.subCategoryId]);
 
   useEffect(() => {
     if (!isEditRoute) {
@@ -654,7 +818,9 @@ function ProductPage({ token, adminUserId }) {
     }
     if (!selectedProduct) return;
     if (editingProductId === selectedProduct.id && showForm) return;
-    populateEditForm(selectedProduct);
+    populateEditForm(selectedProduct).catch((error) => {
+      setMessage({ type: 'error', text: error.message || 'Failed to load product form.' });
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEditRoute, selectedProduct]);
 
@@ -678,6 +844,27 @@ function ProductPage({ token, adminUserId }) {
       .then((response) => setSubCategories(response?.data || []))
       .catch(() => setSubCategories([]));
   }, [form.categoryId, token]);
+
+  useEffect(() => {
+    if (!reviewForm.mainCategoryId) {
+      setReviewCategories([]);
+      setReviewSubCategories([]);
+      return;
+    }
+    listCategories(token, reviewForm.mainCategoryId)
+      .then((response) => setReviewCategories(response?.data || []))
+      .catch(() => setReviewCategories([]));
+  }, [reviewForm.mainCategoryId, token]);
+
+  useEffect(() => {
+    if (!reviewForm.categoryId) {
+      setReviewSubCategories([]);
+      return;
+    }
+    listSubCategories(token, reviewForm.categoryId)
+      .then((response) => setReviewSubCategories(response?.data || []))
+      .catch(() => setReviewSubCategories([]));
+  }, [reviewForm.categoryId, token]);
 
   useEffect(() => {
     const mainId = form.mainCategoryId ? Number(form.mainCategoryId) : null;
@@ -713,6 +900,20 @@ function ProductPage({ token, adminUserId }) {
           });
         next.purchaseUoms = syncEntries(next.purchaseUoms);
         next.salesUoms = syncEntries(next.salesUoms);
+      }
+      return next;
+    });
+  };
+
+  const handleReviewCategoryChange = (key, value) => {
+    setReviewForm((prev) => {
+      const next = { ...prev, [key]: value };
+      if (key === 'mainCategoryId') {
+        next.categoryId = '';
+        next.subCategoryId = '';
+      }
+      if (key === 'categoryId') {
+        next.subCategoryId = '';
       }
       return next;
     });
@@ -827,15 +1028,64 @@ function ProductPage({ token, adminUserId }) {
     return Number(adminUserId);
   };
 
-  const populateEditForm = (product) => {
+  const hydrateCategoryOptionsForEdit = async (mainCategoryId, categoryId) => {
+    let nextCategories = [];
+    let nextSubCategories = [];
+
+    if (mainCategoryId) {
+      const categoryResponse = await listCategories(token, mainCategoryId);
+      nextCategories = categoryResponse?.data || [];
+    }
+
+    if (categoryId) {
+      const subCategoryResponse = await listSubCategories(token, categoryId);
+      nextSubCategories = subCategoryResponse?.data || [];
+    }
+
+    setCategories(nextCategories);
+    setSubCategories(nextSubCategories);
+  };
+
+  const hydrateCategoryOptionsForReview = async (mainCategoryId, categoryId) => {
+    let nextCategories = [];
+    let nextSubCategories = [];
+
+    if (mainCategoryId) {
+      const categoryResponse = await listCategories(token, mainCategoryId);
+      nextCategories = categoryResponse?.data || [];
+    }
+
+    if (categoryId) {
+      const subCategoryResponse = await listSubCategories(token, categoryId);
+      nextSubCategories = subCategoryResponse?.data || [];
+    }
+
+    setReviewCategories(nextCategories);
+    setReviewSubCategories(nextSubCategories);
+  };
+
+  const populateEditForm = async (product) => {
+    const nextMainCategoryId = product.category?.mainCategoryId ? String(product.category.mainCategoryId) : '';
+    const nextCategoryId = product.category?.categoryId ? String(product.category.categoryId) : '';
+    const nextSubCategoryId = product.category?.subCategoryId ? String(product.category.subCategoryId) : '';
+
+    try {
+      await hydrateCategoryOptionsForEdit(nextMainCategoryId, nextCategoryId);
+    } catch {
+      setCategories([]);
+      setSubCategories([]);
+    }
+
     setEditingProductId(product.id);
     setForm({
       productName: product.productName || '',
       brandName: product.brandName || '',
       shortDescription: product.shortDescription || '',
-      mainCategoryId: product.category?.mainCategoryId ? String(product.category.mainCategoryId) : '',
-      categoryId: product.category?.categoryId ? String(product.category.categoryId) : '',
-      subCategoryId: product.category?.subCategoryId ? String(product.category.subCategoryId) : '',
+      thumbnailImage: getPrimaryProductImage(product) || '',
+      galleryImagesText: getProductGalleryUrls(product).join(', '),
+      mainCategoryId: nextMainCategoryId,
+      categoryId: nextCategoryId,
+      subCategoryId: nextSubCategoryId,
       sellingPrice:
         product.sellingPrice !== null && product.sellingPrice !== undefined
           ? String(product.sellingPrice)
@@ -909,7 +1159,9 @@ function ProductPage({ token, adminUserId }) {
   const handleOpenEditForm = () => {
     if (!selectedProduct) return;
     navigate(`/admin/products/${selectedProduct.id}/edit`);
-    populateEditForm(selectedProduct);
+    populateEditForm(selectedProduct).catch((error) => {
+      setMessage({ type: 'error', text: error.message || 'Failed to load product form.' });
+    });
   };
 
   const handleCloseForm = () => {
@@ -930,6 +1182,86 @@ function ProductPage({ token, adminUserId }) {
     setSelectedProduct(null);
     setMessage({ type: 'info', text: '' });
     navigate('/admin/products');
+  };
+
+  const mergeMediaList = (currentValue, nextUrls, append = true) => {
+    const merged = append ? [...parseList(currentValue), ...nextUrls] : nextUrls;
+    return Array.from(new Set(merged.filter(Boolean))).join(', ');
+  };
+
+  const openMediaUpload = (target) => {
+    setMediaTarget(target);
+    if (mediaInputRef.current) {
+      mediaInputRef.current.value = '';
+      mediaInputRef.current.click();
+    }
+  };
+
+  const clearMediaField = (target) => {
+    setForm((prev) => {
+      if (target.kind === 'product') {
+        if (target.field === 'thumbnailImage') {
+          return { ...prev, thumbnailImage: '' };
+        }
+        return { ...prev, galleryImagesText: '' };
+      }
+
+      const nextVariants = [...prev.variants];
+      const currentVariant = { ...nextVariants[target.index] };
+      if (target.field === 'thumbnailImage') {
+        currentVariant.thumbnailImage = '';
+      } else {
+        currentVariant.galleryImagesText = '';
+      }
+      nextVariants[target.index] = currentVariant;
+      return { ...prev, variants: nextVariants };
+    });
+  };
+
+  const handleMediaFiles = async (event) => {
+    const files = event?.target?.files;
+    if (!files || files.length === 0 || !mediaTarget) return;
+    setIsUploadingMedia(true);
+    setMessage({ type: 'info', text: '' });
+
+    try {
+      const response = await uploadBannerImages(token, Array.from(files));
+      const urls = response?.data?.urls || [];
+      if (!urls.length) {
+        throw new Error('Upload failed. No image URLs returned.');
+      }
+
+      setForm((prev) => {
+        if (mediaTarget.kind === 'product') {
+          if (mediaTarget.field === 'thumbnailImage') {
+            return { ...prev, thumbnailImage: urls[0] };
+          }
+          return {
+            ...prev,
+            galleryImagesText: mergeMediaList(prev.galleryImagesText, urls, true),
+            thumbnailImage: prev.thumbnailImage || urls[0],
+          };
+        }
+
+        const nextVariants = [...prev.variants];
+        const currentVariant = { ...nextVariants[mediaTarget.index] };
+        if (mediaTarget.field === 'thumbnailImage') {
+          currentVariant.thumbnailImage = urls[0];
+        } else {
+          currentVariant.galleryImagesText = mergeMediaList(currentVariant.galleryImagesText, urls, true);
+          currentVariant.thumbnailImage = currentVariant.thumbnailImage || urls[0];
+        }
+        nextVariants[mediaTarget.index] = currentVariant;
+        return { ...prev, variants: nextVariants };
+      });
+
+      setMessage({ type: 'success', text: 'Image updated.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to upload image.' });
+    } finally {
+      setIsUploadingMedia(false);
+      setMediaTarget(null);
+    }
   };
 
   const handleSubmit = async (event) => {
@@ -966,6 +1298,8 @@ function ProductPage({ token, adminUserId }) {
         productName: form.productName.trim(),
         brandName: form.brandName || null,
         shortDescription: form.shortDescription || null,
+        thumbnailImage: form.thumbnailImage?.trim() || '',
+        galleryImages: parseList(form.galleryImagesText),
         mainCategoryId: Number(form.mainCategoryId),
         categoryId: Number(form.categoryId),
         subCategoryId: Number(form.subCategoryId),
@@ -1017,7 +1351,8 @@ function ProductPage({ token, adminUserId }) {
               variantName: variant.variantName?.trim() || null,
               sku: variant.sku?.trim() || null,
               barcode: variant.barcode?.trim() || null,
-              thumbnailImage: variant.thumbnailImage?.trim() || null,
+              thumbnailImage: variant.thumbnailImage?.trim() || '',
+              galleryImages: parseList(variant.galleryImagesText),
             };
 
             if (variant.sellingPrice !== '' && variant.sellingPrice !== null && variant.sellingPrice !== undefined) {
@@ -1039,11 +1374,6 @@ function ProductPage({ token, adminUserId }) {
               variant.lowStockAlert !== undefined
             ) {
               payloadVariant.lowStockAlert = Number(variant.lowStockAlert);
-            }
-
-            const galleryImages = parseList(variant.galleryImagesText);
-            if (galleryImages.length) {
-              payloadVariant.galleryImages = galleryImages;
             }
 
             if (Array.isArray(variant.attributes)) {
@@ -1243,18 +1573,123 @@ function ProductPage({ token, adminUserId }) {
     }
   };
 
+  const handleSaveReviewCategory = async () => {
+    if (!selectedProductId) return;
+    const adminId = getAdminId();
+    if (!adminId) return;
+    if (!reviewCategoryComplete) {
+      setMessage({ type: 'error', text: 'Select main category, category, and sub-category first.' });
+      return;
+    }
+    try {
+      setIsLoading(true);
+      await updateProduct(token, selectedProductId, {
+        userId: adminId,
+        ...buildReviewCategoryPayload(reviewForm),
+      });
+      await loadProducts();
+      await loadProductDetail(selectedProductId);
+      setMessage({ type: 'success', text: 'Category assignment saved.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to save category assignment.' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const openChangeRequestModal = () => {
+    if (!reviewCategoryComplete) {
+      setMessage({ type: 'error', text: 'Assign main category, category, and sub-category before requesting changes.' });
+      return;
+    }
+    const suggestedIssues = [];
+    if (missingRequiredDynamicFields.length > 0) suggestedIssues.push('dynamic_fields');
+    if (!selectedProductGallery.length) suggestedIssues.push('media');
+    if (
+      selectedProduct?.sellingPrice === null ||
+      selectedProduct?.sellingPrice === undefined ||
+      selectedProduct?.mrp === null ||
+      selectedProduct?.mrp === undefined
+    ) {
+      suggestedIssues.push('pricing');
+    }
+    setChangeRequestForm({
+      issues: Array.from(new Set(suggestedIssues)),
+      note: '',
+    });
+    setShowChangeRequestModal(true);
+  };
+
+  const handleSubmitChangeRequest = async () => {
+    if (!selectedProductId) return;
+    const adminId = getAdminId();
+    if (!adminId) return;
+    const structuredRemarks = buildChangeRequestRemarks({
+      issues: changeRequestForm.issues,
+      note: changeRequestForm.note,
+      missingFields: missingRequiredDynamicFields,
+    });
+    if (!structuredRemarks.trim()) {
+      setMessage({ type: 'error', text: 'Add at least one requested update or admin note.' });
+      return;
+    }
+    try {
+      setIsLoading(true);
+      await updateProduct(token, selectedProductId, {
+        approvalStatus: 'CHANGES_REQUIRED',
+        userId: adminId,
+        review_remarks: structuredRemarks,
+        ...buildReviewCategoryPayload(reviewForm),
+      });
+      await loadProducts();
+      await loadProductDetail(selectedProductId);
+      setShowChangeRequestModal(false);
+      setMessage({ type: 'success', text: 'Changes requested successfully.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to request changes.' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleStatusUpdate = async (nextStatus) => {
     if (!selectedProductId) return;
     const adminId = getAdminId();
     if (!adminId) return;
+    if (nextStatus === 'CHANGES_REQUIRED') {
+      openChangeRequestModal();
+      return;
+    }
+    if (nextStatus === 'APPROVED') {
+      if (!reviewCategoryComplete) {
+        setMessage({ type: 'error', text: 'Assign main category, category, and sub-category before approval.' });
+        return;
+      }
+      if (missingRequiredDynamicFields.length > 0) {
+        setMessage({
+          type: 'error',
+          text: `Cannot approve until ${missingRequiredDynamicFields.length} required dynamic field${
+            missingRequiredDynamicFields.length > 1 ? 's are' : ' is'
+          } completed.`,
+        });
+        return;
+      }
+    }
     try {
       setIsLoading(true);
-      await updateProduct(token, selectedProductId, { approvalStatus: nextStatus, userId: adminId });
+      await updateProduct(token, selectedProductId, {
+        approvalStatus: nextStatus,
+        userId: adminId,
+        ...buildReviewCategoryPayload(reviewForm),
+      });
       await loadProducts();
       await loadProductDetail(selectedProductId);
       setMessage({
         type: 'success',
-        text: `Product ${nextStatus === 'APPROVED' ? 'approved' : 'rejected'} successfully.`,
+        text:
+          nextStatus === 'APPROVED'
+            ? 'Product approved successfully.'
+            : 'Product rejected successfully.',
       });
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to update product status.' });
@@ -1265,15 +1700,28 @@ function ProductPage({ token, adminUserId }) {
 
   const handleRowStatusUpdate = async (productId, nextStatus) => {
     if (!productId) return;
+    if (nextStatus === 'CHANGES_REQUIRED') {
+      navigate(`/admin/products/${productId}`);
+      setMessage({ type: 'info', text: 'Open the review workspace to request structured changes.' });
+      return;
+    }
     const adminId = getAdminId();
     if (!adminId) return;
     try {
       setIsLoading(true);
-      await updateProduct(token, productId, { approvalStatus: nextStatus, userId: adminId });
+      await updateProduct(token, productId, {
+        approvalStatus: nextStatus,
+        userId: adminId,
+      });
       await loadProducts();
       setMessage({
         type: 'success',
-        text: `Product ${nextStatus === 'APPROVED' ? 'approved' : 'rejected'} successfully.`,
+        text:
+          nextStatus === 'APPROVED'
+            ? 'Product approved successfully.'
+            : nextStatus === 'REJECTED'
+              ? 'Product rejected successfully.'
+              : 'Changes requested successfully.',
       });
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to update product status.' });
@@ -1307,6 +1755,8 @@ function ProductPage({ token, adminUserId }) {
   const statusValue = selectedProduct?.approvalStatus || '';
   const statusLabel = formatStatus(statusValue);
   const statusClass = `status-pill ${statusValue ? statusValue.toLowerCase().replace(/_/g, '-') : 'pending'}`;
+  const productPreviewUrl = resolveMediaUrl(form.thumbnailImage || getPrimaryProductImage(selectedProduct));
+  const productGalleryPreview = parseList(form.galleryImagesText).map(resolveMediaUrl).filter(Boolean);
   const dynamicViewGroups = useMemo(() => {
     const attributes = selectedProduct?.dynamicAttributes;
     if (!attributes) return [];
@@ -1374,6 +1824,11 @@ function ProductPage({ token, adminUserId }) {
   const variants = Array.isArray(selectedProduct?.variants) ? selectedProduct.variants : [];
   const disableApprove = isLoading || !selectedProduct || statusValue === 'APPROVED';
   const disableReject = isLoading || !selectedProduct || statusValue === 'REJECTED';
+  const disableRequestChanges =
+    isLoading ||
+    !selectedProduct ||
+    statusValue === 'APPROVED' ||
+    statusValue === 'REJECTED';
   const disableEdit = isLoading || !selectedProduct;
   const productViewTabs = [
     { key: 'overview', label: 'Overview' },
@@ -1392,10 +1847,99 @@ function ProductPage({ token, adminUserId }) {
   const rejectedCount = products.filter(
     (product) => String(product?.approvalStatus || '').toUpperCase() === 'REJECTED'
   ).length;
-  const pendingCount = Math.max(0, totalProducts - approvedCount - rejectedCount);
+  const changesRequiredCount = products.filter(
+    (product) => String(product?.approvalStatus || '').toUpperCase() === 'CHANGES_REQUIRED'
+  ).length;
+  const pendingCount = Math.max(0, totalProducts - approvedCount - rejectedCount - changesRequiredCount);
   const selectableIds = filteredProducts.map((product) => product?.id).filter(Boolean);
   const selectedCount = selectedIds.size;
   const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selectedIds.has(id));
+  const selectedProductPrimaryImage = selectedProduct
+    ? resolveMediaUrl(getPrimaryProductImage(selectedProduct))
+    : '';
+  const selectedProductGallery = selectedProduct
+    ? getProductGalleryUrls(selectedProduct).map(resolveMediaUrl).filter(Boolean)
+    : [];
+  const reviewCategoryComplete = Boolean(
+    reviewForm.mainCategoryId && reviewForm.categoryId && reviewForm.subCategoryId
+  );
+  const reviewCategoryDirty = Boolean(
+    selectedProduct &&
+      (String(selectedProduct?.category?.mainCategoryId || '') !== String(reviewForm.mainCategoryId || '') ||
+        String(selectedProduct?.category?.categoryId || '') !== String(reviewForm.categoryId || '') ||
+        String(selectedProduct?.category?.subCategoryId || '') !== String(reviewForm.subCategoryId || ''))
+  );
+  const dynamicAttributeLookup = useMemo(() => {
+    const lookup = new Map();
+    const attributes = selectedProduct?.dynamicAttributes;
+    if (!attributes) return lookup;
+    Object.entries(attributes).forEach(([rawKey, value]) => {
+      const normalized = normalizeDynamicKey(rawKey);
+      if (!normalized || lookup.has(normalized)) return;
+      lookup.set(normalized, value);
+    });
+    return lookup;
+  }, [selectedProduct?.dynamicAttributes]);
+  const missingRequiredDynamicFields = useMemo(() => {
+    return viewAttributeMappings
+      .filter((mapping) => Boolean(mapping?.required))
+      .map((mapping) => {
+        const key = normalizeDynamicKey(mapping.attributeKey || mapping.key || mapping.label || '');
+        if (!key) return null;
+        const definition =
+          (mapping.attributeId !== null && mapping.attributeId !== undefined
+            ? definitionById.get(mapping.attributeId)
+            : null) || definitionByKey.get(key);
+        const label = mapping.label || definition?.label || humanizeKey(mapping.attributeKey || key);
+        return {
+          key,
+          label,
+          present: hasReviewValue(dynamicAttributeLookup.get(key)),
+        };
+      })
+      .filter((item) => item && !item.present)
+      .map((item) => item.label);
+  }, [viewAttributeMappings, definitionById, definitionByKey, dynamicAttributeLookup]);
+  const reviewChecklist = [
+    {
+      label: 'Category assignment',
+      status: reviewCategoryComplete ? 'ready' : 'warning',
+      detail: reviewCategoryComplete ? 'Main, category, and sub-category selected' : 'Select all three levels',
+    },
+    {
+      label: 'Required dynamic fields',
+      status: missingRequiredDynamicFields.length === 0 ? 'ready' : 'warning',
+      detail:
+        missingRequiredDynamicFields.length === 0
+          ? 'No required fields missing'
+          : `${missingRequiredDynamicFields.length} required field${missingRequiredDynamicFields.length > 1 ? 's' : ''} missing`,
+    },
+    {
+      label: 'Media assets',
+      status: selectedProductGallery.length > 0 ? 'ready' : 'warning',
+      detail:
+        selectedProductGallery.length > 0
+          ? `${selectedProductGallery.length} image${selectedProductGallery.length > 1 ? 's' : ''} attached`
+          : 'No product image uploaded',
+    },
+    {
+      label: 'Pricing data',
+      status:
+        selectedProduct?.sellingPrice !== null &&
+        selectedProduct?.sellingPrice !== undefined &&
+        selectedProduct?.mrp !== null &&
+        selectedProduct?.mrp !== undefined
+          ? 'ready'
+          : 'warning',
+      detail:
+        selectedProduct?.sellingPrice !== null &&
+        selectedProduct?.sellingPrice !== undefined &&
+        selectedProduct?.mrp !== null &&
+        selectedProduct?.mrp !== undefined
+          ? 'Selling price and MRP present'
+          : 'Pricing information is incomplete',
+    },
+  ];
 
   return (
     <div className="users-page product-page">
@@ -1414,22 +1958,7 @@ function ProductPage({ token, adminUserId }) {
             </div>
           </div>
           <div className="inline-row product-view-actions">
-            <button
-              type="button"
-              className="primary-btn compact"
-              onClick={() => handleStatusUpdate('APPROVED')}
-              disabled={disableApprove}
-            >
-              Approve
-            </button>
-            <button
-              type="button"
-              className="ghost-btn small"
-              onClick={() => handleStatusUpdate('REJECTED')}
-              disabled={disableReject}
-            >
-              Reject
-            </button>
+            <span className="muted">Use the review workspace to moderate this product.</span>
             <button type="button" className="ghost-btn small" onClick={handleOpenEditForm} disabled={disableEdit}>
               Edit
             </button>
@@ -1468,6 +1997,14 @@ function ProductPage({ token, adminUserId }) {
         </div>
       )}
       <Banner message={message} />
+      <input
+        ref={mediaInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        onChange={handleMediaFiles}
+        style={{ display: 'none' }}
+      />
       {!isViewing && !showForm ? (
         <>
           <div className="stat-grid">
@@ -1486,6 +2023,11 @@ function ProductPage({ token, adminUserId }) {
               <p className="stat-value">{pendingCount}</p>
               <p className="stat-sub">Needs review</p>
             </div>
+            <div className="stat-card admin-stat" style={{ '--stat-accent': '#8B5CF6' }}>
+              <p className="stat-label">Changes Required</p>
+              <p className="stat-value">{changesRequiredCount}</p>
+              <p className="stat-sub">Awaiting business fixes</p>
+            </div>
             <div className="stat-card admin-stat" style={{ '--stat-accent': '#EF4444' }}>
               <p className="stat-label">Rejected</p>
               <p className="stat-value">{rejectedCount}</p>
@@ -1495,6 +2037,7 @@ function ProductPage({ token, adminUserId }) {
           <div className="users-filters">
             <span className="status-chip approved">{approvedCount} Approved</span>
             <span className="status-chip pending">{pendingCount} Pending</span>
+            <span className="status-chip changes-required">{changesRequiredCount} Changes Required</span>
             <span className="status-chip rejected">{rejectedCount} Rejected</span>
           </div>
         </>
@@ -1539,6 +2082,85 @@ function ProductPage({ token, adminUserId }) {
                   placeholder="Short description"
                 />
               </label>
+              <div className="field-span section-heading">
+                <h4 className="panel-subheading">Media</h4>
+              </div>
+              <div className="field-span product-media-editor">
+                <div className="product-media-preview">
+                  {productPreviewUrl ? (
+                    <img src={productPreviewUrl} alt={form.productName || 'Product preview'} />
+                  ) : (
+                    <span>No product image</span>
+                  )}
+                </div>
+                <div className="product-media-fields">
+                  <label className="field field-span">
+                    <span>Thumbnail image</span>
+                    <input
+                      type="text"
+                      value={form.thumbnailImage}
+                      onChange={(event) => handleChange('thumbnailImage', event.target.value)}
+                      placeholder="https://..."
+                    />
+                  </label>
+                  <div className="inline-row media-action-row">
+                    <button
+                      type="button"
+                      className="ghost-btn small"
+                      onClick={() => openMediaUpload({ kind: 'product', field: 'thumbnailImage' })}
+                      disabled={isUploadingMedia}
+                    >
+                      {isUploadingMedia && mediaTarget?.kind === 'product' && mediaTarget?.field === 'thumbnailImage'
+                        ? 'Uploading...'
+                        : 'Upload thumbnail'}
+                    </button>
+                    <button
+                      type="button"
+                      className="ghost-btn small"
+                      onClick={() => clearMediaField({ kind: 'product', field: 'thumbnailImage' })}
+                    >
+                      Clear
+                    </button>
+                  </div>
+                  <label className="field field-span">
+                    <span>Gallery images (comma or new line separated)</span>
+                    <textarea
+                      rows={3}
+                      value={form.galleryImagesText}
+                      onChange={(event) => handleChange('galleryImagesText', event.target.value)}
+                      placeholder="https://image1.jpg, https://image2.jpg"
+                    />
+                  </label>
+                  <div className="inline-row media-action-row">
+                    <button
+                      type="button"
+                      className="ghost-btn small"
+                      onClick={() => openMediaUpload({ kind: 'product', field: 'galleryImagesText' })}
+                      disabled={isUploadingMedia}
+                    >
+                      {isUploadingMedia && mediaTarget?.kind === 'product' && mediaTarget?.field === 'galleryImagesText'
+                        ? 'Uploading...'
+                        : 'Add gallery images'}
+                    </button>
+                    <button
+                      type="button"
+                      className="ghost-btn small"
+                      onClick={() => clearMediaField({ kind: 'product', field: 'galleryImagesText' })}
+                    >
+                      Clear
+                    </button>
+                  </div>
+                  {productGalleryPreview.length > 0 ? (
+                    <div className="media-thumb-grid">
+                      {productGalleryPreview.map((image, index) => (
+                        <div className="media-thumb" key={`${image}-${index}`}>
+                          <img src={image} alt={`Product gallery ${index + 1}`} />
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
               {!isEditing ? (
                 <label className="field">
                   <span>Business user ID (optional)</span>
@@ -1989,6 +2611,38 @@ function ProductPage({ token, adminUserId }) {
                           placeholder="https://..."
                         />
                       </label>
+                      <div className="field field-span variant-media-tools">
+                        <div className="inline-row media-action-row">
+                          <button
+                            type="button"
+                            className="ghost-btn small"
+                            onClick={() => openMediaUpload({ kind: 'variant', index, field: 'thumbnailImage' })}
+                            disabled={isUploadingMedia}
+                          >
+                            {isUploadingMedia &&
+                            mediaTarget?.kind === 'variant' &&
+                            mediaTarget?.index === index &&
+                            mediaTarget?.field === 'thumbnailImage'
+                              ? 'Uploading...'
+                              : 'Upload thumbnail'}
+                          </button>
+                          <button
+                            type="button"
+                            className="ghost-btn small"
+                            onClick={() => clearMediaField({ kind: 'variant', index, field: 'thumbnailImage' })}
+                          >
+                            Clear
+                          </button>
+                        </div>
+                        {resolveMediaUrl(getPrimaryVariantImage(variant)) ? (
+                          <div className="variant-media-preview">
+                            <img
+                              src={resolveMediaUrl(getPrimaryVariantImage(variant))}
+                              alt={variant.variantName || `Variant ${index + 1}`}
+                            />
+                          </div>
+                        ) : null}
+                      </div>
                       <label className="field field-span">
                         <span>Gallery images (comma or new line separated)</span>
                         <textarea
@@ -1998,6 +2652,42 @@ function ProductPage({ token, adminUserId }) {
                           placeholder="https://image1.jpg, https://image2.jpg"
                         />
                       </label>
+                      <div className="field field-span variant-media-tools">
+                        <div className="inline-row media-action-row">
+                          <button
+                            type="button"
+                            className="ghost-btn small"
+                            onClick={() => openMediaUpload({ kind: 'variant', index, field: 'galleryImagesText' })}
+                            disabled={isUploadingMedia}
+                          >
+                            {isUploadingMedia &&
+                            mediaTarget?.kind === 'variant' &&
+                            mediaTarget?.index === index &&
+                            mediaTarget?.field === 'galleryImagesText'
+                              ? 'Uploading...'
+                              : 'Add gallery images'}
+                          </button>
+                          <button
+                            type="button"
+                            className="ghost-btn small"
+                            onClick={() => clearMediaField({ kind: 'variant', index, field: 'galleryImagesText' })}
+                          >
+                            Clear
+                          </button>
+                        </div>
+                        {parseList(variant.galleryImagesText).length > 0 ? (
+                          <div className="media-thumb-grid">
+                            {parseList(variant.galleryImagesText)
+                              .map(resolveMediaUrl)
+                              .filter(Boolean)
+                              .map((image, imageIndex) => (
+                                <div className="media-thumb" key={`${image}-${imageIndex}`}>
+                                  <img src={image} alt={`Variant gallery ${imageIndex + 1}`} />
+                                </div>
+                              ))}
+                          </div>
+                        ) : null}
+                      </div>
                     </div>
                     <div className="variant-attributes">
                       <div className="panel-split">
@@ -2173,11 +2863,51 @@ function ProductPage({ token, adminUserId }) {
           <div className="panel-grid product-view-grid">
             {selectedProduct ? (
               <>
+              <div className="product-review-primary">
               {resolvedProductViewTab === 'overview' ? (
               <div className="panel card product-view-card product-view-card-overview">
                 <div className="panel-split">
                   <h3 className="panel-subheading">Overview</h3>
                   <span className={`${statusClass} product-status-pill compact`}>{statusLabel}</span>
+                </div>
+                <div className="product-overview-top">
+                  <div className="product-overview-copy">
+                    <span className="product-overview-kicker">Catalog product</span>
+                    <h4 className="product-overview-name">
+                      {selectedProduct.productName || 'Unnamed product'}
+                    </h4>
+                    <p className="product-overview-path">{formatCategory(selectedProduct.category)}</p>
+                    <div className="product-overview-meta">
+                      <span className="product-overview-chip">
+                        ID {formatValue(selectedProduct.id)}
+                      </span>
+                      <span className="product-overview-chip">
+                        {selectedProduct.brandName || 'Unbranded'}
+                      </span>
+                      <span className="product-overview-chip">
+                        {selectedProduct.productType || 'Unspecified type'}
+                      </span>
+                    </div>
+                  </div>
+                  {selectedProductPrimaryImage ? (
+                    <div className="product-view-hero-media">
+                      <div className="product-view-hero-image">
+                        <img
+                          src={selectedProductPrimaryImage}
+                          alt={selectedProduct.productName || 'Product'}
+                        />
+                      </div>
+                      {selectedProductGallery.length > 1 ? (
+                        <div className="media-thumb-grid">
+                          {selectedProductGallery.slice(1, 5).map((image, index) => (
+                            <div className="media-thumb" key={`${image}-${index}`}>
+                              <img src={image} alt={`Product media ${index + 1}`} />
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </div>
                 <div className="field-grid">
                   <div className="field">
@@ -2185,8 +2915,8 @@ function ProductPage({ token, adminUserId }) {
                     <p className="field-value">{formatValue(selectedProduct.id)}</p>
                   </div>
                   <div className="field">
-                    <span>Product name</span>
-                    <p className="field-value">{formatValue(selectedProduct.productName)}</p>
+                    <span>SKU</span>
+                    <p className="field-value">{formatValue(selectedProduct.sku)}</p>
                   </div>
                   <div className="field">
                     <span>Brand</span>
@@ -2348,6 +3078,17 @@ function ProductPage({ token, adminUserId }) {
                             <span className={variantStatusClass}>{formatStatus(variantStatus)}</span>
                           </div>
                           <div className="field-grid variant-fields">
+                            {resolveMediaUrl(getPrimaryVariantImage(variant)) ? (
+                              <div className="field field-span variant-view-media">
+                                <span>Image</span>
+                                <div className="variant-media-preview">
+                                  <img
+                                    src={resolveMediaUrl(getPrimaryVariantImage(variant))}
+                                    alt={variantTitle}
+                                  />
+                                </div>
+                              </div>
+                            ) : null}
                             <div className="field">
                               <span>Selling price</span>
                               <p className="field-value">{formatValue(variant?.sellingPrice)}</p>
@@ -2449,6 +3190,138 @@ function ProductPage({ token, adminUserId }) {
                 )}
               </div>
               ) : null}
+              </div>
+              <aside className="panel card product-review-sidebar">
+                <div className="panel-split">
+                  <div>
+                    <h3 className="panel-subheading">Review workspace</h3>
+                    <p className="product-review-sidebar-title">Moderation controls</p>
+                  </div>
+                  <span className={`${statusClass} product-status-pill compact`}>{statusLabel}</span>
+                </div>
+
+                <div className="product-review-section">
+                  <div className="panel-split">
+                    <div>
+                      <p className="product-review-section-title">Category assignment</p>
+                      <p className="product-review-section-text">
+                        Assign the final catalog path before approval or change request.
+                      </p>
+                    </div>
+                    {reviewCategoryDirty ? <span className="review-dirty-badge">Unsaved</span> : null}
+                  </div>
+                  <div className="product-review-select-grid">
+                    <label className="field">
+                      <span>Main category</span>
+                      <select
+                        value={reviewForm.mainCategoryId}
+                        onChange={(event) => handleReviewCategoryChange('mainCategoryId', event.target.value)}
+                      >
+                        <option value="">Select main category</option>
+                        {mainCategories.map((item) => (
+                          <option key={item.id} value={item.id}>
+                            {item.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="field">
+                      <span>Category</span>
+                      <select
+                        value={reviewForm.categoryId}
+                        onChange={(event) => handleReviewCategoryChange('categoryId', event.target.value)}
+                        disabled={!reviewForm.mainCategoryId}
+                      >
+                        <option value="">Select category</option>
+                        {reviewCategories.map((item) => (
+                          <option key={item.id} value={item.id}>
+                            {item.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="field">
+                      <span>Sub-category</span>
+                      <select
+                        value={reviewForm.subCategoryId}
+                        onChange={(event) => handleReviewCategoryChange('subCategoryId', event.target.value)}
+                        disabled={!reviewForm.categoryId}
+                      >
+                        <option value="">Select sub-category</option>
+                        {reviewSubCategories.map((item) => (
+                          <option key={item.id} value={item.id}>
+                            {item.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                  <button
+                    type="button"
+                    className="ghost-btn small"
+                    onClick={handleSaveReviewCategory}
+                    disabled={isLoading || !reviewCategoryDirty || !reviewCategoryComplete}
+                  >
+                    Save Category Assignment
+                  </button>
+                </div>
+
+                <div className="product-review-section">
+                  <p className="product-review-section-title">Review checklist</p>
+                  <div className="review-checklist">
+                    {reviewChecklist.map((item) => (
+                      <div
+                        key={item.label}
+                        className={`review-checklist-item ${item.status === 'ready' ? 'ready' : 'warning'}`}
+                      >
+                        <div>
+                          <p className="review-checklist-label">{item.label}</p>
+                          <p className="review-checklist-detail">{item.detail}</p>
+                        </div>
+                        <span className={`review-checklist-dot ${item.status}`} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="product-review-section">
+                  <p className="product-review-section-title">Current review note</p>
+                  <div className="review-note-box">
+                    {selectedProduct.reviewRemarks ? (
+                      <pre>{selectedProduct.reviewRemarks}</pre>
+                    ) : (
+                      <p>No review note has been sent to the business yet.</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="product-review-actions">
+                  <button
+                    type="button"
+                    className="primary-btn compact"
+                    onClick={() => handleStatusUpdate('APPROVED')}
+                    disabled={disableApprove}
+                  >
+                    Approve Product
+                  </button>
+                  <button
+                    type="button"
+                    className="ghost-btn small warning"
+                    onClick={openChangeRequestModal}
+                    disabled={disableRequestChanges}
+                  >
+                    Request Changes
+                  </button>
+                  <button
+                    type="button"
+                    className="ghost-btn small"
+                    onClick={() => handleStatusUpdate('REJECTED')}
+                    disabled={disableReject}
+                  >
+                    Reject Product
+                  </button>
+                </div>
+              </aside>
               </>
             ) : (
               <div className="panel card">
@@ -2457,6 +3330,108 @@ function ProductPage({ token, adminUserId }) {
                 </p>
               </div>
             )}
+          </div>
+        </div>
+      ) : null}
+      {showChangeRequestModal ? (
+        <div className="modal-backdrop" role="presentation">
+          <div className="modal-card product-review-modal">
+            <div className="modal-head">
+              <div>
+                <h3 className="panel-title">Request Changes</h3>
+                <p className="panel-subtitle">
+                  Send structured feedback to the business. This note will be shown in the app.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="ghost-btn small"
+                onClick={() => setShowChangeRequestModal(false)}
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="product-review-modal-body">
+              <div className="product-review-modal-section">
+                <p className="product-review-section-title">Requested updates</p>
+                <div className="review-issue-grid">
+                  {CHANGE_REQUEST_OPTIONS.map((item) => {
+                    const active = changeRequestForm.issues.includes(item.key);
+                    return (
+                      <button
+                        key={item.key}
+                        type="button"
+                        className={`review-issue-chip ${active ? 'active' : ''}`}
+                        onClick={() =>
+                          setChangeRequestForm((prev) => ({
+                            ...prev,
+                            issues: active
+                              ? prev.issues.filter((entry) => entry !== item.key)
+                              : [...prev.issues, item.key],
+                          }))
+                        }
+                      >
+                        <span className="review-issue-chip-title">{item.label}</span>
+                        <span className="review-issue-chip-hint">{item.hint}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {missingRequiredDynamicFields.length > 0 ? (
+                <div className="product-review-modal-section">
+                  <p className="product-review-section-title">Missing required dynamic fields</p>
+                  <div className="tag-row">
+                    {missingRequiredDynamicFields.map((field) => (
+                      <span key={field} className="tag warning">
+                        {field}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="product-review-modal-section">
+                <label className="field field-span">
+                  <span>Admin note</span>
+                  <textarea
+                    rows={5}
+                    placeholder="Describe exactly what the business needs to update before resubmitting."
+                    value={changeRequestForm.note}
+                    onChange={(event) =>
+                      setChangeRequestForm((prev) => ({
+                        ...prev,
+                        note: event.target.value,
+                      }))
+                    }
+                  />
+                </label>
+              </div>
+
+              <div className="product-review-modal-section">
+                <p className="product-review-section-title">Preview</p>
+                <div className="review-note-box">
+                  <pre>
+                    {buildChangeRequestRemarks({
+                      issues: changeRequestForm.issues,
+                      note: changeRequestForm.note,
+                      missingFields: missingRequiredDynamicFields,
+                    }) || 'Add requested updates or an admin note to build the review message.'}
+                  </pre>
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-actions">
+              <button type="button" className="ghost-btn small" onClick={() => setShowChangeRequestModal(false)}>
+                Cancel
+              </button>
+              <button type="button" className="primary-btn compact" onClick={handleSubmitChangeRequest} disabled={isLoading}>
+                Send Change Request
+              </button>
+            </div>
           </div>
         </div>
       ) : null}
@@ -2508,6 +3483,11 @@ function ProductPage({ token, adminUserId }) {
                     const statusClass = `status-pill ${
                       statusValue ? statusValue.toLowerCase().replace(/_/g, '-') : 'pending'
                     }`;
+                    const hasFullCategoryPath = Boolean(
+                      product?.category?.mainCategoryId && product?.category?.categoryId && product?.category?.subCategoryId
+                    );
+                    const categoryParts = formatCategoryParts(product?.category);
+                    const updatedAt = product?.updatedOn || product?.updated_on || product?.createdOn;
                       return (
                         <tr
                           key={product?.id || product?.productId}
@@ -2525,18 +3505,59 @@ function ProductPage({ token, adminUserId }) {
                           />
                         </td>
                         <td>
-                          <div>
-                            <p className="user-name">{product?.productName || '-'}</p>
-                            <p className="user-email">{product?.brandName || '-'}</p>
+                          <div className="product-row-main">
+                            {resolveMediaUrl(getPrimaryProductImage(product)) ? (
+                              <div className="product-row-thumb">
+                                <img
+                                  src={resolveMediaUrl(getPrimaryProductImage(product))}
+                                  alt={product?.productName || 'Product'}
+                                />
+                              </div>
+                            ) : null}
+                            <div className="product-row-copy">
+                              <p className="user-name">{product?.productName || '-'}</p>
+                              <p className="product-row-meta">{product?.brandName || 'Unbranded'}</p>
+                              <p className="product-row-sku">{product?.sku || 'SKU unavailable'}</p>
+                            </div>
                           </div>
                         </td>
-                        <td>{product?.businessName || '-'}</td>
-                        <td>{formatCategory(product?.category)}</td>
-                        <td>{product?.sellingPrice ?? '-'}</td>
+                        <td>
+                          <div className="product-table-stack">
+                            <span className="product-table-primary">{product?.businessName || '-'}</span>
+                            <span className="product-table-secondary">
+                              {product?.productType || 'Product'}
+                            </span>
+                          </div>
+                        </td>
+                        <td>
+                          <div className="product-table-stack">
+                            <span className="product-table-primary">{categoryParts.primary}</span>
+                            <span className="product-table-secondary">
+                              {categoryParts.secondary || 'No subcategory mapped'}
+                            </span>
+                          </div>
+                        </td>
+                        <td>
+                          <div className="product-price-cell">
+                            <span className="product-price-main">
+                              {formatPrice(product?.sellingPrice, product?.currency)}
+                            </span>
+                            <span className="product-price-sub">
+                              {product?.mrp !== null && product?.mrp !== undefined && product?.mrp !== ''
+                                ? `MRP ${formatPrice(product?.mrp, product?.currency)}`
+                                : formatValue(product?.baseUomName || product?.currency || '-')}
+                            </span>
+                          </div>
+                        </td>
                         <td>
                           <span className={statusClass}>{formatStatus(statusValue)}</span>
                         </td>
-                        <td>{formatDateOnly(product?.updatedOn || product?.updated_on || product?.createdOn)}</td>
+                        <td>
+                          <div className="product-table-stack product-updated-cell">
+                            <span className="product-table-primary">{formatDateOnly(updatedAt)}</span>
+                            <span className="product-table-secondary">{formatTimeOnly(updatedAt)}</span>
+                          </div>
+                        </td>
                         <td className="table-actions">
                           <div className="table-action-group">
                             <button
@@ -2572,18 +3593,30 @@ function ProductPage({ token, adminUserId }) {
                             >
                               {ACTION_ICONS.trash}
                             </button>
-                            {String(statusValue || '').toUpperCase() === 'PENDING' ? (
+                            {['PENDING_REVIEW', 'CHANGES_REQUIRED'].includes(String(statusValue || '').toUpperCase()) ? (
                               <>
                                 <button
                                   type="button"
                                   className="icon-btn approve"
                                   aria-label="Approve product"
+                                  disabled={!hasFullCategoryPath}
                                   onClick={(event) => {
                                     event.stopPropagation();
                                     handleRowStatusUpdate(product.id, 'APPROVED');
                                   }}
                                 >
                                   {ACTION_ICONS.approve}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="icon-btn request-changes"
+                                  aria-label="Request changes"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    handleRowStatusUpdate(product.id, 'CHANGES_REQUIRED');
+                                  }}
+                                >
+                                  {ACTION_ICONS.requestChanges}
                                 </button>
                                 <button
                                   type="button"
