@@ -11,6 +11,7 @@ import {
   listIndustries,
   listMainCategories,
   listSubCategories,
+  purgeAllAttributeDefinitions,
   updateAttributeDefinition,
   updateAttributeMapping,
 } from '../services/adminApi';
@@ -950,11 +951,68 @@ function ProductAttributePage({ token }) {
   const handleDeleteDefinition = async (id) => {
     try {
       setIsLoading(true);
-      await deleteAttributeDefinition(token, id);
+      const response = await deleteAttributeDefinition(token, id);
       await Promise.all([loadDefinitions(), loadAllMappings(), loadMappings()]);
-      setMessage({ type: 'success', text: 'Attribute definition deleted.' });
+      const productsUpdated = response?.data?.productsUpdated ?? 0;
+      setMessage({
+        type: 'success',
+        text:
+          productsUpdated > 0
+            ? `Attribute definition deleted. Removed linked values from ${productsUpdated} product${
+                productsUpdated === 1 ? '' : 's'
+              }.`
+            : 'Attribute definition deleted.',
+      });
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to delete attribute definition.' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handlePurgeAllDefinitions = async () => {
+    if (!definitions.length) {
+      setMessage({ type: 'info', text: 'No reusable fields to delete.' });
+      return;
+    }
+
+    const shouldContinue = window.confirm(
+      `Delete all ${definitions.length} reusable field${definitions.length === 1 ? '' : 's'}? This will also remove linked values from products.`
+    );
+    if (!shouldContinue) {
+      return;
+    }
+
+    const finalConfirm = window.confirm(
+      'This cannot be undone from the admin panel. Continue with safe cleanup and delete?'
+    );
+    if (!finalConfirm) {
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const response = await purgeAllAttributeDefinitions(token);
+      setDefinitionForm(definitionInitial);
+      setMappingForm(mappingInitial);
+      setEditingDefinitionId(null);
+      setEditingMappingId(null);
+      setShowDefinitionForm(false);
+      setShowMappingForm(false);
+      setShowDefinitionAdvanced(false);
+      setExpandedLibraryFieldId(null);
+      setDefinitionQuery('');
+      await Promise.all([loadDefinitions(), loadAllMappings(), loadMappings()]);
+
+      const summary = response?.data || {};
+      setMessage({
+        type: 'success',
+        text: `Deleted ${summary.definitionsDeleted ?? 0} fields, ${summary.mappingsDeleted ?? 0} category links, and cleaned ${summary.productsUpdated ?? 0} product${
+          summary.productsUpdated === 1 ? '' : 's'
+        }.`,
+      });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to delete all reusable fields.' });
     } finally {
       setIsLoading(false);
     }
@@ -1184,12 +1242,22 @@ function ProductAttributePage({ token }) {
     <div className="attribute-admin-page">
       <div className="panel-head">
         <div>
-          <h2 className="panel-title">Dynamic Fields</h2>
-          <p className="panel-subtitle">Define custom product fields per category.</p>
+          <h2 className="panel-title">Reusable Fields</h2>
+          <p className="panel-subtitle">Advanced cleanup and reusable field management for product categories.</p>
         </div>
-        <button type="button" className="ghost-btn" onClick={handleRefresh} disabled={isLoading}>
-          Refresh
-        </button>
+        <div className="attribute-admin-head-actions">
+          <button type="button" className="ghost-btn" onClick={handleRefresh} disabled={isLoading}>
+            Refresh
+          </button>
+          <button
+            type="button"
+            className="ghost-btn danger"
+            onClick={handlePurgeAllDefinitions}
+            disabled={isLoading || definitions.length === 0}
+          >
+            Delete All Fields
+          </button>
+        </div>
       </div>
       <Banner message={message} />
 

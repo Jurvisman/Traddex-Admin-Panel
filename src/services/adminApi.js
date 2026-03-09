@@ -126,6 +126,8 @@ export const updateAttributeDefinition = (token, id, payload) =>
   request(`/admin/product-attribute/${id}/update`, { method: 'PUT', body: payload, token });
 export const deleteAttributeDefinition = (token, id) =>
   request(`/admin/product-attribute/${id}`, { method: 'DELETE', token });
+export const purgeAllAttributeDefinitions = (token) =>
+  request('/admin/product-attribute/purge-all', { method: 'DELETE', token });
 
 export const listAttributeMappings = (token, filters = {}) => {
   const params = new URLSearchParams();

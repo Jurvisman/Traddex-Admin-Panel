@@ -246,7 +246,7 @@ const ADMIN_META = [
   {
     match: '/admin/catalog-manager',
     title: 'Product Masters',
-    subtitle: 'Manage the category hierarchy and product master data.',
+    subtitle: 'Manage the category hierarchy and the fields products should capture.',
   },
   {
     match: '/admin/catalog-manager/industries',
@@ -261,7 +261,7 @@ const ADMIN_META = [
   {
     match: '/admin/catalog-manager/categories',
     title: 'Category',
-    subtitle: 'Create categories under main categories.',
+    subtitle: 'Create categories and define the product fields each category needs.',
   },
   {
     match: '/admin/catalog-manager/sub-categories',
@@ -270,8 +270,8 @@ const ADMIN_META = [
   },
   {
     match: '/admin/product-attribute',
-    title: 'Dynamic Fields',
-    subtitle: 'Create custom fields that appear in product forms.',
+    title: 'Reusable Fields',
+    subtitle: 'Advanced reusable field library for categories that share the same product fields.',
   },
   {
     matchPrefix: '/admin/products',
@@ -543,7 +543,7 @@ function AppRoutes() {
               { path: '/admin/catalog-manager/main-categories', label: 'Main Category', icon: ICONS.catalog, tone: NAV_TONES.catalog },
               { path: '/admin/catalog-manager/categories', label: 'Category', icon: ICONS.catalog, tone: NAV_TONES.catalog },
               { path: '/admin/catalog-manager/sub-categories', label: 'Sub-Category', icon: ICONS.catalog, tone: NAV_TONES.catalog },
-              { path: '/admin/product-attribute', label: 'Dynamic Fields', icon: ICONS.attributes, tone: NAV_TONES.fields },
+              { path: '/admin/product-attribute', label: 'Reusable Fields', icon: ICONS.attributes, tone: NAV_TONES.fields },
             ],
           },
           {
