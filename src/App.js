@@ -3,24 +3,34 @@ import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useNavigat
 import { AdminShell } from './components';
 import {
   AdminDashboardPage,
-  CatalogManagerPage,
+  CategoryPage,
   AppConfigPage,
   AdminTimezonesPage,
+  BusinessPage,
+  IndustryPage,
   LoginPage,
   InquiryConfigPage,
   InquiryReportPage,
+  MainCategoryPage,
   OtpVerifyPage,
   ProductAttributePage,
   ProductPage,
+  SubCategoryPage,
   SubscriptionAssignPage,
   SubscriptionFeaturePage,
   SubscriptionOverviewPage,
   SubscriptionPlanPage,
   AdminUsersPage,
+  UserDirectoryPage,
   EmployeePage,
   RolePermissionPage,
   OrderDisputesPage,
   OrderReturnsPage,
+  SupportPage,
+  SubscriptionRevenuePage,
+  AdvertisementRevenuePage,
+  PurchaseOrdersPage,
+  SalesOrdersPage,
 } from './pages';
 import { fetchMyPermissions } from './services/adminApi';
 import './App.css';
@@ -46,6 +56,14 @@ const ICONS = {
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path
         d="M12 3a4 4 0 1 1 0 8 4 4 0 0 1 0-8ZM4 19a8 8 0 1 1 16 0v2H4v-2Zm16-8h-2V9h-2V7h2V5h2v2h2v2h-2v2Z"
+        fill="currentColor"
+      />
+    </svg>
+  ),
+  business: (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M4 20V7.5L12 4l8 3.5V20h-2v-2H6v2H4Zm4-4h2v-2H8v2Zm0-4h2v-2H8v2Zm6 4h2v-2h-2v2Zm0-4h2v-2h-2v2Z"
         fill="currentColor"
       />
     </svg>
@@ -150,11 +168,36 @@ const ICONS = {
       />
     </svg>
   ),
+  revenue: (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M3 3v18h18v-2H5V3H3Zm14 4-4 4 4 4 2-2-2-2 2-2-2-2Zm-6 2L5 13v2l6 2 6-4v-2l-6-2Z"
+        fill="currentColor"
+      />
+    </svg>
+  ),
+  support: (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2Zm1 17h-2v-2h2v2Zm2.07-7.75-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25Z"
+        fill="currentColor"
+      />
+    </svg>
+  ),
+  orders: (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"
+        fill="currentColor"
+      />
+    </svg>
+  ),
 };
 
 const NAV_TONES = {
   dashboard: { base: '#4F46E5', soft: 'rgba(79, 70, 229, 0.14)', shadow: 'rgba(79, 70, 229, 0.35)' },
   users: { base: '#16A34A', soft: 'rgba(22, 163, 74, 0.16)', shadow: 'rgba(22, 163, 74, 0.3)' },
+  business: { base: '#417914', soft: 'rgba(65, 121, 20, 0.16)', shadow: 'rgba(65, 121, 20, 0.28)' },
   employee: { base: '#0EA5E9', soft: 'rgba(14, 165, 233, 0.16)', shadow: 'rgba(14, 165, 233, 0.3)' },
   catalog: { base: '#F59E0B', soft: 'rgba(245, 158, 11, 0.16)', shadow: 'rgba(245, 158, 11, 0.3)' },
   fields: { base: '#8B5CF6', soft: 'rgba(139, 92, 246, 0.16)', shadow: 'rgba(139, 92, 246, 0.3)' },
@@ -170,6 +213,9 @@ const NAV_TONES = {
   timezones: { base: '#2563EB', soft: 'rgba(37, 99, 235, 0.16)', shadow: 'rgba(37, 99, 235, 0.3)' },
   disputes: { base: '#EF4444', soft: 'rgba(239, 68, 68, 0.16)', shadow: 'rgba(239, 68, 68, 0.3)' },
   returns: { base: '#F97316', soft: 'rgba(249, 115, 22, 0.16)', shadow: 'rgba(249, 115, 22, 0.3)' },
+  revenue: { base: '#059669', soft: 'rgba(5, 150, 105, 0.16)', shadow: 'rgba(5, 150, 105, 0.3)' },
+  support: { base: '#7C3AED', soft: 'rgba(124, 58, 237, 0.16)', shadow: 'rgba(124, 58, 237, 0.3)' },
+  orders: { base: '#DC2626', soft: 'rgba(220, 38, 38, 0.16)', shadow: 'rgba(220, 38, 38, 0.3)' },
 };
 
 const DEFAULT_ADMIN_META = {
@@ -183,19 +229,44 @@ const ADMIN_META = [
     ...DEFAULT_ADMIN_META,
   },
   {
+    matchPrefix: '/admin/users/business',
+    title: 'Business',
+    subtitle: 'Review business profiles, KYC tabs, and account status.',
+  },
+  {
     matchPrefix: '/admin/users',
     title: 'Users',
-    subtitle: 'Monitor registered users and login activity.',
+    subtitle: 'View non-business accounts and control active status.',
   },
   {
     match: '/admin/employees',
-    title: 'Employees',
+    title: 'Employee',
     subtitle: 'Create internal admin employees and assign roles.',
   },
   {
     match: '/admin/catalog-manager',
-    title: 'Catalog Manager',
-    subtitle: 'Manage industries, main categories, categories, and sub-categories together.',
+    title: 'Product Masters',
+    subtitle: 'Manage the category hierarchy and product master data.',
+  },
+  {
+    match: '/admin/catalog-manager/industries',
+    title: 'Industry',
+    subtitle: 'Create and maintain industry groups.',
+  },
+  {
+    match: '/admin/catalog-manager/main-categories',
+    title: 'Main Category',
+    subtitle: 'Organize main categories under industries.',
+  },
+  {
+    match: '/admin/catalog-manager/categories',
+    title: 'Category',
+    subtitle: 'Create categories under main categories.',
+  },
+  {
+    match: '/admin/catalog-manager/sub-categories',
+    title: 'Sub Category',
+    subtitle: 'Attach sub-categories to categories.',
   },
   {
     match: '/admin/product-attribute',
@@ -219,17 +290,17 @@ const ADMIN_META = [
   },
   {
     match: '/admin/subscription/features',
-    title: 'Subscription Features',
-    subtitle: 'Manage the feature catalog that powers plan access.',
+    title: 'Master',
+    subtitle: 'Manage the feature master that powers subscription access.',
   },
   {
     match: '/admin/subscription/overview',
-    title: 'Subscriptions',
-    subtitle: 'Track plan performance, revenue, and subscriber activity.',
+    title: 'Revenue Model',
+    subtitle: 'Review subscription revenue performance and subscriber activity.',
   },
   {
     match: '/admin/subscription/plans',
-    title: 'Subscription Plans',
+    title: 'Subscription',
     subtitle: 'Create plans with pricing, durations, and feature limits.',
   },
   {
@@ -239,17 +310,17 @@ const ADMIN_META = [
   },
   {
     match: '/admin/settings/roles',
-    title: 'Role Permissions',
+    title: 'Role Permission',
     subtitle: 'Manage roles and map CRUD permissions by menu/submenu.',
   },
   {
     match: '/admin/app-config',
-    title: 'App Config',
-    subtitle: 'Edit and publish dynamic UI configuration.',
+    title: 'Buyer Config',
+    subtitle: 'Edit and publish buyer-side dynamic UI configuration.',
   },
   {
     match: '/admin/timezones',
-    title: 'Timezones',
+    title: 'Timezone',
     subtitle: 'Import IANA zone1970.tab to refresh timezone lookups.',
   },
   {
@@ -261,6 +332,31 @@ const ADMIN_META = [
     match: '/admin/orders/returns',
     title: 'Order Returns',
     subtitle: 'Override return requests and lock final outcomes.',
+  },
+  {
+    match: '/admin/support',
+    title: 'Support',
+    subtitle: 'Customer tickets, inquiries, and complaint management.',
+  },
+  {
+    match: '/admin/revenue/subscription',
+    title: 'Subscription Revenue',
+    subtitle: 'Breakdown of subscription payments and analytics.',
+  },
+  {
+    match: '/admin/revenue/advertisement',
+    title: 'Advertisement Revenue',
+    subtitle: 'Ad campaigns, review workflow, and ad revenue.',
+  },
+  {
+    match: '/admin/orders/purchase',
+    title: 'Purchase Orders',
+    subtitle: 'Orders where a buyer is purchasing from a seller/business.',
+  },
+  {
+    match: '/admin/orders/sales',
+    title: 'Sales Orders',
+    subtitle: 'Orders from the seller/business perspective.',
   },
 ];
 
@@ -434,37 +530,20 @@ function AppRoutes() {
         title: 'Menu',
         items: [
           { path: '/admin/dashboard', label: 'Dashboard', icon: ICONS.dashboard, tone: NAV_TONES.dashboard },
-          { path: '/admin/users', label: 'Users', icon: ICONS.users, tone: NAV_TONES.users },
-          { path: '/admin/employees', label: 'Employee', icon: ICONS.employee, tone: NAV_TONES.employee },
+          { path: '/admin/users', label: 'User', icon: ICONS.users, tone: NAV_TONES.users },
+          { path: '/admin/users/business', label: 'Business', icon: ICONS.business, tone: NAV_TONES.business },
+          { path: '/admin/products', label: 'Product', icon: ICONS.products, tone: NAV_TONES.products },
           {
-            key: 'master-management-root',
-            label: 'Master Management',
+            key: 'product-masters-root',
+            label: 'Product Masters',
             icon: ICONS.catalog,
             tone: NAV_TONES.catalog,
             children: [
-              {
-                path: '/admin/products',
-                label: 'Products',
-                icon: ICONS.products,
-                tone: NAV_TONES.products,
-              },
-              {
-                path: '/admin/catalog-manager',
-                label: 'Catalog Manager',
-                icon: ICONS.catalog,
-                tone: NAV_TONES.catalog,
-              },
+              { path: '/admin/catalog-manager/industries', label: 'Industry', icon: ICONS.catalog, tone: NAV_TONES.catalog },
+              { path: '/admin/catalog-manager/main-categories', label: 'Main Category', icon: ICONS.catalog, tone: NAV_TONES.catalog },
+              { path: '/admin/catalog-manager/categories', label: 'Category', icon: ICONS.catalog, tone: NAV_TONES.catalog },
+              { path: '/admin/catalog-manager/sub-categories', label: 'Sub-Category', icon: ICONS.catalog, tone: NAV_TONES.catalog },
               { path: '/admin/product-attribute', label: 'Dynamic Fields', icon: ICONS.attributes, tone: NAV_TONES.fields },
-            ],
-          },
-          {
-            key: 'inquiry-root',
-            label: 'Inquiry',
-            icon: ICONS.inquiryConfig,
-            tone: NAV_TONES.inquiryConfig,
-            children: [
-              { path: '/admin/inquiry/config', label: 'Inquiry Config', icon: ICONS.inquiryConfig, tone: NAV_TONES.inquiryConfig },
-              { path: '/admin/inquiry/report', label: 'Inquiry Report', icon: ICONS.inquiryReport, tone: NAV_TONES.inquiryReport },
             ],
           },
           {
@@ -473,64 +552,50 @@ function AppRoutes() {
             icon: ICONS.subOverview,
             tone: NAV_TONES.subOverview,
             children: [
-              {
-                path: '/admin/subscription/overview',
-                label: 'Overview',
-                icon: ICONS.subOverview,
-                tone: NAV_TONES.subOverview,
-              },
-              {
-                path: '/admin/subscription/features',
-                label: 'Features',
-                icon: ICONS.subFeatures,
-                tone: NAV_TONES.subFeatures,
-              },
-              {
-                path: '/admin/subscription/plans',
-                label: 'Plans',
-                icon: ICONS.subPlans,
-                tone: NAV_TONES.subPlans,
-              },
-              {
-                path: '/admin/subscription/assignments',
-                label: 'Assignments',
-                icon: ICONS.subAssignments,
-                tone: NAV_TONES.subAssignments,
-              },
+              { path: '/admin/subscription/overview', label: 'Revenue Model', icon: ICONS.subOverview, tone: NAV_TONES.subOverview },
+              { path: '/admin/subscription/features', label: 'Features', icon: ICONS.subFeatures, tone: NAV_TONES.subFeatures },
+              { path: '/admin/subscription/plans', label: 'Plan', icon: ICONS.subPlans, tone: NAV_TONES.subPlans },
             ],
           },
           {
-            key: 'configuration-root',
-            label: 'Configuration',
-            icon: ICONS.appConfig,
-            tone: NAV_TONES.appConfig,
+            key: 'revenue-model-root',
+            label: 'Revenue Model',
+            icon: ICONS.revenue,
+            tone: NAV_TONES.revenue,
             children: [
-              {
-                path: '/admin/settings/roles',
-                label: 'Role Permissions',
-                icon: ICONS.settingsRole,
-                tone: NAV_TONES.settingsRole,
-              },
-              { path: '/admin/app-config', label: 'App Config', icon: ICONS.appConfig, tone: NAV_TONES.appConfig },
+              { path: '/admin/revenue/subscription', label: 'Subscription Revenue', icon: ICONS.revenue, tone: NAV_TONES.revenue },
+              { path: '/admin/revenue/advertisement', label: 'Advertisement Revenue', icon: ICONS.revenue, tone: NAV_TONES.revenue },
             ],
           },
+          { path: '/admin/employees', label: 'Employee', icon: ICONS.employee, tone: NAV_TONES.employee },
+          {
+            key: 'settings-root',
+            label: 'Settings',
+            icon: ICONS.settingsRole,
+            tone: NAV_TONES.settingsRole,
+            children: [
+              { path: '/admin/settings/roles', label: 'Role & Permission', icon: ICONS.settingsRole, tone: NAV_TONES.settingsRole },
+            ],
+          },
+          { path: '/admin/app-config', label: 'Buyer Config', icon: ICONS.appConfig, tone: NAV_TONES.appConfig },
           {
             key: 'location-root',
             label: 'Location',
             icon: ICONS.timezones,
             tone: NAV_TONES.timezones,
-            children: [{ path: '/admin/timezones', label: 'Timezones', icon: ICONS.timezones, tone: NAV_TONES.timezones }],
+            children: [{ path: '/admin/timezones', label: 'Timezone', icon: ICONS.timezones, tone: NAV_TONES.timezones }],
           },
           {
-            key: 'order-root',
-            label: 'Order',
-            icon: ICONS.disputes,
-            tone: NAV_TONES.disputes,
+            key: 'orders-root',
+            label: 'Orders',
+            icon: ICONS.orders,
+            tone: NAV_TONES.orders,
             children: [
-              { path: '/admin/orders/disputes', label: 'Dispute', icon: ICONS.disputes, tone: NAV_TONES.disputes },
-              { path: '/admin/orders/returns', label: 'Return', icon: ICONS.returns, tone: NAV_TONES.returns },
+              { path: '/admin/orders/purchase', label: 'Purchase Orders', icon: ICONS.orders, tone: NAV_TONES.orders },
+              { path: '/admin/orders/sales', label: 'Sales Orders', icon: ICONS.orders, tone: NAV_TONES.orders },
             ],
           },
+          { path: '/admin/support', label: 'Support', icon: ICONS.support, tone: NAV_TONES.support },
         ],
       },
     ],
@@ -545,19 +610,24 @@ function AppRoutes() {
     if (!authToken) return false;
     if (isPermissionLoading) return true;
     if (!path) return true;
+    if (allowedPaths.size === 0) return true;
     return hasPathAccess(allowedPaths, path);
   };
 
   const navItems = useMemo(() => {
     if (!authToken) return allNavItems;
-    if (isPermissionLoading) return [];
+    if (isPermissionLoading) return allNavItems;
+    if (allowedPaths.size === 0) return allNavItems;
 
     return allNavItems
       .map((group) => {
         const visibleItems = (group?.items || [])
           .map((item) => {
             if (Array.isArray(item?.children) && item.children.length > 0) {
-              const visibleChildren = item.children.filter((child) => hasPathAccess(allowedPaths, child?.path));
+              const visibleChildren =
+                allowedPaths.size === 0
+                  ? item.children
+                  : item.children.filter((child) => hasPathAccess(allowedPaths, child?.path));
               if (visibleChildren.length === 0) return null;
               return { ...item, children: visibleChildren };
             }
@@ -686,7 +756,37 @@ function AppRoutes() {
               }
               fallbackPath={routeFallbackPath}
             >
-              <AdminUsersPage token={authToken} allowedActions={allowedActionCodes} />
+              <UserDirectoryPage token={authToken} allowedActions={allowedActionCodes} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="users/business"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={
+                canAccessPath('/admin/users/business') &&
+                (allowedActionCodes.size === 0 || allowedActionCodes.has('ADMIN_USERS_READ'))
+              }
+              fallbackPath={routeFallbackPath}
+            >
+              <BusinessPage token={authToken} allowedActions={allowedActionCodes} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="users/business/:id"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={
+                canAccessPath('/admin/users/business/:id') &&
+                (allowedActionCodes.size === 0 || allowedActionCodes.has('ADMIN_USERS_READ'))
+              }
+              fallbackPath={routeFallbackPath}
+            >
+              <BusinessPage token={authToken} allowedActions={allowedActionCodes} />
             </PermissionGate>
           }
         />
@@ -728,7 +828,55 @@ function AppRoutes() {
               isAllowed={canAccessPath('/admin/catalog-manager')}
               fallbackPath={routeFallbackPath}
             >
-              <CatalogManagerPage token={authToken} />
+              <Navigate to="/admin/catalog-manager/industries" replace />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="catalog-manager/industries"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={canAccessPath('/admin/catalog-manager/industries')}
+              fallbackPath={routeFallbackPath}
+            >
+              <IndustryPage token={authToken} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="catalog-manager/main-categories"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={canAccessPath('/admin/catalog-manager/main-categories')}
+              fallbackPath={routeFallbackPath}
+            >
+              <MainCategoryPage token={authToken} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="catalog-manager/categories"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={canAccessPath('/admin/catalog-manager/categories')}
+              fallbackPath={routeFallbackPath}
+            >
+              <CategoryPage token={authToken} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="catalog-manager/sub-categories"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={canAccessPath('/admin/catalog-manager/sub-categories')}
+              fallbackPath={routeFallbackPath}
+            >
+              <SubCategoryPage token={authToken} />
             </PermissionGate>
           }
         />
@@ -909,6 +1057,66 @@ function AppRoutes() {
               fallbackPath={routeFallbackPath}
             >
               <OrderReturnsPage token={authToken} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="orders/purchase"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={canAccessPath('/admin/orders/purchase')}
+              fallbackPath={routeFallbackPath}
+            >
+              <PurchaseOrdersPage token={authToken} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="orders/sales"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={canAccessPath('/admin/orders/sales')}
+              fallbackPath={routeFallbackPath}
+            >
+              <SalesOrdersPage token={authToken} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="revenue/subscription"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={canAccessPath('/admin/revenue/subscription')}
+              fallbackPath={routeFallbackPath}
+            >
+              <SubscriptionRevenuePage token={authToken} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="revenue/advertisement"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={canAccessPath('/admin/revenue/advertisement')}
+              fallbackPath={routeFallbackPath}
+            >
+              <AdvertisementRevenuePage token={authToken} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="support"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={canAccessPath('/admin/support')}
+              fallbackPath={routeFallbackPath}
+            >
+              <SupportPage token={authToken} />
             </PermissionGate>
           }
         />
