@@ -7,6 +7,7 @@ import {
   AppConfigPage,
   AdminTimezonesPage,
   BusinessPage,
+  BusinessProfileEditPage,
   IndustryPage,
   LoginPage,
   InquiryConfigPage,
@@ -20,6 +21,7 @@ import {
   SubscriptionFeaturePage,
   SubscriptionOverviewPage,
   SubscriptionPlanPage,
+  SubscriptionPlanCreatePage,
   AdminUsersPage,
   UserDirectoryPage,
   EmployeePage,
@@ -231,7 +233,7 @@ const ADMIN_META = [
   {
     matchPrefix: '/admin/users/business',
     title: 'Business',
-    subtitle: 'Review business profiles, KYC tabs, and account status.',
+    // subtitle: 'Review business profiles, KYC tabs, and account status.',
   },
   {
     matchPrefix: '/admin/users',
@@ -251,22 +253,22 @@ const ADMIN_META = [
   {
     match: '/admin/catalog-manager/industries',
     title: 'Industry',
-    subtitle: 'Create and maintain industry groups.',
+    // subtitle: 'Create and maintain industry groups.',
   },
   {
     match: '/admin/catalog-manager/main-categories',
     title: 'Main Category',
-    subtitle: 'Organize main categories under industries.',
+    // subtitle: 'Organize main categories under industries.',
   },
   {
     match: '/admin/catalog-manager/categories',
     title: 'Category',
-    subtitle: 'Create categories and define the product fields each category needs.',
+    subtitle: '',
   },
   {
     match: '/admin/catalog-manager/sub-categories',
     title: 'Sub Category',
-    subtitle: 'Attach sub-categories to categories.',
+    // subtitle: 'Attach sub-categories to categories.',
   },
   {
     match: '/admin/product-attribute',
@@ -291,17 +293,17 @@ const ADMIN_META = [
   {
     match: '/admin/subscription/features',
     title: 'Master',
-    subtitle: 'Manage the feature master that powers subscription access.',
+    // subtitle: 'Manage the feature master that powers subscription access.',
   },
   {
     match: '/admin/subscription/overview',
     title: 'Revenue Model',
-    subtitle: 'Review subscription revenue performance and subscriber activity.',
+    // subtitle: 'Review subscription revenue performance and subscriber activity.',
   },
   {
     match: '/admin/subscription/plans',
     title: 'Subscription',
-    subtitle: 'Create plans with pricing, durations, and feature limits.',
+   // subtitle: 'Create plans with pricing, durations, and feature limits.',
   },
   {
     match: '/admin/subscription/assignments',
@@ -530,7 +532,7 @@ function AppRoutes() {
         title: 'Menu',
         items: [
           { path: '/admin/dashboard', label: 'Dashboard', icon: ICONS.dashboard, tone: NAV_TONES.dashboard },
-          { path: '/admin/users', label: 'User', icon: ICONS.users, tone: NAV_TONES.users },
+          { path: '/admin/users', label: 'User', icon: ICONS.users, tone: NAV_TONES.users, exact: true },
           { path: '/admin/users/business', label: 'Business', icon: ICONS.business, tone: NAV_TONES.business },
           { path: '/admin/products', label: 'Product', icon: ICONS.products, tone: NAV_TONES.products },
           {
@@ -791,6 +793,21 @@ function AppRoutes() {
           }
         />
         <Route
+          path="users/business/:id/edit"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={
+                canAccessPath('/admin/users/business') &&
+                (allowedActionCodes.size === 0 || allowedActionCodes.has('ADMIN_USERS_UPDATE'))
+              }
+              fallbackPath={routeFallbackPath}
+            >
+              <BusinessProfileEditPage token={authToken} allowedActions={allowedActionCodes} />
+            </PermissionGate>
+          }
+        />
+        <Route
           path="users/:id"
           element={
             <PermissionGate
@@ -985,6 +1002,18 @@ function AppRoutes() {
               fallbackPath={routeFallbackPath}
             >
               <SubscriptionPlanPage token={authToken} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="subscription/plans/new"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={canAccessPath('/admin/subscription/plans')}
+              fallbackPath={routeFallbackPath}
+            >
+              <SubscriptionPlanCreatePage token={authToken} />
             </PermissionGate>
           }
         />

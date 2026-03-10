@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Banner } from '../components';
 import {
   createSubscriptionPlan,
@@ -53,6 +54,7 @@ const toNumber = (value) => {
 };
 
 function SubscriptionPlanPage({ token }) {
+  const navigate = useNavigate();
   const [plans, setPlans] = useState([]);
   const [features, setFeatures] = useState([]);
   const [form, setForm] = useState(initialForm);
@@ -60,6 +62,8 @@ function SubscriptionPlanPage({ token }) {
   const [editingId, setEditingId] = useState(null);
   const [message, setMessage] = useState({ type: 'info', text: '' });
   const [isLoading, setIsLoading] = useState(false);
+  const [isFormVisible, setIsFormVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const didInitRef = useRef(false);
 
   const monthlyPrice = form.price ? String(form.price) : '';
@@ -148,6 +152,10 @@ function SubscriptionPlanPage({ token }) {
     setEditingId(null);
   };
 
+  const startCreateNew = () => {
+    navigate('/admin/subscription/plans/new');
+  };
+
   const buildPayload = () => {
     const businessType = form.user_type === 'BUSINESS' ? form.business_type || 'ALL' : null;
     const payload = {
@@ -234,6 +242,7 @@ function SubscriptionPlanPage({ token }) {
     );
     setFeatureRows(rows.length ? rows : [createFeatureRow()]);
     setEditingId(plan.id);
+    setIsFormVisible(true);
   };
 
   const handleDelete = async (id) => {
@@ -248,6 +257,11 @@ function SubscriptionPlanPage({ token }) {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleCancel = () => {
+    resetForm();
+    setIsFormVisible(false);
   };
 
   const previewFeatures = featureRows
@@ -265,16 +279,64 @@ function SubscriptionPlanPage({ token }) {
     })
     .filter(Boolean);
 
+  const filteredPlans = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return plans;
+    return plans.filter((plan) => {
+      const name = (plan.plan_name || '').toLowerCase();
+      const userType = (plan.user_type || '').toLowerCase();
+      return name.includes(query) || userType.includes(query);
+    });
+  }, [plans, searchQuery]);
+
   return (
     <div>
-      <div className="panel-head">
-        <div>
-          <h2 className="panel-title">Subscription Plans</h2>
-          <p className="panel-subtitle">Create plans and configure feature limits.</p>
+      <div className="panel-head category-list-head">
+        <div className="category-list-head-left">
+          <div>
+            <h2 className="panel-title">Subscription Plans</h2>
+            <p className="panel-subtitle">Manage plans and configure feature limits.</p>
+          </div>
         </div>
-        <button type="button" className="ghost-btn" onClick={loadPlans} disabled={isLoading}>
-          Refresh
-        </button>
+        <div className="gsc-datatable-toolbar-right">
+          <div className="gsc-toolbar-search">
+            <input
+              type="search"
+              placeholder="Search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              aria-label="Search subscription plans"
+            />
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              style={{ width: 18, height: 18, color: '#6b7280', flexShrink: 0 }}
+            >
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg>
+          </div>
+          <button
+            type="button"
+            className="gsc-create-btn"
+            onClick={startCreateNew}
+            title="Create subscription plan"
+            aria-label="Create subscription plan"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+          </button>
+        </div>
       </div>
       <Banner message={message} />
       <div className="stat-grid">
@@ -300,14 +362,63 @@ function SubscriptionPlanPage({ token }) {
         </div>
       </div>
 
-      <div className="panel card subscription-plan-page">
-        <form onSubmit={handleSubmit}>
+      <div className="panel-grid">
+        <div className="panel card">
           <div className="panel-split">
-            <h3 className="panel-subheading">{editingId ? 'Edit plan' : 'Create plan'}</h3>
-            <button type="button" className="ghost-btn small" onClick={resetForm}>
-              Clear
-            </button>
+            <h3 className="panel-subheading">Plan list</h3>
+            <p className="panel-subtext">View and manage all subscription plans.</p>
           </div>
+          {filteredPlans.length === 0 ? (
+            <p className="empty-state">
+              {plans.length === 0 ? 'No subscription plans yet.' : 'No plans match your search.'}
+            </p>
+          ) : (
+            <div className="table-shell">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>User type</th>
+                    <th>Price</th>
+                    <th>Duration</th>
+                    <th>Status</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredPlans.map((plan) => (
+                    <tr key={plan.id}>
+                      <td>{plan.plan_name}</td>
+                      <td>{plan.user_type}</td>
+                      <td>{plan.price}</td>
+                      <td>{plan.duration_months || plan.duration}</td>
+                      <td>{plan.is_active === 1 ? 'Active' : 'Inactive'}</td>
+                      <td className="table-actions">
+                        <button type="button" className="ghost-btn small" onClick={() => handleEdit(plan)}>
+                          Edit
+                        </button>
+                        <button type="button" className="ghost-btn small" onClick={() => handleDelete(plan.id)}>
+                          Deactivate
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {isFormVisible && (
+        <div className="panel card subscription-plan-page">
+          <form onSubmit={handleSubmit}>
+            <div className="panel-split">
+              <h3 className="panel-subheading">{editingId ? 'Edit plan' : 'Create plan'}</h3>
+              <button type="button" className="ghost-btn small" onClick={resetForm}>
+                Clear
+              </button>
+            </div>
 
             <div className="plan-builder">
               <div className="plan-preview">
@@ -553,63 +664,16 @@ function SubscriptionPlanPage({ token }) {
             </div>
 
             <div className="plan-actions">
-              <button type="button" className="ghost-btn" onClick={resetForm}>
+              <button type="button" className="ghost-btn" onClick={handleCancel}>
                 Cancel
               </button>
               <button type="submit" className="primary-btn" disabled={isLoading}>
                 {isLoading ? 'Saving...' : 'Save'}
               </button>
             </div>
-        </form>
-      </div>
-
-      <div className="panel-grid">
-        <div className="panel card">
-          <div className="panel-split">
-            <h3 className="panel-subheading">Plan list</h3>
-            <button type="button" className="primary-btn compact" onClick={resetForm}>
-              Create
-            </button>
-          </div>
-          {plans.length === 0 ? (
-            <p className="empty-state">No subscription plans yet.</p>
-          ) : (
-            <div className="table-shell">
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>User type</th>
-                    <th>Price</th>
-                    <th>Duration</th>
-                    <th>Status</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {plans.map((plan) => (
-                    <tr key={plan.id}>
-                      <td>{plan.plan_name}</td>
-                      <td>{plan.user_type}</td>
-                      <td>{plan.price}</td>
-                      <td>{plan.duration_months || plan.duration}</td>
-                      <td>{plan.is_active === 1 ? 'Active' : 'Inactive'}</td>
-                      <td className="table-actions">
-                        <button type="button" className="ghost-btn small" onClick={() => handleEdit(plan)}>
-                          Edit
-                        </button>
-                        <button type="button" className="ghost-btn small" onClick={() => handleDelete(plan.id)}>
-                          Deactivate
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          </form>
         </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -4622,19 +4622,6 @@ function ProductPage({ token, adminUserId }) {
           ) : (
             <div className="table-shell">
               <table className="admin-table users-table product-table">
-                <colgroup>
-                  <col style={{ width: '48px' }} />
-                  <col style={{ width: '72px' }} />
-                  <col style={{ width: '126px' }} />
-                  <col style={{ width: '18%' }} />
-                  <col style={{ width: '15%' }} />
-                  <col style={{ width: '16%' }} />
-                  <col style={{ width: '12%' }} />
-                  <col style={{ width: '10%' }} />
-                  <col style={{ width: '11%' }} />
-                  <col style={{ width: '11%' }} />
-                  <col style={{ width: '208px' }} />
-                </colgroup>
                 <thead>
                   <tr>
                     <th>

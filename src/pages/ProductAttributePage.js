@@ -171,6 +171,7 @@ function ProductAttributePage({ token }) {
   const [allSubCategories, setAllSubCategories] = useState([]);
   const [categoryOptionsByMain, setCategoryOptionsByMain] = useState({});
   const [subCategoryOptionsByCategory, setSubCategoryOptionsByCategory] = useState({});
+  const [showMoreFilters, setShowMoreFilters] = useState(false);
 
   const definitionMap = useMemo(() => {
     const map = new Map();
@@ -414,10 +415,20 @@ function ProductAttributePage({ token }) {
     });
   }, [definitionLibrary, definitionQuery]);
 
+  const selectedLibraryDefinition = useMemo(
+    () => definitionLibrary.find((definition) => definition.id === expandedLibraryFieldId) || null,
+    [definitionLibrary, expandedLibraryFieldId]
+  );
+
   const totalFields = mappings.length;
   const activeFields = mappings.filter((item) => item.active !== false).length;
   const requiredFields = mappings.filter((item) => item.required).length;
   const inactiveFields = Math.max(0, totalFields - activeFields);
+
+  const totalReusableFields = definitions.length;
+  const activeLibraryFields = definitions.filter((item) => item.active !== false).length;
+  const inactiveLibraryFields = Math.max(0, totalReusableFields - activeLibraryFields);
+  const libraryFieldsInUse = definitionLibrary.filter((item) => (item.scopeCount || 0) > 0).length;
 
   const loadDefinitions = async () => {
     const response = await listAttributeDefinitions(token);
@@ -1239,6 +1250,7 @@ function ProductAttributePage({ token }) {
   const selectedDefinitionUsage = selectedDefinition ? definitionUsageMap.get(Number(selectedDefinition.id)) : null;
 
   return (
+    <>
     <div className="attribute-admin-page">
       <div className="panel-head">
         <div>
@@ -1261,45 +1273,16 @@ function ProductAttributePage({ token }) {
       </div>
       <Banner message={message} />
 
-      <div className="stat-grid">
-        <div className="stat-card admin-stat" style={{ '--stat-accent': '#8B5CF6' }}>
-          <p className="stat-label">Total fields</p>
-          <p className="stat-value">{totalFields}</p>
-          <p className="stat-sub">
-            {selectedSubCategory
-              ? `Sub-category: ${selectedSubCategory.name}`
-              : selectedCategory
-              ? `Category: ${selectedCategory.name}`
-              : 'Select a category'}
-          </p>
-        </div>
-        <div className="stat-card admin-stat" style={{ '--stat-accent': '#16A34A' }}>
-          <p className="stat-label">Active</p>
-          <p className="stat-value">{activeFields}</p>
-          <p className="stat-sub">Visible in product form</p>
-        </div>
-        <div className="stat-card admin-stat" style={{ '--stat-accent': '#F59E0B' }}>
-          <p className="stat-label">Required</p>
-          <p className="stat-value">{requiredFields}</p>
-          <p className="stat-sub">Must be filled</p>
-        </div>
-        <div className="stat-card admin-stat" style={{ '--stat-accent': '#EF4444' }}>
-          <p className="stat-label">Inactive</p>
-          <p className="stat-value">{inactiveFields}</p>
-          <p className="stat-sub">Hidden from form</p>
-        </div>
-      </div>
-
       {showDefinitionForm ? (
         <div className="admin-modal-backdrop" onClick={() => setShowDefinitionForm(false)}>
           <form
-            className="admin-modal"
+            className="admin-modal attribute-definition-modal"
             onSubmit={handleDefinitionSubmit}
             onClick={(event) => event.stopPropagation()}
           >
             <div className="panel-split">
               <h3 className="panel-subheading">
-                {editingDefinitionId ? 'Edit attribute definition' : 'Create attribute definition'}
+                {editingDefinitionId ? 'Edit attribute definition' : 'Add Dynamic Field'}
               </h3>
               <button type="button" className="ghost-btn small" onClick={() => setShowDefinitionForm(false)}>
                 Close
@@ -1886,341 +1869,239 @@ function ProductAttributePage({ token }) {
         </div>
       ) : null}
 
-      <div className="panel-grid">
-        <div className="panel card">
-          <div className="panel-split">
-            <div>
-              <h3 className="panel-subheading">Category fields</h3>
-              <p className="panel-subtitle">
-                {selectedSubCategory
-                  ? `These fields appear only for products in ${selectedSubCategory.name}.`
-                  : selectedCategory
-                  ? `These fields appear for products in ${selectedCategory.name}.`
-                  : 'Pick a category, then assign or create fields.'}
-              </p>
-            </div>
-            <div className="inline-row">
-              <button
-                type="button"
-                className="ghost-btn small"
-                onClick={() => openMappingFormForExisting()}
-                disabled={!filterForm.categoryId}
-              >
-                Assign field
-              </button>
-              <button
-                type="button"
-                className="primary-btn compact"
-                onClick={openMappingFormForNew}
-                disabled={!filterForm.categoryId}
-              >
-                New field
-              </button>
-            </div>
-          </div>
-          <div className="field-grid">
-            <label className="field">
-              <span>Industry</span>
-              <select value={selectedIndustryId} onChange={(event) => handleIndustryChange(event.target.value)}>
-                <option value="">Select industry</option>
-                {industries.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>Category group</span>
-              <select
-                value={filterForm.mainCategoryId}
-                onChange={(event) => handleFilterChange('mainCategoryId', event.target.value)}
-                disabled={!selectedIndustryId}
-              >
-                <option value="">Select category group</option>
-                {filteredMainCategories.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>Category</span>
-              <select
-                value={filterForm.categoryId}
-                onChange={(event) => handleFilterChange('categoryId', event.target.value)}
-                disabled={!filterForm.mainCategoryId}
-              >
-                <option value="">Select category</option>
-                {filterCategories.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>Sub-category</span>
-              <select
-                value={filterForm.subCategoryId}
-                onChange={(event) => handleFilterChange('subCategoryId', event.target.value)}
-                disabled={!filterForm.categoryId}
-              >
-                <option value="">All sub-categories</option>
-                {filterSubCategories.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>Status</span>
-              <select value={filterForm.active} onChange={(event) => handleFilterChange('active', event.target.value)}>
-                <option value="">All</option>
-                <option value="true">Active</option>
-                <option value="false">Inactive</option>
-              </select>
-            </label>
-            <div className="field field-span">
-              <div className="inline-row">
-                <button type="button" className="ghost-btn small" onClick={resetFilter} disabled={isLoading}>
-                  Reset
-                </button>
-              </div>
-            </div>
-          </div>
-          <div className="attribute-context-bar">
-            <div className="attribute-context-copy">
-              <span className="attribute-context-label">Current target</span>
-              <strong>{selectedScopeLabel || 'No category selected'}</strong>
-              <p>{selectedScopeDescription}</p>
-            </div>
-            <div className="attribute-metric-row">
-              <span className="attribute-metric-pill">
-                Assigned <strong>{filterForm.categoryId ? totalFields : '-'}</strong>
-              </span>
-              <span className="attribute-metric-pill">
-                Active <strong>{filterForm.categoryId ? activeFields : '-'}</strong>
-              </span>
-              <span className="attribute-metric-pill">
-                Required <strong>{filterForm.categoryId ? requiredFields : '-'}</strong>
-              </span>
-              <span className="attribute-metric-pill">
-                Inactive <strong>{filterForm.categoryId ? inactiveFields : '-'}</strong>
-              </span>
-            </div>
-          </div>
-          {!filterForm.categoryId ? (
-            <p className="empty-state">
-              Select industry, category group, and category first. Then use Assign field or New field.
-            </p>
-          ) : mappings.length === 0 ? (
-            <p className="empty-state">
-              No fields assigned yet for {selectedScopeLabel || selectedCategory?.name || 'this category'}. Use
-              Assign field if it already exists in the library, or New field for a brand new concept.
-            </p>
-          ) : (
-            <div className="table-shell">
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>Field</th>
-                    <th>Type</th>
-                    <th>Required</th>
-                    <th>Order</th>
-                    <th>Status</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {mappings.map((mapping) => (
-                    <tr key={mapping.id}>
-                      <td>{mapping.label || mapping.attributeKey}</td>
-                      <td>{typeLabel(mapping.dataType || definitionMap.get(mapping.attributeId)?.dataType)}</td>
-                      <td>{mapping.required ? 'Yes' : 'No'}</td>
-                      <td>{mapping.sortOrder ?? '-'}</td>
-                      <td>{mapping.active ? 'Active' : 'Inactive'}</td>
-                      <td className="table-actions">
-                        <button type="button" className="ghost-btn small" onClick={() => handleEditMapping(mapping)}>
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          className="ghost-btn small"
-                          onClick={() => handleDeleteMapping(mapping.id)}
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-        <div className="panel card">
-          <div className="panel-split">
-            <div>
-              <h3 className="panel-subheading">Field library</h3>
-              <p className="panel-subtitle">
-                Reusable fields. Click a field to see assignments and actions.
-              </p>
-            </div>
-            <div className="inline-row">
-              <button type="button" className="primary-btn compact" onClick={openDefinitionForm}>
-                New field
-              </button>
-            </div>
-          </div>
-          <div className="field-grid">
-            <label className="field field-span">
-              <span>Search fields</span>
+      <div className="panel card">
+          <div className="gsc-datatable-toolbar">
+            <div className="gsc-datatable-toolbar-left" />
+            <div className="gsc-datatable-toolbar-right">
+            <div className="gsc-toolbar-search">
               <input
                 type="search"
                 value={definitionQuery}
                 onChange={(event) => setDefinitionQuery(event.target.value)}
-                placeholder="Search by label, key, or type"
+                placeholder="Search"
               />
-              <p className="field-help">
-                Search examples: `shelf`, `moq`, `enum`, `weight`. Click a field to open details.
-              </p>
-            </label>
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                style={{ width: 18, height: 18, color: '#6b7280', flexShrink: 0 }}
+              >
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.35-4.35" />
+              </svg>
+            </div>
+            <button
+              type="button"
+              className="gsc-create-btn"
+              onClick={openDefinitionForm}
+              title="Create field"
+              aria-label="Create field"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+            </button>
+            </div>
           </div>
           {filteredDefinitionLibrary.length === 0 ? (
             <p className="empty-state">No library fields found.</p>
           ) : (
-            <div className="attribute-library-list">
-              {filteredDefinitionLibrary.map((definition) => {
-                const isExpanded = expandedLibraryFieldId === definition.id;
-                const scopeLabel = `${definition.scopeCount || 0} ${
-                  (definition.scopeCount || 0) === 1 ? 'scope' : 'scopes'
-                }`;
-                const activeMappingLabel = `${definition.activeMappingCount || 0} active mapping${
-                  (definition.activeMappingCount || 0) === 1 ? '' : 's'
-                }`;
+            <>
+              <div className="table-shell">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: '60px' }}>Sr. No.</th>
+                      <th>Field name</th>
+                      <th>Type</th>
+                      <th>Key</th>
+                      <th>Used in</th>
+                      <th>Status</th>
+                      <th style={{ width: '160px' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredDefinitionLibrary.map((definition, index) => {
+                      const scopeLabel = `${definition.scopeCount || 0} ${
+                        (definition.scopeCount || 0) === 1 ? 'place' : 'places'
+                      }`;
+                      return (
+                        <tr
+                          key={definition.id}
+                          className={expandedLibraryFieldId === definition.id ? 'is-selected-row' : ''}
+                        >
+                          <td>{index + 1}</td>
+                          <td>
+                            <button
+                              type="button"
+                              className="attribute-library-link"
+                              onClick={() =>
+                                setExpandedLibraryFieldId((prev) =>
+                                  prev === definition.id ? null : definition.id
+                                )
+                              }
+                            >
+                              {definition.label || '-'}
+                            </button>
+                          </td>
+                          <td>{typeLabel(definition.dataType)}</td>
+                          <td>{definition.key || '-'}</td>
+                          <td>{scopeLabel}</td>
+                          <td>{definition.active !== false ? 'Active' : 'Inactive'}</td>
+                          <td className="table-actions">
+                            <button
+                              type="button"
+                              className="ghost-btn small"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                handleEditDefinition(definition);
+                              }}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              className="ghost-btn small"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                handleDeleteDefinition(definition.id);
+                              }}
+                              disabled={definition.mappingCount > 0}
+                              title={
+                                definition.mappingCount > 0
+                                  ? 'Remove category mappings before deleting this field from the library.'
+                                  : 'Delete this library field.'
+                              }
+                            >
+                              Delete
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
 
-                return (
-                  <article
-                    key={definition.id}
-                    className={`attribute-accordion-item${
-                      definition.assignedToCurrentScope ? ' is-current-scope' : ''
-                    }`}
-                  >
-                    <button
-                      type="button"
-                      className={`attribute-accordion-trigger${isExpanded ? ' is-open' : ''}`}
-                      aria-expanded={isExpanded}
-                      onClick={() =>
-                        setExpandedLibraryFieldId((prev) => (prev === definition.id ? null : definition.id))
-                      }
-                    >
-                      <div className="attribute-accordion-main">
-                        <div className="attribute-library-stack">
-                          <span className="attribute-library-primary">{definition.label || '-'}</span>
-                          <span className="attribute-library-secondary">Key: {definition.key || '-'}</span>
-                        </div>
-                        <div className="attribute-library-badges">
-                          <span className="attribute-badge">{typeLabel(definition.dataType)}</span>
-                          <span className="attribute-badge">{scopeLabel}</span>
-                          <span className="attribute-badge">{activeMappingLabel}</span>
-                          <span
-                            className={`attribute-badge ${
-                              definition.active !== false ? 'is-active' : 'is-inactive'
-                            }`}
-                          >
-                            {definition.active !== false ? 'Active' : 'Inactive'}
-                          </span>
-                          {definition.assignedToCurrentScope ? (
-                            <span className="attribute-badge is-selected">Assigned here</span>
-                          ) : null}
-                        </div>
-                      </div>
-                      <span className={`attribute-accordion-caret${isExpanded ? ' is-open' : ''}`} aria-hidden="true">
-                        {isExpanded ? '-' : '+'}
-                      </span>
-                    </button>
-                    {isExpanded ? (
-                      <div className="attribute-accordion-panel">
-                        <div className="attribute-accordion-section">
-                          <span className="attribute-library-meta-label">Assigned in</span>
-                          {definition.locations?.length ? (
-                            <div className="attribute-location-list">
-                              {definition.locations.map((location) => (
-                                <div
-                                  key={`${definition.id}-${location.scopeKey}`}
-                                  className={`attribute-location-item${
-                                    location.isCurrentScope ? ' is-current' : ''
-                                  }`}
-                                >
-                                  <span className="attribute-location-text">{location.label}</span>
-                                  <span
-                                    className={`attribute-badge ${
-                                      location.active ? ' is-active' : ' is-inactive'
-                                    }`}
-                                  >
-                                    {location.isCurrentScope
-                                      ? 'Selected'
-                                      : location.active
-                                      ? 'Active'
-                                      : 'Inactive'}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="attribute-library-secondary">Not assigned yet</span>
-                          )}
-                        </div>
-                        <div className="attribute-accordion-actions">
-                          <button
-                            type="button"
-                            className="ghost-btn small"
-                            onClick={() => openMappingFormForExisting(definition)}
-                            disabled={!filterForm.categoryId || definition.assignedToCurrentScope}
-                            title={
-                              !filterForm.categoryId
-                                ? 'Select a category first.'
-                                : definition.assignedToCurrentScope
-                                ? 'Already assigned to the selected category scope.'
-                                : 'Assign this field to the selected category scope.'
-                            }
-                          >
-                            {definition.assignedToCurrentScope ? 'Assigned' : 'Assign'}
-                          </button>
-                          <button
-                            type="button"
-                            className="ghost-btn small"
-                            onClick={() => handleEditDefinition(definition)}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            className="ghost-btn small"
-                            onClick={() => handleDeleteDefinition(definition.id)}
-                            disabled={definition.mappingCount > 0}
-                            title={
-                              definition.mappingCount > 0
-                                ? 'Remove category mappings before deleting this field from the library.'
-                                : 'Delete this library field.'
-                            }
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </div>
-                    ) : null}
-                  </article>
-                );
-              })}
-            </div>
+            </>
           )}
         </div>
-      </div>
     </div>
+
+      {selectedLibraryDefinition ? (
+        <div className="admin-modal-backdrop" onClick={() => setExpandedLibraryFieldId(null)}>
+          <div
+            className="admin-modal"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="admin-modal-header">
+              <h3 className="admin-modal-title">Field details</h3>
+              <button
+                type="button"
+                className="ghost-btn small"
+                onClick={() => setExpandedLibraryFieldId(null)}
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="admin-modal-body">
+            <div className="attribute-detail-section">
+              <table className="admin-table compact attribute-detail-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: 140 }}>Field info</th>
+                    <th>Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className="attribute-detail-label-cell">Field name</td>
+                    <td>{selectedLibraryDefinition.label || '-'}</td>
+                  </tr>
+                  <tr>
+                    <td className="attribute-detail-label-cell">Key</td>
+                    <td>
+                      <code>{selectedLibraryDefinition.key || '-'}</code>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="attribute-detail-label-cell">Type</td>
+                    <td>{typeLabel(selectedLibraryDefinition.dataType)}</td>
+                  </tr>
+                  <tr>
+                    <td className="attribute-detail-label-cell">Options</td>
+                    <td>
+                      {Array.isArray(selectedLibraryDefinition.options?.values)
+                        ? `${selectedLibraryDefinition.options.values.length} option${
+                            selectedLibraryDefinition.options.values.length === 1 ? '' : 's'
+                          }`
+                        : 'No options'}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="attribute-detail-label-cell">Usage</td>
+                    <td>
+                      Used in {selectedLibraryDefinition.scopeCount || 0}{' '}
+                      {(selectedLibraryDefinition.scopeCount || 0) === 1 ? 'place' : 'places'} ·{' '}
+                      {selectedLibraryDefinition.activeMappingCount || 0} active mapping
+                      {(selectedLibraryDefinition.activeMappingCount || 0) === 1 ? '' : 's'}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="attribute-detail-label-cell">Status</td>
+                    <td>{selectedLibraryDefinition.active !== false ? 'Active' : 'Inactive'}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div className="attribute-detail-section" style={{ marginTop: 16 }}>
+              <p className="attribute-detail-label">Assigned in</p>
+              {selectedLibraryDefinition.locations?.length ? (
+                <div className="table-shell attribute-location-table">
+                  <table className="admin-table compact">
+                    <thead>
+                      <tr>
+                        <th>Category path</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedLibraryDefinition.locations.map((location) => (
+                        <tr key={`${selectedLibraryDefinition.id}-${location.scopeKey}`}>
+                          <td>{location.label}</td>
+                          <td>
+                            <span
+                              className={`attribute-badge ${
+                                location.active ? ' is-active' : ' is-inactive'
+                              }`}
+                            >
+                              {location.active ? 'Active' : 'Inactive'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="attribute-detail-meta">Not assigned to any category yet.</p>
+              )}
+            </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }
 

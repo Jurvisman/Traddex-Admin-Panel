@@ -19,6 +19,20 @@ const formatDate = (value) => {
   return date.toLocaleDateString();
 };
 
+const formatDateOnly = (value) => {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString();
+};
+
+const formatTimeOnly = (value) => {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
+
 const normalizeStatus = (value) => String(value || '').trim().toUpperCase();
 
 const isBusinessUser = (user) => {
@@ -384,6 +398,28 @@ function BusinessPage({ token, allowedActions }) {
   const viewBusinessProfile = viewDetails?.businessProfile || null;
   const verificationMeta = resolveBusinessVerification(viewBusinessProfile?.status || viewUser?.kycStatus);
 
+  const approvalInfo = useMemo(() => {
+    if (!verificationMeta.isVerified || !viewBusinessProfile) return null;
+    const approvedAt =
+      viewBusinessProfile.verifiedAt ||
+      viewBusinessProfile.approvedAt ||
+      viewBusinessProfile.statusUpdatedAt ||
+      viewBusinessProfile.updatedAt ||
+      viewBusinessProfile.updated_at ||
+      viewBusinessProfile.createdAt ||
+      viewBusinessProfile.created_at ||
+      null;
+    const approvedByName =
+      viewBusinessProfile.approvedByName ||
+      viewBusinessProfile.verifiedBy ||
+      viewBusinessProfile.statusUpdatedBy ||
+      viewBusinessProfile.updatedByName ||
+      '';
+    const approvedById = viewBusinessProfile.approvedBy || viewBusinessProfile.approved_by || null;
+    if (!approvedAt && !approvedByName && !approvedById) return null;
+    return { approvedAt, approvedByName, approvedById };
+  }, [verificationMeta.isVerified, viewBusinessProfile]);
+
   const handleBusinessApprove = async () => {
     if (!canUpdate) {
       setMessage({ type: 'error', text: 'You do not have permission to update businesses.' });
@@ -453,65 +489,21 @@ function BusinessPage({ token, allowedActions }) {
 
   return (
     <div className="users-page business-page">
-      <div className="users-head">
-        <div>
-          <h2 className="panel-title">{isDetailRoute ? 'Business Details' : 'Business'}</h2>
-          <p className="panel-subtitle">
-            {isDetailRoute
-              ? viewBusinessProfile?.businessName || getUserName(viewUser) || 'Loading business details...'
-              : 'Review business accounts, KYC details, and banking records.'}
-          </p>
+      {isDetailRoute ? (
+        <div className="users-head">
+          <div>
+            <h2 className="panel-title">Business Details</h2>
+            <p className="panel-subtitle">
+              {viewBusinessProfile?.businessName || getUserName(viewUser) || 'Loading business details...'}
+            </p>
+          </div>
         </div>
-        <div className="users-head-actions">
-          {isDetailRoute ? (
-            <>
-              <button type="button" className="ghost-btn" onClick={() => navigate('/admin/users/business')}>
-                Back to Business
-              </button>
-              <button
-                type="button"
-                className="ghost-btn"
-                onClick={() => loadBusinessDetails(viewUser?.id || routeBusinessId)}
-                disabled={isViewLoading}
-              >
-                {isViewLoading ? 'Refreshing...' : 'Refresh'}
-              </button>
-            </>
-          ) : (
-            <button type="button" className="ghost-btn" onClick={loadBusinesses} disabled={isLoading}>
-              {isLoading ? 'Refreshing...' : 'Refresh'}
-            </button>
-          )}
-        </div>
-      </div>
+      ) : null}
 
       <Banner message={message} />
 
       {!isDetailRoute ? (
         <>
-          <div className="stat-grid">
-            <div className="stat-card admin-stat" style={{ '--stat-accent': '#417914' }}>
-              <p className="stat-label">Total businesses</p>
-              <p className="stat-value">{businesses.length}</p>
-              <p className="stat-sub">All business accounts</p>
-            </div>
-            <div className="stat-card admin-stat" style={{ '--stat-accent': '#16A34A' }}>
-              <p className="stat-label">Active</p>
-              <p className="stat-value">{activeCount}</p>
-              <p className="stat-sub">Enabled accounts</p>
-            </div>
-            <div className="stat-card admin-stat" style={{ '--stat-accent': '#0EA5E9' }}>
-              <p className="stat-label">Verified</p>
-              <p className="stat-value">{verifiedCount}</p>
-              <p className="stat-sub">KYC approved</p>
-            </div>
-            <div className="stat-card admin-stat" style={{ '--stat-accent': '#F97316' }}>
-              <p className="stat-label">Pending</p>
-              <p className="stat-value">{pendingCount}</p>
-              <p className="stat-sub">Needs review</p>
-            </div>
-          </div>
-
           <div className="users-filters">
             <span className="status-chip login">{activeCount} Active</span>
             <span className="status-chip logout">{inactiveCount} Inactive</span>
@@ -519,19 +511,52 @@ function BusinessPage({ token, allowedActions }) {
           </div>
 
           <div className="panel card users-table-card">
-            <div className="users-search">
-              <span className="icon icon-search" />
-              <input
-                type="search"
-                placeholder="Search business by name, email, or phone..."
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-              />
-              {query ? (
-                <button type="button" className="ghost-btn small" onClick={() => setQuery('')}>
-                  Clear
-                </button>
-              ) : null}
+            <div className="panel-split">
+              <div className="category-list-head-left">
+                <h3 className="panel-subheading">Business list</h3>
+                <div className="gsc-datatable-toolbar-left">
+                  <button type="button" className="gsc-toolbar-btn" title="Filter">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M4 6h16M4 12h10M4 18h6" />
+                    </svg>
+                    Filter
+                  </button>
+                  <button type="button" className="gsc-toolbar-btn" title="Columns">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="3" y="3" width="7" height="18" rx="1" />
+                      <rect x="14" y="3" width="7" height="18" rx="1" />
+                    </svg>
+                    Columns
+                  </button>
+                  <button type="button" className="gsc-toolbar-btn" title="Import/Export">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                    </svg>
+                    Import/Export
+                  </button>
+                </div>
+              </div>
+              <div className="gsc-datatable-toolbar-right">
+                <div className="gsc-toolbar-search">
+                  <input
+                    type="search"
+                    placeholder="Search"
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    aria-label="Search businesses"
+                  />
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    style={{ width: 18, height: 18, color: '#6b7280', flexShrink: 0 }}
+                  >
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="m21 21-4.35-4.35" />
+                  </svg>
+                </div>
+              </div>
             </div>
 
             {filteredBusinesses.length === 0 ? (
@@ -611,29 +636,6 @@ function BusinessPage({ token, allowedActions }) {
 
           {viewUser ? (
             <>
-              <div className="stat-grid">
-                <div className="stat-card admin-stat" style={{ '--stat-accent': '#417914' }}>
-                  <p className="stat-label">Business</p>
-                  <p className="stat-value">{viewBusinessProfile?.businessName || getUserName(viewUser)}</p>
-                  <p className="stat-sub">{viewBusinessProfile?.industry || 'Industry pending'}</p>
-                </div>
-                <div className="stat-card admin-stat" style={{ '--stat-accent': '#0EA5E9' }}>
-                  <p className="stat-label">Verification</p>
-                  <p className="stat-value">{verificationMeta.label}</p>
-                  <p className="stat-sub">Current KYC state</p>
-                </div>
-                <div className="stat-card admin-stat" style={{ '--stat-accent': '#16A34A' }}>
-                  <p className="stat-label">Products</p>
-                  <p className="stat-value">{linkedProductCount}</p>
-                  <p className="stat-sub">Linked products</p>
-                </div>
-                <div className="stat-card admin-stat" style={{ '--stat-accent': '#F97316' }}>
-                  <p className="stat-label">Status</p>
-                  <p className="stat-value">{Number(viewUser?.active) === 1 ? 'Active' : 'Inactive'}</p>
-                  <p className="stat-sub">Account availability</p>
-                </div>
-              </div>
-
               <div className="user-view-shell">
                 <div className="panel-split detail-section-head">
                   <div className="detail-heading-wrap">
@@ -645,7 +647,13 @@ function BusinessPage({ token, allowedActions }) {
                   </div>
                   <div className="inline-row detail-section-actions">
                     {viewBusinessProfile ? (
-                      <button type="button" className="ghost-btn small" onClick={() => openBusinessEdit(viewBusinessProfile)}>
+                      <button
+                        type="button"
+                        className="ghost-btn small"
+                        onClick={() =>
+                          navigate(`/admin/users/business/${viewBusinessProfile.userId || viewUser?.id || ''}/edit`)
+                        }
+                      >
                         Edit KYC
                       </button>
                     ) : null}
@@ -691,6 +699,45 @@ function BusinessPage({ token, allowedActions }) {
                   {activeTab === 'business' ? renderFieldGrid(businessInfoFields, 'No business information available.') : null}
                   {activeTab === 'bank' ? renderFieldGrid(bankFields, 'No bank details available.') : null}
                 </div>
+
+                <div className="business-approval-strip">
+                  {verificationMeta.isVerified ? (
+                    <div className="business-approval-status">
+                      <span className="business-approval-dot approved" />
+                      <div className="business-approval-text">
+                        <p className="business-approval-title">KYC Approved</p>
+                        <div className="business-approval-meta">
+                          {approvalInfo?.approvedAt ? (
+                            <>
+                              <div className="business-approval-meta-line">
+                                Approved On {formatDateOnly(approvalInfo.approvedAt)} {formatTimeOnly(approvalInfo.approvedAt)}
+                              </div>
+                              <div className="business-approval-meta-line secondary">
+                                {approvalInfo?.approvedByName
+                                  ? `By ${approvalInfo.approvedByName}`
+                                  : approvalInfo?.approvedById
+                                    ? `By Admin #${approvalInfo.approvedById}`
+                                    : ''}
+                              </div>
+                            </>
+                          ) : (
+                            <div className="business-approval-meta-line">
+                              This business KYC is approved.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="business-approval-status">
+                      <span className="business-approval-dot pending" />
+                      <div className="business-approval-text">
+                        <p className="business-approval-title">KYC Pending</p>
+                        <p className="business-approval-meta">This business has not been approved yet.</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </>
           ) : !isViewLoading ? (
@@ -701,7 +748,7 @@ function BusinessPage({ token, allowedActions }) {
 
       {editBusinessProfile ? (
         <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
-          <div className="admin-modal">
+          <div className="admin-modal business-profile-edit-modal">
             <div className="panel-split">
               <div>
                 <h3 className="panel-subheading">Edit Business Profile</h3>
@@ -712,7 +759,7 @@ function BusinessPage({ token, allowedActions }) {
               </button>
             </div>
 
-            <form className="field-grid" onSubmit={handleBusinessSave}>
+            <form className="field-grid business-profile-edit-grid" onSubmit={handleBusinessSave}>
               {BUSINESS_PROFILE_FIELDS.map((field) => {
                 const value = editBusinessForm?.[field.key] ?? '';
                 const isTextArea = field.type === 'textarea';

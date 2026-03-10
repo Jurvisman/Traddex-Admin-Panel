@@ -17,6 +17,7 @@ function IndustryPage({ token }) {
   const [message, setMessage] = useState({ type: 'info', text: '' });
   const [isLoading, setIsLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const loadIndustries = async () => {
     setIsLoading(true);
@@ -36,9 +37,6 @@ function IndustryPage({ token }) {
     loadIndustries();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const activeCount = items.filter((item) => Number(item.active) === 1).length;
-  const inactiveCount = Math.max(0, items.length - activeCount);
 
   const handleChange = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -86,37 +84,11 @@ function IndustryPage({ token }) {
 
   return (
     <div>
-      <div className="panel-head">
-        <div>
-          <h2 className="panel-title">Industry</h2>
-          <p className="panel-subtitle">Create and maintain industry groups.</p>
-        </div>
-        <button type="button" className="ghost-btn" onClick={loadIndustries} disabled={isLoading}>
-          Refresh
-        </button>
-      </div>
       <Banner message={message} />
-      <div className="stat-grid">
-        <div className="stat-card admin-stat" style={{ '--stat-accent': '#F59E0B' }}>
-          <p className="stat-label">Total industries</p>
-          <p className="stat-value">{items.length}</p>
-          <p className="stat-sub">All groups</p>
-        </div>
-        <div className="stat-card admin-stat" style={{ '--stat-accent': '#16A34A' }}>
-          <p className="stat-label">Active</p>
-          <p className="stat-value">{activeCount}</p>
-          <p className="stat-sub">Visible to users</p>
-        </div>
-        <div className="stat-card admin-stat" style={{ '--stat-accent': '#EF4444' }}>
-          <p className="stat-label">Inactive</p>
-          <p className="stat-value">{inactiveCount}</p>
-          <p className="stat-sub">Hidden from users</p>
-        </div>
-      </div>
       {showForm ? (
         <div className="admin-modal-backdrop" onClick={() => setShowForm(false)}>
           <form
-            className="admin-modal"
+            className="admin-modal industry-create-modal"
             onSubmit={handleSubmit}
             onClick={(event) => event.stopPropagation()}
           >
@@ -190,14 +162,69 @@ function IndustryPage({ token }) {
       <div className="panel-grid">
         <div className="panel card">
           <div className="panel-split">
-            <h3 className="panel-subheading">Industry list</h3>
-            <button
-              type="button"
-              className="primary-btn compact"
-              onClick={() => setShowForm((prev) => !prev)}
-            >
-              {showForm ? 'Close' : 'Create'}
-            </button>
+            <div className="category-list-head-left">
+              <h3 className="panel-subheading">Industry list</h3>
+              <div className="gsc-datatable-toolbar-left">
+                <button type="button" className="gsc-toolbar-btn" title="Filter">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M4 6h16M4 12h10M4 18h6" />
+                  </svg>
+                  Filter
+                </button>
+                <button type="button" className="gsc-toolbar-btn" title="Columns">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="3" width="7" height="18" rx="1" />
+                    <rect x="14" y="3" width="7" height="18" rx="1" />
+                  </svg>
+                  Columns
+                </button>
+                <button type="button" className="gsc-toolbar-btn" title="Import/Export">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                  </svg>
+                  Import/Export
+                </button>
+              </div>
+            </div>
+            <div className="gsc-datatable-toolbar-right">
+              <div className="gsc-toolbar-search">
+                <input
+                  type="search"
+                  placeholder="Search"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  aria-label="Search industries"
+                />
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  style={{ width: 18, height: 18, color: '#6b7280', flexShrink: 0 }}
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.35-4.35" />
+                </svg>
+              </div>
+              <button
+                type="button"
+                className="gsc-create-btn"
+                onClick={() => setShowForm((prev) => !prev)}
+                title="Create industry"
+                aria-label="Create industry"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+              </button>
+            </div>
           </div>
           {items.length === 0 ? (
             <p className="empty-state">No industries yet.</p>
@@ -213,7 +240,13 @@ function IndustryPage({ token }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map((item) => (
+                  {items
+                    .filter((item) => {
+                      const q = searchQuery.trim().toLowerCase();
+                      if (!q) return true;
+                      return String(item.name || '').toLowerCase().includes(q);
+                    })
+                    .map((item) => (
                     <tr key={item.id}>
                       <td>{item.name}</td>
                       <td>{item.active === 1 ? 'Yes' : 'No'}</td>

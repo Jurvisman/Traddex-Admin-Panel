@@ -128,6 +128,7 @@ function AdminShell({ navItems, onLogout, pageTitle, pageSubtitle, children }) {
                         key={item.path}
                         to={item.path}
                         title={!showExpandedSidebar ? item.label : undefined}
+                        end={item.exact === true}
                         className={({ isActive }) => `admin-nav-item ${isActive ? 'active' : ''}`}
                         onClick={handleLinkClick}
                       >

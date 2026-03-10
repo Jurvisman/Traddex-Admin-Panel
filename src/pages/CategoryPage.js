@@ -99,6 +99,7 @@ function CategoryPage({ token }) {
   const [fieldOptionDraft, setFieldOptionDraft] = useState('');
   const [addFieldMode, setAddFieldMode] = useState('new');
   const [selectedExistingFieldId, setSelectedExistingFieldId] = useState('');
+  const [categorySearchQuery, setCategorySearchQuery] = useState('');
 
   const definitionById = useMemo(() => {
     const map = new Map();
@@ -469,42 +470,11 @@ function CategoryPage({ token }) {
 
   return (
     <div className="category-page">
-      <div className="panel-head">
-        <div>
-          <h2 className="panel-title">Category</h2>
-          <p className="panel-subtitle">Create categories and define the product fields each category needs.</p>
-        </div>
-        <button type="button" className="ghost-btn" onClick={loadData} disabled={isPageLoading}>
-          Refresh
-        </button>
-      </div>
       <Banner message={message} />
-      <div className="stat-grid">
-        <div className="stat-card admin-stat" style={{ '--stat-accent': '#14B8A6' }}>
-          <p className="stat-label">Categories</p>
-          <p className="stat-value">{items.length}</p>
-          <p className="stat-sub">Total list</p>
-        </div>
-        <div className="stat-card admin-stat" style={{ '--stat-accent': '#16A34A' }}>
-          <p className="stat-label">Active</p>
-          <p className="stat-value">{activeCount}</p>
-          <p className="stat-sub">Visible to users</p>
-        </div>
-        <div className="stat-card admin-stat" style={{ '--stat-accent': '#8B5CF6' }}>
-          <p className="stat-label">Main categories</p>
-          <p className="stat-value">{mainCategories.length}</p>
-          <p className="stat-sub">Parents</p>
-        </div>
-        <div className="stat-card admin-stat" style={{ '--stat-accent': '#EF4444' }}>
-          <p className="stat-label">Inactive</p>
-          <p className="stat-value">{inactiveCount}</p>
-          <p className="stat-sub">Hidden</p>
-        </div>
-      </div>
       {showForm ? (
         <div className="admin-modal-backdrop" onClick={() => setShowForm(false)}>
           <form
-            className="admin-modal"
+            className="admin-modal category-create-modal"
             onSubmit={handleSubmit}
             onClick={(event) => event.stopPropagation()}
           >
@@ -651,7 +621,7 @@ function CategoryPage({ token }) {
 
                   {addFieldMode === 'existing' ? (
                     <div className="field-grid">
-                      <label className="field field-span">
+                      <label className="field">
                         <span>Select field</span>
                         <select
                           value={selectedExistingFieldId}
@@ -821,17 +791,69 @@ function CategoryPage({ token }) {
       <div className="panel-grid">
         <div className="panel card">
           <div className="panel-split">
-            <div>
+            <div className="category-list-head-left">
               <h3 className="panel-subheading">Category list</h3>
-              <p className="panel-subtitle">Open any category to define the fields its products should have.</p>
+              <div className="gsc-datatable-toolbar-left">
+                <button type="button" className="gsc-toolbar-btn" title="Filter">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M4 6h16M4 12h10M4 18h6" />
+                  </svg>
+                  Filter
+                </button>
+                <button type="button" className="gsc-toolbar-btn" title="Columns">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="3" width="7" height="18" rx="1" />
+                    <rect x="14" y="3" width="7" height="18" rx="1" />
+                  </svg>
+                  Columns
+                </button>
+                <button type="button" className="gsc-toolbar-btn" title="Import/Export">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                  </svg>
+                  Import/Export
+                </button>
+              </div>
             </div>
-            <button
-              type="button"
-              className="primary-btn compact"
-              onClick={() => setShowForm((prev) => !prev)}
-            >
-              {showForm ? 'Close' : 'Create'}
-            </button>
+            <div className="gsc-datatable-toolbar-right">
+              <div className="gsc-toolbar-search">
+                <input
+                  type="search"
+                  placeholder="Search"
+                  value={categorySearchQuery}
+                  onChange={(event) => setCategorySearchQuery(event.target.value)}
+                  aria-label="Search categories"
+                />
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  style={{ width: 18, height: 18, color: '#6b7280', flexShrink: 0 }}
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.35-4.35" />
+                </svg>
+              </div>
+              <button
+                type="button"
+                className="gsc-create-btn"
+                onClick={() => setShowForm((prev) => !prev)}
+                title="Create category"
+                aria-label="Create category"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+              </button>
+            </div>
           </div>
           {items.length === 0 ? (
             <p className="empty-state">No categories yet.</p>
@@ -847,7 +869,14 @@ function CategoryPage({ token }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map((item) => (
+                  {items
+                    .filter((item) => {
+                      const q = categorySearchQuery.trim().toLowerCase();
+                      if (!q) return true;
+                      const haystack = `${item.name || ''} ${item.mainCategoryName || ''}`.toLowerCase();
+                      return haystack.includes(q);
+                    })
+                    .map((item) => (
                     <tr key={item.id}>
                       <td>{item.name}</td>
                       <td>{item.mainCategoryName || '-'}</td>

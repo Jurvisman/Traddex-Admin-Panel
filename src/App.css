@@ -4850,23 +4850,19 @@ textarea {
 .product-page .admin-table td {
   padding: 10px 10px;
   font-size: 12px;
-  border-bottom: 1px solid color-mix(in srgb, var(--admin-border) 88%, transparent 12%);
+  border-bottom: 1px solid rgba(229, 231, 235, 0.7);
 }
 
 .product-page .admin-table th {
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.16em;
-  background: linear-gradient(180deg, #fbfcff 0%, #f4f7ff 100%);
-  color: var(--admin-muted);
+  background: #f3f4f6;
+  color: #4b5563;
 }
 
 .product-page .product-table tbody tr {
   transition: background 0.2s ease;
-}
-
-.product-page .product-table tbody tr:nth-child(even) {
-  background: rgba(148, 163, 184, 0.05);
 }
 
 .product-page .product-table tbody tr:hover {
@@ -4879,7 +4875,7 @@ textarea {
 
 .product-page .product-table .table-actions {
   text-align: right;
-  width: 220px;
+  width: 160px;
 }
 
 .product-page .user-name {
@@ -4894,7 +4890,7 @@ textarea {
   border-collapse: separate;
   border-spacing: 0;
   width: 100%;
-  table-layout: fixed;
+  table-layout: auto;
 }
 
 .product-page .product-table thead th:first-child {
@@ -5609,6 +5605,10 @@ textarea {
   padding: 0;
 }
 
+.business-page .users-table-card {
+  padding: 12px 16px 16px;
+}
+
 .users-search {
   display: flex;
   align-items: center;
@@ -5638,8 +5638,208 @@ textarea {
 .table-action-group {
   display: inline-flex;
   gap: 6px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: flex-end;
+  align-items: center;
+}
+
+/* Business list actions: compact, right-aligned buttons */
+.business-page .admin-table .table-actions {
+  text-align: right;
+  width: 190px;
+}
+
+.business-page .admin-table .table-actions .table-action-group {
+  gap: 4px;
+}
+
+.business-page .admin-table .table-actions .ghost-btn.small,
+.business-page .admin-table .table-actions .primary-btn.compact {
+  min-width: 72px;
+  padding: 5px 10px;
+  font-size: 11px;
+  border-radius: 999px;
+}
+
+.business-approval-strip {
+  margin-top: 18px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f9fafb;
+  border: 1px solid rgba(209, 213, 219, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.business-approval-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.business-approval-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.business-approval-dot.approved {
+  background: #16a34a;
+}
+
+.business-approval-dot.pending {
+  background: #e5e7eb;
+}
+
+.business-approval-text {
+  display: grid;
+  gap: 2px;
+}
+
+.business-approval-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.business-approval-meta {
+  margin: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.business-approval-meta-line {
+  font-size: 11px;
+  color: #374151;
+}
+
+.business-approval-meta-line.secondary {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+/* Edit Business Profile modal / page */
+.business-profile-edit-modal {
+  max-width: 920px;
+  width: 100%;
+  max-height: calc(100vh - 80px);
+  display: flex;
+  flex-direction: column;
+}
+
+.business-profile-edit-modal .panel-split {
+  margin-bottom: 12px;
+}
+
+.business-profile-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px 16px;
+  padding: 4px 4px 2px;
+  overflow-y: auto;
+}
+
+.business-profile-edit-grid .field-span {
+  grid-column: 1 / -1;
+}
+
+.business-profile-edit-grid .field > span:not(.field-help):not(.field-label) {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--admin-muted);
+}
+
+.business-profile-edit-grid input,
+.business-profile-edit-grid textarea {
+  font-size: 12px;
+}
+
+.business-profile-edit-grid textarea {
+  min-height: 72px;
+  resize: vertical;
+}
+
+.business-edit-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.business-edit-footer .ghost-btn,
+.business-edit-footer .primary-btn {
+  width: auto;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-inline: 16px;
+}
+
+.business-profile-edit-page .panel-title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.business-profile-edit-card {
+  margin-top: 4px;
+  padding: 18px 18px 16px;
+}
+
+.business-edit-primary {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+}
+
+.business-edit-primary .primary-btn.split-main {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  padding-right: 16px;
+}
+
+.business-edit-primary .primary-btn.split-toggle {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  padding: 0 10px;
+  min-width: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.business-edit-primary .split-caret {
+  font-size: 11px;
+  line-height: 1;
+}
+
+/* Edit business tabs – flat with green underline like reference */
+.business-profile-edit-page .user-view-tabs {
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 16px;
+  padding-bottom: 0;
+  gap: 0;
+}
+
+.business-profile-edit-page .user-view-tab {
+  border-radius: 0;
+  background: transparent;
+  padding: 8px 18px 10px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+@media (max-width: 1280px) {
+  .business-profile-edit-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .icon-btn {
@@ -5813,32 +6013,27 @@ textarea {
 }
 
 .user-detail-card {
-  border-radius: 14px;
-  padding: 13px 14px;
-  border: 1px solid color-mix(in srgb, var(--admin-border) 82%, var(--admin-accent) 18%);
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--admin-surface-2) 92%, rgba(255, 255, 255, 0.08) 8%) 0%,
-    color-mix(in srgb, var(--admin-surface-2) 98%, rgba(255, 255, 255, 0.02) 2%) 100%
-  );
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  transition: border-color 0.2s ease, transform 0.2s ease;
+  border-radius: 0;
+  padding: 6px 8px 10px;
+  border: none;
+  background: transparent;
 }
 
 .user-detail-label {
-  margin: 0 0 6px;
-  font-size: 11px;
+  margin: 0 0 4px;
+  font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--admin-muted);
+  color: #9ca3af;
 }
 
 .user-detail-value {
   margin: 0;
-  font-weight: 650;
-  line-height: 1.35;
-  color: var(--admin-text);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: #111827;
   word-break: break-word;
 }
 
@@ -6845,7 +7040,10 @@ textarea {
 }
 
 .admin-shell-gsc .admin-nav-subitem.active {
-  color: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.18);
+  color: #f9fafb;
+  border-radius: 999px;
+  padding-inline: 12px;
 }
 
 .admin-shell-gsc .admin-nav-subdot {
@@ -7430,9 +7628,9 @@ textarea {
 
 .admin-shell-gsc .table-shell {
   overflow: auto;
-  border: 1px solid var(--gsc-border);
-  border-radius: 12px;
-  background: #ffffff;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .admin-shell-gsc .admin-table {
@@ -7455,25 +7653,21 @@ textarea {
   font-weight: 700;
   font-size: 0.8125rem;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid rgba(229, 231, 235, 0.7);
+}
+
+.admin-shell-gsc .admin-table th.table-actions {
+  text-align: right;
 }
 
 .admin-shell-gsc .admin-table td {
   color: #374151;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid rgba(229, 231, 235, 0.7);
   font-family: 'Plus Jakarta Sans', sans-serif;
   background: #ffffff;
 }
 
-.admin-shell-gsc .admin-table tbody tr:nth-child(even) td {
-  background: #f9fafb;
-}
-
 .admin-shell-gsc .admin-table tbody tr:hover td {
-  background: #f3f4f6;
-}
-
-.admin-shell-gsc .admin-table tbody tr:nth-child(even):hover td {
   background: #f3f4f6;
 }
 
@@ -7543,6 +7737,7 @@ textarea {
 }
 
 .admin-shell-gsc .gsc-toolbar-search input {
+  flex: 1;
   border: 0;
   background: transparent;
   outline: none;
@@ -8470,6 +8665,18 @@ textarea {
   background: #fff7f8;
 }
 
+/* Toast positioning for admin shell */
+.admin-shell-gsc .banner-toast {
+  position: fixed;
+  top: 76px;
+  right: 24px;
+  max-width: 420px;
+  width: auto;
+  z-index: 80;
+  margin: 0;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.25);
+}
+
 .admin-shell-gsc .admin-modal-backdrop {
   position: fixed;
   inset: 0;
@@ -8496,15 +8703,20 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 20px;
+  padding: 16px 20px 10px;
   border-bottom: 1px solid var(--gsc-border);
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--gsc-text);
+  background: #f9fafb;
 }
 
 .admin-shell-gsc .admin-modal-body {
-  padding: 20px;
+  padding: 18px 20px 20px;
+}
+
+.admin-shell-gsc .admin-modal-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
 }
 .admin-shell-gsc .product-create-selector-modal {
   width: min(760px, calc(100vw - 40px));
@@ -8519,6 +8731,103 @@ textarea {
 }
 .admin-shell-gsc .product-create-selector-grid .field-span {
   grid-column: 1 / -1;
+}
+
+/* Attribute definition modal tweaks */
+.admin-shell-gsc .attribute-definition-modal {
+  padding-bottom: 20px;
+}
+
+.admin-shell-gsc .attribute-definition-modal .panel-split {
+  padding: 14px 24px 8px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.admin-shell-gsc .attribute-definition-modal .panel-subheading {
+  font-size: 15px;
+}
+
+.admin-shell-gsc .attribute-definition-modal .field-grid {
+  margin-top: 8px;
+  padding: 12px 24px 16px;
+  row-gap: 10px;
+}
+
+.admin-shell-gsc .attribute-definition-modal .field span {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #6b7280;
+}
+
+.admin-shell-gsc .attribute-definition-modal input,
+.admin-shell-gsc .attribute-definition-modal select {
+  font-size: 13px;
+}
+
+.admin-shell-gsc .attribute-definition-modal .field-help {
+  font-size: 11px;
+  color: #9ca3af;
+  margin-top: 4px;
+}
+
+.admin-shell-gsc .attribute-definition-modal .primary-btn.full {
+  border-radius: 8px;
+  margin: 4px 24px 0;
+  width: calc(100% - 48px);
+}
+
+/* Category create modal tweaks (reuse attribute modal styling) */
+.admin-shell-gsc .category-create-modal .panel-split,
+.admin-shell-gsc .industry-create-modal .panel-split,
+.admin-shell-gsc .main-category-create-modal .panel-split,
+.admin-shell-gsc .sub-category-create-modal .panel-split {
+  padding: 14px 24px 8px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.admin-shell-gsc .category-create-modal .field-grid,
+.admin-shell-gsc .industry-create-modal .field-grid,
+.admin-shell-gsc .main-category-create-modal .field-grid,
+.admin-shell-gsc .sub-category-create-modal .field-grid {
+  margin-top: 8px;
+  padding: 12px 24px 16px;
+  row-gap: 10px;
+}
+
+.admin-shell-gsc .category-create-modal .field span,
+.admin-shell-gsc .industry-create-modal .field span,
+.admin-shell-gsc .main-category-create-modal .field span,
+.admin-shell-gsc .sub-category-create-modal .field span {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #6b7280;
+}
+
+.admin-shell-gsc .category-create-modal input,
+.admin-shell-gsc .category-create-modal select,
+.admin-shell-gsc .industry-create-modal input,
+.admin-shell-gsc .industry-create-modal select,
+.admin-shell-gsc .main-category-create-modal input,
+.admin-shell-gsc .main-category-create-modal select,
+.admin-shell-gsc .sub-category-create-modal input,
+.admin-shell-gsc .sub-category-create-modal select {
+  font-size: 13px;
+}
+
+.admin-shell-gsc .category-create-modal .primary-btn.full,
+.admin-shell-gsc .industry-create-modal .primary-btn.full,
+.admin-shell-gsc .main-category-create-modal .primary-btn.full,
+.admin-shell-gsc .sub-category-create-modal .primary-btn.full {
+  display: inline-flex;
+  justify-content: center;
+  border-radius: 999px;
+  margin: 4px auto 14px auto;
+  padding-inline: 32px;
+  width: auto;
 }
 .admin-shell-gsc .product-create-selector-preview {
   display: grid;
@@ -8586,7 +8895,7 @@ textarea {
 }
 
 .admin-shell-gsc .category-field-manager-modal {
-  width: min(980px, calc(100vw - 40px));
+  width: min(760px, calc(100vw - 40px));
 }
 
 .admin-shell-gsc .category-field-manager-stack,
@@ -8594,6 +8903,10 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.admin-shell-gsc .category-field-add .field-grid {
+  align-items: flex-end;
 }
 
 .admin-shell-gsc .category-field-chip-row {
@@ -8645,8 +8958,11 @@ textarea {
 
 .admin-shell-gsc .category-field-actions {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: flex-start;
   gap: 10px;
+  margin-top: 8px;
+  padding: 0 24px 0 24px;
 }
 
 .admin-shell-gsc .category-field-existing-list {
@@ -8655,6 +8971,86 @@ textarea {
   gap: 10px;
   max-height: 320px;
   overflow: auto;
+}
+
+/* attribute-library-toolbar removed: reuse gsc-datatable-toolbar-right styles */
+
+.admin-shell-gsc .attribute-library-link {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: #417914;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-shell-gsc .attribute-library-link:hover {
+  text-decoration: underline;
+}
+
+/* Category list header layout */
+.admin-shell-gsc .category-list-head-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-shell-gsc .category-list-head-left .panel-subheading {
+  margin-right: 4px;
+}
+
+.admin-shell-gsc .category-list-head-left .gsc-datatable-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.admin-shell-gsc .attribute-detail-table {
+  margin-bottom: 16px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+}
+
+.admin-shell-gsc .attribute-detail-table th {
+  padding: 8px 12px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: #6b7280;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  border-right: 1px solid #e5e7eb;
+}
+
+.admin-shell-gsc .attribute-detail-table td {
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #111827;
+  border-bottom: 1px solid #f3f4f6;
+  border-right: 1px solid #f3f4f6;
+}
+
+.admin-shell-gsc .attribute-detail-label-cell {
+  width: 140px;
+  white-space: nowrap;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.admin-shell-gsc .attribute-detail-table tr:last-child td {
+  border-bottom: none;
+}
+
+.admin-shell-gsc .attribute-detail-table tr:nth-child(odd) td {
+  background: #fcfcfd;
+}
+
+.admin-shell-gsc .attribute-detail-table tr:hover td {
+  background: #f3f4ff;
 }
 
 .admin-shell-gsc .category-field-add {
