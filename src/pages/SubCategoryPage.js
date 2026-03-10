@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Banner } from '../components';
-import { createSubCategory, deleteSubCategory, listCategories, listSubCategories } from '../services/adminApi';
+import { createSubCategory, deleteSubCategory, listCategories, listSubCategories, updateSubCategory } from '../services/adminApi';
 
 const initialForm = {
   name: '',
@@ -20,6 +20,7 @@ function SubCategoryPage({ token }) {
   const [isLoading, setIsLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [editItem, setEditItem] = useState(null);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -47,29 +48,59 @@ function SubCategoryPage({ token }) {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
+  const handleEdit = (item) => {
+    setEditItem(item);
+    setForm({
+      name: item.name || '',
+      categoryId: String(item.categoryId ?? item.category_id ?? ''),
+      subCategoryIcon: item.subCategoryIcon ?? item.sub_category_icon ?? '',
+      imageUrl: item.imageUrl ?? item.image_url ?? '',
+      ordering: item.ordering != null ? String(item.ordering) : '',
+      path: item.path ?? '',
+      active: item.active === 1 ? '1' : '0',
+    });
+    setShowForm(true);
+  };
+
+  const handleCloseForm = () => {
+    setShowForm(false);
+    setEditItem(null);
+    setForm(initialForm);
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!form.name.trim() || !form.categoryId) {
       setMessage({ type: 'error', text: 'Name and category are required.' });
       return;
     }
+    const payload = {
+      name: form.name.trim(),
+      categoryId: Number(form.categoryId),
+      subCategoryIcon: form.subCategoryIcon || null,
+      imageUrl: form.imageUrl || null,
+      ordering: form.ordering ? Number(form.ordering) : null,
+      path: form.path || null,
+      active: Number(form.active),
+    };
     try {
       setIsLoading(true);
-      await createSubCategory(token, {
-        name: form.name.trim(),
-        categoryId: Number(form.categoryId),
-        subCategoryIcon: form.subCategoryIcon || null,
-        imageUrl: form.imageUrl || null,
-        ordering: form.ordering ? Number(form.ordering) : null,
-        path: form.path || null,
-        active: Number(form.active),
-      });
+      if (editItem) {
+        await updateSubCategory(token, editItem.id, payload);
+        setMessage({ type: 'success', text: 'Sub-category updated.' });
+      } else {
+        await createSubCategory(token, payload);
+        setMessage({ type: 'success', text: 'Sub-category created.' });
+      }
+      setEditItem(null);
       setForm(initialForm);
       setShowForm(false);
       await loadData();
-      setMessage({ type: 'success', text: 'Sub-category created.' });
     } catch (error) {
-      setMessage({ type: 'error', text: error.message || 'Failed to create sub-category.' });
+      setMessage({
+        type: 'error',
+        text: error.message || (editItem ? 'Failed to update sub-category.' : 'Failed to create sub-category.'),
+      });
     } finally {
       setIsLoading(false);
     }
@@ -92,15 +123,15 @@ function SubCategoryPage({ token }) {
     <div>
       <Banner message={message} />
       {showForm ? (
-        <div className="admin-modal-backdrop" onClick={() => setShowForm(false)}>
+        <div className="admin-modal-backdrop" onClick={handleCloseForm}>
           <form
             className="admin-modal sub-category-create-modal"
             onSubmit={handleSubmit}
             onClick={(event) => event.stopPropagation()}
           >
             <div className="panel-split">
-              <h3 className="panel-subheading">Create sub-category</h3>
-              <button type="button" className="ghost-btn small" onClick={() => setShowForm(false)}>
+              <h3 className="panel-subheading">{editItem ? 'Edit sub-category' : 'Create sub-category'}</h3>
+              <button type="button" className="ghost-btn small" onClick={handleCloseForm}>
                 Close
               </button>
             </div>
@@ -175,7 +206,7 @@ function SubCategoryPage({ token }) {
               </label>
             </div>
             <button type="submit" className="primary-btn full" disabled={isLoading}>
-              {isLoading ? 'Saving...' : 'Save sub-category'}
+              {isLoading ? 'Saving...' : editItem ? 'Update sub-category' : 'Save sub-category'}
             </button>
           </form>
         </div>
@@ -230,7 +261,13 @@ function SubCategoryPage({ token }) {
               <button
                 type="button"
                 className="gsc-create-btn"
-                onClick={() => setShowForm((prev) => !prev)}
+                onClick={() => {
+                  if (!showForm) {
+                    setEditItem(null);
+                    setForm(initialForm);
+                  }
+                  setShowForm((prev) => !prev);
+                }}
                 title="Create sub-category"
                 aria-label="Create sub-category"
               >
@@ -274,6 +311,9 @@ function SubCategoryPage({ token }) {
                       <td>{item.categoryName || '-'}</td>
                       <td>{item.active === 1 ? 'Yes' : 'No'}</td>
                       <td className="table-actions">
+                        <button type="button" className="ghost-btn small" onClick={() => handleEdit(item)}>
+                          Edit
+                        </button>
                         <button type="button" className="ghost-btn small" onClick={() => handleDelete(item.id)}>
                           Delete
                         </button>

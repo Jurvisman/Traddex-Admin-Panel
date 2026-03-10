@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Banner } from '../components';
-import { createMainCategory, deleteMainCategory, listIndustries, listMainCategories } from '../services/adminApi';
+import {
+  createMainCategory,
+  deleteMainCategory,
+  listIndustries,
+  listMainCategories,
+  updateMainCategory,
+} from '../services/adminApi';
 
 const initialForm = {
   name: '',
@@ -20,6 +26,7 @@ function MainCategoryPage({ token }) {
   const [isLoading, setIsLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [editItem, setEditItem] = useState(null);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -65,29 +72,59 @@ function MainCategoryPage({ token }) {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
+  const handleEdit = (item) => {
+    setEditItem(item);
+    setForm({
+      name: item.name || '',
+      industryId: String(item.industryId ?? ''),
+      mainCategoryIcon: item.mainCategoryIcon || '',
+      imageUrl: item.imageUrl || '',
+      ordering: item.ordering != null ? String(item.ordering) : '',
+      path: item.path || '',
+      active: item.active === 1 ? '1' : '0',
+    });
+    setShowForm(true);
+  };
+
+  const closeModal = () => {
+    setShowForm(false);
+    setEditItem(null);
+    setForm(initialForm);
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!form.name.trim() || !form.industryId) {
       setMessage({ type: 'error', text: 'Name and industry are required.' });
       return;
     }
+    const payload = {
+      name: form.name.trim(),
+      industryId: Number(form.industryId),
+      mainCategoryIcon: form.mainCategoryIcon || null,
+      imageUrl: form.imageUrl || null,
+      ordering: form.ordering ? Number(form.ordering) : null,
+      path: form.path || null,
+      active: Number(form.active),
+    };
     try {
       setIsLoading(true);
-      await createMainCategory(token, {
-        name: form.name.trim(),
-        industryId: Number(form.industryId),
-        mainCategoryIcon: form.mainCategoryIcon || null,
-        imageUrl: form.imageUrl || null,
-        ordering: form.ordering ? Number(form.ordering) : null,
-        path: form.path || null,
-        active: Number(form.active),
-      });
+      if (editItem) {
+        await updateMainCategory(token, editItem.id, payload);
+        setEditItem(null);
+        setMessage({ type: 'success', text: 'Main category updated.' });
+      } else {
+        await createMainCategory(token, payload);
+        setMessage({ type: 'success', text: 'Main category created.' });
+      }
       setForm(initialForm);
       setShowForm(false);
       await loadData();
-      setMessage({ type: 'success', text: 'Main category created.' });
     } catch (error) {
-      setMessage({ type: 'error', text: error.message || 'Failed to create main category.' });
+      setMessage({
+        type: 'error',
+        text: error.message || (editItem ? 'Failed to update main category.' : 'Failed to create main category.'),
+      });
     } finally {
       setIsLoading(false);
     }
@@ -110,15 +147,15 @@ function MainCategoryPage({ token }) {
     <div>
       <Banner message={message} />
       {showForm ? (
-        <div className="admin-modal-backdrop" onClick={() => setShowForm(false)}>
+        <div className="admin-modal-backdrop" onClick={closeModal}>
           <form
             className="admin-modal main-category-create-modal"
             onSubmit={handleSubmit}
             onClick={(event) => event.stopPropagation()}
           >
             <div className="panel-split">
-              <h3 className="panel-subheading">Create main category</h3>
-              <button type="button" className="ghost-btn small" onClick={() => setShowForm(false)}>
+              <h3 className="panel-subheading">{editItem ? 'Edit main category' : 'Create main category'}</h3>
+              <button type="button" className="ghost-btn small" onClick={closeModal}>
                 Close
               </button>
             </div>
@@ -193,7 +230,7 @@ function MainCategoryPage({ token }) {
               </label>
             </div>
             <button type="submit" className="primary-btn full" disabled={isLoading}>
-              {isLoading ? 'Saving...' : 'Save main category'}
+              {isLoading ? 'Saving...' : editItem ? 'Update main category' : 'Save main category'}
             </button>
           </form>
         </div>
@@ -248,7 +285,13 @@ function MainCategoryPage({ token }) {
               <button
                 type="button"
                 className="gsc-create-btn"
-                onClick={() => setShowForm((prev) => !prev)}
+                onClick={() => {
+                  if (!showForm) {
+                    setEditItem(null);
+                    setForm(initialForm);
+                  }
+                  setShowForm((prev) => !prev);
+                }}
                 title="Create main category"
                 aria-label="Create main category"
               >
@@ -292,6 +335,9 @@ function MainCategoryPage({ token }) {
                       <td>{industryNameById.get(item.industryId) || '-'}</td>
                       <td>{item.active === 1 ? 'Yes' : 'No'}</td>
                       <td className="table-actions">
+                        <button type="button" className="ghost-btn small" onClick={() => handleEdit(item)}>
+                          Edit
+                        </button>
                         <button type="button" className="ghost-btn small" onClick={() => handleDelete(item.id)}>
                           Delete
                         </button>

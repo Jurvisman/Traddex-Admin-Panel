@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Banner } from '../components';
-import { createIndustry, deleteIndustry, listIndustries } from '../services/adminApi';
+import { createIndustry, deleteIndustry, listIndustries, updateIndustry } from '../services/adminApi';
 
 const initialForm = {
   name: '',
@@ -17,6 +17,7 @@ function IndustryPage({ token }) {
   const [message, setMessage] = useState({ type: 'info', text: '' });
   const [isLoading, setIsLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [editItem, setEditItem] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   const loadIndustries = async () => {
@@ -42,28 +43,54 @@ function IndustryPage({ token }) {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
+  const handleEdit = (item) => {
+    setEditItem(item);
+    setForm({
+      name: item.name || '',
+      industryIcon: item.industryIcon || '',
+      industryImage: item.industryImage || '',
+      ordering: item.ordering ?? '',
+      path: item.path || '',
+      active: String(item.active ?? 1),
+    });
+    setShowForm(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowForm(false);
+    setEditItem(null);
+    setForm(initialForm);
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!form.name.trim()) {
       setMessage({ type: 'error', text: 'Industry name is required.' });
       return;
     }
+    const payload = {
+      name: form.name.trim(),
+      industryIcon: form.industryIcon || null,
+      industryImage: form.industryImage || null,
+      ordering: form.ordering ? Number(form.ordering) : null,
+      path: form.path || null,
+      active: Number(form.active),
+    };
     try {
       setIsLoading(true);
-      await createIndustry(token, {
-        name: form.name.trim(),
-        industryIcon: form.industryIcon || null,
-        industryImage: form.industryImage || null,
-        ordering: form.ordering ? Number(form.ordering) : null,
-        path: form.path || null,
-        active: Number(form.active),
-      });
+      if (editItem) {
+        await updateIndustry(token, editItem.id, payload);
+        setMessage({ type: 'success', text: 'Industry updated successfully.' });
+      } else {
+        await createIndustry(token, payload);
+        setMessage({ type: 'success', text: 'Industry created successfully.' });
+      }
       setForm(initialForm);
       setShowForm(false);
+      setEditItem(null);
       await loadIndustries();
-      setMessage({ type: 'success', text: 'Industry created successfully.' });
     } catch (error) {
-      setMessage({ type: 'error', text: error.message || 'Failed to create industry.' });
+      setMessage({ type: 'error', text: error.message || (editItem ? 'Failed to update industry.' : 'Failed to create industry.') });
     } finally {
       setIsLoading(false);
     }
@@ -86,15 +113,15 @@ function IndustryPage({ token }) {
     <div>
       <Banner message={message} />
       {showForm ? (
-        <div className="admin-modal-backdrop" onClick={() => setShowForm(false)}>
+        <div className="admin-modal-backdrop" onClick={handleCloseModal}>
           <form
             className="admin-modal industry-create-modal"
             onSubmit={handleSubmit}
             onClick={(event) => event.stopPropagation()}
           >
             <div className="panel-split">
-              <h3 className="panel-subheading">Create industry</h3>
-              <button type="button" className="ghost-btn small" onClick={() => setShowForm(false)}>
+              <h3 className="panel-subheading">{editItem ? 'Edit industry' : 'Create industry'}</h3>
+              <button type="button" className="ghost-btn small" onClick={handleCloseModal}>
                 Close
               </button>
             </div>
@@ -154,7 +181,7 @@ function IndustryPage({ token }) {
               </label>
             </div>
             <button type="submit" className="primary-btn full" disabled={isLoading}>
-              {isLoading ? 'Saving...' : 'Save industry'}
+              {isLoading ? (editItem ? 'Updating...' : 'Saving...') : (editItem ? 'Update industry' : 'Save industry')}
             </button>
           </form>
         </div>
@@ -209,7 +236,15 @@ function IndustryPage({ token }) {
               <button
                 type="button"
                 className="gsc-create-btn"
-                onClick={() => setShowForm((prev) => !prev)}
+                onClick={() => {
+                  if (showForm) {
+                    handleCloseModal();
+                  } else {
+                    setEditItem(null);
+                    setForm(initialForm);
+                    setShowForm(true);
+                  }
+                }}
                 title="Create industry"
                 aria-label="Create industry"
               >
@@ -252,6 +287,9 @@ function IndustryPage({ token }) {
                       <td>{item.active === 1 ? 'Yes' : 'No'}</td>
                       <td>{item.ordering ?? '-'}</td>
                       <td className="table-actions">
+                        <button type="button" className="ghost-btn small" onClick={() => handleEdit(item)}>
+                          Edit
+                        </button>
                         <button type="button" className="ghost-btn small" onClick={() => handleDelete(item.id)}>
                           Delete
                         </button>

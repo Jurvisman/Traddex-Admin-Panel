@@ -222,7 +222,7 @@ const NAV_TONES = {
 
 const DEFAULT_ADMIN_META = {
   title: 'Dashboard',
-  subtitle: 'Track core counts and activity across Traddex.',
+  // subtitle: 'Track core counts and activity across Traddex.',
 };
 
 const ADMIN_META = [
@@ -313,7 +313,7 @@ const ADMIN_META = [
   {
     match: '/admin/settings/roles',
     title: 'Role Permission',
-    subtitle: 'Manage roles and map CRUD permissions by menu/submenu.',
+   // subtitle: 'Manage roles and map CRUD permissions by menu/submenu.',
   },
   {
     match: '/admin/app-config',
@@ -1031,6 +1031,18 @@ function AppRoutes() {
         />
         <Route
           path="settings/roles"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={canAccessPath('/admin/settings/roles')}
+              fallbackPath={routeFallbackPath}
+            >
+              <RolePermissionPage token={authToken} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="settings/roles/:id"
           element={
             <PermissionGate
               isLoading={isPermissionLoading}

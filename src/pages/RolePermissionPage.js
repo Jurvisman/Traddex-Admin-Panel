@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Banner } from '../components';
 import {
   createRole,
@@ -25,6 +26,11 @@ const resolveCrudBucket = (code) => {
 };
 
 function RolePermissionPage({ token }) {
+  const navigate = useNavigate();
+  const { id: routeRoleId } = useParams();
+  const isCreateRoute = routeRoleId === 'new';
+  const isDetailRoute = Boolean(routeRoleId);
+
   const [roles, setRoles] = useState([]);
   const [catalog, setCatalog] = useState([]);
   const [selectedRoleId, setSelectedRoleId] = useState('');
@@ -36,21 +42,22 @@ function RolePermissionPage({ token }) {
   const [message, setMessage] = useState({ type: 'info', text: '' });
   const [roleSearchQuery, setRoleSearchQuery] = useState('');
   const roleNameInputRef = useRef(null);
-  const [viewMode, setViewMode] = useState('list'); // 'list' | 'detail'
-  const [openMenuName, setOpenMenuName] = useState('');
+  const [openMenus, setOpenMenus] = useState(new Set());
+  const [openActionRoleId, setOpenActionRoleId] = useState(null);
+  const [isDetailActionsOpen, setIsDetailActionsOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   const loadBaseData = async () => {
     setIsLoading(true);
     setMessage({ type: 'info', text: '' });
     try {
-      const [rolesResponse, catalogResponse] = await Promise.all([listRoles(token), fetchPermissionCatalog(token)]);
+      const [rolesResponse, catalogResponse] = await Promise.all([
+        listRoles(token),
+        fetchPermissionCatalog(token),
+      ]);
       const roleList = Array.isArray(rolesResponse?.data) ? rolesResponse.data : [];
       setRoles(roleList);
       setCatalog(Array.isArray(catalogResponse?.data) ? catalogResponse.data : []);
-      if (!selectedRoleId && roleList.length > 0) {
-        const firstRoleId = getRoleId(roleList[0]);
-        if (firstRoleId) setSelectedRoleId(String(firstRoleId));
-      }
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to load role settings.' });
     } finally {
@@ -89,6 +96,38 @@ function RolePermissionPage({ token }) {
   }, []);
 
   useEffect(() => {
+    if (isCreateRoute) {
+      setSelectedRoleId('');
+      setSelectedActionIds(new Set());
+      setRoleNameInput('');
+      setIsEditMode(true);
+      return;
+    }
+
+    if (!roles.length) return;
+
+    if (routeRoleId) {
+      const match = roles.find((role) => String(getRoleId(role)) === String(routeRoleId));
+      if (match) {
+        const roleId = getRoleId(match);
+        if (roleId) {
+          setSelectedRoleId(String(roleId));
+          setIsEditMode(false);
+          return;
+        }
+      }
+    }
+
+    if (!selectedRoleId && roles.length > 0) {
+      const firstRoleId = getRoleId(roles[0]);
+      if (firstRoleId) {
+        setSelectedRoleId(String(firstRoleId));
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roles, routeRoleId, isCreateRoute]);
+
+  useEffect(() => {
     if (!selectedRoleId) return;
     loadRolePermissions(selectedRoleId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -99,12 +138,7 @@ function RolePermissionPage({ token }) {
     catalog.forEach((menu) => {
       const menuName = menu?.name || 'Menu';
       (menu?.submenus || []).forEach((submenu) => {
-        const actionByBucket = {
-          CREATE: [],
-          READ: [],
-          UPDATE: [],
-          DELETE: [],
-        };
+        const actionByBucket = { CREATE: [], READ: [], UPDATE: [], DELETE: [] };
         (submenu?.actions || []).forEach((action) => {
           const bucket = resolveCrudBucket(action?.code);
           const actionId = action?.actionId || action?.id;
@@ -134,12 +168,6 @@ function RolePermissionPage({ token }) {
     return Array.from(groups.entries()).map(([menuName, rows]) => ({ menuName, rows }));
   }, [matrixRows]);
 
-  useEffect(() => {
-    if (!openMenuName && groupedMatrix.length > 0) {
-      setOpenMenuName(groupedMatrix[0].menuName);
-    }
-  }, [groupedMatrix, openMenuName]);
-
   const selectedRole = useMemo(
     () => roles.find((role) => String(getRoleId(role)) === String(selectedRoleId)) || null,
     [roles, selectedRoleId]
@@ -168,6 +196,15 @@ function RolePermissionPage({ token }) {
     });
   };
 
+  const toggleMenu = (menuName) => {
+    setOpenMenus((prev) => {
+      const next = new Set(prev);
+      if (next.has(menuName)) next.delete(menuName);
+      else next.add(menuName);
+      return next;
+    });
+  };
+
   const handleSavePermissions = async () => {
     if (!selectedRoleId) return;
     setIsPermissionSaving(true);
@@ -175,6 +212,7 @@ function RolePermissionPage({ token }) {
     try {
       await saveRolePermissions(token, selectedRoleId, Array.from(selectedActionIds));
       setMessage({ type: 'success', text: 'Role permissions saved successfully.' });
+      navigate('/admin/settings/roles');
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to save role permissions.' });
     } finally {
@@ -214,6 +252,7 @@ function RolePermissionPage({ token }) {
       await updateRole(token, selectedRoleId, { name });
       await loadBaseData();
       setMessage({ type: 'success', text: 'Role renamed successfully.' });
+      setIsEditMode(false);
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to update role.' });
     } finally {
@@ -221,15 +260,18 @@ function RolePermissionPage({ token }) {
     }
   };
 
-  const handleDeleteRole = async () => {
-    if (!selectedRoleId) return;
-    const roleLabel = getRoleName(selectedRole) || `#${selectedRoleId}`;
+  const handleDeleteRole = async (roleOverride) => {
+    const targetRoleId = roleOverride ? getRoleId(roleOverride) : selectedRoleId;
+    if (!targetRoleId) return;
+    const targetRoleName =
+      roleOverride ? getRoleName(roleOverride) : getRoleName(selectedRole) || `#${targetRoleId}`;
+    const roleLabel = targetRoleName || `#${targetRoleId}`;
     const ok = window.confirm(`Delete role ${roleLabel}?`);
     if (!ok) return;
     setIsRoleSaving(true);
     setMessage({ type: 'info', text: '' });
     try {
-      await deleteRole(token, selectedRoleId);
+      await deleteRole(token, targetRoleId);
       const roleListResponse = await listRoles(token);
       const roleList = Array.isArray(roleListResponse?.data) ? roleListResponse.data : [];
       setRoles(roleList);
@@ -242,6 +284,7 @@ function RolePermissionPage({ token }) {
     } finally {
       setIsRoleSaving(false);
     }
+    setIsEditMode(false);
   };
 
   const filteredRoles = useMemo(() => {
@@ -251,136 +294,133 @@ function RolePermissionPage({ token }) {
   }, [roles, roleSearchQuery]);
 
   const handleStartCreateRole = () => {
-    setSelectedRoleId('');
-    setSelectedActionIds(new Set());
-    setRoleNameInput('');
-    setViewMode('detail');
+    navigate('/admin/settings/roles/new');
     setTimeout(() => {
       if (roleNameInputRef.current) roleNameInputRef.current.focus();
     }, 0);
+    setIsEditMode(true);
   };
 
-  const handleSelectRoleFromList = (role) => {
+  const handleViewRole = (role) => {
     const roleId = getRoleId(role);
     if (!roleId) return;
-    setSelectedRoleId(String(roleId));
-    setViewMode('detail');
+    navigate(`/admin/settings/roles/${roleId}`);
+  };
+
+  const toggleRowActions = (role) => {
+    const roleId = getRoleId(role);
+    if (!roleId) return;
+    setOpenActionRoleId((current) => (current && String(current) === String(roleId) ? null : String(roleId)));
   };
 
   const handleBackToList = () => {
-    setViewMode('list');
+    navigate('/admin/settings/roles');
   };
 
-  return (
-    <div className="role-permission-page users-page">
-      <div className="users-head">
-        <div>
-          <h2 className="panel-title">Role Permissions</h2>
-          {viewMode === 'detail' ? (
-            <p className="panel-subtitle">Define role access using menu/submenu CRUD matrix.</p>
-          ) : (
-            <p className="panel-subtitle">View and manage user roles.</p>
-          )}
-        </div>
-        <div className="users-head-actions">
-          <button type="button" className="ghost-btn" onClick={loadBaseData} disabled={isLoading}>
-            {isLoading ? 'Refreshing...' : 'Refresh'}
-          </button>
-          {viewMode === 'detail' ? (
-            <>
-              <button type="button" className="ghost-btn" onClick={handleBackToList}>
-                Back to roles
-              </button>
-              <button
-                type="button"
-                className="primary-btn"
-                onClick={handleSavePermissions}
-                disabled={isPermissionSaving || !selectedRoleId}
-              >
-                {isPermissionSaving ? 'Saving...' : 'Save Permissions'}
-              </button>
-            </>
-          ) : null}
-        </div>
-      </div>
+  const toggleDetailActions = () => {
+    setIsDetailActionsOpen((current) => !current);
+  };
 
-      <Banner message={message} />
+  /* ───────── LIST VIEW ───────── */
+  if (!isDetailRoute) {
+    return (
+      <div className="role-permission-page role-list-page">
+        <Banner message={message} />
 
-      {viewMode === 'list' ? (
-        <section className="panel card users-table-card">
-          <div className="gsc-datatable-toolbar">
-            <div className="gsc-datatable-toolbar-left">
-              <h3 className="panel-subheading">User roles</h3>
+        <div className="role-list-toolbar">
+          <h3 className="role-list-heading">User roles</h3>
+          <div className="role-list-toolbar-right">
+            <div className="gsc-toolbar-search">
+              <input
+                type="search"
+                placeholder="Search"
+                value={roleSearchQuery}
+                onChange={(e) => setRoleSearchQuery(e.target.value)}
+                aria-label="Search roles"
+              />
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 18, height: 18, color: '#6b7280', flexShrink: 0 }}>
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.35-4.35" />
+              </svg>
             </div>
-            <div className="gsc-datatable-toolbar-right">
-              <div className="gsc-toolbar-search">
-                <input
-                  type="search"
-                  placeholder="Search"
-                  value={roleSearchQuery}
-                  onChange={(event) => setRoleSearchQuery(event.target.value)}
-                  aria-label="Search roles"
-                />
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  style={{ width: 18, height: 18, color: '#6b7280', flexShrink: 0 }}
-                >
-                  <circle cx="11" cy="11" r="8" />
-                  <path d="m21 21-4.35-4.35" />
-                </svg>
-              </div>
-              <button
-                type="button"
-                className="gsc-create-btn"
-                onClick={handleStartCreateRole}
-                title="Create role"
-                aria-label="Create role"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M12 5v14M5 12h14" />
-                </svg>
-              </button>
-            </div>
+            <button type="button" className="gsc-create-btn" onClick={handleStartCreateRole} title="Create role" aria-label="Create role">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+            </button>
           </div>
-          {filteredRoles.length === 0 ? (
-            <p className="empty-state">
-              {roles.length === 0 ? 'No roles found.' : 'No roles match your search.'}
-            </p>
-          ) : (
+        </div>
+
+        {filteredRoles.length === 0 ? (
+          <p className="empty-state">{roles.length === 0 ? 'No roles found.' : 'No roles match your search.'}</p>
+        ) : (
+          <>
             <div className="table-shell">
-              <table className="admin-table users-table">
+              <table className="admin-table role-list-table">
                 <thead>
                   <tr>
                     <th>Sr. No.</th>
                     <th>Role Name</th>
-                    <th>Actions</th>
+                    <th className="table-actions">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredRoles.map((role, index) => {
                     const roleId = getRoleId(role);
+                    const isMenuOpen = openActionRoleId && String(openActionRoleId) === String(roleId);
+                    const openDown = index < 2;
                     return (
                       <tr key={roleId || getRoleName(role)}>
                         <td>{index + 1}</td>
-                        <td>{getRoleName(role)}</td>
-                        <td className="table-actions">
+                        <td>
                           <button
                             type="button"
-                            className="ghost-btn small"
-                            onClick={() => handleSelectRoleFromList(role)}
+                            className="role-link"
+                            onClick={() => handleViewRole(role)}
                           >
-                            Select
+                            {getRoleName(role)}
                           </button>
+                        </td>
+                        <td className="table-actions">
+                          <div className="gsc-row-actions">
+                            <button
+                              type="button"
+                              className="ghost-btn small gsc-row-actions-toggle"
+                              onClick={() => toggleRowActions(role)}
+                              aria-label="Open actions"
+                            >
+                              <span className="gsc-row-actions-dots">⋯</span>
+                            </button>
+                            {isMenuOpen ? (
+                              <div className={`gsc-row-actions-menu ${openDown ? 'menu-down' : ''}`}>
+                                <button
+                                  type="button"
+                                  className="gsc-row-actions-item view"
+                                  onClick={() => handleViewRole(role)}
+                                >
+                                  <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5Zm0 12.5a5 5 0 1 1 0-10 5 5 0 0 1 0 10Zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z" /></svg>
+                                  View
+                                </button>
+                                <button
+                                  type="button"
+                                  className="gsc-row-actions-item edit"
+                                  onClick={() => handleViewRole(role)}
+                                >
+                                  <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25ZM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83Z" /></svg>
+                                  Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  className="gsc-row-actions-item delete"
+                                  onClick={() => handleDeleteRole(role)}
+                                  disabled={isRoleSaving}
+                                >
+                                  <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12ZM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4Z" /></svg>
+                                  Delete
+                                </button>
+                              </div>
+                            ) : null}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -388,17 +428,92 @@ function RolePermissionPage({ token }) {
                 </tbody>
               </table>
             </div>
-          )}
-        </section>
-      ) : null}
+            <div className="table-footer-meta">
+              <span>
+                Showing {filteredRoles.length} of {roles.length} records
+              </span>
+              <span>No more records to show</span>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
 
-      {viewMode === 'detail' ? (
-        <>
-          <section className="panel card">
-            <div className="field-grid">
+  /* ───────── DETAIL / CREATE VIEW ───────── */
+  return (
+    <div className="role-permission-page users-page">
+      <div className="users-head">
+        <div>
+          <h2 className="panel-title">{isCreateRoute ? 'Create Role' : 'Role Permissions'}</h2>
+          <p className="panel-subtitle">
+            {isCreateRoute
+              ? 'Create a new role and configure permissions.'
+              : 'Manage roles and map CRUD permissions by menu/submenu.'}
+          </p>
+        </div>
+        <div className="users-head-actions">
+          {/* <button type="button" className="ghost-btn" onClick={handleBackToList}>
+            Back to Roles
+          </button> */}
+          {!isCreateRoute && selectedRoleId ? (
+            <div className="gsc-row-actions" style={{ marginLeft: 8 }}>
+              <button
+                type="button"
+                className="ghost-btn small gsc-row-actions-toggle"
+                onClick={toggleDetailActions}
+                aria-label="Role actions"
+              >
+                <span className="gsc-row-actions-dots">⋯</span>
+              </button>
+              {isDetailActionsOpen ? (
+                <div className="gsc-row-actions-menu">
+                  <button
+                    type="button"
+                    className="gsc-row-actions-item edit"
+                    onClick={() => {
+                      setIsEditMode(true);
+                      if (roleNameInputRef.current) {
+                        roleNameInputRef.current.focus();
+                      }
+                      setIsDetailActionsOpen(false);
+                    }}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    className="gsc-row-actions-item delete"
+                    onClick={() => {
+                      handleDeleteRole(selectedRole);
+                      setIsDetailActionsOpen(false);
+                    }}
+                    disabled={isRoleSaving}
+                  >
+                    Delete
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      <Banner message={message} />
+
+      <section className="panel card" style={{ marginBottom: 16 }}>
+        {isCreateRoute || isEditMode ? (
+          <div className="role-detail-form-row">
+            {!isCreateRoute ? (
               <label className="field">
                 <span>Select Role</span>
-                <select value={selectedRoleId} onChange={(event) => setSelectedRoleId(event.target.value)}>
+                <select
+                  value={selectedRoleId}
+                  onChange={(e) => {
+                    setSelectedRoleId(e.target.value);
+                    setIsEditMode(false);
+                  }}
+                >
                   <option value="">Select role</option>
                   {roles.map((role) => {
                     const roleId = getRoleId(role);
@@ -410,142 +525,112 @@ function RolePermissionPage({ token }) {
                   })}
                 </select>
               </label>
-              <label className="field">
-                <span>Role Name</span>
-                <input
-                  type="text"
-                  ref={roleNameInputRef}
-                  value={roleNameInput}
-                  onChange={(event) => setRoleNameInput(event.target.value)}
-                  placeholder="Enter role name"
-                />
-              </label>
-              <div className="field field-span form-actions">
-                <button type="button" className="ghost-btn" onClick={handleCreateRole} disabled={isRoleSaving}>
-                  Create Role
+            ) : null}
+            <label className="field">
+              <span>User Role Name *</span>
+              <input
+                type="text"
+                ref={roleNameInputRef}
+                value={roleNameInput}
+                onChange={(e) => setRoleNameInput(e.target.value)}
+                placeholder="Enter Role Name"
+                disabled={!isCreateRoute && !isEditMode}
+              />
+            </label>
+            <div className="role-detail-form-btns">
+              {selectedRoleId && isEditMode ? (
+                <>
+                  <button type="button" className="ghost-btn small" onClick={handleUpdateRole} disabled={isRoleSaving}>
+                    Rename
+                  </button>
+                  <button type="button" className="ghost-btn small" onClick={handleDeleteRole} disabled={isRoleSaving}>
+                    Delete
+                  </button>
+                </>
+              ) : (
+                <button type="button" className="primary-btn compact" onClick={handleCreateRole} disabled={isRoleSaving}>
+                  {isRoleSaving ? 'Saving...' : 'Create'}
                 </button>
-                <button
-                  type="button"
-                  className="ghost-btn"
-                  onClick={handleUpdateRole}
-                  disabled={isRoleSaving || !selectedRoleId}
-                >
-                  Rename Role
-                </button>
-                <button
-                  type="button"
-                  className="ghost-btn"
-                  onClick={handleDeleteRole}
-                  disabled={isRoleSaving || !selectedRoleId}
-                >
-                  Delete Role
-                </button>
-              </div>
+              )}
             </div>
-          </section>
-          <section className="panel card users-table-card">
-            {matrixRows.length === 0 ? (
-              <p className="empty-state">No menu/submenu/actions found in permission catalog.</p>
-            ) : (
-              <div className="role-permission-groups">
-                {groupedMatrix.map((group) => {
-                  const isOpen = openMenuName === group.menuName;
+          </div>
+        ) : (
+          <div className="role-summary-row">
+            <div className="role-summary-field">
+              <p className="role-summary-label">Type</p>
+              <p className="role-summary-value">Company</p>
+            </div>
+            <div className="role-summary-field">
+              <p className="role-summary-label">User Role Name</p>
+              <p className="role-summary-value">{roleNameInput || getRoleName(selectedRole) || '-'}</p>
+            </div>
+          </div>
+        )}
+      </section>
 
-                  // Collect all actionIds per CRUD bucket for "Select All" row
-                  const bucketAllIds = {
-                    CREATE: [],
-                    READ: [],
-                    UPDATE: [],
-                    DELETE: [],
-                  };
-                  group.rows.forEach((row) => {
-                    CRUD_COLUMNS.forEach((bucket) => {
-                      const ids = row.actionByBucket[bucket] || [];
-                      bucketAllIds[bucket].push(...ids);
-                    });
-                  });
+      <div className="role-permission-groups">
+        {groupedMatrix.map((group) => {
+          const isOpen = openMenus.has(group.menuName);
+          return (
+            <div key={group.menuName} className={`role-permission-group ${isOpen ? 'open' : ''}`}>
+              <button type="button" className="role-permission-group-header" onClick={() => toggleMenu(group.menuName)}>
+                <span className="role-permission-group-title">{group.menuName}</span>
+                <span className="role-permission-group-chevron" aria-hidden="true" />
+              </button>
+              {isOpen && (
+                <div className="role-permission-group-body">
+                  <table className="admin-table users-table role-permission-table">
+                    <thead>
+                      <tr>
+                        <th />
+                        {CRUD_COLUMNS.map((col) => (
+                          <th key={col}>{col}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {group.rows.map((row) => (
+                        <tr key={row.key}>
+                          <td>{row.submenuName}</td>
+                          {CRUD_COLUMNS.map((col) => {
+                            const actionIds = row.actionByBucket[col] || [];
+                            const disabled = actionIds.length === 0 || !selectedRoleId;
+                            const checked = isBucketChecked(actionIds);
+                            return (
+                              <td key={`${row.key}-${col}`}>
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  disabled={disabled}
+                                  onChange={(e) => toggleBucket(actionIds, e.target.checked)}
+                                />
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
 
-                  return (
-                    <div key={group.menuName} className={`role-permission-group ${isOpen ? 'open' : ''}`}>
-                      <button
-                        type="button"
-                        className="role-permission-group-header"
-                        onClick={() =>
-                          setOpenMenuName((prev) => (prev === group.menuName ? '' : group.menuName))
-                        }
-                      >
-                        <span className="role-permission-group-title">{group.menuName}</span>
-                        <span className="role-permission-group-chevron" aria-hidden="true" />
-                      </button>
-                      {isOpen ? (
-                        <div className="role-permission-group-body">
-                          <table className="admin-table users-table role-permission-table">
-                            <thead>
-                              <tr>
-                                <th />
-                                <th>Select All</th>
-                                {CRUD_COLUMNS.map((column) => (
-                                  <th key={column}>{column}</th>
-                                ))}
-                              </tr>
-                            </thead>
-                            <tbody>
-                              <tr className="role-permission-select-all-row">
-                                <td />
-                                <td />
-                                {CRUD_COLUMNS.map((column) => {
-                                  const ids = bucketAllIds[column] || [];
-                                  const disabled = ids.length === 0 || !selectedRoleId;
-                                  const checked =
-                                    ids.length > 0 &&
-                                    ids.every((id) => selectedActionIds.has(id));
-                                  return (
-                                    <td key={`select-all-${group.menuName}-${column}`}>
-                                      <input
-                                        type="checkbox"
-                                        checked={checked}
-                                        disabled={disabled}
-                                        onChange={(event) => toggleBucket(ids, event.target.checked)}
-                                      />
-                                    </td>
-                                  );
-                                })}
-                              </tr>
-                              {group.rows.map((row) => (
-                                <tr key={row.key}>
-                                  <td>{row.submenuName}</td>
-                                  <td />
-                                  {CRUD_COLUMNS.map((column) => {
-                                    const actionIds = row.actionByBucket[column] || [];
-                                    const disabled = actionIds.length === 0 || !selectedRoleId;
-                                    const checked = isBucketChecked(actionIds);
-                                    return (
-                                      <td key={`${row.key}-${column}`}>
-                                        <input
-                                          type="checkbox"
-                                          checked={checked}
-                                          disabled={disabled}
-                                          onChange={(event) =>
-                                            toggleBucket(actionIds, event.target.checked)
-                                          }
-                                        />
-                                      </td>
-                                    );
-                                  })}
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      ) : null}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-        </>
-      ) : null}
+      <div className="business-edit-footer role-permission-actions">
+        <button type="button" className="ghost-btn" onClick={handleBackToList}>
+          Cancel
+        </button>
+        <button
+          type="button"
+          className="primary-btn"
+          onClick={handleSavePermissions}
+          disabled={isPermissionSaving || !selectedRoleId}
+        >
+          {isPermissionSaving ? 'Saving...' : 'Save Permissions'}
+        </button>
+      </div>
     </div>
   );
 }

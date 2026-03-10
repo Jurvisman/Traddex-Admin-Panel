@@ -10,6 +10,7 @@ import {
   listAttributeMappings,
   listCategories,
   listMainCategories,
+  updateCategory,
 } from '../services/adminApi';
 
 const initialForm = {
@@ -90,6 +91,7 @@ function CategoryPage({ token }) {
   const [isFieldsLoading, setIsFieldsLoading] = useState(false);
   const [isSavingField, setIsSavingField] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [editItem, setEditItem] = useState(null);
   const [showFieldManager, setShowFieldManager] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [fieldDefinitions, setFieldDefinitions] = useState([]);
@@ -222,30 +224,58 @@ function CategoryPage({ token }) {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
+  const handleEdit = (item) => {
+    setEditItem(item);
+    setForm({
+      name: item.name || '',
+      mainCategoryId: String(item.mainCategoryId ?? item.main_category_id ?? ''),
+      categoryIcon: item.categoryIcon ?? item.category_icon ?? '',
+      imageUrl: item.imageUrl ?? item.image_url ?? '',
+      ordering: item.ordering != null ? String(item.ordering) : '',
+      path: item.path ?? '',
+      active: item.active != null ? String(Number(item.active) === 1 ? '1' : '0') : '1',
+      hasSubCategory: item.hasSubCategory != null ? String(Number(item.hasSubCategory) === 1 ? '1' : '0') : '1',
+    });
+    setShowForm(true);
+  };
+
+  const closeFormModal = () => {
+    setShowForm(false);
+    setEditItem(null);
+    setForm(initialForm);
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!form.name.trim() || !form.mainCategoryId) {
       setMessage({ type: 'error', text: 'Name and main category are required.' });
       return;
     }
+    const payload = {
+      name: form.name.trim(),
+      mainCategoryId: Number(form.mainCategoryId),
+      categoryIcon: form.categoryIcon || null,
+      imageUrl: form.imageUrl || null,
+      ordering: form.ordering ? Number(form.ordering) : null,
+      path: form.path || null,
+      active: Number(form.active),
+      hasSubCategory: Number(form.hasSubCategory),
+    };
     try {
       setIsPageLoading(true);
-      await createCategory(token, {
-        name: form.name.trim(),
-        mainCategoryId: Number(form.mainCategoryId),
-        categoryIcon: form.categoryIcon || null,
-        imageUrl: form.imageUrl || null,
-        ordering: form.ordering ? Number(form.ordering) : null,
-        path: form.path || null,
-        active: Number(form.active),
-        hasSubCategory: Number(form.hasSubCategory),
-      });
+      if (editItem) {
+        await updateCategory(token, editItem.id, payload);
+        setEditItem(null);
+        setMessage({ type: 'success', text: 'Category updated.' });
+      } else {
+        await createCategory(token, payload);
+        setMessage({ type: 'success', text: 'Category created.' });
+      }
       setForm(initialForm);
       setShowForm(false);
       await loadData();
-      setMessage({ type: 'success', text: 'Category created.' });
     } catch (error) {
-      setMessage({ type: 'error', text: error.message || 'Failed to create category.' });
+      setMessage({ type: 'error', text: error.message || (editItem ? 'Failed to update category.' : 'Failed to create category.') });
     } finally {
       setIsPageLoading(false);
     }
@@ -472,15 +502,15 @@ function CategoryPage({ token }) {
     <div className="category-page">
       <Banner message={message} />
       {showForm ? (
-        <div className="admin-modal-backdrop" onClick={() => setShowForm(false)}>
+        <div className="admin-modal-backdrop" onClick={closeFormModal}>
           <form
             className="admin-modal category-create-modal"
             onSubmit={handleSubmit}
             onClick={(event) => event.stopPropagation()}
           >
             <div className="panel-split">
-              <h3 className="panel-subheading">Create category</h3>
-              <button type="button" className="ghost-btn small" onClick={() => setShowForm(false)}>
+              <h3 className="panel-subheading">{editItem ? 'Edit category' : 'Create category'}</h3>
+              <button type="button" className="ghost-btn small" onClick={closeFormModal}>
                 Close
               </button>
             </div>
@@ -565,7 +595,7 @@ function CategoryPage({ token }) {
               </label>
             </div>
             <button type="submit" className="primary-btn full" disabled={isPageLoading}>
-              {isPageLoading ? 'Saving...' : 'Save category'}
+              {isPageLoading ? 'Saving...' : editItem ? 'Update category' : 'Save category'}
             </button>
           </form>
         </div>
@@ -838,7 +868,13 @@ function CategoryPage({ token }) {
               <button
                 type="button"
                 className="gsc-create-btn"
-                onClick={() => setShowForm((prev) => !prev)}
+                onClick={() => {
+                  if (!showForm) {
+                    setEditItem(null);
+                    setForm(initialForm);
+                  }
+                  setShowForm((prev) => !prev);
+                }}
                 title="Create category"
                 aria-label="Create category"
               >
@@ -884,6 +920,9 @@ function CategoryPage({ token }) {
                       <td className="table-actions">
                         <button type="button" className="ghost-btn small" onClick={() => openFieldManager(item)}>
                           Manage Fields
+                        </button>
+                        <button type="button" className="ghost-btn small" onClick={() => handleEdit(item)}>
+                          Edit
                         </button>
                         <button type="button" className="ghost-btn small" onClick={() => handleDelete(item.id)}>
                           Delete
