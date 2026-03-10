@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Banner } from '../components';
 import {
   createRole,
@@ -34,6 +34,10 @@ function RolePermissionPage({ token }) {
   const [isRoleSaving, setIsRoleSaving] = useState(false);
   const [isPermissionSaving, setIsPermissionSaving] = useState(false);
   const [message, setMessage] = useState({ type: 'info', text: '' });
+  const [roleSearchQuery, setRoleSearchQuery] = useState('');
+  const roleNameInputRef = useRef(null);
+  const [viewMode, setViewMode] = useState('list'); // 'list' | 'detail'
+  const [openMenuName, setOpenMenuName] = useState('');
 
   const loadBaseData = async () => {
     setIsLoading(true);
@@ -118,6 +122,23 @@ function RolePermissionPage({ token }) {
     });
     return rows;
   }, [catalog]);
+
+  const groupedMatrix = useMemo(() => {
+    const groups = new Map();
+    matrixRows.forEach((row) => {
+      if (!groups.has(row.menuName)) {
+        groups.set(row.menuName, []);
+      }
+      groups.get(row.menuName).push(row);
+    });
+    return Array.from(groups.entries()).map(([menuName, rows]) => ({ menuName, rows }));
+  }, [matrixRows]);
+
+  useEffect(() => {
+    if (!openMenuName && groupedMatrix.length > 0) {
+      setOpenMenuName(groupedMatrix[0].menuName);
+    }
+  }, [groupedMatrix, openMenuName]);
 
   const selectedRole = useMemo(
     () => roles.find((role) => String(getRoleId(role)) === String(selectedRoleId)) || null,
@@ -223,106 +244,308 @@ function RolePermissionPage({ token }) {
     }
   };
 
+  const filteredRoles = useMemo(() => {
+    const query = roleSearchQuery.trim().toLowerCase();
+    if (!query) return roles;
+    return roles.filter((role) => getRoleName(role).toLowerCase().includes(query));
+  }, [roles, roleSearchQuery]);
+
+  const handleStartCreateRole = () => {
+    setSelectedRoleId('');
+    setSelectedActionIds(new Set());
+    setRoleNameInput('');
+    setViewMode('detail');
+    setTimeout(() => {
+      if (roleNameInputRef.current) roleNameInputRef.current.focus();
+    }, 0);
+  };
+
+  const handleSelectRoleFromList = (role) => {
+    const roleId = getRoleId(role);
+    if (!roleId) return;
+    setSelectedRoleId(String(roleId));
+    setViewMode('detail');
+  };
+
+  const handleBackToList = () => {
+    setViewMode('list');
+  };
+
   return (
     <div className="role-permission-page users-page">
       <div className="users-head">
         <div>
           <h2 className="panel-title">Role Permissions</h2>
-          <p className="panel-subtitle">Define role access using menu/submenu CRUD matrix.</p>
+          {viewMode === 'detail' ? (
+            <p className="panel-subtitle">Define role access using menu/submenu CRUD matrix.</p>
+          ) : (
+            <p className="panel-subtitle">View and manage user roles.</p>
+          )}
         </div>
         <div className="users-head-actions">
           <button type="button" className="ghost-btn" onClick={loadBaseData} disabled={isLoading}>
             {isLoading ? 'Refreshing...' : 'Refresh'}
           </button>
-          <button type="button" className="primary-btn" onClick={handleSavePermissions} disabled={isPermissionSaving || !selectedRoleId}>
-            {isPermissionSaving ? 'Saving...' : 'Save Permissions'}
-          </button>
+          {viewMode === 'detail' ? (
+            <>
+              <button type="button" className="ghost-btn" onClick={handleBackToList}>
+                Back to roles
+              </button>
+              <button
+                type="button"
+                className="primary-btn"
+                onClick={handleSavePermissions}
+                disabled={isPermissionSaving || !selectedRoleId}
+              >
+                {isPermissionSaving ? 'Saving...' : 'Save Permissions'}
+              </button>
+            </>
+          ) : null}
         </div>
       </div>
 
       <Banner message={message} />
 
-      <section className="panel card">
-        <div className="field-grid">
-          <label className="field">
-            <span>Select Role</span>
-            <select value={selectedRoleId} onChange={(event) => setSelectedRoleId(event.target.value)}>
-              <option value="">Select role</option>
-              {roles.map((role) => {
-                const roleId = getRoleId(role);
-                return (
-                  <option key={roleId || getRoleName(role)} value={roleId ? String(roleId) : ''}>
-                    {getRoleName(role)}
-                  </option>
-                );
-              })}
-            </select>
-          </label>
-          <label className="field">
-            <span>Role Name</span>
-            <input
-              type="text"
-              value={roleNameInput}
-              onChange={(event) => setRoleNameInput(event.target.value)}
-              placeholder="Enter role name"
-            />
-          </label>
-          <div className="field field-span form-actions">
-            <button type="button" className="ghost-btn" onClick={handleCreateRole} disabled={isRoleSaving}>
-              Create Role
-            </button>
-            <button type="button" className="ghost-btn" onClick={handleUpdateRole} disabled={isRoleSaving || !selectedRoleId}>
-              Rename Role
-            </button>
-            <button type="button" className="ghost-btn" onClick={handleDeleteRole} disabled={isRoleSaving || !selectedRoleId}>
-              Delete Role
-            </button>
+      {viewMode === 'list' ? (
+        <section className="panel card users-table-card">
+          <div className="gsc-datatable-toolbar">
+            <div className="gsc-datatable-toolbar-left">
+              <h3 className="panel-subheading">User roles</h3>
+            </div>
+            <div className="gsc-datatable-toolbar-right">
+              <div className="gsc-toolbar-search">
+                <input
+                  type="search"
+                  placeholder="Search"
+                  value={roleSearchQuery}
+                  onChange={(event) => setRoleSearchQuery(event.target.value)}
+                  aria-label="Search roles"
+                />
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  style={{ width: 18, height: 18, color: '#6b7280', flexShrink: 0 }}
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.35-4.35" />
+                </svg>
+              </div>
+              <button
+                type="button"
+                className="gsc-create-btn"
+                onClick={handleStartCreateRole}
+                title="Create role"
+                aria-label="Create role"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+              </button>
+            </div>
           </div>
-        </div>
-      </section>
-
-      <section className="panel card users-table-card">
-        {matrixRows.length === 0 ? (
-          <p className="empty-state">No menu/submenu/actions found in permission catalog.</p>
-        ) : (
-          <div className="table-shell">
-            <table className="admin-table users-table">
-              <thead>
-                <tr>
-                  <th>Menu</th>
-                  <th>Submenu</th>
-                  {CRUD_COLUMNS.map((column) => (
-                    <th key={column}>{column}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {matrixRows.map((row) => (
-                  <tr key={row.key}>
-                    <td>{row.menuName}</td>
-                    <td>{row.submenuName}</td>
-                    {CRUD_COLUMNS.map((column) => {
-                      const actionIds = row.actionByBucket[column] || [];
-                      const disabled = actionIds.length === 0 || !selectedRoleId;
-                      const checked = isBucketChecked(actionIds);
-                      return (
-                        <td key={`${row.key}-${column}`}>
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            disabled={disabled}
-                            onChange={(event) => toggleBucket(actionIds, event.target.checked)}
-                          />
-                        </td>
-                      );
-                    })}
+          {filteredRoles.length === 0 ? (
+            <p className="empty-state">
+              {roles.length === 0 ? 'No roles found.' : 'No roles match your search.'}
+            </p>
+          ) : (
+            <div className="table-shell">
+              <table className="admin-table users-table">
+                <thead>
+                  <tr>
+                    <th>Sr. No.</th>
+                    <th>Role Name</th>
+                    <th>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+                </thead>
+                <tbody>
+                  {filteredRoles.map((role, index) => {
+                    const roleId = getRoleId(role);
+                    return (
+                      <tr key={roleId || getRoleName(role)}>
+                        <td>{index + 1}</td>
+                        <td>{getRoleName(role)}</td>
+                        <td className="table-actions">
+                          <button
+                            type="button"
+                            className="ghost-btn small"
+                            onClick={() => handleSelectRoleFromList(role)}
+                          >
+                            Select
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      ) : null}
+
+      {viewMode === 'detail' ? (
+        <>
+          <section className="panel card">
+            <div className="field-grid">
+              <label className="field">
+                <span>Select Role</span>
+                <select value={selectedRoleId} onChange={(event) => setSelectedRoleId(event.target.value)}>
+                  <option value="">Select role</option>
+                  {roles.map((role) => {
+                    const roleId = getRoleId(role);
+                    return (
+                      <option key={roleId || getRoleName(role)} value={roleId ? String(roleId) : ''}>
+                        {getRoleName(role)}
+                      </option>
+                    );
+                  })}
+                </select>
+              </label>
+              <label className="field">
+                <span>Role Name</span>
+                <input
+                  type="text"
+                  ref={roleNameInputRef}
+                  value={roleNameInput}
+                  onChange={(event) => setRoleNameInput(event.target.value)}
+                  placeholder="Enter role name"
+                />
+              </label>
+              <div className="field field-span form-actions">
+                <button type="button" className="ghost-btn" onClick={handleCreateRole} disabled={isRoleSaving}>
+                  Create Role
+                </button>
+                <button
+                  type="button"
+                  className="ghost-btn"
+                  onClick={handleUpdateRole}
+                  disabled={isRoleSaving || !selectedRoleId}
+                >
+                  Rename Role
+                </button>
+                <button
+                  type="button"
+                  className="ghost-btn"
+                  onClick={handleDeleteRole}
+                  disabled={isRoleSaving || !selectedRoleId}
+                >
+                  Delete Role
+                </button>
+              </div>
+            </div>
+          </section>
+          <section className="panel card users-table-card">
+            {matrixRows.length === 0 ? (
+              <p className="empty-state">No menu/submenu/actions found in permission catalog.</p>
+            ) : (
+              <div className="role-permission-groups">
+                {groupedMatrix.map((group) => {
+                  const isOpen = openMenuName === group.menuName;
+
+                  // Collect all actionIds per CRUD bucket for "Select All" row
+                  const bucketAllIds = {
+                    CREATE: [],
+                    READ: [],
+                    UPDATE: [],
+                    DELETE: [],
+                  };
+                  group.rows.forEach((row) => {
+                    CRUD_COLUMNS.forEach((bucket) => {
+                      const ids = row.actionByBucket[bucket] || [];
+                      bucketAllIds[bucket].push(...ids);
+                    });
+                  });
+
+                  return (
+                    <div key={group.menuName} className={`role-permission-group ${isOpen ? 'open' : ''}`}>
+                      <button
+                        type="button"
+                        className="role-permission-group-header"
+                        onClick={() =>
+                          setOpenMenuName((prev) => (prev === group.menuName ? '' : group.menuName))
+                        }
+                      >
+                        <span className="role-permission-group-title">{group.menuName}</span>
+                        <span className="role-permission-group-chevron" aria-hidden="true" />
+                      </button>
+                      {isOpen ? (
+                        <div className="role-permission-group-body">
+                          <table className="admin-table users-table role-permission-table">
+                            <thead>
+                              <tr>
+                                <th />
+                                <th>Select All</th>
+                                {CRUD_COLUMNS.map((column) => (
+                                  <th key={column}>{column}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr className="role-permission-select-all-row">
+                                <td />
+                                <td />
+                                {CRUD_COLUMNS.map((column) => {
+                                  const ids = bucketAllIds[column] || [];
+                                  const disabled = ids.length === 0 || !selectedRoleId;
+                                  const checked =
+                                    ids.length > 0 &&
+                                    ids.every((id) => selectedActionIds.has(id));
+                                  return (
+                                    <td key={`select-all-${group.menuName}-${column}`}>
+                                      <input
+                                        type="checkbox"
+                                        checked={checked}
+                                        disabled={disabled}
+                                        onChange={(event) => toggleBucket(ids, event.target.checked)}
+                                      />
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                              {group.rows.map((row) => (
+                                <tr key={row.key}>
+                                  <td>{row.submenuName}</td>
+                                  <td />
+                                  {CRUD_COLUMNS.map((column) => {
+                                    const actionIds = row.actionByBucket[column] || [];
+                                    const disabled = actionIds.length === 0 || !selectedRoleId;
+                                    const checked = isBucketChecked(actionIds);
+                                    return (
+                                      <td key={`${row.key}-${column}`}>
+                                        <input
+                                          type="checkbox"
+                                          checked={checked}
+                                          disabled={disabled}
+                                          onChange={(event) =>
+                                            toggleBucket(actionIds, event.target.checked)
+                                          }
+                                        />
+                                      </td>
+                                    );
+                                  })}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        </>
+      ) : null}
     </div>
   );
 }

@@ -298,75 +298,52 @@ function SubscriptionPlanPage({ token }) {
             <p className="panel-subtitle">Manage plans and configure feature limits.</p>
           </div>
         </div>
-        <div className="gsc-datatable-toolbar-right">
-          <div className="gsc-toolbar-search">
-            <input
-              type="search"
-              placeholder="Search"
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              aria-label="Search subscription plans"
-            />
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              style={{ width: 18, height: 18, color: '#6b7280', flexShrink: 0 }}
-            >
-              <circle cx="11" cy="11" r="8" />
-              <path d="m21 21-4.35-4.35" />
-            </svg>
-          </div>
-          <button
-            type="button"
-            className="gsc-create-btn"
-            onClick={startCreateNew}
-            title="Create subscription plan"
-            aria-label="Create subscription plan"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-          </button>
-        </div>
       </div>
       <Banner message={message} />
-      <div className="stat-grid">
-        <div className="stat-card admin-stat" style={{ '--stat-accent': '#A855F7' }}>
-          <p className="stat-label">Total plans</p>
-          <p className="stat-value">{plans.length}</p>
-          <p className="stat-sub">Published plans</p>
-        </div>
-        <div className="stat-card admin-stat" style={{ '--stat-accent': '#16A34A' }}>
-          <p className="stat-label">Active</p>
-          <p className="stat-value">{activeCount}</p>
-          <p className="stat-sub">Available for users</p>
-        </div>
-        <div className="stat-card admin-stat" style={{ '--stat-accent': '#0EA5E9' }}>
-          <p className="stat-label">Paid plans</p>
-          <p className="stat-value">{paidCount}</p>
-          <p className="stat-sub">With pricing</p>
-        </div>
-        <div className="stat-card admin-stat" style={{ '--stat-accent': '#EF4444' }}>
-          <p className="stat-label">Inactive</p>
-          <p className="stat-value">{inactiveCount}</p>
-          <p className="stat-sub">Unavailable</p>
-        </div>
-      </div>
 
       <div className="panel-grid">
         <div className="panel card">
           <div className="panel-split">
             <h3 className="panel-subheading">Plan list</h3>
-            <p className="panel-subtext">View and manage all subscription plans.</p>
+            <div className="gsc-datatable-toolbar-right">
+              <div className="gsc-toolbar-search">
+                <input
+                  type="search"
+                  placeholder="Search"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  aria-label="Search subscription plans"
+                />
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  style={{ width: 18, height: 18, color: '#6b7280', flexShrink: 0 }}
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.35-4.35" />
+                </svg>
+              </div>
+              <button
+                type="button"
+                className="gsc-create-btn"
+                onClick={startCreateNew}
+                title="Create subscription plan"
+                aria-label="Create subscription plan"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+              </button>
+            </div>
           </div>
           {filteredPlans.length === 0 ? (
             <p className="empty-state">

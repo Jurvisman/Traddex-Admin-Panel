@@ -27,6 +27,7 @@ function SubscriptionFeaturePage({ token }) {
   const [showForm, setShowForm] = useState(false);
   const [message, setMessage] = useState({ type: 'info', text: '' });
   const [isLoading, setIsLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const didInitRef = useRef(false);
 
   const loadFeatures = async () => {
@@ -121,44 +122,25 @@ function SubscriptionFeaturePage({ token }) {
     }
   };
 
+  const filteredFeatures = features.filter((feature) => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return true;
+    const haystack = `${feature.code || ''} ${feature.name || ''} ${feature.type || ''}`.toLowerCase();
+    return haystack.includes(q);
+  });
+
   return (
     <div>
-      <div className="panel-head">
-        <div>
-          <h2 className="panel-title">Subscription Features</h2>
-          <p className="panel-subtitle">Define the feature catalog used in plans.</p>
-        </div>
-        <button type="button" className="ghost-btn" onClick={loadFeatures} disabled={isLoading}>
-          Refresh
-        </button>
-      </div>
-      <Banner message={message} />
-      <div className="stat-grid">
-        <div className="stat-card admin-stat" style={{ '--stat-accent': '#10B981' }}>
-          <p className="stat-label">Total features</p>
-          <p className="stat-value">{features.length}</p>
-          <p className="stat-sub">Catalog items</p>
-        </div>
-        <div className="stat-card admin-stat" style={{ '--stat-accent': '#16A34A' }}>
-          <p className="stat-label">Active</p>
-          <p className="stat-value">{activeCount}</p>
-          <p className="stat-sub">Enabled features</p>
-        </div>
-        <div className="stat-card admin-stat" style={{ '--stat-accent': '#F59E0B' }}>
-          <p className="stat-label">Access type</p>
-          <p className="stat-value">{accessCount}</p>
-          <p className="stat-sub">Unlimited access</p>
-        </div>
-        <div className="stat-card admin-stat" style={{ '--stat-accent': '#EF4444' }}>
-          <p className="stat-label">Inactive</p>
-          <p className="stat-value">{inactiveCount}</p>
-          <p className="stat-sub">Disabled</p>
-        </div>
-      </div>
+    
+      {/* <Banner message={message} /> */}
 
       {showForm ? (
         <div className="admin-modal-backdrop" onClick={() => setShowForm(false)}>
-          <form className="admin-modal" onSubmit={handleSubmit} onClick={(event) => event.stopPropagation()}>
+          <form
+            className="admin-modal employee-modal"
+            onSubmit={handleSubmit}
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="panel-split">
               <h3 className="panel-subheading">{editingId ? 'Edit feature' : 'Create feature'}</h3>
               <button type="button" className="ghost-btn small" onClick={resetForm}>
@@ -207,22 +189,62 @@ function SubscriptionFeaturePage({ token }) {
                 </select>
               </label>
             </div>
-            <button type="submit" className="primary-btn full" disabled={isLoading}>
-              {isLoading ? 'Saving...' : 'Save feature'}
-            </button>
+            <div className="form-actions employee-modal-actions">
+              <button type="submit" className="primary-btn" disabled={isLoading}>
+                {isLoading ? 'Saving...' : 'Save feature'}
+              </button>
+            </div>
           </form>
         </div>
       ) : null}
 
       <div className="panel-grid">
         <div className="panel card">
-          <div className="panel-split">
-            <h3 className="panel-subheading">Feature list</h3>
-            <button type="button" className="primary-btn compact" onClick={() => setShowForm(true)}>
-              Create
-            </button>
+          <div className="gsc-datatable-toolbar">
+            <div className="gsc-datatable-toolbar-left">
+              <h3 className="panel-subheading">Feature list</h3>
+            </div>
+            <div className="gsc-datatable-toolbar-right">
+              <div className="gsc-toolbar-search">
+                <input
+                  type="search"
+                  placeholder="Search"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  aria-label="Search features"
+                />
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  style={{ width: 18, height: 18, color: '#6b7280', flexShrink: 0 }}
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.35-4.35" />
+                </svg>
+              </div>
+              <button
+                type="button"
+                className="gsc-create-btn"
+                onClick={() => setShowForm(true)}
+                title="Create feature"
+                aria-label="Create feature"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+              </button>
+            </div>
           </div>
-          {features.length === 0 ? (
+          {filteredFeatures.length === 0 ? (
             <p className="empty-state">No subscription features yet.</p>
           ) : (
             <div className="table-shell">
@@ -237,7 +259,7 @@ function SubscriptionFeaturePage({ token }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {features.map((feature) => (
+                  {filteredFeatures.map((feature) => (
                     <tr key={feature.id}>
                       <td>{feature.code}</td>
                       <td>{feature.name}</td>

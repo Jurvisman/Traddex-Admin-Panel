@@ -32,6 +32,7 @@ function EmployeePage({ token }) {
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(createInitialForm);
   const [message, setMessage] = useState({ type: 'info', text: '' });
+  const [showForm, setShowForm] = useState(false);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -94,6 +95,7 @@ function EmployeePage({ token }) {
       }
       resetForm();
       await loadData();
+      setShowForm(false);
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to save employee.' });
     } finally {
@@ -111,6 +113,7 @@ function EmployeePage({ token }) {
       verify: employee?.verify !== undefined && employee?.verify !== null ? String(employee.verify) : '1',
       timeZone: employee?.timeZone || 'UTC',
     });
+    setShowForm(true);
   };
 
   const handleDelete = async (employee) => {
@@ -133,107 +136,155 @@ function EmployeePage({ token }) {
 
   return (
     <div className="employee-page">
-      <div className="users-head">
-        <div>
-          <h2 className="panel-title">Employees</h2>
-          <p className="panel-subtitle">Create internal admin users and assign roles.</p>
-        </div>
-        <div className="users-head-actions">
-          <button type="button" className="ghost-btn" onClick={loadData} disabled={isLoading}>
-            {isLoading ? 'Refreshing...' : 'Refresh'}
-          </button>
-        </div>
-      </div>
+      
 
       <Banner message={message} />
 
-      <section className="panel card">
-        <h3 className="panel-title">{editingId ? 'Edit Employee' : 'Add Employee'}</h3>
-        <form className="field-grid" onSubmit={handleSubmit}>
-          <label className="field">
-            <span>Name</span>
-            <input
-              type="text"
-              value={form.name}
-              onChange={(event) => handleChange('name', event.target.value)}
-              placeholder="Employee name"
-              required
-            />
-          </label>
-          <label className="field">
-            <span>Mobile Number</span>
-            <input
-              type="tel"
-              value={form.number}
-              onChange={(event) => handleChange('number', event.target.value)}
-              placeholder="10-digit number"
-              required
-            />
-          </label>
-          <label className="field">
-            <span>Role</span>
-            <select value={form.role} onChange={(event) => handleChange('role', event.target.value)} required>
-              <option value="">Select role</option>
-              {roles.map((role) => {
-                const roleId = getRoleId(role);
-                return (
-                  <option key={roleId || getRoleName(role)} value={roleId ? String(roleId) : getRoleName(role)}>
-                    {getRoleName(role)}
-                  </option>
-                );
-              })}
-            </select>
-          </label>
-          <label className="field">
-            <span>Status</span>
-            <select value={form.active} onChange={(event) => handleChange('active', event.target.value)}>
-              <option value="1">Active</option>
-              <option value="0">Inactive</option>
-            </select>
-          </label>
-          <label className="field">
-            <span>Verify</span>
-            <select value={form.verify} onChange={(event) => handleChange('verify', event.target.value)}>
-              <option value="1">Verified</option>
-              <option value="0">Pending</option>
-            </select>
-          </label>
-          <label className="field">
-            <span>Timezone</span>
-            <input
-              type="text"
-              value={form.timeZone}
-              onChange={(event) => handleChange('timeZone', event.target.value)}
-              placeholder="UTC"
-            />
-          </label>
-          <div className="field field-span form-actions">
-            {editingId ? (
-              <button type="button" className="ghost-btn" onClick={resetForm} disabled={isSaving}>
-                Cancel
+      {showForm ? (
+        <div className="admin-modal-backdrop" onClick={() => setShowForm(false)}>
+          <form
+            className="admin-modal employee-modal"
+            onSubmit={handleSubmit}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="panel-split">
+              <h3 className="panel-subheading">{editingId ? 'Edit Employee' : 'Add Employee'}</h3>
+              <button
+                type="button"
+                className="ghost-btn small"
+                onClick={() => {
+                  resetForm();
+                  setShowForm(false);
+                }}
+              >
+                Close
               </button>
-            ) : null}
-            <button type="submit" className="primary-btn" disabled={isSaving}>
-              {isSaving ? 'Saving...' : editingId ? 'Update Employee' : 'Create Employee'}
-            </button>
-          </div>
-        </form>
-      </section>
+            </div>
+            <div className="field-grid">
+              <label className="field">
+                <span>Name</span>
+                <input
+                  type="text"
+                  value={form.name}
+                  onChange={(event) => handleChange('name', event.target.value)}
+                  placeholder="Employee name"
+                  required
+                />
+              </label>
+              <label className="field">
+                <span>Mobile Number</span>
+                <input
+                  type="tel"
+                  value={form.number}
+                  onChange={(event) => handleChange('number', event.target.value)}
+                  placeholder="10-digit number"
+                  required
+                />
+              </label>
+              <label className="field">
+                <span>Role</span>
+                <select value={form.role} onChange={(event) => handleChange('role', event.target.value)} required>
+                  <option value="">Select role</option>
+                  {roles.map((role) => {
+                    const roleId = getRoleId(role);
+                    return (
+                      <option key={roleId || getRoleName(role)} value={roleId ? String(roleId) : getRoleName(role)}>
+                        {getRoleName(role)}
+                      </option>
+                    );
+                  })}
+                </select>
+              </label>
+              <label className="field">
+                <span>Status</span>
+                <select value={form.active} onChange={(event) => handleChange('active', event.target.value)}>
+                  <option value="1">Active</option>
+                  <option value="0">Inactive</option>
+                </select>
+              </label>
+              <label className="field">
+                <span>Verify</span>
+                <select value={form.verify} onChange={(event) => handleChange('verify', event.target.value)}>
+                  <option value="1">Verified</option>
+                  <option value="0">Pending</option>
+                </select>
+              </label>
+              <label className="field">
+                <span>Timezone</span>
+                <input
+                  type="text"
+                  value={form.timeZone}
+                  onChange={(event) => handleChange('timeZone', event.target.value)}
+                  placeholder="UTC"
+                />
+              </label>
+            </div>
+            <div className="form-actions employee-modal-actions">
+              {editingId ? (
+                <button
+                  type="button"
+                  className="ghost-btn"
+                  onClick={() => {
+                    resetForm();
+                    setShowForm(false);
+                  }}
+                  disabled={isSaving}
+                >
+                  Cancel
+                </button>
+              ) : null}
+              <button type="submit" className="primary-btn" disabled={isSaving}>
+                {isSaving ? 'Saving...' : editingId ? 'Update Employee' : 'Create Employee'}
+              </button>
+            </div>
+          </form>
+        </div>
+      ) : null}
 
       <section className="panel card users-table-card">
-        <div className="users-search">
-          <span className="icon icon-search" />
-          <input
-            type="search"
-            placeholder="Search by name, number, role..."
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-          {query ? (
-            <button type="button" className="ghost-btn small" onClick={() => setQuery('')}>
-              Clear
+        <div className="gsc-datatable-toolbar">
+          <div className="gsc-datatable-toolbar-right">
+            <div className="gsc-toolbar-search">
+              <input
+                type="search"
+                placeholder="Search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                aria-label="Search employees"
+              />
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                style={{ width: 18, height: 18, color: '#6b7280', flexShrink: 0 }}
+              >
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.35-4.35" />
+              </svg>
+            </div>
+            <button
+              type="button"
+              className="gsc-create-btn"
+              onClick={() => {
+                resetForm();
+                setShowForm(true);
+              }}
+              title="Create employee"
+              aria-label="Create employee"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 5v14M5 12h14" />
+              </svg>
             </button>
-          ) : null}
+          </div>
         </div>
 
         {filteredEmployees.length === 0 ? (
