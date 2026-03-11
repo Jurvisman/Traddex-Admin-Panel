@@ -2472,6 +2472,14 @@ function AppConfigPage({ token }) {
   const isPhaseOneIconList = screenBlockType === 'icon_list';
   const isPhaseOneChipScroll = screenBlockType === 'chip_scroll';
   const isPhaseOneCategoryShowcase = screenBlockType === 'category_showcase';
+  const isBeautyHeroBanner = screenBlockType === 'beauty_hero_banner';
+  const isBeautyQuickActions = screenBlockType === 'beauty_quick_actions';
+  const isBeautyTrendCarousel = screenBlockType === 'beauty_trend_carousel';
+  const isBeautyOfferBanner = screenBlockType === 'beauty_offer_banner';
+  const isBeautyProductShelf = screenBlockType === 'beauty_product_shelf';
+  const isBeautyRoutineList = screenBlockType === 'beauty_routine_list';
+  const isBeautyTipChips = screenBlockType === 'beauty_tip_chips';
+  const isBeautySalonCarousel = screenBlockType === 'beauty_salon_carousel';
   const currentSourceFingerprint = buildCategoryFeedFingerprint(sectionForm, screenBlockType);
   const hasPendingSourceChanges = Boolean(
     isPhaseOneColumnGrid &&
@@ -2564,7 +2572,7 @@ function AppConfigPage({ token }) {
         {isLoading && !configSnapshot ? (
           <div className="page-loading-overlay">
             <div className="page-spinner" />
-          </div>
+        </div>
         ) : null}
         <div className="config-toolbar">
           <div className="page-block">
@@ -3047,7 +3055,7 @@ function AppConfigPage({ token }) {
                         </label>
                       ) : null}
                     </div>
-                    {(isHeroBanner || isMultiItemGrid || isCampaignBento || isPhaseOneBlock) ? (
+                    {(isHeroBanner || isMultiItemGrid || isCampaignBento || (isPhaseOneBlock && !isBeautyHeroBanner)) ? (
                       <label className="field field-span">
                         <span>{isHeroBanner ? 'Banner title (optional)' : 'Section title'}</span>
                         <input
@@ -3057,6 +3065,36 @@ function AppConfigPage({ token }) {
                           placeholder={isHeroBanner ? 'Hero banner title' : 'Frequently bought'}
                         />
                       </label>
+                    ) : null}
+                    {isBeautyOfferBanner ? (
+                      <>
+                        <label className="field field-span">
+                          <span>Subtitle / description</span>
+                          <input
+                            type="text"
+                            value={sectionForm.text}
+                            onChange={(event) => setSectionForm((prev) => ({ ...prev, text: event.target.value }))}
+                            placeholder="Up to 40% off skincare sets and bundles"
+                          />
+                        </label>
+                        <label className="field">
+                          <span>Background color</span>
+                          <div className="inline-row">
+                            <input
+                              type="text"
+                              value={sectionForm.sectionBgColor}
+                              onChange={(event) => setSectionForm((prev) => ({ ...prev, sectionBgColor: event.target.value }))}
+                              placeholder="#E9C3B3"
+                            />
+                            <input
+                              type="color"
+                              className="color-input"
+                              value={resolveHexColor(sectionForm.sectionBgColor, '#E9C3B3')}
+                              onChange={(event) => setSectionForm((prev) => ({ ...prev, sectionBgColor: event.target.value }))}
+                            />
+                          </div>
+                        </label>
+                      </>
                     ) : null}
                     {isSectionTitleBlock ? (
                       <label className="field field-span">
@@ -3716,7 +3754,11 @@ function AppConfigPage({ token }) {
                         <label className="field field-span">
                           <span>Block items</span>
                           <div className="inline-row">
-                            {!isPhaseOneCategoryIconGrid && !isPhaseOneBrandGrid && !isPhaseOneCategoryShowcase ? (
+                            {!isPhaseOneCategoryIconGrid &&
+                            !isPhaseOneBrandGrid &&
+                            !isPhaseOneCategoryShowcase &&
+                            !isBeautyHeroBanner &&
+                            !isBeautyOfferBanner ? (
                               <button type="button" className="ghost-btn small" onClick={addPhaseOneItem}>
                                 + Add item
                               </button>
@@ -3728,6 +3770,8 @@ function AppConfigPage({ token }) {
                                   ? 'Top/bottom banners are editable. Middle cards are controlled via the collection dropdown.'
                                   : isPhaseOneProductShelf
                                     ? 'Products come from the data source. Select a product API or collection for this list.'
+                                    : isBeautyOfferBanner
+                                      ? 'This banner uses the section title, text and CTA fields above.'
                                     : 'Set image + text + deep link for each card.'}
                             </span>
                           </div>
@@ -3742,9 +3786,18 @@ function AppConfigPage({ token }) {
                             const isBrandCtaItem = isPhaseOneBrandGrid && itemKind === 'cta';
                             const isBrandTileItem = isPhaseOneBrandGrid && itemKind !== 'hero' && itemKind !== 'cta';
                             const showItemActions =
-                              !isPhaseOneBrandGrid && !isPhaseOneCategoryIconGrid && !isPhaseOneProductShelf && !isPhaseOneCategoryShowcase;
+                              !isPhaseOneBrandGrid &&
+                              !isPhaseOneCategoryIconGrid &&
+                              !isPhaseOneProductShelf &&
+                              !isPhaseOneCategoryShowcase &&
+                              !isBeautyHeroBanner &&
+                              !isBeautyOfferBanner;
                             return (
-                              <div key={`phase-one-item-${idx}`} className="phase-one-item-card">
+                              <div
+                                key={`phase-one-item-${idx}`}
+                                className="phase-one-item-card"
+                                style={isBeautyOfferBanner ? { display: 'none' } : undefined}
+                              >
                                 <div className="phase-one-item-header">
                                   <div className="bento-tile-title">
                                     {isBrandHeroItem
@@ -3790,7 +3843,12 @@ function AppConfigPage({ token }) {
                                     </div>
                                   ) : null}
                                 </div>
-                                {!isPhaseOneIconList && !isPhaseOneChipScroll ? (
+                                {!isPhaseOneIconList &&
+                                !isPhaseOneChipScroll &&
+                                !isBeautyQuickActions &&
+                                !isBeautyRoutineList &&
+                                !isBeautyTipChips &&
+                                !isBeautyOfferBanner ? (
                                 <div className="phase-one-thumb-row">
                                   <div className="phase-one-thumb checkerboard">
                                     {item.imageUrl ? <img src={item.imageUrl} alt="" /> : <span>Main image</span>}
@@ -3806,7 +3864,7 @@ function AppConfigPage({ token }) {
                                   ) : null}
                                 </div>
                                 ) : null}
-                              {!isBrandHeroItem && !isBrandCtaItem ? (
+                              {!isBrandHeroItem && !isBrandCtaItem && !isBeautyOfferBanner && !isBeautyTipChips ? (
                                 <label className="field">
                                   <span>Title</span>
                                   <input
@@ -3895,6 +3953,58 @@ function AppConfigPage({ token }) {
                                   </label>
                                 </>
                               ) : null}
+                              {isBeautyHeroBanner ? (
+                                <>
+                                  <label className="field">
+                                    <span>Subtitle</span>
+                                    <input type="text" value={item.subtitle || ''} onChange={(event) => updatePhaseOneItem(idx, 'subtitle', event.target.value)} placeholder="Curated skincare, makeup, and salon essentials" />
+                                  </label>
+                                  <label className="field">
+                                    <span>Badge text</span>
+                                    <input type="text" value={item.badgeText || ''} onChange={(event) => updatePhaseOneItem(idx, 'badgeText', event.target.value)} placeholder="Glow Edit" />
+                                  </label>
+                                  <label className="field">
+                                    <span>CTA button text</span>
+                                    <input type="text" value={item.ctaText || ''} onChange={(event) => updatePhaseOneItem(idx, 'ctaText', event.target.value)} placeholder="Shop the edit" />
+                                  </label>
+                                  <label className="field">
+                                    <span>CTA link</span>
+                                    <input type="text" value={item.ctaLink || ''} onChange={(event) => updatePhaseOneItem(idx, 'ctaLink', event.target.value)} placeholder="app://collection/glow" />
+                                  </label>
+                                </>
+                              ) : null}
+                              {isBeautyQuickActions ? (
+                                <>
+                                  <label className="field">
+                                    <span>Subtitle</span>
+                                    <input type="text" value={item.subtitle || ''} onChange={(event) => updatePhaseOneItem(idx, 'subtitle', event.target.value)} placeholder="Chat with experts" />
+                                  </label>
+                                  <label className="field">
+                                    <span>CTA text</span>
+                                    <input type="text" value={item.ctaText || ''} onChange={(event) => updatePhaseOneItem(idx, 'ctaText', event.target.value)} placeholder="Book now" />
+                                  </label>
+                                  <label className="field">
+                                    <span>Icon name</span>
+                                    <input type="text" value={item.iconName || ''} onChange={(event) => updatePhaseOneItem(idx, 'iconName', event.target.value)} placeholder="chatbubbles-outline" />
+                                  </label>
+                                  <label className="field">
+                                    <span>Icon URL (optional)</span>
+                                    <input type="text" value={item.iconUrl || ''} onChange={(event) => updatePhaseOneItem(idx, 'iconUrl', event.target.value)} placeholder="https://cdn.example.com/icon.png" />
+                                  </label>
+                                  <label className="field">
+                                    <span>Accent color</span>
+                                    <div className="inline-row">
+                                      <input type="text" value={item.accentColor || ''} onChange={(event) => updatePhaseOneItem(idx, 'accentColor', event.target.value)} placeholder="#E9A0B2" />
+                                      <input
+                                        type="color"
+                                        className="color-input"
+                                        value={resolveHexColor(item.accentColor, '#E9A0B2')}
+                                        onChange={(event) => updatePhaseOneItem(idx, 'accentColor', event.target.value)}
+                                      />
+                                    </div>
+                                  </label>
+                                </>
+                              ) : null}
                               {isPhaseOneIconList ? (
                                 <>
                                   <label className="field">
@@ -3913,6 +4023,62 @@ function AppConfigPage({ token }) {
                                   <input type="text" value={item.text || ''} onChange={(event) => updatePhaseOneItem(idx, 'text', event.target.value)} placeholder="Tip or tag text" />
                                 </label>
                               ) : null}
+                              {isBeautyTrendCarousel ? (
+                                <label className="field">
+                                  <span>Subtitle</span>
+                                  <input type="text" value={item.subtitle || ''} onChange={(event) => updatePhaseOneItem(idx, 'subtitle', event.target.value)} placeholder="Hydration heroes" />
+                                </label>
+                              ) : null}
+                              {isBeautyProductShelf ? (
+                                <>
+                                  <label className="field">
+                                    <span>Subtitle</span>
+                                    <input type="text" value={item.subtitle || ''} onChange={(event) => updatePhaseOneItem(idx, 'subtitle', event.target.value)} placeholder="Vitamin C 15%" />
+                                  </label>
+                                  <label className="field">
+                                    <span>Price label</span>
+                                    <input type="text" value={item.price || ''} onChange={(event) => updatePhaseOneItem(idx, 'price', event.target.value)} placeholder="Rs 1,499" />
+                                  </label>
+                                </>
+                              ) : null}
+                              {isBeautyRoutineList ? (
+                                <>
+                                  <label className="field">
+                                    <span>Subtitle</span>
+                                    <input type="text" value={item.subtitle || ''} onChange={(event) => updatePhaseOneItem(idx, 'subtitle', event.target.value)} placeholder="Gentle gel cleanser" />
+                                  </label>
+                                  <label className="field">
+                                    <span>Icon name</span>
+                                    <input type="text" value={item.iconName || ''} onChange={(event) => updatePhaseOneItem(idx, 'iconName', event.target.value)} placeholder="water-outline" />
+                                  </label>
+                                  <label className="field">
+                                    <span>Icon URL (optional)</span>
+                                    <input type="text" value={item.iconUrl || ''} onChange={(event) => updatePhaseOneItem(idx, 'iconUrl', event.target.value)} placeholder="https://cdn.example.com/icon.png" />
+                                  </label>
+                                </>
+                              ) : null}
+                              {isBeautyTipChips ? (
+                                <label className="field">
+                                  <span>Chip text</span>
+                                  <input type="text" value={item.text || ''} onChange={(event) => updatePhaseOneItem(idx, 'text', event.target.value)} placeholder="SPF daily" />
+                                </label>
+                              ) : null}
+                              {isBeautySalonCarousel ? (
+                                <>
+                                  <label className="field">
+                                    <span>Area / subtitle</span>
+                                    <input type="text" value={item.subtitle || ''} onChange={(event) => updatePhaseOneItem(idx, 'subtitle', event.target.value)} placeholder="C G Road, Ahmedabad" />
+                                  </label>
+                                  <label className="field">
+                                    <span>Rating</span>
+                                    <input type="text" value={item.rating || ''} onChange={(event) => updatePhaseOneItem(idx, 'rating', event.target.value)} placeholder="4.8" />
+                                  </label>
+                                  <label className="field">
+                                    <span>Distance</span>
+                                    <input type="text" value={item.distance || ''} onChange={(event) => updatePhaseOneItem(idx, 'distance', event.target.value)} placeholder="2.4 km" />
+                                  </label>
+                                </>
+                              ) : null}
                               {isPhaseOneColumnGrid ? (
                                 <>
                                   <label className="field">
@@ -3925,7 +4091,16 @@ function AppConfigPage({ token }) {
                                   </label>
                                 </>
                               ) : null}
-                              {!isPhaseOneCategoryIconGrid && !isPhaseOneCategoryShowcase && !isBrandTileItem && !isPhaseOneProductShelf && !isPhaseOneChipScroll && !isPhaseOneIconList ? (
+                              {!isPhaseOneCategoryIconGrid &&
+                              !isPhaseOneCategoryShowcase &&
+                              !isBrandTileItem &&
+                              !isPhaseOneProductShelf &&
+                              !isPhaseOneChipScroll &&
+                              !isPhaseOneIconList &&
+                              !isBeautyQuickActions &&
+                              !isBeautyRoutineList &&
+                              !isBeautyTipChips &&
+                              !isBeautyOfferBanner ? (
                                 <label className="field">
                                   <span>Image URL</span>
                                   <div className="inline-row">
@@ -3989,7 +4164,10 @@ function AppConfigPage({ token }) {
                                   ) : null}
                                 </label>
                               ) : null}
-                              {!isPhaseOneCategoryIconGrid && !isPhaseOneCategoryShowcase && !isPhaseOneProductShelf ? (
+                              {!isPhaseOneCategoryIconGrid &&
+                              !isPhaseOneCategoryShowcase &&
+                              !isPhaseOneProductShelf &&
+                              !isBeautyOfferBanner ? (
                                 <label className="field">
                                   <span>Deep link</span>
                                   <div className="inline-row">

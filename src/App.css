@@ -3972,6 +3972,356 @@ textarea {
   text-shadow: 0 1px 3px rgba(0,0,0,0.5);
 }
 
+.preview-beauty-hero {
+  position: relative;
+  min-height: 156px;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #f3f4f6;
+}
+
+.preview-beauty-hero img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.preview-beauty-hero-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 14px;
+  background: linear-gradient(180deg, rgba(47,47,47,0.12), rgba(47,47,47,0.7));
+}
+
+.preview-beauty-hero-badge {
+  align-self: flex-start;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(201,108,138,0.22);
+  border: 1px solid rgba(201,108,138,0.4);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.preview-beauty-hero-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.preview-beauty-hero-subtitle {
+  font-size: 10px;
+  color: rgba(255,255,255,0.86);
+}
+
+.preview-beauty-hero-cta {
+  align-self: flex-start;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: #c96c8a;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.preview-beauty-actions,
+.preview-beauty-trends,
+.preview-beauty-products,
+.preview-beauty-salons {
+  display: grid;
+  grid-auto-flow: column;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.preview-beauty-actions {
+  grid-auto-columns: 118px;
+}
+
+.preview-beauty-action-card {
+  border-radius: 16px;
+  border: 1px solid rgba(47,47,47,0.08);
+  background: #fff;
+  padding: 10px;
+}
+
+.preview-beauty-action-accent {
+  height: 3px;
+  border-radius: 999px;
+  margin-bottom: 10px;
+}
+
+.preview-beauty-action-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  min-height: 34px;
+  border-radius: 12px;
+  background: #e9c3b3;
+  color: #c96c8a;
+  font-size: 9px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  padding: 0 6px;
+}
+
+.preview-beauty-action-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: #2f2f2f;
+}
+
+.preview-beauty-action-subtitle {
+  margin-top: 3px;
+  font-size: 9px;
+  color: #6b5c57;
+}
+
+.preview-beauty-action-cta {
+  margin-top: 8px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #c96c8a;
+}
+
+.preview-beauty-trends {
+  grid-auto-columns: 122px;
+}
+
+.preview-beauty-trend-card {
+  position: relative;
+  min-height: 110px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #e5e7eb;
+}
+
+.preview-beauty-trend-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.preview-beauty-trend-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 10px;
+  background: linear-gradient(180deg, rgba(47,47,47,0.05), rgba(47,47,47,0.6));
+}
+
+.preview-beauty-trend-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.preview-beauty-trend-subtitle {
+  margin-top: 3px;
+  font-size: 9px;
+  color: rgba(255,255,255,0.82);
+}
+
+.preview-beauty-offer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-radius: 16px;
+  padding: 14px;
+  background: linear-gradient(135deg, var(--beauty-offer-base, #E9C3B3), #fff4f6);
+}
+
+.preview-beauty-offer-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: #5a3b4a;
+}
+
+.preview-beauty-offer-subtitle {
+  margin-top: 4px;
+  font-size: 10px;
+  color: #5a3b4a;
+}
+
+.preview-beauty-offer-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #fff;
+  color: #2f2f2f;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.preview-beauty-products {
+  grid-auto-columns: 120px;
+}
+
+.preview-beauty-product-card {
+  border-radius: 16px;
+  border: 1px solid rgba(47,47,47,0.08);
+  background: #fff;
+  padding: 10px;
+}
+
+.preview-beauty-product-image {
+  height: 80px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f3f4f6;
+  margin-bottom: 8px;
+}
+
+.preview-beauty-product-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.preview-beauty-product-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: #2f2f2f;
+}
+
+.preview-beauty-product-subtitle {
+  margin-top: 3px;
+  font-size: 9px;
+  color: #6b5c57;
+}
+
+.preview-beauty-product-price {
+  margin-top: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  color: #c96c8a;
+}
+
+.preview-beauty-routine {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.preview-beauty-routine-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(47,47,47,0.08);
+  background: #fff;
+}
+
+.preview-beauty-routine-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  min-height: 34px;
+  border-radius: 12px;
+  background: #e9c3b3;
+  color: #c96c8a;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 0 6px;
+}
+
+.preview-beauty-routine-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.preview-beauty-routine-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: #2f2f2f;
+}
+
+.preview-beauty-routine-subtitle {
+  margin-top: 3px;
+  font-size: 9px;
+  color: #6b5c57;
+}
+
+.preview-beauty-tip-chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.preview-beauty-tip-chip {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(47,47,47,0.08);
+  background: #e9c3b3;
+  color: #2f2f2f;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.preview-beauty-salons {
+  grid-auto-columns: 132px;
+}
+
+.preview-beauty-salon-card {
+  border-radius: 16px;
+  border: 1px solid rgba(47,47,47,0.08);
+  background: #fff;
+  padding: 10px;
+}
+
+.preview-beauty-salon-image {
+  height: 86px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f3f4f6;
+  margin-bottom: 8px;
+}
+
+.preview-beauty-salon-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.preview-beauty-salon-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: #2f2f2f;
+}
+
+.preview-beauty-salon-subtitle {
+  margin-top: 3px;
+  font-size: 9px;
+  color: #6b5c57;
+}
+
+.preview-beauty-salon-meta {
+  margin-top: 8px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: #6b5c57;
+}
+
 .preview-phase-one-brand-wrap {
   border-radius: 12px;
   padding: 8px;

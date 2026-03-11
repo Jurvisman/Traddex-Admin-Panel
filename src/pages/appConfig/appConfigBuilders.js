@@ -174,25 +174,13 @@ export const buildSectionFromForm = (base, form) => {
     const normalizedItems = normalizePhaseOneItems(form.sduiItems, resolvedBlockType)
       .map((item) => {
         const clean = {};
-        const assign = (key, value) => {
+        Object.entries(item || {}).forEach(([key, value]) => {
           if (value === undefined || value === null) return;
           const text = String(value).trim();
           if (!text) return;
+          if (key === 'kind' && text === 'tile') return;
           clean[key] = text;
-        };
-        assign('id', item.id);
-        if (item.kind && item.kind !== 'tile') assign('kind', item.kind);
-        assign('collectionId', item.collectionId);
-        assign('title', item.title);
-        assign('subtitle', item.subtitle);
-        assign('badgeText', item.badgeText);
-        assign('imageUrl', item.imageUrl);
-        assign('secondaryImageUrl', item.secondaryImageUrl);
-        assign('deepLink', item.deepLink);
-        assign('bgColor', item.bgColor);
-        assign('frameColor', item.frameColor);
-        assign('titleColor', item.titleColor);
-        assign('badgeTextColor', item.badgeTextColor);
+        });
         return clean;
       })
       .filter((item) => Object.keys(item).length > 0);

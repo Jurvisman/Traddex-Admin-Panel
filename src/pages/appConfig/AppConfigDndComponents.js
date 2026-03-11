@@ -485,6 +485,184 @@ export const PreviewSection = ({ section, index, collections }) => {
     );
   }
 
+  if (blockType === 'beauty_hero_banner') {
+    const hero = items[0] || {};
+    const image = getPreviewImage(hero);
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        <div className="preview-beauty-hero">
+          {image ? <img src={image} alt="" /> : <div className="preview-banner-placeholder" />}
+          <div className="preview-beauty-hero-overlay">
+            {hero?.badgeText ? <span className="preview-beauty-hero-badge">{hero.badgeText}</span> : null}
+            <div className="preview-beauty-hero-title">{hero?.title || 'Beauty spotlight'}</div>
+            {hero?.subtitle ? <div className="preview-beauty-hero-subtitle">{hero.subtitle}</div> : null}
+            {hero?.ctaText ? <span className="preview-beauty-hero-cta">{hero.ctaText}</span> : null}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'beauty_quick_actions') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className="preview-title preview-title-with-action">
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-beauty-actions">
+          {items.map((item, itemIndex) => (
+            <div key={`preview-beauty-action-${index}-${itemIndex}`} className="preview-beauty-action-card">
+              <div className="preview-beauty-action-accent" style={{ backgroundColor: item?.accentColor || '#E9A0B2' }} />
+              <div className="preview-beauty-action-icon">{item?.iconName || 'icon'}</div>
+              <div className="preview-beauty-action-title">{item?.title || `Action ${itemIndex + 1}`}</div>
+              {item?.subtitle ? <div className="preview-beauty-action-subtitle">{item.subtitle}</div> : null}
+              {item?.ctaText ? <div className="preview-beauty-action-cta">{item.ctaText}</div> : null}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'beauty_trend_carousel') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className="preview-title preview-title-with-action">
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-beauty-trends">
+          {items.map((item, itemIndex) => (
+            <div key={`preview-beauty-trend-${index}-${itemIndex}`} className="preview-beauty-trend-card">
+              {getPreviewImage(item) ? <img src={getPreviewImage(item)} alt="" /> : <div className="preview-image-placeholder" />}
+              <div className="preview-beauty-trend-overlay">
+                <div className="preview-beauty-trend-title">{item?.title || `Trend ${itemIndex + 1}`}</div>
+                {item?.subtitle ? <div className="preview-beauty-trend-subtitle">{item.subtitle}</div> : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'beauty_offer_banner') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        <div className="preview-beauty-offer" style={{ '--beauty-offer-base': section?.sectionBgColor || '#E9C3B3' }}>
+          <div>
+            <div className="preview-beauty-offer-title">{section?.title || 'Beauty Friday'}</div>
+            {section?.text ? <div className="preview-beauty-offer-subtitle">{section.text}</div> : null}
+          </div>
+          {section?.actionText ? <span className="preview-beauty-offer-cta">{section.actionText}</span> : null}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'beauty_product_shelf') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className="preview-title preview-title-with-action">
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-beauty-products">
+          {items.map((item, itemIndex) => (
+            <div key={`preview-beauty-product-${index}-${itemIndex}`} className="preview-beauty-product-card">
+              <div className="preview-beauty-product-image">
+                {getPreviewImage(item) ? <img src={getPreviewImage(item)} alt="" /> : <div className="preview-image-placeholder" />}
+              </div>
+              <div className="preview-beauty-product-title">{item?.title || `Product ${itemIndex + 1}`}</div>
+              {item?.subtitle ? <div className="preview-beauty-product-subtitle">{item.subtitle}</div> : null}
+              {item?.price ? <div className="preview-beauty-product-price">{item.price}</div> : null}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'beauty_routine_list') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className="preview-title preview-title-with-action">
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-beauty-routine">
+          {items.map((item, itemIndex) => (
+            <div key={`preview-beauty-routine-${index}-${itemIndex}`} className="preview-beauty-routine-item">
+              <div className="preview-beauty-routine-icon">{item?.iconName || 'icon'}</div>
+              <div className="preview-beauty-routine-text">
+                <div className="preview-beauty-routine-title">{item?.title || `Step ${itemIndex + 1}`}</div>
+                {item?.subtitle ? <div className="preview-beauty-routine-subtitle">{item.subtitle}</div> : null}
+              </div>
+              <span className="preview-icon-list-chevron">&#8250;</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'beauty_tip_chips') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className="preview-title preview-title-with-action">
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-beauty-tip-chips">
+          {items.map((item, itemIndex) => (
+            <span key={`preview-beauty-tip-${index}-${itemIndex}`} className="preview-beauty-tip-chip">
+              {item?.text || item?.title || `Tip ${itemIndex + 1}`}
+            </span>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'beauty_salon_carousel') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className="preview-title preview-title-with-action">
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-beauty-salons">
+          {items.map((item, itemIndex) => (
+            <div key={`preview-beauty-salon-${index}-${itemIndex}`} className="preview-beauty-salon-card">
+              <div className="preview-beauty-salon-image">
+                {getPreviewImage(item) ? <img src={getPreviewImage(item)} alt="" /> : <div className="preview-image-placeholder" />}
+              </div>
+              <div className="preview-beauty-salon-title">{item?.title || `Salon ${itemIndex + 1}`}</div>
+              {item?.subtitle ? <div className="preview-beauty-salon-subtitle">{item.subtitle}</div> : null}
+              <div className="preview-beauty-salon-meta">
+                <span>{item?.rating || '4.8'}</span>
+                <span>{item?.distance || '2.4 km'}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   if (blockType === 'brand_logo_grid') {
     const hero = items.find((item) => item?.kind === 'hero') || items[0] || null;
     const cta = items.find((item) => item?.kind === 'cta') || items[items.length - 1] || null;

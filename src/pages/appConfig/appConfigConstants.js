@@ -120,6 +120,237 @@ export const headerToolboxItems = [
   },
 ];
 
+const BEAUTY_HERO_SAMPLE = {
+  badgeText: 'Glow Edit',
+  title: 'Radiant skin, effortless glam',
+  subtitle: 'Curated skincare, makeup, and salon essentials',
+  ctaText: 'Shop the edit',
+  imageUrl: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=1400&q=80',
+  deepLink: '',
+  ctaLink: '',
+};
+
+const BEAUTY_QUICK_ACTIONS_SAMPLE = [
+  {
+    title: 'Skin consult',
+    subtitle: 'Chat with experts',
+    ctaText: 'Book now',
+    iconName: 'chatbubbles-outline',
+    accentColor: '#E9A0B2',
+    deepLink: '',
+  },
+  {
+    title: 'Virtual try-on',
+    subtitle: 'Find your shade',
+    ctaText: 'Try now',
+    iconName: 'color-palette-outline',
+    accentColor: '#D989A0',
+    deepLink: '',
+  },
+  {
+    title: 'Track order',
+    subtitle: 'Live delivery status',
+    ctaText: 'Track',
+    iconName: 'locate-outline',
+    accentColor: '#E9C3B3',
+    deepLink: '',
+  },
+];
+
+const BEAUTY_TRENDING_SAMPLE = [
+  {
+    title: 'Glass Skin',
+    subtitle: 'Hydration heroes',
+    imageUrl: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Berry Lips',
+    subtitle: 'Bold and glossy',
+    imageUrl: 'https://images.unsplash.com/photo-1526045478516-99145907023c?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Night Repair',
+    subtitle: 'Overnight glow',
+    imageUrl: 'https://images.unsplash.com/photo-1522336572468-97b06e8ef143?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+];
+
+const BEAUTY_PRODUCT_SAMPLE = [
+  {
+    title: 'Radiance Serum',
+    subtitle: 'Vitamin C 15%',
+    price: 'Rs 1,499',
+    imageUrl: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Velvet Lip Tint',
+    subtitle: 'Long wear',
+    price: 'Rs 799',
+    imageUrl: 'https://images.unsplash.com/photo-1526045478516-99145907023c?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Overnight Mask',
+    subtitle: 'Hydration boost',
+    price: 'Rs 1,099',
+    imageUrl: 'https://images.unsplash.com/photo-1522336572468-97b06e8ef143?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Pro Brush Set',
+    subtitle: '12 pieces',
+    price: 'Rs 1,299',
+    imageUrl: 'https://images.unsplash.com/photo-1502005097973-6a7082348e28?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+];
+
+const BEAUTY_ROUTINE_SAMPLE = [
+  {
+    title: 'Cleanse',
+    subtitle: 'Gentle gel cleanser',
+    iconName: 'water-outline',
+    deepLink: '',
+  },
+  {
+    title: 'Tone',
+    subtitle: 'Balance and prep',
+    iconName: 'leaf-outline',
+    deepLink: '',
+  },
+  {
+    title: 'Treat',
+    subtitle: 'Targeted serums',
+    iconName: 'sparkles-outline',
+    deepLink: '',
+  },
+  {
+    title: 'Moisturize',
+    subtitle: 'Glow lock',
+    iconName: 'sunny-outline',
+    deepLink: '',
+  },
+];
+
+const BEAUTY_TIPS_SAMPLE = [
+  { text: 'SPF daily', deepLink: '' },
+  { text: 'Hydrate inside out', deepLink: '' },
+  { text: 'Gentle exfoliation', deepLink: '' },
+  { text: 'Sleep glow', deepLink: '' },
+  { text: 'Clean tools', deepLink: '' },
+];
+
+const BEAUTY_SALON_SAMPLE = [
+  {
+    title: 'Blush Beauty Studio',
+    subtitle: 'C G Road, Ahmedabad',
+    rating: '4.8',
+    distance: '2.4 km',
+    imageUrl: 'https://images.unsplash.com/photo-1522337660859-02fbefca4702?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Luxe Hair Lab',
+    subtitle: 'Prahlad Nagar',
+    rating: '4.7',
+    distance: '3.1 km',
+    imageUrl: 'https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+];
+
+const buildBeautyDefaultSections = (industryId) => [
+  {
+    id: 'beauty_spotlight',
+    type: 'banner',
+    blockType: 'beauty_hero_banner',
+    enabled: true,
+    items: [{ ...BEAUTY_HERO_SAMPLE }],
+  },
+  {
+    id: 'beauty_quick_actions',
+    type: 'horizontalList',
+    blockType: 'beauty_quick_actions',
+    title: 'Quick actions',
+    actionText: 'View all',
+    enabled: true,
+    items: BEAUTY_QUICK_ACTIONS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'beauty_categories',
+    type: 'category_showcase',
+    blockType: 'category_showcase',
+    title: 'Shop categories',
+    actionText: 'View all',
+    showcaseVariant: 'circle_icon',
+    enabled: true,
+    dataSource: {
+      sourceType: 'CATEGORY_FEED',
+      industryId: industryId ? String(industryId) : undefined,
+    },
+    items: [],
+  },
+  {
+    id: 'beauty_trending',
+    type: 'horizontalList',
+    blockType: 'beauty_trend_carousel',
+    title: 'Trending looks',
+    actionText: 'Explore',
+    enabled: true,
+    items: BEAUTY_TRENDING_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'beauty_offer',
+    type: 'banner',
+    blockType: 'beauty_offer_banner',
+    title: 'Beauty Friday',
+    text: 'Up to 40% off skincare sets and bundles',
+    actionText: 'Shop offers',
+    sectionBgColor: '#E9C3B3',
+    enabled: true,
+  },
+  {
+    id: 'beauty_best_sellers',
+    type: 'horizontalList',
+    blockType: 'beauty_product_shelf',
+    title: 'Best sellers',
+    actionText: 'View all',
+    enabled: true,
+    items: BEAUTY_PRODUCT_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'beauty_routine',
+    type: 'list',
+    blockType: 'beauty_routine_list',
+    title: 'Build your routine',
+    actionText: 'See all',
+    enabled: true,
+    items: BEAUTY_ROUTINE_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'beauty_tips',
+    type: 'horizontalList',
+    blockType: 'beauty_tip_chips',
+    title: 'Beauty tips',
+    actionText: 'Read',
+    enabled: true,
+    items: BEAUTY_TIPS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'beauty_salons',
+    type: 'horizontalList',
+    blockType: 'beauty_salon_carousel',
+    title: 'Nearby salons',
+    actionText: 'View all',
+    enabled: true,
+    items: BEAUTY_SALON_SAMPLE.map((item) => ({ ...item })),
+  },
+];
+
 export const screenToolboxItems = [
   {
     key: 'heroBanner',
@@ -353,6 +584,110 @@ export const screenToolboxItems = [
     },
   },
   {
+    key: 'beautyHeroBanner',
+    label: 'Beauty Hero Banner',
+    hint: 'Beauty spotlight image card with overlay CTA',
+    section: {
+      id: 'beauty_spotlight',
+      type: 'banner',
+      blockType: 'beauty_hero_banner',
+      items: [BEAUTY_HERO_SAMPLE],
+    },
+  },
+  {
+    key: 'beautyQuickActions',
+    label: 'Beauty Quick Actions',
+    hint: 'Horizontal beauty action cards',
+    section: {
+      id: 'beauty_quick_actions',
+      type: 'horizontalList',
+      blockType: 'beauty_quick_actions',
+      title: 'Quick actions',
+      actionText: 'View all',
+      items: BEAUTY_QUICK_ACTIONS_SAMPLE,
+    },
+  },
+  {
+    key: 'beautyTrendCarousel',
+    label: 'Beauty Trending Cards',
+    hint: 'Image cards for trending looks',
+    section: {
+      id: 'beauty_trending',
+      type: 'horizontalList',
+      blockType: 'beauty_trend_carousel',
+      title: 'Trending looks',
+      actionText: 'Explore',
+      items: BEAUTY_TRENDING_SAMPLE,
+    },
+  },
+  {
+    key: 'beautyOfferBanner',
+    label: 'Beauty Offer Banner',
+    hint: 'Gradient promo banner with CTA',
+    section: {
+      id: 'beauty_offer',
+      type: 'banner',
+      blockType: 'beauty_offer_banner',
+      title: 'Beauty Friday',
+      text: 'Up to 40% off skincare sets and bundles',
+      actionText: 'Shop offers',
+      actionLink: '',
+      sectionBgColor: '#E9C3B3',
+    },
+  },
+  {
+    key: 'beautyProductShelf',
+    label: 'Beauty Product Shelf',
+    hint: 'Horizontal beauty product cards',
+    section: {
+      id: 'beauty_best_sellers',
+      type: 'horizontalList',
+      blockType: 'beauty_product_shelf',
+      title: 'Best sellers',
+      actionText: 'View all',
+      items: BEAUTY_PRODUCT_SAMPLE,
+    },
+  },
+  {
+    key: 'beautyRoutineList',
+    label: 'Beauty Routine List',
+    hint: 'Vertical routine steps list',
+    section: {
+      id: 'beauty_routine',
+      type: 'list',
+      blockType: 'beauty_routine_list',
+      title: 'Build your routine',
+      actionText: 'See all',
+      items: BEAUTY_ROUTINE_SAMPLE,
+    },
+  },
+  {
+    key: 'beautyTipChips',
+    label: 'Beauty Tip Chips',
+    hint: 'Horizontal beauty tips pills',
+    section: {
+      id: 'beauty_tips',
+      type: 'horizontalList',
+      blockType: 'beauty_tip_chips',
+      title: 'Beauty tips',
+      actionText: 'Read',
+      items: BEAUTY_TIPS_SAMPLE,
+    },
+  },
+  {
+    key: 'beautySalonCarousel',
+    label: 'Beauty Salon Carousel',
+    hint: 'Horizontal nearby salon cards',
+    section: {
+      id: 'beauty_salons',
+      type: 'horizontalList',
+      blockType: 'beauty_salon_carousel',
+      title: 'Nearby salons',
+      actionText: 'View all',
+      items: BEAUTY_SALON_SAMPLE,
+    },
+  },
+  {
     key: 'categoryShowcase',
     label: 'Category Showcase',
     hint: 'Auto-fetch categories by industry',
@@ -383,6 +718,14 @@ export const blockLabels = {
   category_icon_grid: 'Category Icon Grid',
   brand_logo_grid: 'Brand Layout Block',
   product_shelf_horizontal: 'Product Shelf Block',
+  beauty_hero_banner: 'Beauty Hero Banner',
+  beauty_quick_actions: 'Beauty Quick Actions',
+  beauty_trend_carousel: 'Beauty Trending Cards',
+  beauty_offer_banner: 'Beauty Offer Banner',
+  beauty_product_shelf: 'Beauty Product Shelf',
+  beauty_routine_list: 'Beauty Routine List',
+  beauty_tip_chips: 'Beauty Tip Chips',
+  beauty_salon_carousel: 'Beauty Salon Carousel',
   bestseller_shelf: 'Bestsellers Shelf Block',
   sectionTitle: 'Section Title Block',
   multiItemGrid: 'Multi Item Grid Block',
@@ -529,9 +872,81 @@ export const phaseOneBlockTypes = new Set([
   'icon_list',
   'chip_scroll',
   'category_showcase',
+  'beauty_hero_banner',
+  'beauty_quick_actions',
+  'beauty_trend_carousel',
+  'beauty_offer_banner',
+  'beauty_product_shelf',
+  'beauty_routine_list',
+  'beauty_tip_chips',
+  'beauty_salon_carousel',
 ]);
 
 export const getPhaseOneDefaultItem = (blockType, index = 0) => {
+  if (blockType === 'beauty_offer_banner') {
+    return {};
+  }
+  if (blockType === 'beauty_hero_banner') {
+    return {
+      title: '',
+      subtitle: '',
+      badgeText: '',
+      ctaText: '',
+      ctaLink: '',
+      imageUrl: '',
+      deepLink: '',
+    };
+  }
+  if (blockType === 'beauty_quick_actions') {
+    return {
+      title: '',
+      subtitle: '',
+      ctaText: '',
+      iconName: '',
+      iconUrl: '',
+      accentColor: '',
+      deepLink: '',
+    };
+  }
+  if (blockType === 'beauty_trend_carousel') {
+    return {
+      title: '',
+      subtitle: '',
+      imageUrl: '',
+      deepLink: '',
+    };
+  }
+  if (blockType === 'beauty_product_shelf') {
+    return {
+      title: '',
+      subtitle: '',
+      price: '',
+      imageUrl: '',
+      deepLink: '',
+    };
+  }
+  if (blockType === 'beauty_routine_list') {
+    return {
+      title: '',
+      subtitle: '',
+      iconName: '',
+      iconUrl: '',
+      deepLink: '',
+    };
+  }
+  if (blockType === 'beauty_tip_chips') {
+    return { text: '', deepLink: '' };
+  }
+  if (blockType === 'beauty_salon_carousel') {
+    return {
+      title: '',
+      subtitle: '',
+      rating: '',
+      distance: '',
+      imageUrl: '',
+      deepLink: '',
+    };
+  }
   if (blockType === 'brand_logo_grid') {
     const kinds = ['hero', 'tile', 'tile', 'tile', 'tile', 'cta'];
     return {
@@ -584,6 +999,80 @@ export const normalizePhaseOneItems = (items, blockType) => {
   const list = Array.isArray(items) ? items : [];
   const normalized = list.map((item, index) => {
     const base = getPhaseOneDefaultItem(blockType, index);
+    if (blockType === 'beauty_offer_banner') {
+      return {};
+    }
+    if (blockType === 'beauty_hero_banner') {
+      return {
+        ...base,
+        title: item?.title || item?.name || item?.label || '',
+        subtitle: item?.subtitle || '',
+        badgeText: item?.badgeText || '',
+        ctaText: item?.ctaText || '',
+        ctaLink: item?.ctaLink || '',
+        imageUrl: item?.imageUrl || item?.imageUri || item?.thumbnailImage || '',
+        deepLink: item?.deepLink || item?.targetUrl || '',
+      };
+    }
+    if (blockType === 'beauty_quick_actions') {
+      return {
+        ...base,
+        title: item?.title || item?.name || item?.label || '',
+        subtitle: item?.subtitle || '',
+        ctaText: item?.ctaText || '',
+        iconName: item?.iconName || item?.icon || '',
+        iconUrl: item?.iconUrl || '',
+        accentColor: item?.accentColor || item?.accent || '',
+        deepLink: item?.deepLink || item?.targetUrl || '',
+      };
+    }
+    if (blockType === 'beauty_trend_carousel') {
+      return {
+        ...base,
+        title: item?.title || item?.name || item?.label || '',
+        subtitle: item?.subtitle || '',
+        imageUrl: item?.imageUrl || item?.imageUri || item?.thumbnailImage || '',
+        deepLink: item?.deepLink || item?.targetUrl || '',
+      };
+    }
+    if (blockType === 'beauty_product_shelf') {
+      return {
+        ...base,
+        title: item?.title || item?.name || item?.label || '',
+        subtitle: item?.subtitle || '',
+        price: item?.price || item?.sellingPrice || '',
+        imageUrl: item?.imageUrl || item?.imageUri || item?.thumbnailImage || '',
+        deepLink: item?.deepLink || item?.targetUrl || '',
+      };
+    }
+    if (blockType === 'beauty_routine_list') {
+      return {
+        ...base,
+        title: item?.title || item?.name || item?.label || '',
+        subtitle: item?.subtitle || '',
+        iconName: item?.iconName || item?.icon || '',
+        iconUrl: item?.iconUrl || '',
+        deepLink: item?.deepLink || item?.targetUrl || '',
+      };
+    }
+    if (blockType === 'beauty_tip_chips') {
+      return {
+        ...base,
+        text: item?.text || item?.title || item?.label || '',
+        deepLink: item?.deepLink || '',
+      };
+    }
+    if (blockType === 'beauty_salon_carousel') {
+      return {
+        ...base,
+        title: item?.title || item?.name || item?.label || '',
+        subtitle: item?.subtitle || item?.area || '',
+        rating: item?.rating || '',
+        distance: item?.distance || '',
+        imageUrl: item?.imageUrl || item?.imageUri || item?.thumbnailImage || '',
+        deepLink: item?.deepLink || item?.targetUrl || '',
+      };
+    }
     if (blockType === 'icon_list') {
       return {
         ...base,
@@ -888,6 +1377,10 @@ export const resolveIndustryRoute = (industry, slug) => {
 };
 
 export const buildIndustryDefaultSections = (slug, industryName, industryId) => [
+  ...(slug === 'beauty' ? buildBeautyDefaultSections(industryId) : []),
+  ...(slug === 'beauty'
+    ? []
+    : [
   {
     id: `${slug}_hero`,
     type: 'banner',
@@ -930,6 +1423,7 @@ export const buildIndustryDefaultSections = (slug, industryName, industryId) => 
     dataSourceRef: `home.${slug}`,
     sduiItems: [],
   },
+    ]),
 ];
 
 export const buildIndustryPresets = (industries = []) => {
