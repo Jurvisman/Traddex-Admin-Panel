@@ -3972,6 +3972,115 @@ textarea {
   text-shadow: 0 1px 3px rgba(0,0,0,0.5);
 }
 
+.preview-showcase-theme-electronics .preview-showcase-circle-item {
+  min-width: 64px;
+  max-width: 72px;
+  gap: 8px;
+}
+
+.preview-showcase-theme-electronics .preview-showcase-circle-image {
+  width: 60px;
+  height: 60px;
+  border-radius: 18px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #eef3fa;
+}
+
+.preview-showcase-theme-electronics .preview-showcase-icon-badge {
+  width: 22px;
+  height: 22px;
+  background: #2563eb;
+  border-color: #fff;
+}
+
+.preview-showcase-theme-electronics .preview-showcase-circle-label {
+  font-size: 9.5px;
+  font-weight: 800;
+  color: #1f2937;
+}
+
+.preview-title.preview-title-surface-pill {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #f8fafc;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.preview-promo-hero {
+  position: relative;
+  min-height: 156px;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #f3f4f6;
+}
+
+.preview-promo-hero img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.preview-promo-hero-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 14px;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.1), rgba(15, 23, 42, 0.78));
+}
+
+.preview-promo-hero-badge {
+  align-self: flex-start;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.preview-promo-hero-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.preview-promo-hero-subtitle {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.84);
+}
+
+.preview-promo-hero-cta {
+  align-self: flex-start;
+  padding: 5px 12px;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.preview-promo-hero.is-electronics .preview-promo-hero-badge {
+  background: rgba(37, 99, 235, 0.2);
+}
+
+.preview-promo-hero.is-electronics .preview-promo-hero-cta {
+  background: #2563eb;
+}
+
+.preview-promo-hero.is-beauty .preview-promo-hero-overlay {
+  background: linear-gradient(180deg, rgba(47, 47, 47, 0.12), rgba(47, 47, 47, 0.7));
+}
+
+.preview-promo-hero.is-beauty .preview-promo-hero-badge {
+  background: rgba(201, 108, 138, 0.22);
+}
+
+.preview-promo-hero.is-beauty .preview-promo-hero-cta {
+  background: #c96c8a;
+}
+
 .preview-beauty-hero {
   position: relative;
   min-height: 156px;
@@ -4042,6 +4151,279 @@ textarea {
 
 .preview-beauty-actions {
   grid-auto-columns: 118px;
+}
+
+.preview-quick-actions {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 118px;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.preview-quick-action-card {
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  background: #fff;
+  padding: 10px;
+}
+
+.preview-quick-action-accent {
+  height: 3px;
+  border-radius: 999px;
+  margin-bottom: 10px;
+}
+
+.preview-quick-action-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  min-height: 34px;
+  border-radius: 12px;
+  font-size: 9px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  padding: 0 6px;
+}
+
+.preview-quick-action-title {
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.preview-quick-action-subtitle {
+  margin-top: 3px;
+  font-size: 9px;
+}
+
+.preview-quick-action-cta {
+  margin-top: 8px;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.preview-quick-actions.is-beauty .preview-quick-action-card {
+  border-color: rgba(47, 47, 47, 0.08);
+}
+
+.preview-quick-actions.is-beauty .preview-quick-action-icon {
+  background: #e9c3b3;
+  color: #c96c8a;
+}
+
+.preview-quick-actions.is-beauty .preview-quick-action-title {
+  color: #2f2f2f;
+}
+
+.preview-quick-actions.is-beauty .preview-quick-action-subtitle {
+  color: #6b5c57;
+}
+
+.preview-quick-actions.is-beauty .preview-quick-action-cta {
+  color: #c96c8a;
+}
+
+.preview-quick-actions.is-electronics .preview-quick-action-card {
+  border-color: rgba(15, 23, 42, 0.1);
+}
+
+.preview-quick-actions.is-electronics .preview-quick-action-icon {
+  background: rgba(37, 99, 235, 0.12);
+  color: #2563eb;
+}
+
+.preview-quick-actions.is-electronics .preview-quick-action-title {
+  color: #1f2937;
+}
+
+.preview-quick-actions.is-electronics .preview-quick-action-subtitle {
+  color: #6b7280;
+}
+
+.preview-quick-actions.is-electronics .preview-quick-action-cta {
+  color: #2563eb;
+}
+
+.preview-deal-carousel,
+.preview-media-overlay-row {
+  display: grid;
+  grid-auto-flow: column;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.preview-deal-carousel {
+  grid-auto-columns: 124px;
+}
+
+.preview-deal-card {
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  background: #fff;
+  padding: 10px;
+}
+
+.preview-deal-card-image {
+  position: relative;
+  height: 82px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #e5e7eb;
+  margin-bottom: 9px;
+}
+
+.preview-deal-card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.preview-deal-card-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.92);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.preview-deal-card-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: #1f2937;
+}
+
+.preview-deal-card-subtitle {
+  margin-top: 3px;
+  font-size: 9px;
+  color: #6b7280;
+}
+
+.preview-deal-card-price {
+  margin-top: 7px;
+  font-size: 10px;
+  font-weight: 800;
+  color: #2563eb;
+}
+
+.preview-media-overlay-row {
+  grid-auto-columns: 122px;
+}
+
+.preview-media-overlay-card {
+  position: relative;
+  height: 118px;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #dbe4ef;
+}
+
+.preview-media-overlay-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.preview-media-overlay-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.06), rgba(15, 23, 42, 0.82));
+}
+
+.preview-media-overlay-copy {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+}
+
+.preview-media-overlay-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.preview-media-overlay-subtitle {
+  margin-top: 3px;
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.84);
+}
+
+.preview-info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.preview-info-list-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.preview-info-list.is-launch-rows .preview-info-list-item {
+  background: #f8fafc;
+}
+
+.preview-info-list-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  background: rgba(37, 99, 235, 0.12);
+  color: #2563eb;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.preview-info-list-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.preview-info-list-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.preview-info-list-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: #1f2937;
+}
+
+.preview-info-list-subtitle {
+  margin-top: 3px;
+  font-size: 9px;
+  color: #6b7280;
+}
+
+.preview-info-list-price {
+  font-size: 10px;
+  font-weight: 800;
+  color: #2563eb;
+  flex-shrink: 0;
+}
+
+.preview-info-list-chevron {
+  font-size: 16px;
+  color: #94a3b8;
+  flex-shrink: 0;
 }
 
 .preview-beauty-action-card {

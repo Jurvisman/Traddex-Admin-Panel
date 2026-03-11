@@ -112,6 +112,36 @@ export const getPreviewSecondaryImage = (item) => item?.secondaryImageUrl || '';
 
 export const getPreviewTitle = (item) => item?.title || item?.name || item?.label || 'Item';
 
+const renderQuickActionPreview = ({ section, index, hidden, title, items, preset = 'electronics' }) => {
+  const isBeauty = String(preset || '').trim().toLowerCase() === 'beauty';
+  return (
+    <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+      {title ? (
+        <div className="preview-title preview-title-with-action">
+          <span>{title}</span>
+          {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+        </div>
+      ) : null}
+      <div className={`preview-quick-actions ${isBeauty ? 'is-beauty' : 'is-electronics'}`}>
+        {items.map((item, itemIndex) => (
+          <div key={`preview-quick-action-${index}-${itemIndex}`} className="preview-quick-action-card">
+            {isBeauty ? (
+              <div
+                className="preview-quick-action-accent"
+                style={{ backgroundColor: item?.accentColor || '#E9A0B2' }}
+              />
+            ) : null}
+            <div className="preview-quick-action-icon">{item?.iconName || item?.icon || 'icon'}</div>
+            <div className="preview-quick-action-title">{item?.title || `Action ${itemIndex + 1}`}</div>
+            {item?.subtitle ? <div className="preview-quick-action-subtitle">{item.subtitle}</div> : null}
+            {item?.ctaText ? <div className="preview-quick-action-cta">{item.ctaText}</div> : null}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 export const HeaderBlockPreview = ({ block, industries }) => {
   const blockType = resolveBlockType(block);
   const placeholder = block?.placeholder || 'Search "yoga"';
@@ -444,6 +474,7 @@ export const PreviewSection = ({ section, index, collections }) => {
 
   if (blockType === 'category_showcase') {
     const variant = section?.showcaseVariant || 'circle';
+    const isElectronicsShowcase = String(section?.stylePreset || '').trim().toLowerCase() === 'electronics';
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
         {title ? (
@@ -452,7 +483,11 @@ export const PreviewSection = ({ section, index, collections }) => {
             {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
           </div>
         ) : null}
-        <div className={`preview-showcase-row preview-showcase-${variant}`}>
+        <div
+          className={`preview-showcase-row preview-showcase-${variant} ${
+            isElectronicsShowcase ? 'preview-showcase-theme-electronics' : ''
+          }`}
+        >
           {items.map((item, itemIndex) => {
             const image = getPreviewImage(item);
             const label = getPreviewTitle(item);
@@ -485,6 +520,25 @@ export const PreviewSection = ({ section, index, collections }) => {
     );
   }
 
+  if (blockType === 'promo_hero_banner') {
+    const hero = items[0] || {};
+    const image = getPreviewImage(hero);
+    const isBeautyPreset = String(section?.stylePreset || '').trim().toLowerCase() === 'beauty';
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        <div className={`preview-promo-hero ${isBeautyPreset ? 'is-beauty' : 'is-electronics'}`}>
+          {image ? <img src={image} alt="" /> : <div className="preview-banner-placeholder" />}
+          <div className="preview-promo-hero-overlay">
+            {hero?.badgeText ? <span className="preview-promo-hero-badge">{hero.badgeText}</span> : null}
+            <div className="preview-promo-hero-title">{hero?.title || 'Upgrade your tech stack'}</div>
+            {hero?.subtitle ? <div className="preview-promo-hero-subtitle">{hero.subtitle}</div> : null}
+            {hero?.ctaText ? <span className="preview-promo-hero-cta">{hero.ctaText}</span> : null}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (blockType === 'beauty_hero_banner') {
     const hero = items[0] || {};
     const image = getPreviewImage(hero);
@@ -503,28 +557,66 @@ export const PreviewSection = ({ section, index, collections }) => {
     );
   }
 
-  if (blockType === 'beauty_quick_actions') {
+  if (blockType === 'deal_card_carousel') {
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
         {title ? (
-          <div className="preview-title preview-title-with-action">
+          <div className="preview-title preview-title-with-action preview-title-surface-pill">
             <span>{title}</span>
             {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
           </div>
         ) : null}
-        <div className="preview-beauty-actions">
+        <div className="preview-deal-carousel">
           {items.map((item, itemIndex) => (
-            <div key={`preview-beauty-action-${index}-${itemIndex}`} className="preview-beauty-action-card">
-              <div className="preview-beauty-action-accent" style={{ backgroundColor: item?.accentColor || '#E9A0B2' }} />
-              <div className="preview-beauty-action-icon">{item?.iconName || 'icon'}</div>
-              <div className="preview-beauty-action-title">{item?.title || `Action ${itemIndex + 1}`}</div>
-              {item?.subtitle ? <div className="preview-beauty-action-subtitle">{item.subtitle}</div> : null}
-              {item?.ctaText ? <div className="preview-beauty-action-cta">{item.ctaText}</div> : null}
+            <div key={`preview-deal-${index}-${itemIndex}`} className="preview-deal-card">
+              <div className="preview-deal-card-image">
+                {getPreviewImage(item) ? <img src={getPreviewImage(item)} alt="" /> : <div className="preview-image-placeholder" />}
+                {item?.badgeText ? <span className="preview-deal-card-badge">{item.badgeText}</span> : null}
+              </div>
+              <div className="preview-deal-card-title">{item?.title || `Deal ${itemIndex + 1}`}</div>
+              {item?.subtitle ? <div className="preview-deal-card-subtitle">{item.subtitle}</div> : null}
+              {item?.price ? <div className="preview-deal-card-price">{item.price}</div> : null}
             </div>
           ))}
         </div>
       </div>
     );
+  }
+
+  if (blockType === 'media_overlay_carousel') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className="preview-title preview-title-with-action preview-title-surface-pill">
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-media-overlay-row">
+          {items.map((item, itemIndex) => (
+            <div key={`preview-media-overlay-${index}-${itemIndex}`} className="preview-media-overlay-card">
+              {getPreviewImage(item) ? <img src={getPreviewImage(item)} alt="" /> : <div className="preview-image-placeholder" />}
+              <div className="preview-media-overlay-gradient" />
+              <div className="preview-media-overlay-copy">
+                <div className="preview-media-overlay-title">{item?.title || `Card ${itemIndex + 1}`}</div>
+                {item?.subtitle ? <div className="preview-media-overlay-subtitle">{item.subtitle}</div> : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'quick_action_row') {
+    return renderQuickActionPreview({
+      section,
+      index,
+      hidden,
+      title,
+      items,
+      preset: section?.quickActionPreset || 'electronics',
+    });
   }
 
   if (blockType === 'beauty_trend_carousel') {
@@ -799,6 +891,38 @@ export const PreviewSection = ({ section, index, collections }) => {
               ))}
             </div>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'info_list') {
+    const isLaunchRows = String(section?.stylePreset || '').trim().toLowerCase() === 'launch_rows';
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className="preview-title preview-title-with-action preview-title-surface-pill">
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className={`preview-info-list ${isLaunchRows ? 'is-launch-rows' : 'is-support-rows'}`}>
+          {items.map((item, itemIndex) => (
+            <div key={`preview-info-list-${index}-${itemIndex}`} className="preview-info-list-item">
+              <div className="preview-info-list-icon">
+                {item.iconUrl ? <img src={item.iconUrl} alt="" /> : <span>{item?.iconName || 'icon'}</span>}
+              </div>
+              <div className="preview-info-list-text">
+                <div className="preview-info-list-title">{item?.title || `Item ${itemIndex + 1}`}</div>
+                {item?.subtitle ? <div className="preview-info-list-subtitle">{item.subtitle}</div> : null}
+              </div>
+              {isLaunchRows ? (
+                <span className="preview-info-list-price">{item?.price || 'Price'}</span>
+              ) : (
+                <span className="preview-info-list-chevron">&#8250;</span>
+              )}
+            </div>
+          ))}
         </div>
       </div>
     );

@@ -76,6 +76,7 @@ import {
   CATEGORY_ICON_FEED_MODE_OPTIONS,
   SOURCE_TYPE_OPTIONS,
   SHOWCASE_VARIANT_OPTIONS,
+  STYLE_PRESET_OPTIONS,
   MULTI_ITEM_GRID_FEED_OPTIONS,
   resolveMultiItemGridDataSourceRef,
   resolveMultiItemGridFeedMode,
@@ -2472,14 +2473,21 @@ function AppConfigPage({ token }) {
   const isPhaseOneIconList = screenBlockType === 'icon_list';
   const isPhaseOneChipScroll = screenBlockType === 'chip_scroll';
   const isPhaseOneCategoryShowcase = screenBlockType === 'category_showcase';
+  const isQuickActionRow = screenBlockType === 'quick_action_row';
+  const isPromoHeroBanner = screenBlockType === 'promo_hero_banner';
+  const isDealCardCarousel = screenBlockType === 'deal_card_carousel';
+  const isMediaOverlayCarousel = screenBlockType === 'media_overlay_carousel';
+  const isInfoList = screenBlockType === 'info_list';
   const isBeautyHeroBanner = screenBlockType === 'beauty_hero_banner';
-  const isBeautyQuickActions = screenBlockType === 'beauty_quick_actions';
+  const isQuickActionBlock = isQuickActionRow;
   const isBeautyTrendCarousel = screenBlockType === 'beauty_trend_carousel';
   const isBeautyOfferBanner = screenBlockType === 'beauty_offer_banner';
   const isBeautyProductShelf = screenBlockType === 'beauty_product_shelf';
   const isBeautyRoutineList = screenBlockType === 'beauty_routine_list';
   const isBeautyTipChips = screenBlockType === 'beauty_tip_chips';
   const isBeautySalonCarousel = screenBlockType === 'beauty_salon_carousel';
+  const stylePresetOptions = STYLE_PRESET_OPTIONS[screenBlockType] || [];
+  const supportsStylePreset = stylePresetOptions.length > 0;
   const currentSourceFingerprint = buildCategoryFeedFingerprint(sectionForm, screenBlockType);
   const hasPendingSourceChanges = Boolean(
     isPhaseOneColumnGrid &&
@@ -3055,7 +3063,10 @@ function AppConfigPage({ token }) {
                         </label>
                       ) : null}
                     </div>
-                    {(isHeroBanner || isMultiItemGrid || isCampaignBento || (isPhaseOneBlock && !isBeautyHeroBanner)) ? (
+                    {(isHeroBanner ||
+                      isMultiItemGrid ||
+                      isCampaignBento ||
+                      (isPhaseOneBlock && !isBeautyHeroBanner && !isPromoHeroBanner)) ? (
                       <label className="field field-span">
                         <span>{isHeroBanner ? 'Banner title (optional)' : 'Section title'}</span>
                         <input
@@ -3095,6 +3106,37 @@ function AppConfigPage({ token }) {
                           </div>
                         </label>
                       </>
+                    ) : null}
+                    {isQuickActionRow ? (
+                      <label className="field">
+                        <span>Quick action preset</span>
+                        <select
+                          value={sectionForm.quickActionPreset || 'electronics'}
+                          onChange={(event) =>
+                            setSectionForm((prev) => ({ ...prev, quickActionPreset: event.target.value }))
+                          }
+                        >
+                          <option value="electronics">Electronics</option>
+                          <option value="beauty">Beauty</option>
+                        </select>
+                      </label>
+                    ) : null}
+                    {supportsStylePreset ? (
+                      <label className="field">
+                        <span>Style preset</span>
+                        <select
+                          value={sectionForm.stylePreset || stylePresetOptions[0]?.value || ''}
+                          onChange={(event) =>
+                            setSectionForm((prev) => ({ ...prev, stylePreset: event.target.value }))
+                          }
+                        >
+                          {stylePresetOptions.map((option) => (
+                            <option key={`${screenBlockType}-style-${option.value || 'default'}`} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
                     ) : null}
                     {isSectionTitleBlock ? (
                       <label className="field field-span">
@@ -3767,9 +3809,19 @@ function AppConfigPage({ token }) {
                               {isPhaseOneCategoryIconGrid || isPhaseOneCategoryShowcase
                                 ? 'Category images are loaded automatically from the category master.'
                                 : isPhaseOneBrandGrid
-                                  ? 'Top/bottom banners are editable. Middle cards are controlled via the collection dropdown.'
+                                    ? 'Top/bottom banners are editable. Middle cards are controlled via the collection dropdown.'
                                   : isPhaseOneProductShelf
                                     ? 'Products come from the data source. Select a product API or collection for this list.'
+                                    : isPromoHeroBanner
+                                      ? 'Set image, title, subtitle, badge text, CTA, and deep link for the hero.'
+                                      : isDealCardCarousel
+                                        ? 'Set image, title, subtitle, price, badge, and deep link for each deal card.'
+                                        : isMediaOverlayCarousel
+                                          ? 'Set image, title, subtitle, and deep link for each overlay card.'
+                                          : isInfoList
+                                            ? 'Set title, subtitle, optional price, icon, and deep link for each row.'
+                                    : isQuickActionBlock
+                                      ? 'Set title, subtitle, CTA text, icon, and deep link for each action.'
                                     : isBeautyOfferBanner
                                       ? 'This banner uses the section title, text and CTA fields above.'
                                     : 'Set image + text + deep link for each card.'}
@@ -3845,7 +3897,8 @@ function AppConfigPage({ token }) {
                                 </div>
                                 {!isPhaseOneIconList &&
                                 !isPhaseOneChipScroll &&
-                                !isBeautyQuickActions &&
+                                !isQuickActionBlock &&
+                                !isInfoList &&
                                 !isBeautyRoutineList &&
                                 !isBeautyTipChips &&
                                 !isBeautyOfferBanner ? (
@@ -3973,7 +4026,47 @@ function AppConfigPage({ token }) {
                                   </label>
                                 </>
                               ) : null}
-                              {isBeautyQuickActions ? (
+                              {isPromoHeroBanner ? (
+                                <>
+                                  <label className="field">
+                                    <span>Subtitle</span>
+                                    <input
+                                      type="text"
+                                      value={item.subtitle || ''}
+                                      onChange={(event) => updatePhaseOneItem(idx, 'subtitle', event.target.value)}
+                                      placeholder="Phones, laptops, and smart gear with fast delivery"
+                                    />
+                                  </label>
+                                  <label className="field">
+                                    <span>Badge text</span>
+                                    <input
+                                      type="text"
+                                      value={item.badgeText || ''}
+                                      onChange={(event) => updatePhaseOneItem(idx, 'badgeText', event.target.value)}
+                                      placeholder="Electronics Week"
+                                    />
+                                  </label>
+                                  <label className="field">
+                                    <span>CTA button text</span>
+                                    <input
+                                      type="text"
+                                      value={item.ctaText || ''}
+                                      onChange={(event) => updatePhaseOneItem(idx, 'ctaText', event.target.value)}
+                                      placeholder="Shop now"
+                                    />
+                                  </label>
+                                  <label className="field">
+                                    <span>CTA link</span>
+                                    <input
+                                      type="text"
+                                      value={item.ctaLink || ''}
+                                      onChange={(event) => updatePhaseOneItem(idx, 'ctaLink', event.target.value)}
+                                      placeholder="app://electronics/featured"
+                                    />
+                                  </label>
+                                </>
+                              ) : null}
+                              {isQuickActionBlock ? (
                                 <>
                                   <label className="field">
                                     <span>Subtitle</span>
@@ -4002,6 +4095,88 @@ function AppConfigPage({ token }) {
                                         onChange={(event) => updatePhaseOneItem(idx, 'accentColor', event.target.value)}
                                       />
                                     </div>
+                                  </label>
+                                </>
+                              ) : null}
+                              {isDealCardCarousel ? (
+                                <>
+                                  <label className="field">
+                                    <span>Subtitle</span>
+                                    <input
+                                      type="text"
+                                      value={item.subtitle || ''}
+                                      onChange={(event) => updatePhaseOneItem(idx, 'subtitle', event.target.value)}
+                                      placeholder="12GB RAM, 256GB"
+                                    />
+                                  </label>
+                                  <label className="field">
+                                    <span>Price label</span>
+                                    <input
+                                      type="text"
+                                      value={item.price || ''}
+                                      onChange={(event) => updatePhaseOneItem(idx, 'price', event.target.value)}
+                                      placeholder="Rs 32,999"
+                                    />
+                                  </label>
+                                  <label className="field">
+                                    <span>Badge text</span>
+                                    <input
+                                      type="text"
+                                      value={item.badgeText || ''}
+                                      onChange={(event) => updatePhaseOneItem(idx, 'badgeText', event.target.value)}
+                                      placeholder="18% off"
+                                    />
+                                  </label>
+                                </>
+                              ) : null}
+                              {isMediaOverlayCarousel ? (
+                                <label className="field">
+                                  <span>Subtitle</span>
+                                  <input
+                                    type="text"
+                                    value={item.subtitle || ''}
+                                    onChange={(event) => updatePhaseOneItem(idx, 'subtitle', event.target.value)}
+                                    placeholder="Lighting and security"
+                                  />
+                                </label>
+                              ) : null}
+                              {isInfoList ? (
+                                <>
+                                  <label className="field">
+                                    <span>Subtitle</span>
+                                    <input
+                                      type="text"
+                                      value={item.subtitle || ''}
+                                      onChange={(event) => updatePhaseOneItem(idx, 'subtitle', event.target.value)}
+                                      placeholder="Health and GPS"
+                                    />
+                                  </label>
+                                  <label className="field">
+                                    <span>Price label (optional)</span>
+                                    <input
+                                      type="text"
+                                      value={item.price || ''}
+                                      onChange={(event) => updatePhaseOneItem(idx, 'price', event.target.value)}
+                                      placeholder="From Rs 24,990"
+                                    />
+                                  </label>
+                                  <label className="field">
+                                    <span>Icon name</span>
+                                    <input
+                                      type="text"
+                                      value={item.iconName || ''}
+                                      onChange={(event) => updatePhaseOneItem(idx, 'iconName', event.target.value)}
+                                      placeholder="flash-outline"
+                                    />
+                                  </label>
+                                  <label className="field">
+                                    <span>Icon URL (optional)</span>
+                                    <input
+                                      type="text"
+                                      value={item.iconUrl || ''}
+                                      onChange={(event) => updatePhaseOneItem(idx, 'iconUrl', event.target.value)}
+                                      placeholder="https://cdn.example.com/icon.png"
+                                    />
                                   </label>
                                 </>
                               ) : null}
@@ -4097,7 +4272,8 @@ function AppConfigPage({ token }) {
                               !isPhaseOneProductShelf &&
                               !isPhaseOneChipScroll &&
                               !isPhaseOneIconList &&
-                              !isBeautyQuickActions &&
+                              !isInfoList &&
+                              !isQuickActionBlock &&
                               !isBeautyRoutineList &&
                               !isBeautyTipChips &&
                               !isBeautyOfferBanner ? (

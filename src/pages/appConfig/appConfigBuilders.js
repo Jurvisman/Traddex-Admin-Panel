@@ -13,6 +13,7 @@ import {
   formatCsvList,
   resolveBlockType,
   defaultSectionForm,
+  STYLE_PRESET_OPTIONS,
 } from './appConfigConstants';
 
 export const buildUniqueSectionId = (baseId, sections) => {
@@ -56,6 +57,7 @@ export const buildSectionFromForm = (base, form) => {
   const resolvedBlockType = form.blockType?.trim() || form.type?.trim() || '';
   const isColumnGridBlock = resolvedBlockType === 'column_grid';
   const isCampaignBentoBlock = resolvedBlockType === 'campaignBento';
+  const stylePresetOptions = STYLE_PRESET_OPTIONS[resolvedBlockType] || [];
   const setOrDelete = (key, value) => {
     if (value === undefined || value === null || String(value).trim() === '') {
       delete next[key];
@@ -70,6 +72,16 @@ export const buildSectionFromForm = (base, form) => {
   setOrDelete('text', form.text?.trim());
   setOrDelete('actionText', form.actionText?.trim());
   setOrDelete('actionLink', form.actionLink?.trim());
+  if (resolvedBlockType === 'quick_action_row') {
+    setOrDelete('quickActionPreset', form.quickActionPreset?.trim() || 'electronics');
+  } else {
+    delete next.quickActionPreset;
+  }
+  if (stylePresetOptions.length) {
+    setOrDelete('stylePreset', form.stylePreset?.trim() || stylePresetOptions[0]?.value || '');
+  } else {
+    delete next.stylePreset;
+  }
   setOrDelete('bannerVariant', form.bannerVariant === 'text_card' ? 'text_card' : undefined);
   setOrDelete('showcaseVariant', form.showcaseVariant && form.showcaseVariant !== 'circle' ? form.showcaseVariant : undefined);
   setOrDelete('imageUrl', form.imageUrl?.trim());
@@ -345,6 +357,7 @@ export const parseGradientList = (value) => {
 
 export const buildSectionFormFromConfig = (section, fallbackType) => {
   const items = Array.isArray(section?.items) ? section.items : [];
+  const legacyBlockType = section?.blockType || '';
   const firstItem = items[0] || {};
   const hero = section?.hero && typeof section.hero === 'object' ? section.hero : {};
   const tiles = ensureBentoTiles(section?.tiles);
@@ -359,6 +372,10 @@ export const buildSectionFormFromConfig = (section, fallbackType) => {
     text: section?.text || '',
     actionText: section?.actionText || '',
     actionLink: section?.actionLink || '',
+    quickActionPreset:
+      section?.quickActionPreset ||
+      (legacyBlockType === 'beauty_quick_actions' ? 'beauty' : defaultSectionForm.quickActionPreset),
+    stylePreset: section?.stylePreset || '',
     bannerVariant: section?.bannerVariant || 'image',
     showcaseVariant: section?.showcaseVariant || 'circle',
     imageUrl: section?.imageUrl || firstItem?.imageUrl || '',

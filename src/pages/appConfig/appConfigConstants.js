@@ -52,12 +52,17 @@ export const isHomeMainPage = (page) => page?.id === 'home_main' || page?.route 
 export const screenSectionTypeOptions = [
   { value: 'carousel', label: 'Carousel' },
   { value: 'hero_carousel', label: 'Hero carousel (SDUI)' },
+  { value: 'promo_hero_banner', label: 'Promo hero banner (SDUI)' },
   { value: 'horizontalList', label: 'Horizontal list' },
   { value: 'horizontal_scroll_list', label: 'Horizontal featured list (SDUI)' },
+  { value: 'quick_action_row', label: 'Quick action row (SDUI)' },
   { value: 'grid', label: 'Grid' },
   { value: 'column_grid', label: 'Column grid (SDUI)' },
   { value: 'category_icon_grid', label: 'Category icon grid (SDUI)' },
   { value: 'brand_logo_grid', label: 'Brand logo grid (SDUI)' },
+  { value: 'media_overlay_carousel', label: 'Media overlay carousel (SDUI)' },
+  { value: 'deal_card_carousel', label: 'Deal card carousel (SDUI)' },
+  { value: 'info_list', label: 'Info list (SDUI)' },
   { value: 'categoryPreviewGrid', label: 'Category preview grid' },
   { value: 'campaignBento', label: 'Campaign bento' },
   { value: 'list', label: 'List' },
@@ -74,12 +79,17 @@ export const screenSectionTypeOptions = [
 
 export const defaultBlockTypeBySectionType = {
   banner: 'heroBanner',
+  promo_hero_banner: 'promo_hero_banner',
   title: 'sectionTitle',
   grid: 'multiItemGrid',
   categoryPreviewGrid: 'categoryPreviewGrid',
   campaignBento: 'campaignBento',
   campaign: 'campaignBento',
   product_shelf_horizontal: 'product_shelf_horizontal',
+  quick_action_row: 'quick_action_row',
+  media_overlay_carousel: 'media_overlay_carousel',
+  deal_card_carousel: 'deal_card_carousel',
+  info_list: 'info_list',
   icon_list: 'icon_list',
   chip_scroll: 'chip_scroll',
 };
@@ -153,6 +163,153 @@ const BEAUTY_QUICK_ACTIONS_SAMPLE = [
     ctaText: 'Track',
     iconName: 'locate-outline',
     accentColor: '#E9C3B3',
+    deepLink: '',
+  },
+];
+
+const ELECTRONICS_QUICK_ACTIONS_SAMPLE = [
+  {
+    title: 'Trade-in',
+    subtitle: 'Instant device quote',
+    ctaText: 'Check value',
+    iconName: 'repeat-outline',
+    deepLink: 'app://electronics/tradein',
+  },
+  {
+    title: 'Book repair',
+    subtitle: 'Doorstep service',
+    ctaText: 'Schedule',
+    iconName: 'construct-outline',
+    deepLink: 'app://electronics/repair',
+  },
+  {
+    title: 'Track order',
+    subtitle: 'Live status updates',
+    ctaText: 'Track',
+    iconName: 'locate-outline',
+    deepLink: 'app://electronics/track',
+  },
+];
+
+const ELECTRONICS_HERO_SAMPLE = {
+  badgeText: 'Electronics Week',
+  title: 'Upgrade your tech stack',
+  subtitle: 'Phones, laptops, and smart gear with fast delivery',
+  ctaText: 'Shop now',
+  imageUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1400&q=80',
+  deepLink: 'app://category/electronics',
+  ctaLink: 'app://category/electronics',
+};
+
+const ELECTRONICS_DEAL_SAMPLE = [
+  {
+    title: 'Neo X Pro 5G',
+    subtitle: '12GB RAM, 256GB',
+    price: 'Rs 32,999',
+    badgeText: '18% off',
+    imageUrl: 'https://images.unsplash.com/photo-1512499617640-c2f999feff7b?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'AeroBook 14',
+    subtitle: 'Core i7, 16GB',
+    price: 'Rs 68,990',
+    badgeText: '12% off',
+    imageUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Pulse Studio',
+    subtitle: 'Noise canceling',
+    price: 'Rs 7,499',
+    badgeText: '25% off',
+    imageUrl: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Vision 55 4K',
+    subtitle: 'HDR, Smart TV',
+    price: 'Rs 41,999',
+    badgeText: '20% off',
+    imageUrl: 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+];
+
+const ELECTRONICS_MEDIA_OVERLAY_SAMPLE = [
+  {
+    title: 'Smart Home',
+    subtitle: 'Lighting and security',
+    imageUrl: 'https://images.unsplash.com/photo-1519710164239-da123dc03ef4?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Gaming Zone',
+    subtitle: 'Consoles and gear',
+    imageUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Audio Lab',
+    subtitle: 'Speakers and soundbars',
+    imageUrl: 'https://images.unsplash.com/photo-1512446816042-444d641267d4?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Creator Desk',
+    subtitle: 'Monitors and cameras',
+    imageUrl: 'https://images.unsplash.com/photo-1484704849700-f032a568e944?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+];
+
+const ELECTRONICS_LAUNCH_SAMPLE = [
+  {
+    title: 'Aurora Tab 11',
+    subtitle: 'OLED, 8GB RAM',
+    price: 'From Rs 24,990',
+    iconName: 'flash-outline',
+    deepLink: '',
+  },
+  {
+    title: 'Orbit Watch 3',
+    subtitle: 'Health and GPS',
+    price: 'From Rs 9,499',
+    iconName: 'flash-outline',
+    deepLink: '',
+  },
+  {
+    title: 'Nimbus Camera S',
+    subtitle: '4K, dual lens',
+    price: 'From Rs 18,250',
+    iconName: 'flash-outline',
+    deepLink: '',
+  },
+];
+
+const ELECTRONICS_SUPPORT_SAMPLE = [
+  {
+    title: 'Warranty plans',
+    subtitle: 'Extend coverage',
+    iconName: 'shield-checkmark-outline',
+    deepLink: '',
+  },
+  {
+    title: 'Expert help',
+    subtitle: 'Chat with technicians',
+    iconName: 'chatbubble-ellipses-outline',
+    deepLink: '',
+  },
+  {
+    title: 'Easy returns',
+    subtitle: 'Pickups within 48 hours',
+    iconName: 'cube-outline',
+    deepLink: '',
+  },
+  {
+    title: 'Installation',
+    subtitle: 'TV and appliance setup',
+    iconName: 'construct-outline',
     deepLink: '',
   },
 ];
@@ -274,9 +431,10 @@ const buildBeautyDefaultSections = (industryId) => [
   {
     id: 'beauty_quick_actions',
     type: 'horizontalList',
-    blockType: 'beauty_quick_actions',
+    blockType: 'quick_action_row',
     title: 'Quick actions',
     actionText: 'View all',
+    quickActionPreset: 'beauty',
     enabled: true,
     items: BEAUTY_QUICK_ACTIONS_SAMPLE.map((item) => ({ ...item })),
   },
@@ -351,6 +509,81 @@ const buildBeautyDefaultSections = (industryId) => [
   },
 ];
 
+const buildElectronicsDefaultSections = (industryId) => [
+  {
+    id: 'electronics_spotlight',
+    type: 'banner',
+    blockType: 'promo_hero_banner',
+    stylePreset: 'electronics',
+    enabled: true,
+    items: [{ ...ELECTRONICS_HERO_SAMPLE }],
+  },
+  {
+    id: 'electronics_quick_actions',
+    type: 'horizontalList',
+    blockType: 'quick_action_row',
+    title: 'Quick actions',
+    actionText: 'Manage',
+    quickActionPreset: 'electronics',
+    enabled: true,
+    items: ELECTRONICS_QUICK_ACTIONS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'electronics_categories',
+    type: 'category_showcase',
+    blockType: 'category_showcase',
+    title: 'Shop categories',
+    actionText: 'View all',
+    showcaseVariant: 'circle_icon',
+    stylePreset: 'electronics',
+    enabled: true,
+    dataSource: {
+      sourceType: 'CATEGORY_FEED',
+      industryId: industryId ? String(industryId) : undefined,
+    },
+    items: [],
+  },
+  {
+    id: 'electronics_hot_deals',
+    type: 'horizontalList',
+    blockType: 'deal_card_carousel',
+    title: 'Hot deals',
+    actionText: 'View all',
+    enabled: true,
+    items: ELECTRONICS_DEAL_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'electronics_brand_stores',
+    type: 'horizontalList',
+    blockType: 'media_overlay_carousel',
+    title: 'Brand stores',
+    actionText: 'Explore',
+    stylePreset: 'electronics',
+    enabled: true,
+    items: ELECTRONICS_MEDIA_OVERLAY_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'electronics_new_launches',
+    type: 'list',
+    blockType: 'info_list',
+    title: 'New launches',
+    actionText: 'See all',
+    stylePreset: 'launch_rows',
+    enabled: true,
+    items: ELECTRONICS_LAUNCH_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'electronics_support',
+    type: 'list',
+    blockType: 'info_list',
+    title: 'Service and support',
+    actionText: 'Help desk',
+    stylePreset: 'support_rows',
+    enabled: true,
+    items: ELECTRONICS_SUPPORT_SAMPLE.map((item) => ({ ...item })),
+  },
+];
+
 export const screenToolboxItems = [
   {
     key: 'heroBanner',
@@ -382,6 +615,18 @@ export const screenToolboxItems = [
     },
   },
   {
+    key: 'promoHeroBanner',
+    label: 'Promo Hero Banner',
+    hint: 'Image banner with overlay text and CTA',
+    section: {
+      id: 'promo_hero_banner',
+      type: 'banner',
+      blockType: 'promo_hero_banner',
+      stylePreset: 'electronics',
+      items: [{ ...ELECTRONICS_HERO_SAMPLE }],
+    },
+  },
+  {
     key: 'phaseOneHorizontalScrollList',
     label: 'Featured Cards Block',
     hint: 'Festive cards with badge + subtitle',
@@ -395,6 +640,19 @@ export const screenToolboxItems = [
         { title: 'Gujiya', badgeText: 'Festive finds', imageUrl: '', deepLink: '' },
         { title: 'Thandai', badgeText: 'Festive finds', imageUrl: '', deepLink: '' },
       ],
+    },
+  },
+  {
+    key: 'dealCardCarousel',
+    label: 'Deal Card Carousel',
+    hint: 'Horizontal deal cards with badge, subtitle, and price',
+    section: {
+      id: 'deal_card_carousel',
+      type: 'horizontalList',
+      blockType: 'deal_card_carousel',
+      title: 'Hot deals',
+      actionText: 'View all',
+      items: ELECTRONICS_DEAL_SAMPLE.map((item) => ({ ...item })),
     },
   },
   {
@@ -483,6 +741,20 @@ export const screenToolboxItems = [
     },
   },
   {
+    key: 'mediaOverlayCarousel',
+    label: 'Media Overlay Carousel',
+    hint: 'Horizontal image cards with text overlay',
+    section: {
+      id: 'media_overlay_carousel',
+      type: 'horizontalList',
+      blockType: 'media_overlay_carousel',
+      title: 'Brand stores',
+      actionText: 'Explore',
+      stylePreset: 'electronics',
+      items: ELECTRONICS_MEDIA_OVERLAY_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
     key: 'sectionTitle',
     label: 'Section Title Block',
     hint: 'Standalone heading',
@@ -531,6 +803,20 @@ export const screenToolboxItems = [
       headerImage: '',
       hero: { imageUrl: '', deepLink: '', label: '' },
       tiles: Array.from({ length: 4 }, () => ({ imageUrl: '', deepLink: '', label: '' })),
+    },
+  },
+  {
+    key: 'infoList',
+    label: 'Info List',
+    hint: 'Stacked rows with icon, text, and optional trailing value',
+    section: {
+      id: 'info_list',
+      type: 'list',
+      blockType: 'info_list',
+      title: 'New launches',
+      actionText: 'See all',
+      stylePreset: 'launch_rows',
+      items: ELECTRONICS_LAUNCH_SAMPLE.map((item) => ({ ...item })),
     },
   },
   {
@@ -595,16 +881,17 @@ export const screenToolboxItems = [
     },
   },
   {
-    key: 'beautyQuickActions',
-    label: 'Beauty Quick Actions',
-    hint: 'Horizontal beauty action cards',
+    key: 'quickActionRow',
+    label: 'Quick Action Row',
+    hint: 'Reusable quick action cards with preset styling',
     section: {
-      id: 'beauty_quick_actions',
+      id: 'quick_actions',
       type: 'horizontalList',
-      blockType: 'beauty_quick_actions',
+      blockType: 'quick_action_row',
       title: 'Quick actions',
-      actionText: 'View all',
-      items: BEAUTY_QUICK_ACTIONS_SAMPLE,
+      actionText: 'Manage',
+      quickActionPreset: 'electronics',
+      items: ELECTRONICS_QUICK_ACTIONS_SAMPLE,
     },
   },
   {
@@ -713,13 +1000,18 @@ export const blockLabels = {
   horizontalPills: 'Horizontal Pills Block',
   heroBanner: 'Hero Banner Block',
   hero_carousel: 'Hero Carousel Block',
+  promo_hero_banner: 'Promo Hero Banner',
   horizontal_scroll_list: 'Featured Cards Block',
+  quick_action_row: 'Quick Action Row',
   column_grid: 'Festive Column Grid',
   category_icon_grid: 'Category Icon Grid',
   brand_logo_grid: 'Brand Layout Block',
+  media_overlay_carousel: 'Media Overlay Carousel',
+  deal_card_carousel: 'Deal Card Carousel',
+  info_list: 'Info List',
   product_shelf_horizontal: 'Product Shelf Block',
   beauty_hero_banner: 'Beauty Hero Banner',
-  beauty_quick_actions: 'Beauty Quick Actions',
+  beauty_quick_actions: 'Quick Action Row',
   beauty_trend_carousel: 'Beauty Trending Cards',
   beauty_offer_banner: 'Beauty Offer Banner',
   beauty_product_shelf: 'Beauty Product Shelf',
@@ -741,12 +1033,18 @@ export const resolveBlockLabel = (blockType, fallback) =>
 
 export const resolveBlockType = (section) => {
   if (!section) return '';
+  if (section.blockType === 'beauty_quick_actions') return 'quick_action_row';
   if (section.blockType) return section.blockType;
   if (section.type === 'hero_carousel') return 'hero_carousel';
+  if (section.type === 'promo_hero_banner') return 'promo_hero_banner';
   if (section.type === 'horizontal_scroll_list') return 'horizontal_scroll_list';
+  if (section.type === 'quick_action_row') return 'quick_action_row';
   if (section.type === 'column_grid') return 'column_grid';
   if (section.type === 'category_icon_grid') return 'category_icon_grid';
   if (section.type === 'brand_logo_grid') return 'brand_logo_grid';
+  if (section.type === 'media_overlay_carousel') return 'media_overlay_carousel';
+  if (section.type === 'deal_card_carousel') return 'deal_card_carousel';
+  if (section.type === 'info_list') return 'info_list';
   if (section.type === 'category_showcase') return 'category_showcase';
   if (section.type === 'banner') return 'heroBanner';
   if (section.type === 'title') return 'sectionTitle';
@@ -864,16 +1162,20 @@ export const ensureBentoTiles = (tiles, count = 4) => {
 
 export const phaseOneBlockTypes = new Set([
   'hero_carousel',
+  'promo_hero_banner',
   'horizontal_scroll_list',
+  'quick_action_row',
   'column_grid',
   'category_icon_grid',
   'brand_logo_grid',
+  'media_overlay_carousel',
+  'deal_card_carousel',
+  'info_list',
   'product_shelf_horizontal',
   'icon_list',
   'chip_scroll',
   'category_showcase',
   'beauty_hero_banner',
-  'beauty_quick_actions',
   'beauty_trend_carousel',
   'beauty_offer_banner',
   'beauty_product_shelf',
@@ -883,10 +1185,11 @@ export const phaseOneBlockTypes = new Set([
 ]);
 
 export const getPhaseOneDefaultItem = (blockType, index = 0) => {
-  if (blockType === 'beauty_offer_banner') {
+  const resolvedBlockType = blockType === 'beauty_quick_actions' ? 'quick_action_row' : blockType;
+  if (resolvedBlockType === 'beauty_offer_banner') {
     return {};
   }
-  if (blockType === 'beauty_hero_banner') {
+  if (resolvedBlockType === 'beauty_hero_banner') {
     return {
       title: '',
       subtitle: '',
@@ -897,7 +1200,18 @@ export const getPhaseOneDefaultItem = (blockType, index = 0) => {
       deepLink: '',
     };
   }
-  if (blockType === 'beauty_quick_actions') {
+  if (resolvedBlockType === 'promo_hero_banner') {
+    return {
+      title: '',
+      subtitle: '',
+      badgeText: '',
+      ctaText: '',
+      ctaLink: '',
+      imageUrl: '',
+      deepLink: '',
+    };
+  }
+  if (resolvedBlockType === 'quick_action_row') {
     return {
       title: '',
       subtitle: '',
@@ -908,7 +1222,7 @@ export const getPhaseOneDefaultItem = (blockType, index = 0) => {
       deepLink: '',
     };
   }
-  if (blockType === 'beauty_trend_carousel') {
+  if (resolvedBlockType === 'beauty_trend_carousel') {
     return {
       title: '',
       subtitle: '',
@@ -916,7 +1230,35 @@ export const getPhaseOneDefaultItem = (blockType, index = 0) => {
       deepLink: '',
     };
   }
-  if (blockType === 'beauty_product_shelf') {
+  if (resolvedBlockType === 'media_overlay_carousel') {
+    return {
+      title: '',
+      subtitle: '',
+      imageUrl: '',
+      deepLink: '',
+    };
+  }
+  if (resolvedBlockType === 'deal_card_carousel') {
+    return {
+      title: '',
+      subtitle: '',
+      price: '',
+      badgeText: '',
+      imageUrl: '',
+      deepLink: '',
+    };
+  }
+  if (resolvedBlockType === 'info_list') {
+    return {
+      title: '',
+      subtitle: '',
+      price: '',
+      iconName: '',
+      iconUrl: '',
+      deepLink: '',
+    };
+  }
+  if (resolvedBlockType === 'beauty_product_shelf') {
     return {
       title: '',
       subtitle: '',
@@ -925,7 +1267,7 @@ export const getPhaseOneDefaultItem = (blockType, index = 0) => {
       deepLink: '',
     };
   }
-  if (blockType === 'beauty_routine_list') {
+  if (resolvedBlockType === 'beauty_routine_list') {
     return {
       title: '',
       subtitle: '',
@@ -934,10 +1276,10 @@ export const getPhaseOneDefaultItem = (blockType, index = 0) => {
       deepLink: '',
     };
   }
-  if (blockType === 'beauty_tip_chips') {
+  if (resolvedBlockType === 'beauty_tip_chips') {
     return { text: '', deepLink: '' };
   }
-  if (blockType === 'beauty_salon_carousel') {
+  if (resolvedBlockType === 'beauty_salon_carousel') {
     return {
       title: '',
       subtitle: '',
@@ -947,7 +1289,7 @@ export const getPhaseOneDefaultItem = (blockType, index = 0) => {
       deepLink: '',
     };
   }
-  if (blockType === 'brand_logo_grid') {
+  if (resolvedBlockType === 'brand_logo_grid') {
     const kinds = ['hero', 'tile', 'tile', 'tile', 'tile', 'cta'];
     return {
       id: '',
@@ -965,13 +1307,13 @@ export const getPhaseOneDefaultItem = (blockType, index = 0) => {
       badgeTextColor: '',
     };
   }
-  if (blockType === 'icon_list') {
+  if (resolvedBlockType === 'icon_list') {
     return { iconUrl: '', title: '', subtitle: '', deepLink: '' };
   }
-  if (blockType === 'chip_scroll') {
+  if (resolvedBlockType === 'chip_scroll') {
     return { text: '', deepLink: '' };
   }
-  if (blockType === 'category_showcase') {
+  if (resolvedBlockType === 'category_showcase') {
     return { title: '', imageUrl: '', iconUrl: '', deepLink: '' };
   }
   return {
@@ -997,12 +1339,13 @@ export const getPhaseOneDefaultItem = (blockType, index = 0) => {
 
 export const normalizePhaseOneItems = (items, blockType) => {
   const list = Array.isArray(items) ? items : [];
+  const resolvedBlockType = blockType === 'beauty_quick_actions' ? 'quick_action_row' : blockType;
   const normalized = list.map((item, index) => {
-    const base = getPhaseOneDefaultItem(blockType, index);
-    if (blockType === 'beauty_offer_banner') {
+    const base = getPhaseOneDefaultItem(resolvedBlockType, index);
+    if (resolvedBlockType === 'beauty_offer_banner') {
       return {};
     }
-    if (blockType === 'beauty_hero_banner') {
+    if (resolvedBlockType === 'beauty_hero_banner') {
       return {
         ...base,
         title: item?.title || item?.name || item?.label || '',
@@ -1014,7 +1357,19 @@ export const normalizePhaseOneItems = (items, blockType) => {
         deepLink: item?.deepLink || item?.targetUrl || '',
       };
     }
-    if (blockType === 'beauty_quick_actions') {
+    if (resolvedBlockType === 'promo_hero_banner') {
+      return {
+        ...base,
+        title: item?.title || item?.name || item?.label || '',
+        subtitle: item?.subtitle || '',
+        badgeText: item?.badgeText || item?.badge || '',
+        ctaText: item?.ctaText || item?.ctaLabel || '',
+        ctaLink: item?.ctaLink || '',
+        imageUrl: item?.imageUrl || item?.imageUri || item?.thumbnailImage || '',
+        deepLink: item?.deepLink || item?.targetUrl || '',
+      };
+    }
+    if (resolvedBlockType === 'quick_action_row') {
       return {
         ...base,
         title: item?.title || item?.name || item?.label || '',
@@ -1026,7 +1381,7 @@ export const normalizePhaseOneItems = (items, blockType) => {
         deepLink: item?.deepLink || item?.targetUrl || '',
       };
     }
-    if (blockType === 'beauty_trend_carousel') {
+    if (resolvedBlockType === 'beauty_trend_carousel') {
       return {
         ...base,
         title: item?.title || item?.name || item?.label || '',
@@ -1035,7 +1390,38 @@ export const normalizePhaseOneItems = (items, blockType) => {
         deepLink: item?.deepLink || item?.targetUrl || '',
       };
     }
-    if (blockType === 'beauty_product_shelf') {
+    if (resolvedBlockType === 'media_overlay_carousel') {
+      return {
+        ...base,
+        title: item?.title || item?.name || item?.label || '',
+        subtitle: item?.subtitle || '',
+        imageUrl: item?.imageUrl || item?.imageUri || item?.thumbnailImage || '',
+        deepLink: item?.deepLink || item?.targetUrl || '',
+      };
+    }
+    if (resolvedBlockType === 'deal_card_carousel') {
+      return {
+        ...base,
+        title: item?.title || item?.name || item?.label || '',
+        subtitle: item?.subtitle || '',
+        price: item?.price || item?.sellingPrice || '',
+        badgeText: item?.badgeText || item?.off || '',
+        imageUrl: item?.imageUrl || item?.imageUri || item?.thumbnailImage || '',
+        deepLink: item?.deepLink || item?.targetUrl || '',
+      };
+    }
+    if (resolvedBlockType === 'info_list') {
+      return {
+        ...base,
+        title: item?.title || item?.name || item?.label || '',
+        subtitle: item?.subtitle || '',
+        price: item?.price || item?.sellingPrice || '',
+        iconName: item?.iconName || item?.icon || '',
+        iconUrl: item?.iconUrl || '',
+        deepLink: item?.deepLink || item?.targetUrl || '',
+      };
+    }
+    if (resolvedBlockType === 'beauty_product_shelf') {
       return {
         ...base,
         title: item?.title || item?.name || item?.label || '',
@@ -1045,7 +1431,7 @@ export const normalizePhaseOneItems = (items, blockType) => {
         deepLink: item?.deepLink || item?.targetUrl || '',
       };
     }
-    if (blockType === 'beauty_routine_list') {
+    if (resolvedBlockType === 'beauty_routine_list') {
       return {
         ...base,
         title: item?.title || item?.name || item?.label || '',
@@ -1055,14 +1441,14 @@ export const normalizePhaseOneItems = (items, blockType) => {
         deepLink: item?.deepLink || item?.targetUrl || '',
       };
     }
-    if (blockType === 'beauty_tip_chips') {
+    if (resolvedBlockType === 'beauty_tip_chips') {
       return {
         ...base,
         text: item?.text || item?.title || item?.label || '',
         deepLink: item?.deepLink || '',
       };
     }
-    if (blockType === 'beauty_salon_carousel') {
+    if (resolvedBlockType === 'beauty_salon_carousel') {
       return {
         ...base,
         title: item?.title || item?.name || item?.label || '',
@@ -1073,7 +1459,7 @@ export const normalizePhaseOneItems = (items, blockType) => {
         deepLink: item?.deepLink || item?.targetUrl || '',
       };
     }
-    if (blockType === 'icon_list') {
+    if (resolvedBlockType === 'icon_list') {
       return {
         ...base,
         iconUrl: item?.iconUrl || '',
@@ -1082,14 +1468,14 @@ export const normalizePhaseOneItems = (items, blockType) => {
         deepLink: item?.deepLink || '',
       };
     }
-    if (blockType === 'chip_scroll') {
+    if (resolvedBlockType === 'chip_scroll') {
       return {
         ...base,
         text: item?.text || item?.title || item?.label || '',
         deepLink: item?.deepLink || '',
       };
     }
-    if (blockType === 'category_showcase') {
+    if (resolvedBlockType === 'category_showcase') {
       return {
         ...base,
         title: item?.title || item?.name || item?.label || '',
@@ -1119,7 +1505,7 @@ export const normalizePhaseOneItems = (items, blockType) => {
       badgeTextColor: item?.badgeTextColor || '',
     };
   });
-  return normalized.length > 0 ? normalized : [getPhaseOneDefaultItem(blockType, 0)];
+  return normalized.length > 0 ? normalized : [getPhaseOneDefaultItem(resolvedBlockType, 0)];
 };
 
 export const imageExtensionRegex = /\.(png|jpe?g|webp|gif|avif|svg)(\?.*)?$/i;
@@ -1193,6 +1579,24 @@ export const SOURCE_TYPE_OPTIONS = [
   { value: 'MANUAL', label: 'Manual' },
   { value: 'CATEGORY_FEED', label: 'Category feed' },
 ];
+
+export const STYLE_PRESET_OPTIONS = {
+  promo_hero_banner: [
+    { value: 'electronics', label: 'Electronics' },
+    { value: 'beauty', label: 'Beauty' },
+  ],
+  category_showcase: [
+    { value: '', label: 'Default' },
+    { value: 'electronics', label: 'Electronics' },
+  ],
+  media_overlay_carousel: [
+    { value: 'electronics', label: 'Electronics' },
+  ],
+  info_list: [
+    { value: 'launch_rows', label: 'Launch rows' },
+    { value: 'support_rows', label: 'Support rows' },
+  ],
+};
 
 export const SHOWCASE_VARIANT_OPTIONS = [
   { value: 'circle', label: 'Circle' },
@@ -1378,7 +1782,9 @@ export const resolveIndustryRoute = (industry, slug) => {
 
 export const buildIndustryDefaultSections = (slug, industryName, industryId) => [
   ...(slug === 'beauty' ? buildBeautyDefaultSections(industryId) : []),
+  ...(slug === 'electronics' ? buildElectronicsDefaultSections(industryId) : []),
   ...(slug === 'beauty'
+    || slug === 'electronics'
     ? []
     : [
   {
@@ -1716,6 +2122,8 @@ export const defaultSectionForm = {
   imageSize: '',
   imageRadius: '',
   imageGap: '',
+  quickActionPreset: 'electronics',
+  stylePreset: '',
   bentoHeaderImage: '',
   bentoHeroImage: '',
   bentoHeroLink: '',
