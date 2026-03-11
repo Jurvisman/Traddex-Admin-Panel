@@ -1,4 +1,5 @@
 export { default as Banner } from './Banner';
+export { default as ConfirmDialog } from './ConfirmDialog';
 export { default as AdminShell } from './AdminShell';
 export { default as HeroPanel } from './HeroPanel';
 export { default as LoginForm } from './LoginForm';

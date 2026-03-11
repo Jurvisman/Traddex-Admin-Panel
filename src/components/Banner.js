@@ -6,9 +6,10 @@ function Banner({ message }) {
   useEffect(() => {
     if (message?.text) {
       setVisible(true);
+      const duration = message?.type === 'error' ? 12000 : 8000;
       const timer = setTimeout(() => {
         setVisible(false);
-      }, 8000); // auto-hide after 8s
+      }, duration);
       return () => clearTimeout(timer);
     }
     setVisible(false);
@@ -17,7 +18,19 @@ function Banner({ message }) {
 
   if (!message?.text || !visible) return null;
 
-  return <div className={`banner banner-toast ${message.type || 'info'}`}>{message.text}</div>;
+  return (
+    <div className={`banner banner-toast ${message.type || 'info'}`}>
+      <span className="banner-text">{message.text}</span>
+      <button
+        type="button"
+        className="banner-dismiss"
+        onClick={() => setVisible(false)}
+        aria-label="Dismiss"
+      >
+        &#x2715;
+      </button>
+    </div>
+  );
 }
 
 export default Banner;

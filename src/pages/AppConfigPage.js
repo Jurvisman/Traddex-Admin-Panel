@@ -3,14 +3,12 @@ import {
   DndContext,
   PointerSensor,
   closestCenter,
-  useDraggable,
   useDroppable,
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
-import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { Banner } from '../components';
+import { SortableContext, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { Banner, ConfirmDialog } from '../components';
 import {
   getAppConfigDraft,
   getPublishedAppConfig,
@@ -28,1225 +26,104 @@ import {
   validateAppConfig,
 } from '../services/adminApi';
 
-const emptyMessage = { type: 'info', text: '' };
-
-const parseJson = (value) => {
-  if (!value || !value.trim()) return { data: null, error: 'Config JSON is required.' };
-  try {
-    const parsed = JSON.parse(value);
-    if (parsed === null || Array.isArray(parsed) || typeof parsed !== 'object') {
-      return { data: null, error: 'Config must be a JSON object.' };
-    }
-    return { data: parsed, error: null };
-  } catch (error) {
-    return { data: null, error: 'Config must be valid JSON.' };
-  }
-};
-
-const formatDate = (value) => (value ? new Date(value).toLocaleString() : '-');
-const parseCsvList = (value) =>
-  (value || '')
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean);
-const formatCsvList = (value) => (Array.isArray(value) ? value.filter(Boolean).join(', ') : '');
-const parseAspectRatioValue = (value) => {
-  if (!value || typeof value !== 'string') return null;
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  if (trimmed.includes(':')) {
-    const [w, h] = trimmed.split(':').map((part) => Number(part));
-    if (w > 0 && h > 0) return w / h;
-  }
-  const numeric = Number(trimmed);
-  if (!Number.isNaN(numeric) && numeric > 0) return numeric;
-  return null;
-};
-const toLocalInputValue = (value) => {
-  if (!value) return '';
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return '';
-  const offset = parsed.getTimezoneOffset();
-  const local = new Date(parsed.getTime() - offset * 60 * 1000);
-  return local.toISOString().slice(0, 16);
-};
-const fromLocalInputValue = (value) => {
-  if (!value) return '';
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return '';
-  return parsed.toISOString();
-};
-const isHardcodedSection = (section) => section?.type === 'hardcoded';
-const isHomeMainPage = (page) => page?.id === 'home_main' || page?.route === '/home';
-
-const screenSectionTypeOptions = [
-  { value: 'carousel', label: 'Carousel' },
-  { value: 'hero_carousel', label: 'Hero carousel (SDUI)' },
-  { value: 'horizontalList', label: 'Horizontal list' },
-  { value: 'horizontal_scroll_list', label: 'Horizontal featured list (SDUI)' },
-  { value: 'grid', label: 'Grid' },
-  { value: 'column_grid', label: 'Column grid (SDUI)' },
-  { value: 'category_icon_grid', label: 'Category icon grid (SDUI)' },
-  { value: 'brand_logo_grid', label: 'Brand logo grid (SDUI)' },
-  { value: 'categoryPreviewGrid', label: 'Category preview grid' },
-  { value: 'campaignBento', label: 'Campaign bento' },
-  { value: 'list', label: 'List' },
-  { value: 'banner', label: 'Banner' },
-  { value: 'card', label: 'Card' },
-  { value: 'twoColumn', label: 'Two column' },
-  { value: 'spacer', label: 'Spacer' },
-  { value: 'title', label: 'Title' },
-  { value: 'video', label: 'Video' },
-];
-
-const defaultBlockTypeBySectionType = {
-  banner: 'heroBanner',
-  title: 'sectionTitle',
-  grid: 'multiItemGrid',
-  categoryPreviewGrid: 'categoryPreviewGrid',
-  campaignBento: 'campaignBento',
-  campaign: 'campaignBento',
-  product_shelf_horizontal: 'product_shelf_horizontal',
-};
-
-const headerSectionTypeOptions = [
-  { value: 'addressHeader', label: 'Address Header' },
-  { value: 'searchBar', label: 'Search Bar' },
-  { value: 'horizontalPills', label: 'Horizontal Pills' },
-];
-
-const headerToolboxItems = [
-  {
-    key: 'addressHeader',
-    label: 'Address Header Block',
-    hint: 'Delivery time + location row',
-    section: { id: 'address_header', type: 'addressHeader', blockType: 'addressHeader', enabled: true },
-    scope: 'header',
-  },
-  {
-    key: 'searchBar',
-    label: 'Search Bar Block',
-    hint: 'Search input row',
-    section: {
-      id: 'search_bar',
-      type: 'searchBar',
-      blockType: 'searchBar',
-      placeholder: 'Search "yoga"',
-      enabled: true,
-    },
-    scope: 'header',
-  },
-  {
-    key: 'horizontalPills',
-    label: 'Horizontal Pills Block',
-    hint: 'Scrollable category pills',
-    section: { id: 'horizontal_pills', type: 'horizontalPills', blockType: 'horizontalPills', enabled: true },
-    scope: 'header',
-  },
-];
-
-const screenToolboxItems = [
-  {
-    key: 'heroBanner',
-    label: 'Hero Banner Block',
-    hint: 'Large image banner',
-    section: {
-      id: 'hero_banner',
-      type: 'banner',
-      blockType: 'heroBanner',
-      title: '',
-      imageUrl: '',
-      aspectRatio: '2:1',
-      deepLink: '',
-    },
-  },
-  {
-    key: 'phaseOneHeroCarousel',
-    label: 'Hero Carousel Block',
-    hint: 'Full-width campaign banners',
-    section: {
-      id: 'hero_carousel',
-      type: 'carousel',
-      blockType: 'hero_carousel',
-      title: 'Spotlight deals',
-      items: [
-        { title: 'Hero 1', imageUrl: '', deepLink: '' },
-        { title: 'Hero 2', imageUrl: '', deepLink: '' },
-      ],
-    },
-  },
-  {
-    key: 'phaseOneHorizontalScrollList',
-    label: 'Featured Cards Block',
-    hint: 'Festive cards with badge + subtitle',
-    section: {
-      id: 'featured_cards',
-      type: 'horizontalList',
-      blockType: 'horizontal_scroll_list',
-      title: 'Featured this week',
-      items: [
-        { title: '', subtitle: 'For you', badgeText: 'Newly launched', imageUrl: '', deepLink: '' },
-        { title: 'Gujiya', badgeText: 'Festive finds', imageUrl: '', deepLink: '' },
-        { title: 'Thandai', badgeText: 'Festive finds', imageUrl: '', deepLink: '' },
-      ],
-    },
-  },
-  {
-    key: 'phaseOneProductShelfHorizontal',
-    label: 'Product Shelf Block',
-    hint: 'Horizontal product list with price + ADD',
-    section: {
-      id: 'product_shelf_horizontal',
-      type: 'horizontalList',
-      blockType: 'product_shelf_horizontal',
-      title: 'Lowest prices ever',
-      itemsPath: '$.products',
-      dataSourceRef: 'home_top_selling_products',
-    },
-  },
-  {
-    key: 'phaseOneColumnGrid',
-    label: 'Festive Column Grid',
-    hint: '3-column cards with dual images',
-    section: {
-      id: 'festive_column_grid',
-      type: 'grid',
-      blockType: 'column_grid',
-      title: 'Festive finds',
-      sectionBgColor: '#f5f0dc',
-      cardBgColor: '#9ad8f8',
-      columnTopLineStyle: 'curve',
-      dataSource: {
-        sourceType: 'CATEGORY_FEED',
-        mode: 'TOP_SELLING',
-        limit: 8,
-        rankingWindowDays: 30,
-        sortBy: 'MANUAL_RANK',
-        filters: {
-          activeOnly: true,
-          hasImageOnly: true,
-        },
-      },
-      mapping: {
-        titleField: 'name',
-        imageField: 'imageUrl',
-        secondaryImageField: 'categoryImage',
-        deepLinkTemplate: 'app://category/{id}',
-      },
-      items: [
-        { title: 'T-shirts & Mobile Pouch', imageUrl: '', secondaryImageUrl: '', deepLink: '' },
-        { title: 'Holika Dahan', imageUrl: '', secondaryImageUrl: '', deepLink: '' },
-        { title: 'Gujiya Mould & Ingredients', imageUrl: '', secondaryImageUrl: '', deepLink: '' },
-      ],
-    },
-  },
-  {
-    key: 'phaseOneCategoryIconGrid',
-    label: 'Category Icon Grid',
-    hint: '4-column category blocks',
-    section: {
-      id: 'category_icon_grid',
-      type: 'grid',
-      blockType: 'category_icon_grid',
-      title: 'Grocery & Kitchen',
-      items: [
-        { title: 'Vegetables & Fruits', imageUrl: '', deepLink: '' },
-        { title: 'Atta, Rice & Dal', imageUrl: '', deepLink: '' },
-        { title: 'Oil, Ghee & Masala', imageUrl: '', deepLink: '' },
-        { title: 'Dairy, Bread & Eggs', imageUrl: '', deepLink: '' },
-      ],
-    },
-  },
-  {
-    key: 'phaseOneBrandLogoGrid',
-    label: 'Brand Layout Block',
-    hint: 'Hero + 4 tiles + CTA strip',
-    section: {
-      id: 'brand_layout_grid',
-      type: 'grid',
-      blockType: 'brand_logo_grid',
-      title: '',
-      items: [
-        { kind: 'hero', title: 'Hero', imageUrl: '', deepLink: '' },
-        { kind: 'tile', title: 'Beverage Corner', imageUrl: '', deepLink: '' },
-        { kind: 'tile', title: 'Snacks & Munchies', imageUrl: '', deepLink: '' },
-        { kind: 'tile', title: 'Toofani Party Zone', imageUrl: '', deepLink: '' },
-        { kind: 'tile', title: 'Sweet Delights', imageUrl: '', deepLink: '' },
-        { kind: 'cta', title: 'CTA', imageUrl: '', deepLink: '' },
-      ],
-    },
-  },
-  {
-    key: 'sectionTitle',
-    label: 'Section Title Block',
-    hint: 'Standalone heading',
-    section: { id: 'section_title', type: 'title', blockType: 'sectionTitle', text: 'Frequently bought' },
-  },
-  {
-    key: 'multiItemGrid',
-    label: 'Multi Item Grid Block',
-    hint: 'Product feed grid',
-    section: {
-      id: 'multi_item_grid',
-      type: 'grid',
-      blockType: 'multiItemGrid',
-      title: 'Frequently bought',
-      productFeedMode: 'FREQUENTLY_BOUGHT',
-      dataSourceRef: 'home_frequently_bought_products',
-      itemsPath: '$.products',
-      columns: 3,
-      productLimit: 9,
-    },
-  },
-  {
-    key: 'categoryPreviewGrid',
-    label: 'Category Preview Grid',
-    hint: 'Blinkit-style category cards',
-    section: {
-      id: 'category_preview_grid',
-      type: 'grid',
-      blockType: 'categoryPreviewGrid',
-      title: 'Frequently bought',
-      collectionIds: [],
-      itemsPath: '$.categories',
-      columns: 2,
-    },
-  },
-  {
-    key: 'campaignBento',
-    label: 'Campaign Bento Block',
-    hint: 'Hero + 4 tiles layout',
-    section: {
-      id: 'campaign_bento',
-      type: 'campaignBento',
-      blockType: 'campaignBento',
-      title: 'Skin-safe herbal gulal',
-      sectionBgColor: '#e7f6ff',
-      headerImage: '',
-      hero: { imageUrl: '', deepLink: '', label: '' },
-      tiles: Array.from({ length: 4 }, () => ({ imageUrl: '', deepLink: '', label: '' })),
-    },
-  },
-];
-
-const toolboxItems = [...headerToolboxItems, ...screenToolboxItems];
-
-const blockLabels = {
-  addressHeader: 'Address Header Block',
-  searchBar: 'Search Bar Block',
-  horizontalPills: 'Horizontal Pills Block',
-  heroBanner: 'Hero Banner Block',
-  hero_carousel: 'Hero Carousel Block',
-  horizontal_scroll_list: 'Featured Cards Block',
-  column_grid: 'Festive Column Grid',
-  category_icon_grid: 'Category Icon Grid',
-  brand_logo_grid: 'Brand Layout Block',
-  product_shelf_horizontal: 'Product Shelf Block',
-  bestseller_shelf: 'Bestsellers Shelf Block',
-  sectionTitle: 'Section Title Block',
-  multiItemGrid: 'Multi Item Grid Block',
-  categoryPreviewGrid: 'Category Preview Grid',
-  campaignBento: 'Campaign Bento Block',
-};
-
-const resolveBlockLabel = (blockType, fallback) =>
-  blockLabels[blockType] || fallback || 'Block';
-
-const resolveBlockType = (section) => {
-  if (!section) return '';
-  if (section.blockType) return section.blockType;
-  if (section.type === 'hero_carousel') return 'hero_carousel';
-  if (section.type === 'horizontal_scroll_list') return 'horizontal_scroll_list';
-  if (section.type === 'column_grid') return 'column_grid';
-  if (section.type === 'category_icon_grid') return 'category_icon_grid';
-  if (section.type === 'brand_logo_grid') return 'brand_logo_grid';
-  if (section.type === 'banner') return 'heroBanner';
-  if (section.type === 'title') return 'sectionTitle';
-  if (section.type === 'grid') return 'multiItemGrid';
-  if (section.type === 'campaign' || section.type === 'campaignBento') return 'campaignBento';
-  return section.type || '';
-};
-
-const normalizeCollectionId = (value) => (value === undefined || value === null ? '' : String(value).trim());
-
-const normalizeMatchValue = (value) => (value === undefined || value === null ? '' : String(value).trim().toLowerCase());
-const resolveIndustryId = (industry) =>
-  normalizeCollectionId(
-    industry?.id ?? industry?._id ?? industry?.slug ?? industry?.industryId ?? industry?.industry_id ?? industry?.name
-  );
-const resolveIndustryLabel = (industry) => industry?.name || industry?.label || industry?.title || 'Industry';
-const resolveMainCategoryId = (mainCategory) =>
-  normalizeCollectionId(mainCategory?.id ?? mainCategory?.mainCategoryId ?? mainCategory?.main_category_id);
-const resolveMainCategoryIndustryId = (mainCategory) =>
-  normalizeCollectionId(
-    mainCategory?.industryId ??
-      mainCategory?.industry_id ??
-      mainCategory?.industry?.industryId ??
-      mainCategory?.industry?.id ??
-      mainCategory?.industry?.industry_id
-  );
-const resolveMainCategoryName = (mainCategory) =>
-  mainCategory?.name || mainCategory?.label || mainCategory?.title || 'Main category';
-const resolveCategoryId = (category) =>
-  normalizeCollectionId(category?.id ?? category?.categoryId ?? category?._id ?? category?.code);
-const resolveCategoryMainCategoryId = (category) =>
-  normalizeCollectionId(category?.mainCategoryId ?? category?.main_category_id ?? category?.mainCategory?.id);
-
-const sizePresets = {
-  padding: [
-    { key: 'sm', label: 'Small', value: 6 },
-    { key: 'md', label: 'Medium', value: 10 },
-    { key: 'lg', label: 'Large', value: 14 },
-  ],
-  radius: [
-    { key: 'sm', label: 'Small', value: 12 },
-    { key: 'md', label: 'Medium', value: 16 },
-    { key: 'lg', label: 'Large', value: 20 },
-  ],
-  imageSize: [
-    { key: 'sm', label: 'Small', value: 52 },
-    { key: 'md', label: 'Medium', value: 60 },
-    { key: 'lg', label: 'Large', value: 70 },
-  ],
-  imageGap: [
-    { key: 'sm', label: 'Small', value: 4 },
-    { key: 'md', label: 'Medium', value: 6 },
-    { key: 'lg', label: 'Large', value: 8 },
-  ],
-};
-
-const categoryLayoutPresets = [
-  {
-    key: 'compact',
-    label: 'Compact',
-    values: {
-      paddingY: 6,
-      cardPadding: 6,
-      cardRadius: 12,
-      imageSize: 52,
-      imageRadius: 12,
-      imageGap: 4,
-    },
-  },
-  {
-    key: 'balanced',
-    label: 'Balanced',
-    values: {
-      paddingY: 10,
-      cardPadding: 10,
-      cardRadius: 16,
-      imageSize: 60,
-      imageRadius: 16,
-      imageGap: 6,
-    },
-  },
-  {
-    key: 'spacious',
-    label: 'Spacious',
-    values: {
-      paddingY: 14,
-      cardPadding: 14,
-      cardRadius: 20,
-      imageSize: 70,
-      imageRadius: 20,
-      imageGap: 8,
-    },
-  },
-];
-
-const findPresetKey = (list, value) => {
-  const num = typeof value === 'number' ? value : Number(value);
-  const match = list.find((item) => item.value === num);
-  return match ? match.key : '';
-};
-
-const ensureBentoTiles = (tiles, count = 4) => {
-  const normalized = Array.isArray(tiles)
-    ? tiles.map((tile) => ({
-        imageUrl: tile?.imageUrl || tile?.image || '',
-        deepLink: tile?.deepLink || tile?.targetUrl || '',
-        label: tile?.label || tile?.title || '',
-      }))
-    : [];
-  while (normalized.length < count) {
-    normalized.push({ imageUrl: '', deepLink: '', label: '' });
-  }
-  return normalized.slice(0, count);
-};
-
-const phaseOneBlockTypes = new Set([
-  'hero_carousel',
-  'horizontal_scroll_list',
-  'column_grid',
-  'category_icon_grid',
-  'brand_logo_grid',
-  'product_shelf_horizontal',
-]);
-
-const getPhaseOneDefaultItem = (blockType, index = 0) => {
-  if (blockType === 'brand_logo_grid') {
-    const kinds = ['hero', 'tile', 'tile', 'tile', 'tile', 'cta'];
-    return {
-      id: '',
-      kind: kinds[index] || 'tile',
-      collectionId: '',
-      title: '',
-      subtitle: '',
-      badgeText: '',
-      imageUrl: '',
-      secondaryImageUrl: '',
-      deepLink: '',
-      bgColor: '',
-      frameColor: '',
-      titleColor: '',
-      badgeTextColor: '',
-    };
-  }
-  return {
-    id: '',
-    kind: '',
-    collectionId: '',
-    title: '',
-    subtitle: '',
-    badgeText: '',
-    imageUrl: '',
-    secondaryImageUrl: '',
-    deepLink: '',
-    bgColor: '',
-    frameColor: '',
-    titleColor: '',
-    badgeTextColor: '',
-  };
-};
-
-const normalizePhaseOneItems = (items, blockType) => {
-  const list = Array.isArray(items) ? items : [];
-  const normalized = list.map((item, index) => {
-    const base = getPhaseOneDefaultItem(blockType, index);
-    return {
-      ...base,
-      id: item?.id ? String(item.id) : '',
-      kind: item?.kind ? String(item.kind) : base.kind,
-      collectionId: item?.collectionId ? String(item.collectionId) : '',
-      title: item?.title || item?.name || item?.label || '',
-      subtitle: item?.subtitle || '',
-      badgeText: item?.badgeText || '',
-      imageUrl: item?.imageUrl || item?.imageUri || item?.thumbnailImage || '',
-      secondaryImageUrl: item?.secondaryImageUrl || '',
-      deepLink: item?.deepLink || item?.targetUrl || '',
-      bgColor: item?.bgColor || '',
-      frameColor: item?.frameColor || '',
-      titleColor: item?.titleColor || '',
-      badgeTextColor: item?.badgeTextColor || '',
-    };
-  });
-  return normalized.length > 0 ? normalized : [getPhaseOneDefaultItem(blockType, 0)];
-};
-
-const imageExtensionRegex = /\.(png|jpe?g|webp|gif|avif|svg)(\?.*)?$/i;
-const imageLikeFieldRegex = /(image|thumbnail|poster|logo|icon|banner)/i;
-
-const getImageExtension = (url) => {
-  if (!url || typeof url !== 'string') return '';
-  const clean = url.split('#')[0].split('?')[0];
-  const match = clean.match(/\.([a-zA-Z0-9]+)$/);
-  return match ? match[1].toLowerCase() : '';
-};
-
-const isLikelyImageUrl = (value) => {
-  if (!value || typeof value !== 'string') return false;
-  const trimmed = value.trim();
-  if (!trimmed) return false;
-  if (!(trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('/uploads/'))) {
-    return false;
-  }
-  return imageExtensionRegex.test(trimmed) || trimmed.includes('/uploads/products/');
-};
-
-const collectImageUrls = (node, bucket, visited = new WeakSet()) => {
-  if (!node) return;
-  if (typeof node === 'string') {
-    if (isLikelyImageUrl(node)) bucket.add(node);
-    return;
-  }
-  if (Array.isArray(node)) {
-    node.forEach((item) => collectImageUrls(item, bucket, visited));
-    return;
-  }
-  if (typeof node !== 'object') return;
-  if (visited.has(node)) return;
-  visited.add(node);
-  Object.entries(node).forEach(([key, value]) => {
-    if (typeof value === 'string') {
-      if (isLikelyImageUrl(value) && (imageLikeFieldRegex.test(key) || value.includes('/uploads/products/'))) {
-        bucket.add(value);
-      }
-      return;
-    }
-    collectImageUrls(value, bucket, visited);
-  });
-};
-
-const isHexColor = (value) => /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(String(value || '').trim());
-const resolveHexColor = (value, fallback) => (isHexColor(value) ? String(value).trim() : fallback);
-const normalizeColumnTopLineStyle = (value) => {
-  const normalized = String(value || '').trim().toLowerCase();
-  if (normalized === 'curve' || normalized === 'image') return 'curve';
-  return 'flat';
-};
-
-const COLUMN_GRID_BG_PALETTE = ['#f5f0dc', '#f9f3de', '#eef9ff', '#eaf7ff', '#f6f7ff', '#fff7ef'];
-const COLUMN_GRID_CARD_BG_PALETTE = ['#9ad8f8', '#b6e2ff', '#d5ecff', '#c3dbff', '#d8d4ff', '#ffd8f3'];
-const COLUMN_GRID_TOP_LINE_STYLES = [
-  { value: 'flat', label: 'Flat line' },
-  { value: 'curve', label: 'Curve line' },
-];
-const CATEGORY_FEED_SORT_OPTIONS = [
-  { value: 'MANUAL_RANK', label: 'Manual rank' },
-  { value: 'NAME', label: 'Name' },
-  { value: 'LATEST', label: 'Latest' },
-];
-const CATEGORY_ICON_FEED_MODE_OPTIONS = [
-  { value: 'TOP_SELLING', label: 'Top selling categories' },
-  { value: 'MAIN_CATEGORY', label: 'Selected main category categories' },
-];
-const SOURCE_TYPE_OPTIONS = [
-  { value: 'MANUAL', label: 'Manual' },
-  { value: 'CATEGORY_FEED', label: 'Category feed' },
-];
-
-const MULTI_ITEM_GRID_FEED_OPTIONS = [
-  { value: 'FREQUENTLY_BOUGHT', label: 'Frequently bought', dataSourceRef: 'home_frequently_bought_products' },
-  { value: 'LOWEST_PRICE', label: 'Lowest price', dataSourceRef: 'home_lowest_price_products' },
-  { value: 'TRENDING', label: 'Trending', dataSourceRef: 'home_trending_products' },
-  { value: 'BESTSELLER', label: 'Bestseller', dataSourceRef: 'home_bestseller_products' },
-];
-
-const resolveMultiItemGridDataSourceRef = (mode) => {
-  const normalizedMode = String(mode || '').trim().toUpperCase();
-  const match = MULTI_ITEM_GRID_FEED_OPTIONS.find((option) => option.value === normalizedMode);
-  return match?.dataSourceRef || MULTI_ITEM_GRID_FEED_OPTIONS[0].dataSourceRef;
-};
-
-const resolveMultiItemGridFeedMode = (dataSourceRef, fallbackMode = 'FREQUENTLY_BOUGHT') => {
-  const normalizedRef = String(dataSourceRef || '').trim();
-  const match = MULTI_ITEM_GRID_FEED_OPTIONS.find((option) => option.dataSourceRef === normalizedRef);
-  if (match?.value) return match.value;
-  if (normalizedRef === 'home_top_selling_products') return 'BESTSELLER';
-  if (normalizedRef === 'home_recommended_products') return 'FREQUENTLY_BOUGHT';
-  if (normalizedRef === 'home_most_rated_products') return 'TRENDING';
-  return String(fallbackMode || 'FREQUENTLY_BOUGHT').trim().toUpperCase();
-};
-
-const DEEP_LINK_TEMPLATE_PRESETS = [
-  { value: 'app://category/{id}', label: 'Category details (app://category/{id})' },
-  { value: 'app://collection/{id}', label: 'Collection listing (app://collection/{id})' },
-  { value: 'app://campaign/{slug}', label: 'Campaign (app://campaign/{slug})' },
-];
-
-const ITEM_DEEP_LINK_PRESETS = [
-  { value: 'app://category/', label: 'Category (append category id)' },
-  { value: 'app://collection/', label: 'Collection (append collection id)' },
-  { value: 'app://campaign/', label: 'Campaign (append slug)' },
-  { value: 'app://product/', label: 'Product (append product id)' },
-];
-
-const toNumberOrNull = (value) => {
-  if (value === undefined || value === null || value === '') return null;
-  const numeric = Number(value);
-  return Number.isFinite(numeric) ? numeric : null;
-};
-
-const buildCategoryFeedFingerprint = (form, blockTypeOverride) => {
-  const blockType = String(blockTypeOverride || form?.blockType || form?.type || '').trim();
-  const sourceType = String(form?.sourceType || 'MANUAL').trim().toUpperCase();
-  if (!phaseOneBlockTypes.has(blockType) || sourceType !== 'CATEGORY_FEED') return '';
-  return JSON.stringify({
-    blockType,
-    sourceType,
-    sourceIndustryId: normalizeCollectionId(form?.sourceIndustryId),
-    sourceFeedMode: String(form?.sourceFeedMode || 'TOP_SELLING').trim().toUpperCase(),
-    sourceMainCategoryId: normalizeCollectionId(form?.sourceMainCategoryId),
-    sourceCategoryIds: Array.isArray(form?.sourceCategoryIds)
-      ? form.sourceCategoryIds.map((value) => normalizeCollectionId(value)).filter(Boolean).sort()
-      : [],
-    sourceLimit: String(form?.sourceLimit || '').trim(),
-    sourceSortBy: String(form?.sourceSortBy || '').trim().toUpperCase(),
-    sourceActiveOnly: form?.sourceActiveOnly !== false,
-    sourceHasImageOnly: form?.sourceHasImageOnly !== false,
-    sourceRankingWindowDays: String(form?.sourceRankingWindowDays || '30').trim(),
-    mappingTitleField: String(form?.mappingTitleField || '').trim(),
-    mappingImageField: String(form?.mappingImageField || '').trim(),
-    mappingSecondaryImageField: String(form?.mappingSecondaryImageField || '').trim(),
-    mappingDeepLinkTemplate: String(form?.mappingDeepLinkTemplate || '').trim(),
-  });
-};
-
-const isValidDeepLinkValue = (value) => {
-  const link = String(value || '').trim();
-  if (!link) return true;
-  return (
-    link.startsWith('app://') ||
-    link.startsWith('traddex://') ||
-    link.startsWith('/') ||
-    link.startsWith('http://') ||
-    link.startsWith('https://')
-  );
-};
-
-const matchesLayoutPreset = (preset, form) => {
-  if (!preset || !preset.values) return false;
-  const toNumber = (value) =>
-    value === undefined || value === null || value === '' ? null : Number(value);
-  const values = preset.values;
-  return (
-    toNumber(form.paddingY) === values.paddingY &&
-    toNumber(form.cardPadding) === values.cardPadding &&
-    toNumber(form.cardRadius) === values.cardRadius &&
-    toNumber(form.imageSize) === values.imageSize &&
-    toNumber(form.imageRadius) === values.imageRadius &&
-    toNumber(form.imageGap) === values.imageGap
-  );
-};
-
-const fallbackHeaderTabs = [
-  { id: 'home', label: 'Home', route: '/home' },
-  { id: 'electronics', label: 'Electronics', route: '/home/electronics' },
-  { id: 'beauty', label: 'Beauty', route: '/home/beauty' },
-  { id: 'grocery', label: 'Grocery', route: '/home/grocery' },
-  { id: 'fashion', label: 'Fashion', route: '/home/fashion' },
-  { id: 'agriculture', label: 'Agriculture', route: '/home/agriculture' },
-];
-
-const fallbackIndustryPresets = [
-  {
-    id: 'home_electronics',
-    route: '/home/electronics',
-    dataSourceRef: 'home.electronics',
-    dataSourceUrl: '/api/home?category=electronics',
-    label: 'Electronics',
-  },
-  {
-    id: 'home_beauty',
-    route: '/home/beauty',
-    dataSourceRef: 'home.beauty',
-    dataSourceUrl: '/api/home?category=beauty',
-    label: 'Beauty',
-  },
-  {
-    id: 'home_grocery',
-    route: '/home/grocery',
-    dataSourceRef: 'home.grocery',
-    dataSourceUrl: '/api/home?category=grocery',
-    label: 'Grocery',
-  },
-  {
-    id: 'home_fashion',
-    route: '/home/fashion',
-    dataSourceRef: 'home.fashion',
-    dataSourceUrl: '/api/home?category=fashion',
-    label: 'Fashion',
-  },
-  {
-    id: 'home_agriculture',
-    route: '/home/agriculture',
-    dataSourceRef: 'home.agriculture',
-    dataSourceUrl: '/api/home?category=agriculture',
-    label: 'Agriculture',
-  },
-];
-
-const homeFixedSections = [
-  { id: 'stats_row', title: 'Sales Report' },
-  { id: 'b2b_b2c', title: 'B2B & B2C' },
-  { id: 'quick_action', title: 'Quick Action' },
-  { id: 'business_of_month', title: 'Business of Month' },
-  { id: 'trending_categories', title: 'Categories of Trending' },
-  { id: 'bestsellers', title: 'Bestsellers' },
-  { id: 'services_near_you', title: 'Services Near You' },
-  { id: 'business_health', title: 'Your Business Health' },
-];
-
-const buildHomeFixedSections = () =>
-  homeFixedSections.map((section) => ({
-    id: section.id,
-    type: 'hardcoded',
-    title: section.title,
-    enabled: true,
-  }));
-
-const normalizeSlug = (value) =>
-  (value || '')
-    .toString()
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-
-const resolveIndustryRoute = (industry, slug) => {
-  const path = industry?.path;
-  if (path && typeof path === 'string') {
-    return path.startsWith('/') ? path : `/${path}`;
-  }
-  return slug ? `/home/${slug}` : '/home';
-};
-
-const buildIndustryPresets = (industries = []) => {
-  const items = Array.isArray(industries) ? industries : [];
-  const active = items.filter((item) => item?.active !== 0);
-  active.sort((a, b) => (a?.ordering ?? 0) - (b?.ordering ?? 0));
-  return active
-    .map((industry) => {
-      const name = industry?.name || 'Industry';
-      const slug = normalizeSlug(industry?.slug || name);
-      if (!slug) return null;
-      const route = resolveIndustryRoute(industry, slug);
-      return {
-        id: `home_${slug}`,
-        route,
-        dataSourceRef: `home.${slug}`,
-        dataSourceUrl: `/api/home?category=${slug}`,
-        label: name,
-      };
-    })
-    .filter(Boolean);
-};
-
-const buildHeaderTabs = (industries = []) => {
-  const industryTabs = buildIndustryPresets(industries).map((preset) => ({
-    id: preset.id.replace(/^home_/, ''),
-    label: preset.label,
-    route: preset.route,
-  }));
-  if (!industryTabs.length) {
-    return fallbackHeaderTabs;
-  }
-  const homeTab = { id: 'home', label: 'Home', route: '/home' };
-  return [homeTab, ...industryTabs];
-};
-
-const buildPagePresets = (industries = []) => {
-  const industryPresets = buildIndustryPresets(industries);
-  const pages = industryPresets.length ? industryPresets : fallbackIndustryPresets;
-  return [
-    {
-      id: 'home_main',
-      route: '/home',
-      label: 'Home Page',
-      sections: buildHomeFixedSections(),
-    },
-    ...pages,
-  ];
-};
-
-const quickSectionPresets = [
-  {
-    key: 'todays_deals',
-    label: "Add Today's Deals",
-    section: {
-      id: 'todays_deals',
-      type: 'horizontalList',
-      blockType: 'horizontal_scroll_list',
-      title: "Today's Deals",
-      itemsPath: '$.todaysDeals',
-      itemTemplateRef: 'actionCard',
-      dataSourceRef: 'todaydealproducts',
-    },
-  },
-  {
-    key: 'quick_actions',
-    label: 'Add Quick actions',
-    section: {
-      id: 'quick_actions',
-      type: 'grid',
-      title: 'Quick actions',
-      itemsPath: '$.quickActions',
-      itemTemplateRef: 'actionCard',
-      columns: 2,
-    },
-  },
-  {
-    key: 'shop_categories',
-    label: 'Add Shop categories',
-    section: {
-      id: 'shop_categories',
-      type: 'horizontalList',
-      title: 'Shop categories',
-      itemsPath: '$.categories',
-      itemTemplateRef: 'categoryTile',
-    },
-  },
-];
-
-const buildDataSources = (pagePresets = []) => {
-  const sources = {};
-  pagePresets.forEach((page) => {
-    if (!page?.dataSourceRef) return;
-    if (!sources[page.dataSourceRef]) {
-      sources[page.dataSourceRef] = {
-        method: 'GET',
-        url: page.dataSourceUrl || `/api/${page.dataSourceRef}`,
-      };
-    }
-  });
-  sources.todaydealproducts = { method: 'GET', url: '/api/user/todaydealproducts' };
-  sources.home_top_selling_products = { method: 'GET', url: '/api/home/products/top-selling' };
-  sources.home_most_rated_products = { method: 'GET', url: '/api/home/products/most-rated' };
-  sources.home_recommended_products = { method: 'GET', url: '/api/home/products/recommended' };
-  sources.home_frequently_bought_products = { method: 'GET', url: '/api/home/products/frequently-bought' };
-  sources.home_lowest_price_products = { method: 'GET', url: '/api/home/products/lowest-price' };
-  sources.home_trending_products = { method: 'GET', url: '/api/home/products/trending' };
-  sources.home_bestseller_products = { method: 'GET', url: '/api/home/products/bestseller' };
-  return sources;
-};
-
-const resolveDefaultDataSourceByRef = (ref) => {
-  if (!ref) return null;
-  const builtIn = buildDataSources([]);
-  if (builtIn[ref]) return builtIn[ref];
-  return { method: 'GET', url: `/api/${ref}` };
-};
-
-const buildDefaultConfig = (pagePresets, headerTabs) => ({
-  version: '1.0.0',
-  app: { locale: 'en-IN', currency: 'INR' },
-  theme: {
-    colors: {
-      brand: { primary: '#5B6CFF', secondary: '#F5A623' },
-      status: { success: '#16A34A', warning: '#F59E0B', error: '#EF4444', info: '#2563EB' },
-      text: {
-        primary: '#111827',
-        secondary: '#6B7280',
-        muted: '#9CA3AF',
-        inverse: '#FFFFFF',
-        link: '#5B6CFF',
-      },
-      bg: {
-        page: '#F6F7FB',
-        card: '#FFFFFF',
-        chip: '#F3F4F6',
-        divider: '#E5E7EB',
-        glass: '#FFFFFFCC',
-      },
-    },
-    fonts: {
-      family: {
-        regular: 'Inter-Regular',
-        medium: 'Inter-Medium',
-        semibold: 'Inter-SemiBold',
-        bold: 'Inter-Bold',
-      },
-      sizes: { xs: 10, sm: 12, md: 14, lg: 16, xl: 18, xxl: 22, display: 28 },
-      lineHeights: { xs: 14, sm: 16, md: 20, lg: 22, xl: 26, xxl: 30, display: 36 },
-      weights: { regular: 400, medium: 500, semibold: 600, bold: 700 },
-    },
-    textStyles: {
-      display: { size: 'display', weight: 'bold', lineHeight: 'display', color: 'text.primary' },
-      h1: { size: 'xxl', weight: 'bold', lineHeight: 'xxl', color: 'text.primary' },
-      h2: { size: 'xl', weight: 'semibold', lineHeight: 'xl', color: 'text.primary' },
-      title: { size: 'lg', weight: 'medium', lineHeight: 'lg', color: 'text.primary' },
-      body: { size: 'md', weight: 'regular', lineHeight: 'md', color: 'text.secondary' },
-      caption: { size: 'sm', weight: 'regular', lineHeight: 'sm', color: 'text.muted' },
-      label: { size: 'xs', weight: 'medium', lineHeight: 'xs', color: 'text.secondary' },
-      link: { size: 'md', weight: 'medium', lineHeight: 'md', color: 'text.link' },
-    },
-    radius: { sm: 10, md: 14, lg: 18, pill: 22 },
-    spacing: { xs: 6, sm: 10, md: 14, lg: 18, xl: 24 },
-  },
-  rendering: {
-    bindings: { valuePathSyntax: '$.', templateSyntax: '{{}}' },
-    formatters: {
-      currencyCompactINR: { type: 'currency', currency: 'INR', compact: true },
-      percentDelta: { type: 'percentDelta', suffix: '%' },
-    },
-  },
-  navigation: {
-    topCategoryTabs: headerTabs.map((tab) => ({
-      id: tab.id,
-      label: tab.label,
-      route: tab.route,
-    })),
-    bottomTabs: [
-      { id: 'home', label: 'Home', icon: 'home', route: '/home/electronics' },
-      { id: 'products', label: 'Products', icon: 'cart', route: '/products' },
-      { id: 'inquiry', label: 'Inquiry', icon: 'mail', route: '/inquiry' },
-      { id: 'dashboard', label: 'Dashboard', icon: 'grid', route: '/dashboard' },
-    ],
-  },
-  layoutTemplates: {
-    iconTextSideBySide: {
-      type: 'row',
-      alignment: 'center',
-      spacing: 8,
-      children: [
-        { type: 'icon', namePath: '$.icon', size: 18, colorRef: 'text.primary' },
-        { type: 'text', valuePath: '$.label', styleRef: 'body' },
-      ],
-    },
-    iconTextVertical: {
-      type: 'column',
-      alignment: 'center',
-      spacing: 4,
-      children: [
-        { type: 'icon', namePath: '$.icon', size: 22, colorRef: 'text.primary' },
-        { type: 'text', valuePath: '$.label', styleRef: 'caption' },
-      ],
-    },
-    actionCard: {
-      type: 'card',
-      bgColorRef: 'bg.card',
-      radius: 'lg',
-      padding: 'md',
-      children: [
-        { type: 'icon', namePath: '$.icon', size: 20, colorRef: 'brand.primary' },
-        { type: 'spacer', size: 8 },
-        { type: 'text', valuePath: '$.title', styleRef: 'title' },
-        { type: 'text', valuePath: '$.subtitle', styleRef: 'caption' },
-      ],
-    },
-    categoryTile: {
-      type: 'column',
-      alignment: 'center',
-      spacing: 8,
-      children: [
-        { type: 'image', urlPath: '$.iconUrl', width: 46, height: 46, radius: 23, bgColorRef: 'bg.chip' },
-        { type: 'text', valuePath: '$.name', styleRef: 'caption', maxLines: 1 },
-      ],
-    },
-    bannerCard: {
-      type: 'bannerCard',
-      radius: 'lg',
-      imageUrlPath: '$.imageUrl',
-      overlay: [
-        { type: 'chip', labelPath: '$.badgeText' },
-        { type: 'text', valuePath: '$.title', styleRef: 'h1', colorRef: 'text.inverse' },
-        { type: 'text', valuePath: '$.subtitle', styleRef: 'body', colorRef: 'text.inverse' },
-      ],
-    },
-  },
-  dataSources: buildDataSources(pagePresets),
-  pages: pagePresets.map((page) => ({
-    id: page.id,
-    route: page.route,
-    dataSourceRef: page.dataSourceRef,
-    screen: {
-      type: 'screen',
-      bgColorRef: 'bg.page',
-      sections: Array.isArray(page.sections) ? page.sections.map((section) => ({ ...section })) : [],
-    },
-  })),
-});
-
-const defaultSectionForm = {
-  id: '',
-  type: 'banner',
-  blockType: 'heroBanner',
-  title: '',
-  text: '',
-  imageUrl: '',
-  aspectRatio: '',
-  deepLink: '',
-  collectionIds: [],
-  placement: '',
-  placeholder: '',
-  sectionBgColor: '',
-  sectionBgImage: '',
-  columnTopLineStyle: 'curve',
-  cardBgColor: '',
-  titleColor: '',
-  badgeBgColor: '',
-  badgeTextColor: '',
-  imageShellBg: '',
-  paddingY: '',
-  cardPadding: '',
-  cardRadius: '',
-  imageSize: '',
-  imageRadius: '',
-  imageGap: '',
-  bentoHeaderImage: '',
-  bentoHeroImage: '',
-  bentoHeroLink: '',
-  bentoHeroLabel: '',
-  bentoHeroBadge: '',
-  bentoTiles: Array.from({ length: 4 }, () => ({ imageUrl: '', deepLink: '', label: '' })),
-  sduiItems: [],
-  enabled: true,
-  itemsPath: '',
-  itemTemplateRef: '',
-  dataSourceRef: '',
-  columns: '',
-  height: '',
-  videoUrl: '',
-  posterUrl: '',
-  scheduleStart: '',
-  scheduleEnd: '',
-  targetUserTypes: '',
-  targetRoles: '',
-  targetIndustries: '',
-  targetSubscriptionStatuses: '',
-  sourceType: 'MANUAL',
-  sourceIndustryId: '',
-  sourceFeedMode: 'TOP_SELLING',
-  productFeedMode: 'FREQUENTLY_BOUGHT',
-  productLimit: '9',
-  sourceMainCategoryId: '',
-  sourceCategoryIds: [],
-  sourceLimit: '8',
-  sourceRankingWindowDays: '30',
-  sourceSortBy: 'MANUAL_RANK',
-  sourceLevel: 'CATEGORY',
-  sourceActiveOnly: true,
-  sourceHasImageOnly: true,
-  mappingTitleField: 'name',
-  mappingImageField: 'imageUrl',
-  mappingSecondaryImageField: '',
-  mappingDeepLinkTemplate: 'app://category/{id}',
-};
-
-const defaultHeaderForm = {
-  backgroundImage: '',
-  overlayGradient: '',
-  backgroundColor: '',
-  searchBg: '',
-  searchText: '',
-  iconColor: '',
-  locationColor: '',
-  profileBg: '',
-  profileIconColor: '',
-  categoryColor: '',
-  minHeight: '',
-  paddingTop: '',
-  paddingBottom: '',
-};
-
-const defaultHeaderSectionForm = {
-  id: '',
-  type: 'addressHeader',
-  blockType: 'addressHeader',
-  title: '',
-  text: '',
-  placeholder: '',
-  enabled: true,
-  industryIds: [],
-  itemsPath: '',
-  itemTemplateRef: '',
-  dataSourceRef: '',
-  columns: '',
-  height: '',
-  videoUrl: '',
-  posterUrl: '',
-  scheduleStart: '',
-  scheduleEnd: '',
-  targetUserTypes: '',
-  targetRoles: '',
-  targetIndustries: '',
-  targetSubscriptionStatuses: '',
-};
-
-const getPageKey = (page, index) => page?.id || page?.route || `page_${index + 1}`;
-const getPageLabel = (page, index, presets) => {
-  const preset = (presets || []).find((item) => item.id === page?.id);
-  return preset?.label || page?.id || page?.route || `Page ${index + 1}`;
-};
-
-const SortableSectionRow = ({ id, className, children }) => {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-  return (
-    <div ref={setNodeRef} style={style} className={`${className} ${isDragging ? 'is-dragging' : ''}`}>
-      <div className="section-grip" {...attributes} {...listeners} />
-      {children}
-    </div>
-  );
-};
-
-const getPreviewItems = (section, fallbackCount = 4) => {
-  if (Array.isArray(section?.items) && section.items.length > 0) {
-    return section.items;
-  }
-  return Array.from({ length: fallbackCount }).map((_, index) => ({
-    _placeholder: true,
-    title: `Item ${index + 1}`,
-  }));
-};
-
-const getPreviewImage = (item) =>
-  item?.imageUrl || item?.imageUri || item?.thumbnailImage || item?.galleryImages?.[0]?.url || '';
-
-const getPreviewSecondaryImage = (item) => item?.secondaryImageUrl || '';
-
-const getPreviewTitle = (item) => item?.title || item?.name || item?.label || 'Item';
-
-const ToolboxItem = ({ item, onAdd }) => {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: `toolbox:${item.key}`,
-  });
-  const style = {
-    transform: CSS.Transform.toString(transform),
-  };
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={`toolbox-item ${isDragging ? 'is-dragging' : ''}`}
-    >
-      <div className="toolbox-grip" {...attributes} {...listeners} />
-      <div className="toolbox-body">
-        <div className="toolbox-title">{item.label}</div>
-        <div className="toolbox-hint">{item.hint}</div>
-      </div>
-      <button
-        type="button"
-        className="ghost-btn small"
-        onClick={() => onAdd(item)}
-      >
-        Add
-      </button>
-    </div>
-  );
-};
-
-const DropZone = ({ id, isOver, children, className, style, onClick }) => {
-  const { setNodeRef } = useDroppable({ id });
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={`${className} ${isOver ? 'is-over' : ''}`}
-      onClick={onClick}
-    >
-      {children}
-    </div>
-  );
-};
-
-const SortablePreviewItem = ({ id, className, onClick, children }) => {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={`${className} ${isDragging ? 'is-dragging' : ''}`}
-      onClick={(event) => {
-        event.stopPropagation();
-        if (onClick) {
-          onClick(event);
-        }
-      }}
-      {...attributes}
-      {...listeners}
-    >
-      {children}
-    </div>
-  );
-};
+import {
+  emptyMessage,
+  parseJson,
+  formatDate,
+  parseCsvList,
+  formatCsvList,
+  toLocalInputValue,
+  fromLocalInputValue,
+  isHardcodedSection,
+  isHomeMainPage,
+  screenSectionTypeOptions,
+  defaultBlockTypeBySectionType,
+  headerSectionTypeOptions,
+  headerToolboxItems,
+  screenToolboxItems,
+  toolboxItems,
+  blockLabels,
+  resolveBlockLabel,
+  resolveBlockType,
+  normalizeCollectionId,
+  normalizeMatchValue,
+  resolveIndustryId,
+  resolveIndustryLabel,
+  resolveMainCategoryId,
+  resolveMainCategoryIndustryId,
+  resolveMainCategoryName,
+  resolveCategoryId,
+  resolveCategoryMainCategoryId,
+  sizePresets,
+  categoryLayoutPresets,
+  findPresetKey,
+  ensureBentoTiles,
+  phaseOneBlockTypes,
+  getPhaseOneDefaultItem,
+  normalizePhaseOneItems,
+  imageExtensionRegex,
+  imageLikeFieldRegex,
+  getImageExtension,
+  isLikelyImageUrl,
+  collectImageUrls,
+  isHexColor,
+  resolveHexColor,
+  normalizeColumnTopLineStyle,
+  COLUMN_GRID_BG_PALETTE,
+  COLUMN_GRID_CARD_BG_PALETTE,
+  COLUMN_GRID_TOP_LINE_STYLES,
+  CATEGORY_FEED_SORT_OPTIONS,
+  CATEGORY_ICON_FEED_MODE_OPTIONS,
+  SOURCE_TYPE_OPTIONS,
+  MULTI_ITEM_GRID_FEED_OPTIONS,
+  resolveMultiItemGridDataSourceRef,
+  resolveMultiItemGridFeedMode,
+  DEEP_LINK_TEMPLATE_PRESETS,
+  ITEM_DEEP_LINK_PRESETS,
+  toNumberOrNull,
+  buildCategoryFeedFingerprint,
+  isValidDeepLinkValue,
+  matchesLayoutPreset,
+  fallbackHeaderTabs,
+  fallbackIndustryPresets,
+  homeFixedSections,
+  buildHomeFixedSections,
+  normalizeSlug,
+  resolveIndustryRoute,
+  buildIndustryPresets,
+  buildHeaderTabs,
+  buildPagePresets,
+  quickSectionPresets,
+  buildDataSources,
+  resolveDefaultDataSourceByRef,
+  buildDefaultConfig,
+  defaultSectionForm,
+  defaultHeaderForm,
+  defaultHeaderSectionForm,
+  getPageKey,
+  getPageLabel,
+} from './appConfig/appConfigConstants';
+import {
+  SortableSectionRow,
+  ToolboxItem,
+  DropZone,
+  SortablePreviewItem,
+  getPreviewItems,
+  getPreviewImage,
+  getPreviewSecondaryImage,
+  getPreviewTitle,
+  HeaderBlockPreview,
+  PreviewSection,
+} from './appConfig/AppConfigDndComponents';
+import {
+  buildUniqueSectionId,
+  ensurePagesArray,
+  ensureScreenSections,
+  ensureHeaderBlocks,
+  buildSectionFromForm,
+  parseGradientList,
+  buildSectionFormFromConfig,
+} from './appConfig/appConfigBuilders';
 
 function AppConfigPage({ token }) {
   const [draftText, setDraftText] = useState('');
@@ -1255,6 +132,10 @@ function AppConfigPage({ token }) {
   const [isLoading, setIsLoading] = useState(false);
   const [showAdvancedJson, setShowAdvancedJson] = useState(false);
   const [showCustomPageFields, setShowCustomPageFields] = useState(false);
+  const [showManagePages, setShowManagePages] = useState(false);
+  const [clonePageId, setClonePageId] = useState('');
+  const [clonePageRoute, setClonePageRoute] = useState('');
+  const [showManageTabs, setShowManageTabs] = useState(false);
   const [activePanel, setActivePanel] = useState(null);
   const [showEditor, setShowEditor] = useState(false);
   const [showAdvancedFields, setShowAdvancedFields] = useState(false);
@@ -1296,7 +177,11 @@ function AppConfigPage({ token }) {
   const headerInputRef = useRef(null);
   const heroBannerInputRef = useRef(null);
   const bentoInputRef = useRef(null);
+  const lastSavedDraftRef = useRef('');
+  const versionDropdownRef = useRef(null);
   const [showHeaderEditor, setShowHeaderEditor] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [showVersionDropdown, setShowVersionDropdown] = useState(false);
   const [showHeaderAdvancedFields, setShowHeaderAdvancedFields] = useState(false);
 
   const pagePresets = useMemo(() => buildPagePresets(industries), [industries]);
@@ -1321,6 +206,16 @@ function AppConfigPage({ token }) {
   }, [pages, selectedPageKey]);
 
   const selectedPage = selectedPageIndex >= 0 ? pages[selectedPageIndex] : null;
+
+  const pageIndustry = useMemo(() => {
+    const pageId = selectedPage?.id || '';
+    if (!pageId.startsWith('home_') || pageId === 'home_main') return null;
+    const slug = pageId.replace(/^home_/, '');
+    return industries.find((ind) => {
+      const indSlug = normalizeSlug(ind?.slug || ind?.name || '');
+      return indSlug === slug;
+    }) || null;
+  }, [selectedPage, industries]);
 
   const selectedSections = useMemo(() => {
     const sections = selectedPage?.screen?.sections;
@@ -1368,6 +263,62 @@ function AppConfigPage({ token }) {
   const sectionCount = selectedSections.length;
   const versionCount = versions.length;
   const industryCount = industries.length;
+  const hasUnsavedChanges = Boolean(draftText && draftText !== lastSavedDraftRef.current);
+
+  const orphanedPages = useMemo(() => {
+    if (!pages.length || !industries.length) return [];
+    const activeSlugs = new Set(
+      industries
+        .filter((ind) => ind?.active !== 0)
+        .map((ind) => normalizeSlug(ind?.slug || ind?.name || ''))
+        .filter(Boolean)
+    );
+    return pages.filter((page) => {
+      const id = page?.id || '';
+      if (!id.startsWith('home_') || id === 'home_main') return false;
+      const slug = id.replace(/^home_/, '');
+      return !activeSlugs.has(slug);
+    });
+  }, [pages, industries]);
+
+  const currentTabs = useMemo(() => {
+    const tabs = configSnapshot?.navigation?.topCategoryTabs;
+    return Array.isArray(tabs) ? tabs : [];
+  }, [configSnapshot]);
+
+  const handleMoveTab = (fromIndex, direction) => {
+    const config = getConfigForBuilder();
+    if (!config) return;
+    const next = cloneConfig(config);
+    if (!next.navigation || !Array.isArray(next.navigation.topCategoryTabs)) return;
+    const tabs = next.navigation.topCategoryTabs;
+    const toIndex = fromIndex + direction;
+    if (toIndex < 0 || toIndex >= tabs.length) return;
+    const temp = tabs[fromIndex];
+    tabs[fromIndex] = tabs[toIndex];
+    tabs[toIndex] = temp;
+    updateConfigFromBuilder(next, 'Tab order updated. Remember to save draft.');
+  };
+
+  const handleRemoveTab = (index) => {
+    const config = getConfigForBuilder();
+    if (!config) return;
+    const next = cloneConfig(config);
+    if (!next.navigation || !Array.isArray(next.navigation.topCategoryTabs)) return;
+    const tab = next.navigation.topCategoryTabs[index];
+    const tabLabel = tab?.label || tab?.id || 'tab';
+    setConfirmAction({
+      title: 'Remove Tab',
+      message: `Remove the "${tabLabel}" tab from navigation? The linked page will not be deleted.`,
+      confirmLabel: 'Remove',
+      variant: 'danger',
+      onConfirm: () => {
+        setConfirmAction(null);
+        next.navigation.topCategoryTabs.splice(index, 1);
+        updateConfigFromBuilder(next, `Tab "${tabLabel}" removed. Remember to save draft.`);
+      },
+    });
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -1436,6 +387,17 @@ function AppConfigPage({ token }) {
   }, [pagePresets, pagePresetKey]);
 
   useEffect(() => {
+    if (!showVersionDropdown) return;
+    const handleClickOutside = (e) => {
+      if (versionDropdownRef.current && !versionDropdownRef.current.contains(e.target)) {
+        setShowVersionDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showVersionDropdown]);
+
+  useEffect(() => {
     setPhaseOneImageWarnings({});
     closeMediaPicker();
     const blockType = sectionForm.blockType || sectionForm.type || '';
@@ -1500,14 +462,18 @@ function AppConfigPage({ token }) {
       const response = await getAppConfigDraft(token);
       const payload = response?.data;
       if (payload?.config) {
-        setDraftText(JSON.stringify(payload.config, null, 2));
+        const text = JSON.stringify(payload.config, null, 2);
+        setDraftText(text);
+        lastSavedDraftRef.current = text;
         setVersion(payload?.meta?.version || '');
         return;
       }
       const published = await getPublishedAppConfig();
       const publishedPayload = published?.data;
       if (publishedPayload?.config) {
-        setDraftText(JSON.stringify(publishedPayload.config, null, 2));
+        const text = JSON.stringify(publishedPayload.config, null, 2);
+        setDraftText(text);
+        lastSavedDraftRef.current = text;
         setVersion(publishedPayload?.meta?.version || '');
         setMessage({ type: 'info', text: 'Loaded published config (no draft found).' });
       }
@@ -1677,6 +643,7 @@ function AppConfigPage({ token }) {
       if (payload?.meta?.version) {
         setVersion(payload.meta.version);
       }
+      lastSavedDraftRef.current = draftText;
       setMessage({ type: 'success', text: 'Draft saved.' });
       await loadVersions();
     } catch (error) {
@@ -1718,6 +685,56 @@ function AppConfigPage({ token }) {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const requestPublish = () => {
+    setConfirmAction({
+      title: 'Publish Draft',
+      message: 'This will push the current draft live to all users. Are you sure?',
+      confirmLabel: 'Publish',
+      variant: 'default',
+      onConfirm: () => { setConfirmAction(null); handlePublish(); },
+    });
+  };
+
+  const requestRollback = (id) => {
+    setConfirmAction({
+      title: 'Rollback Version',
+      message: 'Rolling back will overwrite the current draft with this version. Continue?',
+      confirmLabel: 'Rollback',
+      variant: 'danger',
+      onConfirm: () => { setConfirmAction(null); handleRollback(id); },
+    });
+  };
+
+  const requestDeleteSection = (index) => {
+    setConfirmAction({
+      title: 'Remove Section',
+      message: 'This section will be removed from the page. Remember to save draft afterwards.',
+      confirmLabel: 'Remove',
+      variant: 'danger',
+      onConfirm: () => { setConfirmAction(null); handleDeleteSection(index); },
+    });
+  };
+
+  const requestDeleteHeaderSection = (index) => {
+    setConfirmAction({
+      title: 'Remove Header Block',
+      message: 'This header block will be removed. Remember to save draft afterwards.',
+      confirmLabel: 'Remove',
+      variant: 'danger',
+      onConfirm: () => { setConfirmAction(null); handleDeleteHeaderSection(index); },
+    });
+  };
+
+  const requestClearHeader = () => {
+    setConfirmAction({
+      title: 'Reset Header',
+      message: 'All header settings (background, colors, gradient) will be reset to defaults.',
+      confirmLabel: 'Reset',
+      variant: 'danger',
+      onConfirm: () => { setConfirmAction(null); handleClearHeader(); },
+    });
   };
 
   const handleRefresh = async () => {
@@ -1790,7 +807,12 @@ function AppConfigPage({ token }) {
   };
 
   const resetSectionForm = () => {
-    setSectionForm({ ...defaultSectionForm });
+    const base = { ...defaultSectionForm };
+    if (pageIndustry) {
+      base.sourceType = 'CATEGORY_FEED';
+      base.sourceIndustryId = String(resolveIndustryId(pageIndustry) || '');
+    }
+    setSectionForm(base);
     setEditingSectionIndex(null);
     setShowAdvancedFields(false);
   };
@@ -1932,7 +954,7 @@ function AppConfigPage({ token }) {
     if (ext === 'jpg' || ext === 'jpeg') {
       setPhaseOneImageWarnings((prev) => ({
         ...prev,
-        [warningKey]: 'JPG ma transparency nathi hoti. PNG/WebP use karo.',
+        [warningKey]: 'JPG does not support transparency. Use PNG or WebP instead.',
       }));
       return;
     }
@@ -2133,7 +1155,7 @@ function AppConfigPage({ token }) {
     setShowAdvancedSourceSettings(false);
     setMessage({
       type: 'info',
-      text: 'Festive preset applied. Main category / categories select karo, pachi Refresh feed karo.',
+      text: 'Festive preset applied. Select a main category and categories, then refresh the feed.',
     });
   };
 
@@ -2498,15 +1520,6 @@ function AppConfigPage({ token }) {
     updateConfigFromBuilder(next, 'Header pages ensured. Remember to save draft.');
   };
 
-  const buildUniqueSectionId = (baseId, sections) => {
-    if (!sections.some((section) => section?.id === baseId)) return baseId;
-    let index = 2;
-    while (sections.some((section) => section?.id === `${baseId}_${index}`)) {
-      index += 1;
-    }
-    return `${baseId}_${index}`;
-  };
-
   const addSectionFromPreset = (preset, overrides, target = 'screen', insertIndex = null) => {
     const config = getConfigForBuilder();
     if (!config) return;
@@ -2739,332 +1752,6 @@ function AppConfigPage({ token }) {
     }
   };
 
-  const ensurePagesArray = (config) => {
-    if (!Array.isArray(config.pages)) {
-      config.pages = [];
-    }
-    return config.pages;
-  };
-
-  const ensureScreenSections = (page) => {
-    if (!page.screen || typeof page.screen !== 'object') {
-      page.screen = { type: 'screen', sections: [] };
-    }
-    if (!Array.isArray(page.screen.sections)) {
-      page.screen.sections = [];
-    }
-    return page.screen.sections;
-  };
-
-  const ensureHeaderBlocks = (page) => {
-    if (!page.header || typeof page.header !== 'object') {
-      page.header = {};
-    }
-    if (!Array.isArray(page.header.blocks)) {
-      page.header.blocks = [];
-    }
-    return page.header.blocks;
-  };
-
-  const buildSectionFromForm = (base, form) => {
-    const next = { ...(base || {}) };
-    const resolvedBlockType = form.blockType?.trim() || form.type?.trim() || '';
-    const isColumnGridBlock = resolvedBlockType === 'column_grid';
-    const isCampaignBentoBlock = resolvedBlockType === 'campaignBento';
-    const setOrDelete = (key, value) => {
-      if (value === undefined || value === null || String(value).trim() === '') {
-        delete next[key];
-        return;
-      }
-      next[key] = value;
-    };
-    setOrDelete('id', form.id?.trim());
-    setOrDelete('type', form.type?.trim());
-    setOrDelete('blockType', form.blockType?.trim());
-    setOrDelete('title', form.title?.trim());
-    setOrDelete('text', form.text?.trim());
-    setOrDelete('imageUrl', form.imageUrl?.trim());
-    setOrDelete('aspectRatio', form.aspectRatio?.trim());
-    setOrDelete('deepLink', form.deepLink?.trim());
-    setOrDelete('placeholder', form.placeholder?.trim());
-    setOrDelete('sectionBgColor', form.sectionBgColor?.trim());
-    if (isColumnGridBlock) {
-      setOrDelete('sectionBgImage', form.sectionBgImage?.trim());
-      next.columnTopLineStyle = normalizeColumnTopLineStyle(form.columnTopLineStyle);
-      delete next.columnTopLineColor;
-      delete next.columnTopLineImage;
-    } else {
-      delete next.sectionBgImage;
-      delete next.columnTopLineStyle;
-      delete next.columnTopLineColor;
-      delete next.columnTopLineImage;
-    }
-    setOrDelete('cardBgColor', form.cardBgColor?.trim());
-    setOrDelete('titleColor', form.titleColor?.trim());
-    setOrDelete('badgeBgColor', form.badgeBgColor?.trim());
-    setOrDelete('badgeTextColor', form.badgeTextColor?.trim());
-    setOrDelete('imageShellBg', form.imageShellBg?.trim());
-    const paddingY = form.paddingY !== '' ? Number(form.paddingY) : null;
-    if (paddingY && !Number.isNaN(paddingY)) {
-      next.paddingY = paddingY;
-    } else {
-      delete next.paddingY;
-    }
-    const cardPadding = form.cardPadding !== '' ? Number(form.cardPadding) : null;
-    if (cardPadding && !Number.isNaN(cardPadding)) {
-      next.cardPadding = cardPadding;
-    } else {
-      delete next.cardPadding;
-    }
-    const cardRadius = form.cardRadius !== '' ? Number(form.cardRadius) : null;
-    if (cardRadius && !Number.isNaN(cardRadius)) {
-      next.cardRadius = cardRadius;
-    } else {
-      delete next.cardRadius;
-    }
-    const imageSize = form.imageSize !== '' ? Number(form.imageSize) : null;
-    if (imageSize && !Number.isNaN(imageSize)) {
-      next.imageSize = imageSize;
-    } else {
-      delete next.imageSize;
-    }
-    const imageRadius = form.imageRadius !== '' ? Number(form.imageRadius) : null;
-    if (imageRadius && !Number.isNaN(imageRadius)) {
-      next.imageRadius = imageRadius;
-    } else {
-      delete next.imageRadius;
-    }
-    const imageGap = form.imageGap !== '' ? Number(form.imageGap) : null;
-    if (imageGap && !Number.isNaN(imageGap)) {
-      next.imageGap = imageGap;
-    } else {
-      delete next.imageGap;
-    }
-    if (isCampaignBentoBlock) {
-      const headerImage = form.bentoHeaderImage?.trim();
-      if (headerImage) {
-        next.headerImage = headerImage;
-      } else {
-        delete next.headerImage;
-      }
-      const heroImage = form.bentoHeroImage?.trim();
-      const heroLink = form.bentoHeroLink?.trim();
-      const heroLabel = form.bentoHeroLabel?.trim();
-      const heroBadge = form.bentoHeroBadge?.trim();
-      if (heroImage || heroLink || heroLabel || heroBadge) {
-        next.hero = {
-          ...(heroImage ? { imageUrl: heroImage } : {}),
-          ...(heroLink ? { deepLink: heroLink } : {}),
-          ...(heroLabel ? { label: heroLabel } : {}),
-          ...(heroBadge ? { badgeText: heroBadge } : {}),
-        };
-      } else {
-        delete next.hero;
-      }
-      const tiles = Array.isArray(form.bentoTiles) ? form.bentoTiles : [];
-      const normalizedTiles = tiles
-        .map((tile) => ({
-          imageUrl: tile?.imageUrl ? String(tile.imageUrl).trim() : '',
-          deepLink: tile?.deepLink ? String(tile.deepLink).trim() : '',
-          label: tile?.label ? String(tile.label).trim() : '',
-        }))
-        .filter((tile) => tile.imageUrl || tile.deepLink || tile.label);
-      if (normalizedTiles.length > 0) {
-        next.tiles = normalizedTiles;
-      } else {
-        delete next.tiles;
-      }
-    } else {
-      delete next.hero;
-      delete next.tiles;
-      if (!isColumnGridBlock) {
-        delete next.headerImage;
-      }
-    }
-    if (phaseOneBlockTypes.has(resolvedBlockType)) {
-      const normalizedItems = normalizePhaseOneItems(form.sduiItems, resolvedBlockType)
-        .map((item) => {
-          const clean = {};
-          const assign = (key, value) => {
-            if (value === undefined || value === null) return;
-            const text = String(value).trim();
-            if (!text) return;
-            clean[key] = text;
-          };
-          assign('id', item.id);
-          if (item.kind && item.kind !== 'tile') assign('kind', item.kind);
-          assign('collectionId', item.collectionId);
-          assign('title', item.title);
-          assign('subtitle', item.subtitle);
-          assign('badgeText', item.badgeText);
-          assign('imageUrl', item.imageUrl);
-          assign('secondaryImageUrl', item.secondaryImageUrl);
-          assign('deepLink', item.deepLink);
-          assign('bgColor', item.bgColor);
-          assign('frameColor', item.frameColor);
-          assign('titleColor', item.titleColor);
-          assign('badgeTextColor', item.badgeTextColor);
-          return clean;
-        })
-        .filter((item) => Object.keys(item).length > 0);
-      if (normalizedItems.length > 0) {
-        next.items = normalizedItems;
-      } else {
-        delete next.items;
-      }
-    }
-    setOrDelete('itemsPath', form.itemsPath?.trim());
-    setOrDelete('itemTemplateRef', form.itemTemplateRef?.trim());
-    setOrDelete('dataSourceRef', form.dataSourceRef?.trim());
-    const isLegacyMultiItemGrid =
-      !phaseOneBlockTypes.has(resolvedBlockType) && resolvedBlockType === 'multiItemGrid';
-    const sourceType = String(form.sourceType || 'MANUAL').trim().toUpperCase();
-    if (isLegacyMultiItemGrid) {
-      const feedMode = String(form.productFeedMode || 'FREQUENTLY_BOUGHT').trim().toUpperCase();
-      const productLimitRaw = toNumberOrNull(form.productLimit);
-      const productLimit = productLimitRaw ? Math.max(1, Math.min(60, productLimitRaw)) : 9;
-      next.productFeedMode = feedMode;
-      next.dataSourceRef = resolveMultiItemGridDataSourceRef(feedMode);
-      next.itemsPath = '$.products';
-      next.columns = 3;
-      next.productLimit = productLimit;
-      delete next.dataSource;
-      delete next.mapping;
-    } else {
-      if (sourceType && sourceType !== 'MANUAL') {
-        const sourcePayload = { sourceType };
-        const sourceIndustryId = normalizeCollectionId(form.sourceIndustryId);
-        if (sourceIndustryId) sourcePayload.industryId = sourceIndustryId;
-        if (sourceType === 'CATEGORY_FEED' && form.sourceFeedMode) {
-          sourcePayload.mode = String(form.sourceFeedMode).trim().toUpperCase();
-        }
-        const mainCategoryId = normalizeCollectionId(form.sourceMainCategoryId);
-        if (mainCategoryId) sourcePayload.mainCategoryId = mainCategoryId;
-        const sourceCategoryIds = Array.isArray(form.sourceCategoryIds)
-          ? form.sourceCategoryIds.map((value) => normalizeCollectionId(value)).filter(Boolean)
-          : [];
-        if (sourceCategoryIds.length) sourcePayload.categoryIds = sourceCategoryIds;
-        const sourceLimit = toNumberOrNull(form.sourceLimit);
-        if (sourceLimit) sourcePayload.limit = Math.max(1, Math.min(20, sourceLimit));
-        if (sourceType === 'CATEGORY_FEED') {
-          const rankingWindowDays = toNumberOrNull(form.sourceRankingWindowDays);
-          if (rankingWindowDays) sourcePayload.rankingWindowDays = Math.max(1, Math.min(365, rankingWindowDays));
-          if (form.sourceSortBy) sourcePayload.sortBy = String(form.sourceSortBy).trim().toUpperCase();
-          if (form.sourceLevel) sourcePayload.level = String(form.sourceLevel).trim().toUpperCase();
-          sourcePayload.filters = {
-            activeOnly: form.sourceActiveOnly !== false,
-            hasImageOnly: form.sourceHasImageOnly !== false,
-          };
-        }
-        next.dataSource = sourcePayload;
-      } else {
-        delete next.dataSource;
-      }
-      if (sourceType === 'CATEGORY_FEED') {
-        const mappingPayload = {};
-        const titleField = String(form.mappingTitleField || '').trim();
-        const imageField = String(form.mappingImageField || '').trim();
-        const secondaryImageField = String(form.mappingSecondaryImageField || '').trim();
-        const deepLinkTemplate = String(form.mappingDeepLinkTemplate || '').trim();
-        if (titleField) mappingPayload.titleField = titleField;
-        if (imageField) mappingPayload.imageField = imageField;
-        if (secondaryImageField) mappingPayload.secondaryImageField = secondaryImageField;
-        if (deepLinkTemplate) mappingPayload.deepLinkTemplate = deepLinkTemplate;
-        if (Object.keys(mappingPayload).length) {
-          next.mapping = mappingPayload;
-        } else {
-          delete next.mapping;
-        }
-      } else {
-        delete next.mapping;
-      }
-      delete next.productFeedMode;
-      delete next.productLimit;
-    }
-    if (isLegacyMultiItemGrid) {
-      next.columns = 3;
-    } else {
-      const columns = form.columns !== '' ? Number(form.columns) : null;
-      if (columns && !Number.isNaN(columns)) {
-        next.columns = columns;
-      } else {
-        delete next.columns;
-      }
-    }
-    const height = form.height !== '' ? Number(form.height) : null;
-    if (height && !Number.isNaN(height)) {
-      next.height = height;
-    } else {
-      delete next.height;
-    }
-    setOrDelete('videoUrl', form.videoUrl?.trim());
-    setOrDelete('posterUrl', form.posterUrl?.trim());
-    setOrDelete('placement', form.placement?.trim());
-    const collectionIds = Array.isArray(form.collectionIds)
-      ? form.collectionIds.map((value) => normalizeCollectionId(value)).filter(Boolean)
-      : [];
-    if (!isLegacyMultiItemGrid && collectionIds.length > 0) {
-      next.collectionIds = collectionIds;
-    } else {
-      delete next.collectionIds;
-    }
-    const industryIds = Array.isArray(form.industryIds)
-      ? form.industryIds.map((value) => normalizeCollectionId(value)).filter(Boolean)
-      : [];
-    if (industryIds.length > 0) {
-      next.industryIds = industryIds;
-    } else {
-      delete next.industryIds;
-    }
-    if (form.enabled === false) {
-      next.enabled = false;
-    } else {
-      delete next.enabled;
-    }
-    const scheduleStart = fromLocalInputValue(form.scheduleStart);
-    const scheduleEnd = fromLocalInputValue(form.scheduleEnd);
-    if (scheduleStart || scheduleEnd) {
-      next.schedule = {
-        ...(scheduleStart ? { startAt: scheduleStart } : {}),
-        ...(scheduleEnd ? { endAt: scheduleEnd } : {}),
-      };
-    } else {
-      delete next.schedule;
-    }
-    const targeting = {
-      userTypes: parseCsvList(form.targetUserTypes),
-      roles: parseCsvList(form.targetRoles),
-      industries: parseCsvList(form.targetIndustries),
-      subscriptionStatuses: parseCsvList(form.targetSubscriptionStatuses),
-    };
-    const hasTargeting = Object.values(targeting).some((list) => Array.isArray(list) && list.length > 0);
-    if (hasTargeting) {
-      next.targeting = targeting;
-    } else {
-      delete next.targeting;
-    }
-    return next;
-  };
-
-  const parseGradientList = (value) => {
-    if (!value || typeof value !== 'string') return [];
-    const trimmed = value.trim();
-    if (!trimmed) return [];
-    if (trimmed.startsWith('[')) {
-      try {
-        const parsed = JSON.parse(trimmed);
-        if (Array.isArray(parsed)) {
-          return parsed.map((item) => String(item)).filter(Boolean);
-        }
-      } catch (error) {
-        // fall back to comma parsing
-      }
-    }
-    return trimmed
-      .split(',')
-      .map((item) => item.trim())
-      .filter(Boolean);
-  };
 
   const handleHeaderSubmit = (event) => {
     event.preventDefault();
@@ -3257,6 +1944,101 @@ function AppConfigPage({ token }) {
     setSelectedPageKey(getPageKey(page, pagesList.length - 1));
   };
 
+  const handleRemovePage = () => {
+    const config = getConfigForBuilder();
+    if (!config) return;
+    if (!selectedPageKey) {
+      setMessage({ type: 'error', text: 'No page selected to remove.' });
+      return;
+    }
+    const next = cloneConfig(config);
+    const pagesList = ensurePagesArray(next);
+    const pageIndex = pagesList.findIndex((page, index) => getPageKey(page, index) === selectedPageKey);
+    if (pageIndex < 0) {
+      setMessage({ type: 'error', text: 'Selected page not found.' });
+      return;
+    }
+    pagesList.splice(pageIndex, 1);
+    updateConfigFromBuilder(next, 'Page removed. Remember to save draft.');
+    if (pagesList.length > 0) {
+      setSelectedPageKey(getPageKey(pagesList[0], 0));
+    } else {
+      setSelectedPageKey('');
+    }
+  };
+
+  const requestRemovePage = () => {
+    const pageName = selectedPage?.id || selectedPage?.route || selectedPageKey;
+    setConfirmAction({
+      title: 'Remove Page',
+      message: `Remove page "${pageName}"? All sections on this page will be lost.`,
+      confirmLabel: 'Remove',
+      variant: 'danger',
+      onConfirm: () => { setConfirmAction(null); handleRemovePage(); },
+    });
+  };
+
+  const handleCleanupOrphanedPages = () => {
+    const config = getConfigForBuilder();
+    if (!config || !orphanedPages.length) return;
+    const next = cloneConfig(config);
+    const pagesList = ensurePagesArray(next);
+    const orphanIds = new Set(orphanedPages.map((p) => p?.id).filter(Boolean));
+    const remaining = pagesList.filter((page) => !orphanIds.has(page?.id));
+    next.pages = remaining;
+    if (Array.isArray(next.navigation?.topCategoryTabs)) {
+      const orphanSlugs = new Set([...orphanIds].map((id) => id.replace(/^home_/, '')));
+      next.navigation.topCategoryTabs = next.navigation.topCategoryTabs.filter(
+        (tab) => !orphanSlugs.has(tab?.id)
+      );
+    }
+    updateConfigFromBuilder(next, `Removed ${orphanIds.size} orphaned page(s). Remember to save draft.`);
+    if (orphanIds.has(selectedPageKey) || orphanIds.has(selectedPage?.id)) {
+      const firstRemaining = next.pages[0];
+      setSelectedPageKey(firstRemaining ? getPageKey(firstRemaining, 0) : '');
+    }
+  };
+
+  const requestCleanupOrphans = () => {
+    const names = orphanedPages.map((p) => p?.id || p?.route).join(', ');
+    setConfirmAction({
+      title: 'Remove Orphaned Pages',
+      message: `Remove ${orphanedPages.length} page(s) that no longer have an active industry? (${names})`,
+      confirmLabel: 'Remove',
+      variant: 'danger',
+      onConfirm: () => { setConfirmAction(null); handleCleanupOrphanedPages(); },
+    });
+  };
+
+  const handleClonePage = () => {
+    const config = getConfigForBuilder();
+    if (!config || !selectedPage) {
+      setMessage({ type: 'error', text: 'Select a page to duplicate first.' });
+      return;
+    }
+    const id = clonePageId.trim();
+    const route = clonePageRoute.trim();
+    if (!id || !route) {
+      setMessage({ type: 'error', text: 'Page ID and route are required for the duplicate.' });
+      return;
+    }
+    const next = cloneConfig(config);
+    const pagesList = ensurePagesArray(next);
+    const duplicate = pagesList.some((page) => page?.id === id || page?.route === route);
+    if (duplicate) {
+      setMessage({ type: 'error', text: 'A page with this ID or route already exists.' });
+      return;
+    }
+    const cloned = cloneConfig(selectedPage);
+    cloned.id = id;
+    cloned.route = route;
+    pagesList.push(cloned);
+    updateConfigFromBuilder(next, `Page duplicated as "${id}". Remember to save draft.`);
+    setClonePageId('');
+    setClonePageRoute('');
+    setSelectedPageKey(getPageKey(cloned, pagesList.length - 1));
+  };
+
   const handleSectionSubmit = (event) => {
     event.preventDefault();
     if (editingSectionIndex !== null) {
@@ -3425,100 +2207,6 @@ function AppConfigPage({ token }) {
     updateConfigFromBuilder(next, 'Header block updated. Remember to save draft.');
     resetHeaderSectionForm();
     setShowHeaderEditor(false);
-  };
-
-  const buildSectionFormFromConfig = (section, fallbackType) => {
-    const items = Array.isArray(section?.items) ? section.items : [];
-    const firstItem = items[0] || {};
-    const hero = section?.hero && typeof section.hero === 'object' ? section.hero : {};
-    const tiles = ensureBentoTiles(section?.tiles);
-    const source = section?.dataSource && typeof section.dataSource === 'object' ? section.dataSource : {};
-    const mapping = section?.mapping && typeof section.mapping === 'object' ? section.mapping : {};
-    const resolvedType = section?.type === 'campaign' ? 'campaignBento' : section?.type || fallbackType;
-    return {
-      id: section?.id || '',
-      type: resolvedType,
-      blockType: resolveBlockType(section),
-      title: section?.title || '',
-      text: section?.text || '',
-      imageUrl: section?.imageUrl || firstItem?.imageUrl || '',
-      aspectRatio: section?.aspectRatio || '',
-      deepLink: section?.deepLink || firstItem?.deepLink || firstItem?.targetUrl || '',
-      sectionBgColor: section?.sectionBgColor || '',
-      sectionBgImage: section?.sectionBgImage || '',
-      columnTopLineStyle: normalizeColumnTopLineStyle(section?.columnTopLineStyle),
-      cardBgColor: section?.cardBgColor || '',
-      titleColor: section?.titleColor || '',
-      badgeBgColor: section?.badgeBgColor || '',
-      badgeTextColor: section?.badgeTextColor || '',
-      imageShellBg: section?.imageShellBg || '',
-      paddingY: section?.paddingY !== undefined && section?.paddingY !== null ? String(section.paddingY) : '',
-      cardPadding: section?.cardPadding !== undefined && section?.cardPadding !== null ? String(section.cardPadding) : '',
-      cardRadius: section?.cardRadius !== undefined && section?.cardRadius !== null ? String(section.cardRadius) : '',
-      imageSize: section?.imageSize !== undefined && section?.imageSize !== null ? String(section.imageSize) : '',
-      imageRadius: section?.imageRadius !== undefined && section?.imageRadius !== null ? String(section.imageRadius) : '',
-      imageGap: section?.imageGap !== undefined && section?.imageGap !== null ? String(section.imageGap) : '',
-      bentoHeaderImage: section?.headerImage || '',
-      bentoHeroImage: hero?.imageUrl || hero?.image || '',
-      bentoHeroLink: hero?.deepLink || hero?.targetUrl || '',
-      bentoHeroLabel: hero?.label || hero?.title || '',
-      bentoHeroBadge: hero?.badge || hero?.badgeText || hero?.priceTag || '',
-      bentoTiles: tiles,
-      sduiItems: phaseOneBlockTypes.has(resolveBlockType(section))
-        ? normalizePhaseOneItems(items, resolveBlockType(section))
-        : [],
-      collectionIds: Array.isArray(section?.collectionIds)
-        ? section.collectionIds.map((value) => normalizeCollectionId(value)).filter(Boolean)
-        : [],
-      industryIds: Array.isArray(section?.industryIds)
-        ? section.industryIds.map((value) => normalizeCollectionId(value)).filter(Boolean)
-        : [],
-      placement: section?.placement || '',
-      placeholder: section?.placeholder || '',
-      enabled: section?.enabled !== false,
-      itemsPath: section?.itemsPath || '',
-      itemTemplateRef: section?.itemTemplateRef || '',
-      dataSourceRef: section?.dataSourceRef || '',
-      columns: section?.columns !== undefined && section?.columns !== null ? String(section.columns) : '',
-      height: section?.height !== undefined && section?.height !== null ? String(section.height) : '',
-      videoUrl: section?.videoUrl || '',
-      posterUrl: section?.posterUrl || '',
-      scheduleStart: toLocalInputValue(section?.schedule?.startAt),
-      scheduleEnd: toLocalInputValue(section?.schedule?.endAt),
-      targetUserTypes: formatCsvList(section?.targeting?.userTypes),
-      targetRoles: formatCsvList(section?.targeting?.roles),
-      targetIndustries: formatCsvList(section?.targeting?.industries),
-      targetSubscriptionStatuses: formatCsvList(section?.targeting?.subscriptionStatuses),
-      sourceType: source?.sourceType || 'MANUAL',
-      sourceIndustryId: source?.industryId ? String(source.industryId) : '',
-      sourceFeedMode: source?.mode || defaultSectionForm.sourceFeedMode,
-      productFeedMode: resolveMultiItemGridFeedMode(
-        section?.dataSourceRef,
-        section?.productFeedMode || defaultSectionForm.productFeedMode
-      ),
-      productLimit:
-        section?.productLimit !== undefined && section?.productLimit !== null
-          ? String(section.productLimit)
-          : defaultSectionForm.productLimit,
-      sourceMainCategoryId: source?.mainCategoryId ? String(source.mainCategoryId) : '',
-      sourceCategoryIds: Array.isArray(source?.categoryIds)
-        ? source.categoryIds.map((value) => normalizeCollectionId(value)).filter(Boolean)
-        : [],
-      sourceLimit:
-        source?.limit !== undefined && source?.limit !== null ? String(source.limit) : defaultSectionForm.sourceLimit,
-      sourceRankingWindowDays:
-        source?.rankingWindowDays !== undefined && source?.rankingWindowDays !== null
-          ? String(source.rankingWindowDays)
-          : defaultSectionForm.sourceRankingWindowDays,
-      sourceSortBy: source?.sortBy || defaultSectionForm.sourceSortBy,
-      sourceLevel: source?.level || defaultSectionForm.sourceLevel,
-      sourceActiveOnly: source?.filters?.activeOnly !== false,
-      sourceHasImageOnly: source?.filters?.hasImageOnly !== false,
-      mappingTitleField: mapping?.titleField || defaultSectionForm.mappingTitleField,
-      mappingImageField: mapping?.imageField || defaultSectionForm.mappingImageField,
-      mappingSecondaryImageField: mapping?.secondaryImageField || '',
-      mappingDeepLinkTemplate: mapping?.deepLinkTemplate || defaultSectionForm.mappingDeepLinkTemplate,
-    };
   };
 
   const handleSelectSection = (index) => {
@@ -3765,462 +2453,6 @@ function AppConfigPage({ token }) {
     };
   }, [selectedPage]);
 
-  const renderHeaderBlock = (block) => {
-    const blockType = resolveBlockType(block);
-    const placeholder = block?.placeholder || 'Search "yoga"';
-    if (blockType === 'addressHeader') {
-      return (
-        <div className="preview-address-row">
-          <div>
-            <div className="preview-address-time">8 minutes</div>
-            <div className="preview-address-label">HOME - C-901</div>
-          </div>
-          <div className="preview-address-icons">
-            <span className="preview-icon-chip">Rs</span>
-            <span className="preview-icon-chip">User</span>
-          </div>
-        </div>
-      );
-    }
-    if (blockType === 'searchBar') {
-      return (
-        <div className="preview-search">
-          <span className="preview-search-icon">Search</span>
-          <span>{placeholder}</span>
-        </div>
-      );
-    }
-    if (blockType === 'horizontalPills') {
-      const allIndustries = Array.isArray(industries)
-        ? industries
-            .map((industry) => {
-              const id = resolveIndustryId(industry);
-              const label = resolveIndustryLabel(industry);
-              if (!id && !label) return null;
-              return { id: id || label, label };
-            })
-            .filter(Boolean)
-        : [];
-      const allowed = Array.isArray(block?.industryIds) && block.industryIds.length > 0
-        ? new Set(block.industryIds.map(normalizeMatchValue).filter(Boolean))
-        : null;
-      let pillItems = allIndustries;
-      if (allowed) {
-        pillItems = allIndustries.filter((item) =>
-          allowed.has(normalizeMatchValue(item.id)) || allowed.has(normalizeMatchValue(item.label))
-        );
-      }
-      if (!pillItems.length) {
-        pillItems = allIndustries;
-      }
-      const labels = pillItems.length ? pillItems.map((item) => item.label) : ['All', 'Electronics', 'Beauty', 'Grocery'];
-      return (
-        <div className="preview-pills">
-          {labels.map((label) => (
-            <span key={label} className="preview-pill">
-              {label}
-            </span>
-          ))}
-        </div>
-      );
-    }
-    return <div className="preview-header-fallback">{resolveBlockLabel(blockType, 'Header Block')}</div>;
-  };
-
-  const renderPreviewSection = (section, index) => {
-    if (!section) return null;
-    const type = section?.type || 'section';
-    const blockType = resolveBlockType(section);
-    const title = section?.title;
-    const hidden = section?.enabled === false;
-    const collectionIds = Array.isArray(section?.collectionIds)
-      ? section.collectionIds.map((value) => normalizeCollectionId(value)).filter(Boolean)
-      : [];
-    const fallbackCount =
-      blockType === 'hero_carousel'
-        ? 2
-        : blockType === 'brand_logo_grid'
-          ? 6
-          : type === 'banner'
-            ? 1
-            : type === 'list'
-              ? 3
-              : type === 'grid' || type === 'twoColumn' || type === 'heroGrid'
-                ? 4
-                : 3;
-    let items = getPreviewItems(section, fallbackCount);
-    if ((blockType === 'multiItemGrid' || blockType === 'categoryPreviewGrid') && collectionIds.length > 0) {
-      items = collectionIds.map((value) => ({ title: value || 'Collection' }));
-    }
-    const renderCard = (item, itemIndex) => {
-      const image = getPreviewImage(item);
-      const label = getPreviewTitle(item);
-      return (
-        <div key={`preview-${index}-${itemIndex}`} className="preview-card">
-          {image ? <img src={image} alt="" /> : <div className="preview-image-placeholder" />}
-          <div className="preview-card-title">{label}</div>
-        </div>
-      );
-    };
-
-    if (blockType === 'heroBanner' || type === 'banner') {
-      const item = items[0] || {};
-      const image = section?.imageUrl || getPreviewImage(item);
-      const aspectRatio = parseAspectRatioValue(section?.aspectRatio);
-      const bannerStyle = aspectRatio ? { aspectRatio } : null;
-      return (
-        <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
-          {title ? <div className="preview-title">{title}</div> : null}
-          <div className="preview-banner" style={bannerStyle || undefined}>
-            {image ? <img src={image} alt="" /> : <div className="preview-banner-placeholder" />}
-          </div>
-        </div>
-      );
-    }
-
-    if (type === 'spacer') {
-      const height = Number(section?.height) || 16;
-      return (
-        <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
-          <div className="preview-spacer" style={{ height }} />
-        </div>
-      );
-    }
-
-    if (blockType === 'sectionTitle' || type === 'title') {
-      const text = section?.text || title || 'Section Title';
-      return (
-        <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
-          <div className="preview-title-text">{text}</div>
-        </div>
-      );
-    }
-
-    if (type === 'video') {
-      const poster = section?.posterUrl || getPreviewImage(items[0]);
-      return (
-        <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
-          {title ? <div className="preview-title">{title}</div> : null}
-          <div className="preview-video">
-            {poster ? <img src={poster} alt="" /> : <div className="preview-video-placeholder" />}
-            <span className="preview-play">Play</span>
-          </div>
-        </div>
-      );
-    }
-
-    if (type === 'list') {
-      return (
-        <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
-          {title ? <div className="preview-title">{title}</div> : null}
-          <div className="preview-list">
-            {items.map((item, itemIndex) => {
-              const image = getPreviewImage(item);
-              const label = getPreviewTitle(item);
-              return (
-                <div key={`preview-list-${index}-${itemIndex}`} className="preview-list-item">
-                  {image ? <img src={image} alt="" /> : <div className="preview-image-placeholder" />}
-                  <div className="preview-list-title">{label}</div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      );
-    }
-
-    if (blockType === 'hero_carousel') {
-      return (
-        <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
-          {title ? <div className="preview-title">{title}</div> : null}
-          <div className="preview-phase-one-carousel">
-            {items.map((item, itemIndex) => {
-              const image = getPreviewImage(item);
-              return (
-                <div key={`preview-hero-carousel-${index}-${itemIndex}`} className="preview-phase-one-hero-card">
-                  {image ? <img src={image} alt="" /> : <div className="preview-banner-placeholder" />}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      );
-    }
-
-    if (blockType === 'horizontal_scroll_list') {
-      return (
-        <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
-          {title ? <div className="preview-title">{title}</div> : null}
-          <div className="preview-phase-one-featured-row">
-            {items.map((item, itemIndex) => {
-              const image = getPreviewImage(item);
-              const label = item?.title || item?.name || item?.label || '';
-              const badge = item?.badgeText || '';
-              const subtitle = item?.subtitle || '';
-              return (
-                <div key={`preview-featured-${index}-${itemIndex}`} className="preview-phase-one-featured-card">
-                  {badge ? (
-                    <span className="preview-phase-one-featured-badge" style={{ color: item?.badgeTextColor || undefined }}>
-                      {badge}
-                    </span>
-                  ) : null}
-                  {label ? (
-                    <div className="preview-phase-one-featured-title" style={{ color: item?.titleColor || undefined }}>
-                      {label}
-                    </div>
-                  ) : null}
-                  <div className="preview-phase-one-featured-image-wrap">
-                    {image ? <img src={image} alt="" /> : <div className="preview-image-placeholder" />}
-                  </div>
-                  {subtitle ? <span className="preview-phase-one-featured-subtitle">{subtitle}</span> : null}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      );
-    }
-
-    if (blockType === 'column_grid') {
-      const sectionBgColor = section?.sectionBgColor || '#f5f0dc';
-      const sectionBgImage = section?.sectionBgImage || '';
-      const cardBgColor = section?.cardBgColor || '#9ad8f8';
-      const topLineStyle = normalizeColumnTopLineStyle(section?.columnTopLineStyle);
-      return (
-        <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
-          <div
-            className="preview-phase-one-column-shell"
-            style={
-              sectionBgColor
-                ? { backgroundColor: sectionBgColor, '--column-shell-bg': sectionBgColor }
-                : { '--column-shell-bg': '#f5f0dc' }
-            }
-          >
-            {sectionBgImage ? (
-              <img className="preview-phase-one-column-bg-image" src={sectionBgImage} alt="" />
-            ) : null}
-            <div
-              className={`preview-phase-one-column-topline ${
-                topLineStyle === 'curve'
-                  ? 'preview-phase-one-column-topline-curve'
-                  : 'preview-phase-one-column-topline-flat'
-              }`}
-            />
-            <div className="preview-phase-one-column-content">
-              {title ? <div className="preview-title">{title}</div> : null}
-              <div className="preview-phase-one-column-grid">
-                {items.map((item, itemIndex) => {
-                  const image = getPreviewImage(item);
-                  const secondary = getPreviewSecondaryImage(item);
-                  const label = getPreviewTitle(item);
-                  return (
-                    <div
-                      key={`preview-column-grid-${index}-${itemIndex}`}
-                      className="preview-phase-one-column-card"
-                      style={{ backgroundColor: cardBgColor }}
-                    >
-                      <div className="preview-phase-one-column-title">{label}</div>
-                      <div className="preview-phase-one-column-images">
-                        <div className="preview-phase-one-column-image">
-                          {image ? <img src={image} alt="" /> : <div className="preview-image-placeholder" />}
-                        </div>
-                        <div className="preview-phase-one-column-image">
-                          {secondary ? <img src={secondary} alt="" /> : <div className="preview-image-placeholder" />}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    if (blockType === 'category_icon_grid') {
-      return (
-        <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
-          {title ? <div className="preview-title">{title}</div> : null}
-          <div className="preview-phase-one-category-grid">
-            {items.map((item, itemIndex) => {
-              const image = getPreviewImage(item);
-              const label = getPreviewTitle(item);
-              return (
-                <div key={`preview-category-icon-grid-${index}-${itemIndex}`} className="preview-phase-one-category-cell">
-                  <div className="preview-phase-one-category-image">
-                    {image ? <img src={image} alt="" /> : <div className="preview-image-placeholder" />}
-                  </div>
-                  <div className="preview-phase-one-category-label">{label}</div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      );
-    }
-
-    if (blockType === 'brand_logo_grid') {
-      const hero = items.find((item) => item?.kind === 'hero') || items[0] || null;
-      const cta = items.find((item) => item?.kind === 'cta') || items[items.length - 1] || null;
-      let tiles = items.filter((item) => item?.kind !== 'hero' && item?.kind !== 'cta');
-      if (!tiles.length) {
-        tiles = items.slice(1, 5);
-      }
-      return (
-        <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
-          {title ? <div className="preview-title">{title}</div> : null}
-          <div className="preview-phase-one-brand-wrap">
-            {hero ? (
-              <div className="preview-phase-one-brand-hero">
-                {getPreviewImage(hero) ? <img src={getPreviewImage(hero)} alt="" /> : <div className="preview-banner-placeholder" />}
-              </div>
-            ) : null}
-            <div className="preview-phase-one-brand-grid">
-              {tiles.slice(0, 4).map((item, itemIndex) => (
-                <div key={`preview-brand-grid-${index}-${itemIndex}`} className="preview-phase-one-brand-card">
-                  <div className="preview-phase-one-brand-title">{getPreviewTitle(item)}</div>
-                  <div className="preview-phase-one-brand-image">
-                    {getPreviewImage(item) ? <img src={getPreviewImage(item)} alt="" /> : <div className="preview-image-placeholder" />}
-                  </div>
-                </div>
-              ))}
-            </div>
-            {cta ? (
-              <div className="preview-phase-one-brand-cta">
-                {getPreviewImage(cta) ? <img src={getPreviewImage(cta)} alt="" /> : <div className="preview-banner-placeholder" />}
-              </div>
-            ) : null}
-          </div>
-        </div>
-      );
-    }
-
-    if (blockType === 'categoryPreviewGrid') {
-      const columns = section?.columns || 2;
-      const cardBg = section?.cardBgColor;
-      const titleColor = section?.titleColor;
-      const badgeBg = section?.badgeBgColor;
-      const badgeText = section?.badgeTextColor;
-      const imageShellBg = section?.imageShellBg;
-      const sectionBg = section?.sectionBgColor;
-      const paddingY = section?.paddingY;
-      const cardRadius = section?.cardRadius;
-      const cardPadding = section?.cardPadding;
-      const imageSize = section?.imageSize;
-      const imageRadius = section?.imageRadius;
-      const imageGap = section?.imageGap;
-      return (
-        <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
-          {title ? <div className="preview-title">{title}</div> : null}
-          <div
-            className="preview-category-grid"
-            style={{
-              '--cols': columns,
-              backgroundColor: sectionBg || undefined,
-              paddingTop: paddingY ?? undefined,
-              paddingBottom: paddingY ?? undefined,
-            }}
-          >
-            {items.map((item, itemIndex) => {
-              const label = getPreviewTitle(item);
-              return (
-                <div
-                  key={`preview-category-${index}-${itemIndex}`}
-                  className="preview-category-card"
-                  style={{
-                    backgroundColor: cardBg || undefined,
-                    borderRadius: cardRadius || undefined,
-                    padding: cardPadding || undefined,
-                  }}
-                >
-                  <div
-                    className="preview-category-images"
-                    style={{ backgroundColor: imageShellBg || undefined, gap: imageGap || undefined }}
-                  >
-                    <div
-                      className="preview-category-image"
-                      style={{ borderRadius: imageRadius || undefined, height: imageSize ?? undefined }}
-                    />
-                    <div
-                      className="preview-category-image"
-                      style={{ borderRadius: imageRadius || undefined, height: imageSize ?? undefined }}
-                    />
-                  </div>
-                  <div
-                    className="preview-category-more"
-                    style={{ backgroundColor: badgeBg || undefined, color: badgeText || undefined }}
-                  >
-                    +3 more
-                  </div>
-                  <div className="preview-category-title" style={{ color: titleColor || undefined }}>
-                    {label}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      );
-    }
-
-    if (blockType === 'campaignBento') {
-      const background = section?.sectionBgColor;
-      const headerImage = section?.headerImage || getPreviewImage(items[0]);
-      const hero = section?.hero && typeof section.hero === 'object' ? section.hero : {};
-      const heroImage = hero?.imageUrl || getPreviewImage(items[1]);
-      const heroBadge = hero?.badgeText || hero?.badge || hero?.priceTag || '';
-      const heroLabel = hero?.label || hero?.title || '';
-      const tiles = ensureBentoTiles(section?.tiles);
-      return (
-        <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
-          {title ? <div className="preview-title">{title}</div> : null}
-          <div className="preview-bento" style={{ backgroundColor: background || undefined }}>
-            <div className="preview-bento-header">
-              {headerImage ? <img src={headerImage} alt="" draggable={false} /> : <div className="preview-bento-placeholder" />}
-            </div>
-            <div className="preview-bento-grid">
-              <div className="preview-bento-hero">
-                {heroImage ? <img src={heroImage} alt="" draggable={false} /> : <div className="preview-bento-placeholder" />}
-                {heroBadge ? <span className="preview-bento-badge">{heroBadge}</span> : null}
-                {heroLabel ? <span className="preview-bento-hero-label">{heroLabel}</span> : null}
-              </div>
-              <div className="preview-bento-tiles">
-                {tiles.map((tile, tileIndex) => (
-                  <div key={`preview-bento-${index}-${tileIndex}`} className="preview-bento-tile">
-                    {tile.imageUrl ? <img src={tile.imageUrl} alt="" draggable={false} /> : <div className="preview-bento-placeholder" />}
-                    <span className="preview-bento-label">
-                      {tile.label || `Tile ${tileIndex + 1}`}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    if (blockType === 'multiItemGrid' || type === 'grid' || type === 'twoColumn' || type === 'heroGrid') {
-      const columns = type === 'twoColumn' ? 2 : section?.columns || (type === 'heroGrid' ? 3 : 2);
-      return (
-        <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
-          {title ? <div className="preview-title">{title}</div> : null}
-          <div className="preview-grid" style={{ '--cols': columns }}>
-            {items.map((item, itemIndex) => renderCard(item, itemIndex))}
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
-        {title ? <div className="preview-title">{title}</div> : null}
-        <div className="preview-row">{items.map((item, itemIndex) => renderCard(item, itemIndex))}</div>
-      </div>
-    );
-  };
-
   const screenBlockType = sectionForm.blockType || sectionForm.type;
   const headerBlockType = headerSectionForm.blockType || headerSectionForm.type;
   const isPhaseOneBlock = phaseOneBlockTypes.has(screenBlockType);
@@ -4316,34 +2548,18 @@ function AppConfigPage({ token }) {
             {showAdvancedJson ? 'Hide JSON' : 'Advanced JSON'}
           </button>
           <button type="button" className="ghost-btn" onClick={handleRefresh} disabled={isLoading}>
-            {isLoading ? 'Refreshing...' : 'Refresh'}
+            {isLoading ? <><span className="inline-spinner dark" />Refreshing...</> : 'Refresh'}
           </button>
         </div>
       </div>
       <Banner message={message} />
-      <div className="stat-grid">
-        <div className="stat-card admin-stat" style={{ '--stat-accent': '#0EA5E9' }}>
-          <p className="stat-label">Pages</p>
-          <p className="stat-value">{pageCount}</p>
-          <p className="stat-sub">Configured routes</p>
-        </div>
-        <div className="stat-card admin-stat" style={{ '--stat-accent': '#A855F7' }}>
-          <p className="stat-label">Sections</p>
-          <p className="stat-value">{sectionCount}</p>
-          <p className="stat-sub">On selected page</p>
-        </div>
-        <div className="stat-card admin-stat" style={{ '--stat-accent': '#F59E0B' }}>
-          <p className="stat-label">Versions</p>
-          <p className="stat-value">{versionCount}</p>
-          <p className="stat-sub">Saved snapshots</p>
-        </div>
-        <div className="stat-card admin-stat" style={{ '--stat-accent': '#16A34A' }}>
-          <p className="stat-label">Industries</p>
-          <p className="stat-value">{industryCount}</p>
-          <p className="stat-sub">Available presets</p>
-        </div>
-      </div>
-      <div className="app-config-card">
+      
+      <div className="app-config-card" style={{ position: 'relative' }}>
+        {isLoading && !configSnapshot ? (
+          <div className="page-loading-overlay">
+            <div className="page-spinner" />
+          </div>
+        ) : null}
         <div className="config-toolbar">
           <div className="page-block">
             <label className="page-field">
@@ -4369,9 +2585,56 @@ function AppConfigPage({ token }) {
                 })}
               </select>
             </label>
+            <button
+              type="button"
+              className="ghost-btn small"
+              onClick={() => setShowManagePages((prev) => !prev)}
+            >
+              {showManagePages ? 'Hide Pages' : 'Manage Pages'}
+            </button>
+            <button
+              type="button"
+              className="ghost-btn small"
+              onClick={() => setShowManageTabs((prev) => !prev)}
+            >
+              {showManageTabs ? 'Hide Tabs' : 'Manage Tabs'}
+            </button>
             <span className="update-chip">
               {latestUpdated ? `Last updated ${formatDate(latestUpdated)}` : 'No updates yet'}
             </span>
+            {hasUnsavedChanges ? <span className="unsaved-chip">Unsaved changes</span> : null}
+            {version ? <span className="version-chip">v{version}</span> : null}
+            <div className="version-dropdown-wrap" ref={versionDropdownRef}>
+              <button
+                type="button"
+                className="ghost-btn small"
+                onClick={() => setShowVersionDropdown((prev) => !prev)}
+              >
+                History ({versionCount})
+              </button>
+              {showVersionDropdown && versions.length > 0 ? (
+                <div className="version-dropdown">
+                  <div className="version-dropdown-header">Recent Versions</div>
+                  {versions.slice(0, 5).map((item) => (
+                    <div key={item.id} className="version-dropdown-row">
+                      <div className="version-dropdown-info">
+                        <span className="version-dropdown-id">#{item.id}</span>
+                        <span className="version-dropdown-status">{item.status || 'draft'}</span>
+                        <span className="version-dropdown-date">{formatDate(item.updated_on || item.published_on)}</span>
+                      </div>
+                      <button
+                        type="button"
+                        className="ghost-btn small danger"
+                        onClick={(e) => { e.stopPropagation(); setShowVersionDropdown(false); requestRollback(item.id); }}
+                        disabled={isLoading}
+                      >
+                        Rollback
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
           </div>
           <div className="toolbar-actions">
             <button type="button" className="ghost-btn small" onClick={handleCreateBaseConfig} disabled={isLoading}>
@@ -4381,17 +2644,189 @@ function AppConfigPage({ token }) {
               Ensure Header Pages
             </button>
             <button type="button" className="primary-btn compact" onClick={saveDraft} disabled={isLoading}>
-              Save Draft
+              {isLoading ? <><span className="inline-spinner" />Saving...</> : 'Save Draft'}
             </button>
-            <button type="button" className="primary-btn compact" onClick={handlePublish} disabled={isLoading}>
-              Publish
+            <button type="button" className="primary-btn compact" onClick={requestPublish} disabled={isLoading}>
+              {isLoading ? <><span className="inline-spinner" />Publishing...</> : 'Publish'}
             </button>
           </div>
         </div>
 
+        {showManagePages && configSnapshot ? (
+          <div className="manage-pages-panel">
+            <div className="manage-pages-section">
+              <h4 className="manage-pages-heading">Add Preset Page</h4>
+              <div className="manage-pages-row">
+                <select
+                  value={pagePresetKey}
+                  onChange={(e) => setPagePresetKey(e.target.value)}
+                >
+                  <option value="">Select a preset</option>
+                  {pagePresets.map((p) => (
+                    <option key={p.id} value={p.id}>{p.label || p.id}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="primary-btn compact"
+                  onClick={handleAddPresetPage}
+                  disabled={!pagePresetKey || isLoading}
+                >
+                  Add Preset
+                </button>
+              </div>
+            </div>
+            <div className="manage-pages-section">
+              <h4 className="manage-pages-heading">Add Custom Page</h4>
+              <div className="manage-pages-row">
+                <input
+                  type="text"
+                  placeholder="Page ID (e.g. deals_page)"
+                  value={newPageId}
+                  onChange={(e) => setNewPageId(e.target.value)}
+                />
+                <input
+                  type="text"
+                  placeholder="Route (e.g. /deals)"
+                  value={newPageRoute}
+                  onChange={(e) => setNewPageRoute(e.target.value)}
+                />
+                <input
+                  type="text"
+                  placeholder="Data source ref (optional)"
+                  value={newPageSource}
+                  onChange={(e) => setNewPageSource(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="primary-btn compact"
+                  onClick={handleAddPage}
+                  disabled={!newPageId.trim() || !newPageRoute.trim() || isLoading}
+                >
+                  Add Page
+                </button>
+              </div>
+            </div>
+            {selectedPageKey ? (
+              <div className="manage-pages-section">
+                <h4 className="manage-pages-heading">Current Page</h4>
+                <div className="manage-pages-row">
+                  <span className="manage-pages-current">{selectedPage?.id || selectedPage?.route || selectedPageKey}</span>
+                  <button
+                    type="button"
+                    className="ghost-btn small danger"
+                    onClick={requestRemovePage}
+                    disabled={isLoading}
+                  >
+                    Remove This Page
+                  </button>
+                </div>
+              </div>
+            ) : null}
+            {selectedPageKey ? (
+              <div className="manage-pages-section">
+                <h4 className="manage-pages-heading">Duplicate Page</h4>
+                <div className="manage-pages-row">
+                  <input
+                    type="text"
+                    placeholder="New page ID (e.g. home_deals)"
+                    value={clonePageId}
+                    onChange={(e) => setClonePageId(e.target.value)}
+                  />
+                  <input
+                    type="text"
+                    placeholder="New route (e.g. /home/deals)"
+                    value={clonePageRoute}
+                    onChange={(e) => setClonePageRoute(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="primary-btn compact"
+                    onClick={handleClonePage}
+                    disabled={!clonePageId.trim() || !clonePageRoute.trim() || isLoading}
+                  >
+                    Duplicate
+                  </button>
+                </div>
+                <p className="field-help">Creates a copy of the current page with all its sections and header blocks.</p>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        {showManageTabs && configSnapshot ? (
+          <div className="manage-pages-panel">
+            <div className="manage-pages-section" style={{ flex: '1 1 100%' }}>
+              <h4 className="manage-pages-heading">Navigation Tabs (Header Pills)</h4>
+              {currentTabs.length > 0 ? (
+                <div className="tab-manager-list">
+                  {currentTabs.map((tab, index) => (
+                    <div key={tab?.id || index} className="tab-manager-row">
+                      <span className="tab-label">{tab?.label || tab?.id}</span>
+                      <span className="tab-route">{tab?.route}</span>
+                      <div className="tab-manager-actions">
+                        <button
+                          type="button"
+                          className="ghost-btn small"
+                          onClick={() => handleMoveTab(index, -1)}
+                          disabled={index === 0}
+                          title="Move up"
+                        >
+                          &#9650;
+                        </button>
+                        <button
+                          type="button"
+                          className="ghost-btn small"
+                          onClick={() => handleMoveTab(index, 1)}
+                          disabled={index === currentTabs.length - 1}
+                          title="Move down"
+                        >
+                          &#9660;
+                        </button>
+                        <button
+                          type="button"
+                          className="ghost-btn small danger"
+                          onClick={() => handleRemoveTab(index)}
+                          title="Remove tab"
+                        >
+                          &#10005;
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="field-help">No navigation tabs configured. Use "Ensure Header Pages" to generate tabs from industries.</p>
+              )}
+            </div>
+          </div>
+        ) : null}
+
+        {orphanedPages.length > 0 && configSnapshot ? (
+          <div className="orphan-warning">
+            <span className="orphan-warning-text">
+              {orphanedPages.length} page(s) reference industries that no longer exist or are inactive: {orphanedPages.map((p) => p?.id).join(', ')}
+            </span>
+            <button
+              type="button"
+              className="ghost-btn small danger"
+              onClick={requestCleanupOrphans}
+              disabled={isLoading}
+            >
+              Clean Up
+            </button>
+          </div>
+        ) : null}
+
         {!configSnapshot ? (
-          <div className="empty-state">
-            <p>Click "Create Base Config" to start, or enable Advanced JSON to paste a config.</p>
+          <div className="empty-state enhanced-empty">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8660ff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+              <line x1="3" y1="9" x2="21" y2="9" />
+              <line x1="9" y1="21" x2="9" y2="9" />
+            </svg>
+            <h3 className="empty-state-title">No Configuration Found</h3>
+            <p className="empty-state-text">Create a base config to start building your home page layout, or switch to Advanced JSON to paste an existing config.</p>
             <button type="button" className="primary-btn compact" onClick={handleCreateBaseConfig} disabled={isLoading}>
               Create Base Config
             </button>
@@ -4451,7 +2886,7 @@ function AppConfigPage({ token }) {
                                   }`}
                                   onClick={() => openEditHeaderSection(index)}
                                 >
-                                  {renderHeaderBlock(section)}
+                                  {<HeaderBlockPreview block={section} industries={industries} />}
                                 </SortablePreviewItem>
                               );
                             })}
@@ -4473,7 +2908,7 @@ function AppConfigPage({ token }) {
                                   openEditSection(entry.index);
                                 }}
                               >
-                                {renderPreviewSection(entry.section, entry.index)}
+                                <PreviewSection section={entry.section} index={entry.index} collections={collections} />
                               </div>
                             );
                           })}
@@ -4493,7 +2928,7 @@ function AppConfigPage({ token }) {
                                 className={`preview-sortable ${isActive ? 'is-active' : ''}`}
                                 onClick={() => openEditSection(entry.index)}
                               >
-                                {renderPreviewSection(entry.section, entry.index)}
+                                <PreviewSection section={entry.section} index={entry.index} collections={collections} />
                               </SortablePreviewItem>
                             );
                           })
@@ -4716,7 +3151,7 @@ function AppConfigPage({ token }) {
                                   <option value="home_recommended_products">Recommended products</option>
                                 </select>
                                 <p className="field-help">
-                                  Products aa feed mathi avse. Manual mode ma niche item list edit kari sako cho.
+                                  Products are loaded from the selected feed. In manual mode you can edit the item list below.
                                 </p>
                               </label>
                             ) : (
@@ -5010,7 +3445,7 @@ function AppConfigPage({ token }) {
                                               }
                                             />
                                             <p className="field-help">
-                                              Last N days order data thi category ranking calculate thase.
+                                              Category ranking is calculated from order data over the last N days.
                                             </p>
                                           </label>
                                         ) : null}
@@ -5131,10 +3566,10 @@ function AppConfigPage({ token }) {
                                         </button>
                                         <span className="field-help">
                                           {isPhaseOneCategoryIconGrid
-                                            ? 'Main category title + category icons auto-fill thase.'
+                                            ? 'Main category title and category icons will auto-fill.'
                                             : isPhaseOneColumnGrid
-                                              ? 'Selected categories ni live preview images refresh thase.'
-                                              : 'Top categories load thase and below item cards auto fill thase.'}
+                                              ? 'Preview images will refresh from the selected categories.'
+                                              : 'Top categories will load and item cards below will auto-fill.'}
                                         </span>
                                       </div>
                                     </div>
@@ -5152,12 +3587,12 @@ function AppConfigPage({ token }) {
                                           {isResolvingSource ? 'Loading...' : 'Load selected collections'}
                                         </button>
                                         <span className="field-help">
-                                          Middle 4 tiles category preview API mathi auto set thase.
+                                          The middle 4 tiles will auto-populate from the category preview API.
                                         </span>
                                       </div>
                                     </div>
                                   ) : (
-                                    <p className="field-help field-span">Manual mode ma tame items direct edit kari sako cho.</p>
+                                    <p className="field-help field-span">In manual mode you can directly edit items below.</p>
                                   )
                                 )}
                               </>
@@ -5178,7 +3613,7 @@ function AppConfigPage({ token }) {
                                   columns: event.target.value,
                                 }))
                               }
-                              placeholder="2 (e.g. 2 ya 3)"
+                              placeholder="2 (e.g. 2 or 3)"
                             />
                           </label>
                         ) : null}
@@ -5192,11 +3627,11 @@ function AppConfigPage({ token }) {
                             ) : null}
                             <span className="field-help">
                               {isPhaseOneCategoryIconGrid
-                                ? 'Category images auto category master mathi avse.'
+                                ? 'Category images are loaded automatically from the category master.'
                                 : isPhaseOneBrandGrid
-                                  ? 'Top/Bottom banner editable. Middle cards collection dropdown thi control thase.'
+                                  ? 'Top/bottom banners are editable. Middle cards are controlled via the collection dropdown.'
                                   : isPhaseOneProductShelf
-                                    ? 'Products data source thi avse. Aa list mate product API / collection select karo.'
+                                    ? 'Products come from the data source. Select a product API or collection for this list.'
                                     : 'Set image + text + deep link for each card.'}
                             </span>
                           </div>
@@ -5472,7 +3907,7 @@ function AppConfigPage({ token }) {
                                   Apply market preset
                                 </button>
                                 <span className="field-help">
-                                  Recommended festive defaults + CATEGORY_FEED mapping auto set thase.
+                                  Applies recommended festive defaults and auto-configures CATEGORY_FEED mapping.
                                 </span>
                               </div>
                             </div>
@@ -5588,7 +4023,7 @@ function AppConfigPage({ token }) {
                                 </button>
                               </div>
                               <p className="field-help">
-                                Background image set karsho to section ma image render thase, color fallback tarike use thase.
+                                If a background image is set it will be rendered in the section; the color is used as a fallback.
                               </p>
                             </label>
                             <label className="field">
@@ -5610,7 +4045,7 @@ function AppConfigPage({ token }) {
                               </select>
                             </label>
                             <p className="field-help field-span">
-                              Curve line ma festive curvy edge dekhase, Flat line ma straight top strip dekhase.
+                              "Curve" shows a festive curvy edge; "Flat" shows a straight top strip.
                             </p>
                           </>
                         ) : null}
@@ -5640,7 +4075,7 @@ function AppConfigPage({ token }) {
                                 ))}
                               </select>
                               <p className="field-help">
-                                Aa block products-only chhe. Dropdown ma je feed select karso e products app ma render thase.
+                                This block displays products only. The feed selected in the dropdown will be rendered in the app.
                               </p>
                             </label>
                             <label className="field">
@@ -5657,7 +4092,7 @@ function AppConfigPage({ token }) {
                                   }))
                                 }
                               />
-                              <p className="field-help">Grid always 3-column ma render thase. Aa value pehla ketla products dekhadva e control kare chhe.</p>
+                              <p className="field-help">The grid always renders in 3 columns. This value controls how many products are shown initially.</p>
                             </label>
                           </>
                         ) : (
@@ -6298,7 +4733,7 @@ function AppConfigPage({ token }) {
                             min="1"
                             value={sectionForm.columns}
                             onChange={(event) => setSectionForm((prev) => ({ ...prev, columns: event.target.value }))}
-                            placeholder="2 (e.g. 2 ya 3)"
+                            placeholder="2 (e.g. 2 or 3)"
                           />
                         </label>
                         {!isHeroBanner ? (
@@ -6374,8 +4809,8 @@ function AppConfigPage({ token }) {
                       {editingSectionIndex !== null ? (
                         <button
                           type="button"
-                          className="ghost-btn small"
-                          onClick={() => handleDeleteSection(editingSectionIndex)}
+                          className="ghost-btn small danger"
+                          onClick={() => requestDeleteSection(editingSectionIndex)}
                           disabled={isEditingFixed}
                         >
                           Remove
@@ -6532,8 +4967,8 @@ function AppConfigPage({ token }) {
                       {editingHeaderSectionIndex !== null ? (
                         <button
                           type="button"
-                          className="ghost-btn small"
-                          onClick={() => handleDeleteHeaderSection(editingHeaderSectionIndex)}
+                          className="ghost-btn small danger"
+                          onClick={() => requestDeleteHeaderSection(editingHeaderSectionIndex)}
                         >
                           Remove
                         </button>
@@ -6544,7 +4979,13 @@ function AppConfigPage({ token }) {
                     </div>
                   </form>
                 ) : (
-                  <div className="properties-empty">Select a block in the preview.</div>
+                  <div className="properties-empty enhanced-empty">
+                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M15 15l-2 5L9 9l11 4-5 2z" />
+                      <path d="M18.5 18.5L22 22" />
+                    </svg>
+                    <p className="empty-state-text">Click on any block in the preview to edit its properties here.</p>
+                  </div>
                 )}
               </div>
               {showCustomPageFields ? (
@@ -6878,7 +5319,7 @@ function AppConfigPage({ token }) {
                           <button type="submit" className="primary-btn compact">
                             Apply Header
                           </button>
-                          <button type="button" className="ghost-btn small" onClick={handleClearHeader}>
+                          <button type="button" className="ghost-btn small danger" onClick={requestClearHeader}>
                             Clear
                           </button>
                         </div>
@@ -6956,10 +5397,10 @@ function AppConfigPage({ token }) {
                     Validate
                   </button>
                   <button type="submit" className="primary-btn compact" disabled={isLoading}>
-                    Save Draft
+                    {isLoading ? <><span className="inline-spinner" />Saving...</> : 'Save Draft'}
                   </button>
-                  <button type="button" className="primary-btn compact" onClick={handlePublish} disabled={isLoading}>
-                    Publish
+                  <button type="button" className="primary-btn compact" onClick={requestPublish} disabled={isLoading}>
+                    {isLoading ? <><span className="inline-spinner" />Publishing...</> : 'Publish'}
                   </button>
                 </div>
               </div>
@@ -6998,7 +5439,9 @@ function AppConfigPage({ token }) {
                 <tbody>
                   {versions.length === 0 ? (
                     <tr>
-                      <td colSpan="6">No versions found.</td>
+                      <td colSpan="6" style={{ textAlign: 'center', padding: '24px 12px', color: '#9ca3af' }}>
+                        No versions saved yet. Save a draft to create your first version.
+                      </td>
                     </tr>
                   ) : (
                     versions.map((item) => (
@@ -7017,10 +5460,10 @@ function AppConfigPage({ token }) {
                         <td className="table-actions">
                           <button
                             type="button"
-                            className="ghost-btn small"
+                            className="ghost-btn small danger"
                             onClick={(event) => {
                               event.stopPropagation();
-                              handleRollback(item.id);
+                              requestRollback(item.id);
                             }}
                             disabled={isLoading}
                           >
@@ -7037,8 +5480,8 @@ function AppConfigPage({ token }) {
         </div>
       ) : null}
       {showEditor ? (
-        <div className="modal-backdrop" onClick={closeEditor}>
-          <div className="modal-card" onClick={(event) => event.stopPropagation()}>
+        <div className="modal-backdrop" onClick={closeEditor} onKeyDown={(e) => { if (e.key === 'Escape') closeEditor(); }}>
+          <div className="modal-card" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
             <div className="modal-head">
               <div>
                 <h3 className="panel-subheading">{editingSectionIndex !== null ? 'Edit Section' : 'Add Section'}</h3>
@@ -7046,10 +5489,15 @@ function AppConfigPage({ token }) {
                   <p className="field-help">Fixed sections can only be reordered or hidden.</p>
                 ) : null}
               </div>
-              <button type="button" className="ghost-btn small" onClick={closeEditor}>
+              <button type="button" className="ghost-btn small" onClick={closeEditor} aria-label="Close">
                 x
               </button>
             </div>
+            {pageIndustry && editingSectionIndex === null ? (
+              <div className="industry-hint">
+                This page is linked to <strong>{resolveIndustryLabel(pageIndustry)}</strong> — category feeds will default to this industry.
+              </div>
+            ) : null}
             <form className="field-grid modal-grid" onSubmit={handleSectionSubmit}>
               <label className="field field-span">
                 <span>Section title</span>
@@ -7245,15 +5693,15 @@ function AppConfigPage({ token }) {
         </div>
       ) : null}
       {showHeaderEditor ? (
-        <div className="modal-backdrop" onClick={closeHeaderEditor}>
-          <div className="modal-card" onClick={(event) => event.stopPropagation()}>
+        <div className="modal-backdrop" onClick={closeHeaderEditor} onKeyDown={(e) => { if (e.key === 'Escape') closeHeaderEditor(); }}>
+          <div className="modal-card" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
             <div className="modal-head">
               <div>
                 <h3 className="panel-subheading">
                   {editingHeaderSectionIndex !== null ? 'Edit Header Block' : 'Add Header Block'}
                 </h3>
               </div>
-              <button type="button" className="ghost-btn small" onClick={closeHeaderEditor}>
+              <button type="button" className="ghost-btn small" onClick={closeHeaderEditor} aria-label="Close">
                 x
               </button>
             </div>
@@ -7422,6 +5870,15 @@ function AppConfigPage({ token }) {
           </div>
         </div>
       ) : null}
+      <ConfirmDialog
+        open={Boolean(confirmAction)}
+        title={confirmAction?.title}
+        message={confirmAction?.message}
+        confirmLabel={confirmAction?.confirmLabel}
+        variant={confirmAction?.variant}
+        onConfirm={confirmAction?.onConfirm}
+        onCancel={() => setConfirmAction(null)}
+      />
     </div>
   );
 }
