@@ -67,6 +67,9 @@ export const screenSectionTypeOptions = [
   { value: 'spacer', label: 'Spacer' },
   { value: 'title', label: 'Title' },
   { value: 'video', label: 'Video' },
+  { value: 'icon_list', label: 'Icon list' },
+  { value: 'chip_scroll', label: 'Chip scroll' },
+  { value: 'category_showcase', label: 'Category Showcase' },
 ];
 
 export const defaultBlockTypeBySectionType = {
@@ -77,6 +80,8 @@ export const defaultBlockTypeBySectionType = {
   campaignBento: 'campaignBento',
   campaign: 'campaignBento',
   product_shelf_horizontal: 'product_shelf_horizontal',
+  icon_list: 'icon_list',
+  chip_scroll: 'chip_scroll',
 };
 
 export const headerSectionTypeOptions = [
@@ -297,6 +302,72 @@ export const screenToolboxItems = [
       tiles: Array.from({ length: 4 }, () => ({ imageUrl: '', deepLink: '', label: '' })),
     },
   },
+  {
+    key: 'iconList',
+    label: 'Icon List Block',
+    hint: 'Vertical list with icon + title + subtitle',
+    section: {
+      id: 'icon_list',
+      type: 'list',
+      blockType: 'icon_list',
+      title: 'Build your routine',
+      actionText: 'See all',
+      actionLink: '',
+      sduiItems: [
+        { iconUrl: '', title: 'Step 1', subtitle: 'Description', deepLink: '' },
+        { iconUrl: '', title: 'Step 2', subtitle: 'Description', deepLink: '' },
+      ],
+    },
+  },
+  {
+    key: 'chipScroll',
+    label: 'Chip Scroll Block',
+    hint: 'Horizontal scrolling text pills',
+    section: {
+      id: 'chip_scroll',
+      type: 'horizontalList',
+      blockType: 'chip_scroll',
+      title: 'Tips & ideas',
+      actionText: 'Read',
+      actionLink: '',
+      sduiItems: [
+        { text: 'SPF daily', deepLink: '' },
+        { text: 'Hydrate inside out', deepLink: '' },
+        { text: 'Gentle exfoliation', deepLink: '' },
+      ],
+    },
+  },
+  {
+    key: 'promoBanner',
+    label: 'Promo Banner Block',
+    hint: 'Text card with CTA button',
+    section: {
+      id: 'promo_banner',
+      type: 'banner',
+      blockType: 'heroBanner',
+      title: 'Sale is live',
+      text: 'Up to 40% off on selected items',
+      bannerVariant: 'text_card',
+      sectionBgColor: '#fce7f3',
+      deepLink: '',
+    },
+  },
+  {
+    key: 'categoryShowcase',
+    label: 'Category Showcase',
+    hint: 'Auto-fetch categories by industry',
+    section: {
+      id: 'category_showcase',
+      type: 'category_showcase',
+      blockType: 'category_showcase',
+      title: 'Shop categories',
+      actionText: 'View all',
+      actionLink: '',
+      showcaseVariant: 'circle',
+      dataSource: { sourceType: 'CATEGORY_FEED' },
+      sduiItems: [],
+    },
+  },
 ];
 
 export const toolboxItems = [...headerToolboxItems, ...screenToolboxItems];
@@ -317,6 +388,9 @@ export const blockLabels = {
   multiItemGrid: 'Multi Item Grid Block',
   categoryPreviewGrid: 'Category Preview Grid',
   campaignBento: 'Campaign Bento Block',
+  icon_list: 'Icon List Block',
+  chip_scroll: 'Chip Scroll Block',
+  category_showcase: 'Category Showcase Block',
 };
 
 export const resolveBlockLabel = (blockType, fallback) =>
@@ -330,6 +404,7 @@ export const resolveBlockType = (section) => {
   if (section.type === 'column_grid') return 'column_grid';
   if (section.type === 'category_icon_grid') return 'category_icon_grid';
   if (section.type === 'brand_logo_grid') return 'brand_logo_grid';
+  if (section.type === 'category_showcase') return 'category_showcase';
   if (section.type === 'banner') return 'heroBanner';
   if (section.type === 'title') return 'sectionTitle';
   if (section.type === 'grid') return 'multiItemGrid';
@@ -451,6 +526,9 @@ export const phaseOneBlockTypes = new Set([
   'category_icon_grid',
   'brand_logo_grid',
   'product_shelf_horizontal',
+  'icon_list',
+  'chip_scroll',
+  'category_showcase',
 ]);
 
 export const getPhaseOneDefaultItem = (blockType, index = 0) => {
@@ -472,6 +550,15 @@ export const getPhaseOneDefaultItem = (blockType, index = 0) => {
       badgeTextColor: '',
     };
   }
+  if (blockType === 'icon_list') {
+    return { iconUrl: '', title: '', subtitle: '', deepLink: '' };
+  }
+  if (blockType === 'chip_scroll') {
+    return { text: '', deepLink: '' };
+  }
+  if (blockType === 'category_showcase') {
+    return { title: '', imageUrl: '', iconUrl: '', deepLink: '' };
+  }
   return {
     id: '',
     kind: '',
@@ -479,6 +566,10 @@ export const getPhaseOneDefaultItem = (blockType, index = 0) => {
     title: '',
     subtitle: '',
     badgeText: '',
+    ctaText: '',
+    ctaLink: '',
+    overlayTitle: '',
+    overlaySubtitle: '',
     imageUrl: '',
     secondaryImageUrl: '',
     deepLink: '',
@@ -493,6 +584,31 @@ export const normalizePhaseOneItems = (items, blockType) => {
   const list = Array.isArray(items) ? items : [];
   const normalized = list.map((item, index) => {
     const base = getPhaseOneDefaultItem(blockType, index);
+    if (blockType === 'icon_list') {
+      return {
+        ...base,
+        iconUrl: item?.iconUrl || '',
+        title: item?.title || '',
+        subtitle: item?.subtitle || '',
+        deepLink: item?.deepLink || '',
+      };
+    }
+    if (blockType === 'chip_scroll') {
+      return {
+        ...base,
+        text: item?.text || item?.title || item?.label || '',
+        deepLink: item?.deepLink || '',
+      };
+    }
+    if (blockType === 'category_showcase') {
+      return {
+        ...base,
+        title: item?.title || item?.name || item?.label || '',
+        imageUrl: item?.imageUrl || item?.imageUri || item?.thumbnailImage || '',
+        iconUrl: item?.iconUrl || item?.mainCategoryIcon || '',
+        deepLink: item?.deepLink || '',
+      };
+    }
     return {
       ...base,
       id: item?.id ? String(item.id) : '',
@@ -501,6 +617,10 @@ export const normalizePhaseOneItems = (items, blockType) => {
       title: item?.title || item?.name || item?.label || '',
       subtitle: item?.subtitle || '',
       badgeText: item?.badgeText || '',
+      ctaText: item?.ctaText || '',
+      ctaLink: item?.ctaLink || '',
+      overlayTitle: item?.overlayTitle || '',
+      overlaySubtitle: item?.overlaySubtitle || '',
       imageUrl: item?.imageUrl || item?.imageUri || item?.thumbnailImage || '',
       secondaryImageUrl: item?.secondaryImageUrl || '',
       deepLink: item?.deepLink || item?.targetUrl || '',
@@ -583,6 +703,12 @@ export const CATEGORY_ICON_FEED_MODE_OPTIONS = [
 export const SOURCE_TYPE_OPTIONS = [
   { value: 'MANUAL', label: 'Manual' },
   { value: 'CATEGORY_FEED', label: 'Category feed' },
+];
+
+export const SHOWCASE_VARIANT_OPTIONS = [
+  { value: 'circle', label: 'Circle' },
+  { value: 'circle_icon', label: 'Circle + Icon badge' },
+  { value: 'card', label: 'Card' },
 ];
 
 export const MULTI_ITEM_GRID_FEED_OPTIONS = [
@@ -761,7 +887,7 @@ export const resolveIndustryRoute = (industry, slug) => {
   return slug ? `/home/${slug}` : '/home';
 };
 
-export const buildIndustryDefaultSections = (slug, industryName) => [
+export const buildIndustryDefaultSections = (slug, industryName, industryId) => [
   {
     id: `${slug}_hero`,
     type: 'banner',
@@ -772,13 +898,16 @@ export const buildIndustryDefaultSections = (slug, industryName) => [
   },
   {
     id: `${slug}_categories`,
-    type: 'grid',
-    blockType: 'category_icon_grid',
+    type: 'category_showcase',
+    blockType: 'category_showcase',
     title: `${industryName} Categories`,
+    actionText: 'View all',
+    showcaseVariant: 'circle',
     enabled: true,
-    sourceType: 'CATEGORY_FEED',
-    sourceFeedMode: 'TOP_SELLING',
-    sourceLimit: 8,
+    dataSource: {
+      sourceType: 'CATEGORY_FEED',
+      industryId: industryId ? String(industryId) : undefined,
+    },
     sduiItems: [],
   },
   {
@@ -819,7 +948,7 @@ export const buildIndustryPresets = (industries = []) => {
         dataSourceRef: `home.${slug}`,
         dataSourceUrl: `/api/home?category=${slug}`,
         label: name,
-        sections: buildIndustryDefaultSections(slug, name),
+        sections: buildIndustryDefaultSections(slug, name, resolveIndustryId(industry)),
       };
     })
     .filter(Boolean);
@@ -1036,6 +1165,19 @@ export const buildDefaultConfig = (pagePresets, headerTabs) => ({
         { type: 'text', valuePath: '$.subtitle', styleRef: 'body', colorRef: 'text.inverse' },
       ],
     },
+    quickActionCard: {
+      type: 'card',
+      bgColorRef: 'bg.card',
+      radius: 'lg',
+      padding: 'md',
+      children: [
+        { type: 'image', urlPath: '$.iconUrl', width: 40, height: 40, radius: 20, bgColorRef: 'bg.chip' },
+        { type: 'spacer', size: 10 },
+        { type: 'text', valuePath: '$.title', styleRef: 'title' },
+        { type: 'text', valuePath: '$.subtitle', styleRef: 'caption' },
+        { type: 'text', valuePath: '$.linkText', styleRef: 'link' },
+      ],
+    },
   },
   dataSources: buildDataSources(pagePresets),
   pages: pagePresets.map((page) => ({
@@ -1056,6 +1198,10 @@ export const defaultSectionForm = {
   blockType: 'heroBanner',
   title: '',
   text: '',
+  actionText: '',
+  actionLink: '',
+  bannerVariant: 'image',
+  showcaseVariant: 'circle',
   imageUrl: '',
   aspectRatio: '',
   deepLink: '',

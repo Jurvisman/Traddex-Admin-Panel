@@ -215,6 +215,18 @@ export const PreviewSection = ({ section, index, collections }) => {
     const image = section?.imageUrl || getPreviewImage(item);
     const aspectRatio = parseAspectRatioValue(section?.aspectRatio);
     const bannerStyle = aspectRatio ? { aspectRatio } : null;
+    const isTextCard = section?.bannerVariant === 'text_card';
+    if (isTextCard) {
+      return (
+        <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+          <div className="preview-promo-text-card" style={{ backgroundColor: section?.sectionBgColor || '#fce7f3' }}>
+            <div className="preview-promo-text-title">{title || 'Promo title'}</div>
+            {section?.text ? <div className="preview-promo-text-subtitle">{section.text}</div> : null}
+            {section?.deepLink ? <span className="preview-promo-text-cta">Shop now</span> : null}
+          </div>
+        </div>
+      );
+    }
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
         {title ? <div className="preview-title">{title}</div> : null}
@@ -279,13 +291,20 @@ export const PreviewSection = ({ section, index, collections }) => {
   if (blockType === 'hero_carousel') {
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
-        {title ? <div className="preview-title">{title}</div> : null}
+        {title ? (
+          <div className="preview-title preview-title-with-action">
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
         <div className="preview-phase-one-carousel">
           {items.map((item, itemIndex) => {
             const image = getPreviewImage(item);
             return (
               <div key={`preview-hero-carousel-${index}-${itemIndex}`} className="preview-phase-one-hero-card">
                 {image ? <img src={image} alt="" /> : <div className="preview-banner-placeholder" />}
+                {item.badgeText ? <span className="preview-hero-badge">{item.badgeText}</span> : null}
+                {item.ctaText ? <span className="preview-hero-cta">{item.ctaText}</span> : null}
               </div>
             );
           })}
@@ -297,7 +316,12 @@ export const PreviewSection = ({ section, index, collections }) => {
   if (blockType === 'horizontal_scroll_list') {
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
-        {title ? <div className="preview-title">{title}</div> : null}
+        {title ? (
+          <div className="preview-title preview-title-with-action">
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
         <div className="preview-phase-one-featured-row">
           {items.map((item, itemIndex) => {
             const image = getPreviewImage(item);
@@ -370,6 +394,12 @@ export const PreviewSection = ({ section, index, collections }) => {
                     <div className="preview-phase-one-column-images">
                       <div className="preview-phase-one-column-image">
                         {image ? <img src={image} alt="" /> : <div className="preview-image-placeholder" />}
+                        {item.overlayTitle ? (
+                          <div className="preview-column-overlay">
+                            <span className="preview-column-overlay-title">{item.overlayTitle}</span>
+                            {item.overlaySubtitle ? <span className="preview-column-overlay-subtitle">{item.overlaySubtitle}</span> : null}
+                          </div>
+                        ) : null}
                       </div>
                       <div className="preview-phase-one-column-image">
                         {secondary ? <img src={secondary} alt="" /> : <div className="preview-image-placeholder" />}
@@ -388,7 +418,12 @@ export const PreviewSection = ({ section, index, collections }) => {
   if (blockType === 'category_icon_grid') {
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
-        {title ? <div className="preview-title">{title}</div> : null}
+        {title ? (
+          <div className="preview-title preview-title-with-action">
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
         <div className="preview-phase-one-category-grid">
           {items.map((item, itemIndex) => {
             const image = getPreviewImage(item);
@@ -399,6 +434,49 @@ export const PreviewSection = ({ section, index, collections }) => {
                   {image ? <img src={image} alt="" /> : <div className="preview-image-placeholder" />}
                 </div>
                 <div className="preview-phase-one-category-label">{label}</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'category_showcase') {
+    const variant = section?.showcaseVariant || 'circle';
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className="preview-title preview-title-with-action">
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className={`preview-showcase-row preview-showcase-${variant}`}>
+          {items.map((item, itemIndex) => {
+            const image = getPreviewImage(item);
+            const label = getPreviewTitle(item);
+            const icon = item?.iconUrl || item?.mainCategoryIcon || '';
+            if (variant === 'card') {
+              return (
+                <div key={`preview-showcase-card-${index}-${itemIndex}`} className="preview-showcase-card-item">
+                  <div className="preview-showcase-card-image">
+                    {image ? <img src={image} alt="" /> : <div className="preview-image-placeholder" />}
+                    {icon ? <img src={icon} alt="" className="preview-showcase-card-badge" /> : null}
+                    <div className="preview-showcase-card-label">{label}</div>
+                  </div>
+                </div>
+              );
+            }
+            return (
+              <div key={`preview-showcase-circle-${index}-${itemIndex}`} className="preview-showcase-circle-item">
+                <div className="preview-showcase-circle-image">
+                  {image ? <img src={image} alt="" /> : <div className="preview-image-placeholder" />}
+                  {variant === 'circle_icon' && icon ? (
+                    <img src={icon} alt="" className="preview-showcase-icon-badge" />
+                  ) : null}
+                </div>
+                <div className="preview-showcase-circle-label">{label}</div>
               </div>
             );
           })}
@@ -548,11 +626,63 @@ export const PreviewSection = ({ section, index, collections }) => {
     );
   }
 
+  if (blockType === 'icon_list') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className="preview-title preview-title-with-action">
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-icon-list">
+          {items.map((item, itemIndex) => (
+            <div key={`preview-icon-list-${index}-${itemIndex}`} className="preview-icon-list-item">
+              <div className="preview-icon-list-icon">
+                {item.iconUrl ? <img src={item.iconUrl} alt="" /> : <div className="preview-image-placeholder" />}
+              </div>
+              <div className="preview-icon-list-text">
+                <div className="preview-icon-list-title">{item.title || `Item ${itemIndex + 1}`}</div>
+                {item.subtitle ? <div className="preview-icon-list-subtitle">{item.subtitle}</div> : null}
+              </div>
+              <span className="preview-icon-list-chevron">&#8250;</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'chip_scroll') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className="preview-title preview-title-with-action">
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-chip-scroll">
+          {items.map((item, itemIndex) => (
+            <span key={`preview-chip-${index}-${itemIndex}`} className="preview-chip">
+              {item.text || item.title || `Chip ${itemIndex + 1}`}
+            </span>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   if (blockType === 'multiItemGrid' || type === 'grid' || type === 'twoColumn' || type === 'heroGrid') {
     const columns = type === 'twoColumn' ? 2 : section?.columns || (type === 'heroGrid' ? 3 : 2);
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
-        {title ? <div className="preview-title">{title}</div> : null}
+        {title ? (
+          <div className="preview-title preview-title-with-action">
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
         <div className="preview-grid" style={{ '--cols': columns }}>
           {items.map((item, itemIndex) => renderCard(item, itemIndex))}
         </div>
@@ -562,7 +692,12 @@ export const PreviewSection = ({ section, index, collections }) => {
 
   return (
     <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
-      {title ? <div className="preview-title">{title}</div> : null}
+      {title ? (
+        <div className="preview-title preview-title-with-action">
+          <span>{title}</span>
+          {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+        </div>
+      ) : null}
       <div className="preview-row">{items.map((item, itemIndex) => renderCard(item, itemIndex))}</div>
     </div>
   );

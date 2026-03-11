@@ -68,6 +68,10 @@ export const buildSectionFromForm = (base, form) => {
   setOrDelete('blockType', form.blockType?.trim());
   setOrDelete('title', form.title?.trim());
   setOrDelete('text', form.text?.trim());
+  setOrDelete('actionText', form.actionText?.trim());
+  setOrDelete('actionLink', form.actionLink?.trim());
+  setOrDelete('bannerVariant', form.bannerVariant === 'text_card' ? 'text_card' : undefined);
+  setOrDelete('showcaseVariant', form.showcaseVariant && form.showcaseVariant !== 'circle' ? form.showcaseVariant : undefined);
   setOrDelete('imageUrl', form.imageUrl?.trim());
   setOrDelete('aspectRatio', form.aspectRatio?.trim());
   setOrDelete('deepLink', form.deepLink?.trim());
@@ -365,6 +369,10 @@ export const buildSectionFormFromConfig = (section, fallbackType) => {
     blockType: resolveBlockType(section),
     title: section?.title || '',
     text: section?.text || '',
+    actionText: section?.actionText || '',
+    actionLink: section?.actionLink || '',
+    bannerVariant: section?.bannerVariant || 'image',
+    showcaseVariant: section?.showcaseVariant || 'circle',
     imageUrl: section?.imageUrl || firstItem?.imageUrl || '',
     aspectRatio: section?.aspectRatio || '',
     deepLink: section?.deepLink || firstItem?.deepLink || firstItem?.targetUrl || '',
@@ -413,9 +421,9 @@ export const buildSectionFormFromConfig = (section, fallbackType) => {
     targetRoles: formatCsvList(section?.targeting?.roles),
     targetIndustries: formatCsvList(section?.targeting?.industries),
     targetSubscriptionStatuses: formatCsvList(section?.targeting?.subscriptionStatuses),
-    sourceType: source?.sourceType || 'MANUAL',
-    sourceIndustryId: source?.industryId ? String(source.industryId) : '',
-    sourceFeedMode: source?.mode || defaultSectionForm.sourceFeedMode,
+    sourceType: source?.sourceType || section?.sourceType || 'MANUAL',
+    sourceIndustryId: source?.industryId ? String(source.industryId) : (section?.sourceIndustryId ? String(section.sourceIndustryId) : ''),
+    sourceFeedMode: source?.mode || section?.sourceFeedMode || defaultSectionForm.sourceFeedMode,
     productFeedMode: resolveMultiItemGridFeedMode(
       section?.dataSourceRef,
       section?.productFeedMode || defaultSectionForm.productFeedMode
