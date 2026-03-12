@@ -12,6 +12,8 @@ import {
   toLocalInputValue,
   formatCsvList,
   resolveBlockType,
+  resolveLegacyStylePreset,
+  resolveLegacyCardVariant,
   defaultSectionForm,
   STYLE_PRESET_OPTIONS,
 } from './appConfigConstants';
@@ -57,6 +59,7 @@ export const buildSectionFromForm = (base, form) => {
   const resolvedBlockType = form.blockType?.trim() || form.type?.trim() || '';
   const isColumnGridBlock = resolvedBlockType === 'column_grid';
   const isCampaignBentoBlock = resolvedBlockType === 'campaignBento';
+  const isProductCardCarouselBlock = resolvedBlockType === 'product_card_carousel';
   const stylePresetOptions = STYLE_PRESET_OPTIONS[resolvedBlockType] || [];
   const setOrDelete = (key, value) => {
     if (value === undefined || value === null || String(value).trim() === '') {
@@ -82,7 +85,11 @@ export const buildSectionFromForm = (base, form) => {
   } else {
     delete next.stylePreset;
   }
-  setOrDelete('bannerVariant', form.bannerVariant === 'text_card' ? 'text_card' : undefined);
+  setOrDelete('cardVariant', form.cardVariant?.trim());
+  setOrDelete(
+    'bannerVariant',
+    resolvedBlockType === 'heroBanner' && form.bannerVariant === 'text_card' ? 'text_card' : undefined
+  );
   setOrDelete('showcaseVariant', form.showcaseVariant && form.showcaseVariant !== 'circle' ? form.showcaseVariant : undefined);
   setOrDelete('imageUrl', form.imageUrl?.trim());
   setOrDelete('aspectRatio', form.aspectRatio?.trim());
@@ -270,6 +277,42 @@ export const buildSectionFromForm = (base, form) => {
     delete next.productFeedMode;
     delete next.productLimit;
   }
+  if (isProductCardCarouselBlock) {
+    delete next.dataSource;
+    delete next.mapping;
+    const hasFeedSource = Boolean(String(form.dataSourceRef || '').trim());
+    if (hasFeedSource) {
+      const feedMode = String(form.productFeedMode || 'BESTSELLER').trim().toUpperCase();
+      const productLimitRaw = toNumberOrNull(form.productLimit);
+      const productLimit = productLimitRaw ? Math.max(1, Math.min(60, productLimitRaw)) : 8;
+      const sourceIndustryId = normalizeCollectionId(form.sourceIndustryId);
+      const sourceMainCategoryId = normalizeCollectionId(form.sourceMainCategoryId);
+      const sourceCategoryIds = Array.isArray(form.sourceCategoryIds)
+        ? form.sourceCategoryIds.map((value) => normalizeCollectionId(value)).filter(Boolean)
+        : [];
+      next.productFeedMode = feedMode;
+      next.dataSourceRef = resolveMultiItemGridDataSourceRef(feedMode);
+      next.itemsPath = '$.products';
+      next.productLimit = productLimit;
+      next.dataSource = {
+        sourceType: 'PRODUCT_FEED',
+        ...(sourceIndustryId ? { industryId: sourceIndustryId } : {}),
+        ...(sourceMainCategoryId ? { mainCategoryId: sourceMainCategoryId } : {}),
+        ...(sourceCategoryIds.length ? { categoryIds: sourceCategoryIds } : {}),
+        filters: {
+          hasImageOnly: form.sourceHasImageOnly !== false,
+          inStockOnly: form.sourceInStockOnly === true,
+        },
+      };
+      delete next.items;
+    } else {
+      delete next.dataSource;
+      delete next.productFeedMode;
+      delete next.productLimit;
+      delete next.dataSourceRef;
+      delete next.itemsPath;
+    }
+  }
   if (isLegacyMultiItemGrid) {
     next.columns = 3;
   } else {
@@ -364,10 +407,11 @@ export const buildSectionFormFromConfig = (section, fallbackType) => {
   const source = section?.dataSource && typeof section.dataSource === 'object' ? section.dataSource : {};
   const mapping = section?.mapping && typeof section.mapping === 'object' ? section.mapping : {};
   const resolvedType = section?.type === 'campaign' ? 'campaignBento' : section?.type || fallbackType;
+  const resolvedBlockType = resolveBlockType(section);
   return {
     id: section?.id || '',
     type: resolvedType,
-    blockType: resolveBlockType(section),
+    blockType: resolvedBlockType,
     title: section?.title || '',
     text: section?.text || '',
     actionText: section?.actionText || '',
@@ -375,8 +419,9 @@ export const buildSectionFormFromConfig = (section, fallbackType) => {
     quickActionPreset:
       section?.quickActionPreset ||
       (legacyBlockType === 'beauty_quick_actions' ? 'beauty' : defaultSectionForm.quickActionPreset),
-    stylePreset: section?.stylePreset || '',
-    bannerVariant: section?.bannerVariant || 'image',
+    stylePreset: resolveLegacyStylePreset(legacyBlockType, section?.stylePreset || ''),
+    cardVariant: resolveLegacyCardVariant(legacyBlockType, section?.cardVariant || section?.variant || ''),
+    bannerVariant: resolvedBlockType === 'heroBanner' ? section?.bannerVariant || 'image' : 'image',
     showcaseVariant: section?.showcaseVariant || 'circle',
     imageUrl: section?.imageUrl || firstItem?.imageUrl || '',
     aspectRatio: section?.aspectRatio || '',
@@ -401,8 +446,8 @@ export const buildSectionFormFromConfig = (section, fallbackType) => {
     bentoHeroLabel: hero?.label || hero?.title || '',
     bentoHeroBadge: hero?.badge || hero?.badgeText || hero?.priceTag || '',
     bentoTiles: tiles,
-    sduiItems: phaseOneBlockTypes.has(resolveBlockType(section))
-      ? normalizePhaseOneItems(items, resolveBlockType(section))
+    sduiItems: phaseOneBlockTypes.has(resolvedBlockType)
+      ? normalizePhaseOneItems(items, resolvedBlockType)
       : [],
     collectionIds: Array.isArray(section?.collectionIds)
       ? section.collectionIds.map((value) => normalizeCollectionId(value)).filter(Boolean)
@@ -426,7 +471,10 @@ export const buildSectionFormFromConfig = (section, fallbackType) => {
     targetRoles: formatCsvList(section?.targeting?.roles),
     targetIndustries: formatCsvList(section?.targeting?.industries),
     targetSubscriptionStatuses: formatCsvList(section?.targeting?.subscriptionStatuses),
-    sourceType: source?.sourceType || section?.sourceType || 'MANUAL',
+    sourceType:
+      source?.sourceType ||
+      ((resolvedBlockType === 'product_card_carousel' && section?.dataSourceRef) ? 'PRODUCT_FEED' : section?.sourceType) ||
+      'MANUAL',
     sourceIndustryId: source?.industryId ? String(source.industryId) : (section?.sourceIndustryId ? String(section.sourceIndustryId) : ''),
     sourceFeedMode: source?.mode || section?.sourceFeedMode || defaultSectionForm.sourceFeedMode,
     productFeedMode: resolveMultiItemGridFeedMode(
@@ -451,6 +499,7 @@ export const buildSectionFormFromConfig = (section, fallbackType) => {
     sourceLevel: source?.level || defaultSectionForm.sourceLevel,
     sourceActiveOnly: source?.filters?.activeOnly !== false,
     sourceHasImageOnly: source?.filters?.hasImageOnly !== false,
+    sourceInStockOnly: source?.filters?.inStockOnly === true,
     mappingTitleField: mapping?.titleField || defaultSectionForm.mappingTitleField,
     mappingImageField: mapping?.imageField || defaultSectionForm.mappingImageField,
     mappingSecondaryImageField: mapping?.secondaryImageField || '',

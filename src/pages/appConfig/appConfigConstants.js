@@ -61,7 +61,7 @@ export const screenSectionTypeOptions = [
   { value: 'category_icon_grid', label: 'Category icon grid (SDUI)' },
   { value: 'brand_logo_grid', label: 'Brand logo grid (SDUI)' },
   { value: 'media_overlay_carousel', label: 'Media overlay carousel (SDUI)' },
-  { value: 'deal_card_carousel', label: 'Deal card carousel (SDUI)' },
+  { value: 'product_card_carousel', label: 'Product card carousel (SDUI)' },
   { value: 'info_list', label: 'Info list (SDUI)' },
   { value: 'categoryPreviewGrid', label: 'Category preview grid' },
   { value: 'campaignBento', label: 'Campaign bento' },
@@ -88,7 +88,8 @@ export const defaultBlockTypeBySectionType = {
   product_shelf_horizontal: 'product_shelf_horizontal',
   quick_action_row: 'quick_action_row',
   media_overlay_carousel: 'media_overlay_carousel',
-  deal_card_carousel: 'deal_card_carousel',
+  product_card_carousel: 'product_card_carousel',
+  deal_card_carousel: 'product_card_carousel',
   info_list: 'info_list',
   icon_list: 'icon_list',
   chip_scroll: 'chip_scroll',
@@ -424,7 +425,8 @@ const buildBeautyDefaultSections = (industryId) => [
   {
     id: 'beauty_spotlight',
     type: 'banner',
-    blockType: 'beauty_hero_banner',
+    blockType: 'promo_hero_banner',
+    stylePreset: 'beauty',
     enabled: true,
     items: [{ ...BEAUTY_HERO_SAMPLE }],
   },
@@ -455,16 +457,18 @@ const buildBeautyDefaultSections = (industryId) => [
   {
     id: 'beauty_trending',
     type: 'horizontalList',
-    blockType: 'beauty_trend_carousel',
+    blockType: 'media_overlay_carousel',
     title: 'Trending looks',
     actionText: 'Explore',
+    stylePreset: 'beauty',
     enabled: true,
     items: BEAUTY_TRENDING_SAMPLE.map((item) => ({ ...item })),
   },
   {
     id: 'beauty_offer',
     type: 'banner',
-    blockType: 'beauty_offer_banner',
+    blockType: 'promo_banner',
+    stylePreset: 'beauty',
     title: 'Beauty Friday',
     text: 'Up to 40% off skincare sets and bundles',
     actionText: 'Shop offers',
@@ -474,27 +478,30 @@ const buildBeautyDefaultSections = (industryId) => [
   {
     id: 'beauty_best_sellers',
     type: 'horizontalList',
-    blockType: 'beauty_product_shelf',
+    blockType: 'product_card_carousel',
     title: 'Best sellers',
     actionText: 'View all',
+    stylePreset: 'beauty',
     enabled: true,
     items: BEAUTY_PRODUCT_SAMPLE.map((item) => ({ ...item })),
   },
   {
     id: 'beauty_routine',
     type: 'list',
-    blockType: 'beauty_routine_list',
+    blockType: 'info_list',
     title: 'Build your routine',
     actionText: 'See all',
+    stylePreset: 'beauty_routine',
     enabled: true,
     items: BEAUTY_ROUTINE_SAMPLE.map((item) => ({ ...item })),
   },
   {
     id: 'beauty_tips',
     type: 'horizontalList',
-    blockType: 'beauty_tip_chips',
+    blockType: 'chip_scroll',
     title: 'Beauty tips',
     actionText: 'Read',
+    stylePreset: 'beauty',
     enabled: true,
     items: BEAUTY_TIPS_SAMPLE.map((item) => ({ ...item })),
   },
@@ -546,9 +553,10 @@ const buildElectronicsDefaultSections = (industryId) => [
   {
     id: 'electronics_hot_deals',
     type: 'horizontalList',
-    blockType: 'deal_card_carousel',
+    blockType: 'product_card_carousel',
     title: 'Hot deals',
     actionText: 'View all',
+    stylePreset: 'electronics',
     enabled: true,
     items: ELECTRONICS_DEAL_SAMPLE.map((item) => ({ ...item })),
   },
@@ -587,8 +595,8 @@ const buildElectronicsDefaultSections = (industryId) => [
 export const screenToolboxItems = [
   {
     key: 'heroBanner',
-    label: 'Hero Banner Block',
-    hint: 'Large image banner',
+    label: 'Image Hero Banner',
+    hint: 'Simple image banner',
     section: {
       id: 'hero_banner',
       type: 'banner',
@@ -643,15 +651,16 @@ export const screenToolboxItems = [
     },
   },
   {
-    key: 'dealCardCarousel',
-    label: 'Deal Card Carousel',
-    hint: 'Horizontal deal cards with badge, subtitle, and price',
+    key: 'productCardCarousel',
+    label: 'Product Card Carousel',
+    hint: 'Reusable product cards with preset styling and optional feed mode',
     section: {
-      id: 'deal_card_carousel',
+      id: 'product_card_carousel',
       type: 'horizontalList',
-      blockType: 'deal_card_carousel',
+      blockType: 'product_card_carousel',
       title: 'Hot deals',
       actionText: 'View all',
+      stylePreset: 'electronics',
       items: ELECTRONICS_DEAL_SAMPLE.map((item) => ({ ...item })),
     },
   },
@@ -856,28 +865,18 @@ export const screenToolboxItems = [
   },
   {
     key: 'promoBanner',
-    label: 'Promo Banner Block',
-    hint: 'Text card with CTA button',
+    label: 'Promo Banner',
+    hint: 'Reusable text card banner with preset styling',
     section: {
       id: 'promo_banner',
       type: 'banner',
-      blockType: 'heroBanner',
+      blockType: 'promo_banner',
       title: 'Sale is live',
       text: 'Up to 40% off on selected items',
-      bannerVariant: 'text_card',
+      actionText: 'Shop offers',
+      actionLink: '',
+      stylePreset: '',
       sectionBgColor: '#fce7f3',
-      deepLink: '',
-    },
-  },
-  {
-    key: 'beautyHeroBanner',
-    label: 'Beauty Hero Banner',
-    hint: 'Beauty spotlight image card with overlay CTA',
-    section: {
-      id: 'beauty_spotlight',
-      type: 'banner',
-      blockType: 'beauty_hero_banner',
-      items: [BEAUTY_HERO_SAMPLE],
     },
   },
   {
@@ -892,73 +891,6 @@ export const screenToolboxItems = [
       actionText: 'Manage',
       quickActionPreset: 'electronics',
       items: ELECTRONICS_QUICK_ACTIONS_SAMPLE,
-    },
-  },
-  {
-    key: 'beautyTrendCarousel',
-    label: 'Beauty Trending Cards',
-    hint: 'Image cards for trending looks',
-    section: {
-      id: 'beauty_trending',
-      type: 'horizontalList',
-      blockType: 'beauty_trend_carousel',
-      title: 'Trending looks',
-      actionText: 'Explore',
-      items: BEAUTY_TRENDING_SAMPLE,
-    },
-  },
-  {
-    key: 'beautyOfferBanner',
-    label: 'Beauty Offer Banner',
-    hint: 'Gradient promo banner with CTA',
-    section: {
-      id: 'beauty_offer',
-      type: 'banner',
-      blockType: 'beauty_offer_banner',
-      title: 'Beauty Friday',
-      text: 'Up to 40% off skincare sets and bundles',
-      actionText: 'Shop offers',
-      actionLink: '',
-      sectionBgColor: '#E9C3B3',
-    },
-  },
-  {
-    key: 'beautyProductShelf',
-    label: 'Beauty Product Shelf',
-    hint: 'Horizontal beauty product cards',
-    section: {
-      id: 'beauty_best_sellers',
-      type: 'horizontalList',
-      blockType: 'beauty_product_shelf',
-      title: 'Best sellers',
-      actionText: 'View all',
-      items: BEAUTY_PRODUCT_SAMPLE,
-    },
-  },
-  {
-    key: 'beautyRoutineList',
-    label: 'Beauty Routine List',
-    hint: 'Vertical routine steps list',
-    section: {
-      id: 'beauty_routine',
-      type: 'list',
-      blockType: 'beauty_routine_list',
-      title: 'Build your routine',
-      actionText: 'See all',
-      items: BEAUTY_ROUTINE_SAMPLE,
-    },
-  },
-  {
-    key: 'beautyTipChips',
-    label: 'Beauty Tip Chips',
-    hint: 'Horizontal beauty tips pills',
-    section: {
-      id: 'beauty_tips',
-      type: 'horizontalList',
-      blockType: 'beauty_tip_chips',
-      title: 'Beauty tips',
-      actionText: 'Read',
-      items: BEAUTY_TIPS_SAMPLE,
     },
   },
   {
@@ -998,7 +930,7 @@ export const blockLabels = {
   addressHeader: 'Address Header Block',
   searchBar: 'Search Bar Block',
   horizontalPills: 'Horizontal Pills Block',
-  heroBanner: 'Hero Banner Block',
+  heroBanner: 'Image Hero Banner',
   hero_carousel: 'Hero Carousel Block',
   promo_hero_banner: 'Promo Hero Banner',
   horizontal_scroll_list: 'Featured Cards Block',
@@ -1007,14 +939,16 @@ export const blockLabels = {
   category_icon_grid: 'Category Icon Grid',
   brand_logo_grid: 'Brand Layout Block',
   media_overlay_carousel: 'Media Overlay Carousel',
-  deal_card_carousel: 'Deal Card Carousel',
+  product_card_carousel: 'Product Card Carousel',
+  deal_card_carousel: 'Product Card Carousel',
   info_list: 'Info List',
+  promo_banner: 'Promo Banner',
   product_shelf_horizontal: 'Product Shelf Block',
   beauty_hero_banner: 'Beauty Hero Banner',
   beauty_quick_actions: 'Quick Action Row',
   beauty_trend_carousel: 'Beauty Trending Cards',
-  beauty_offer_banner: 'Beauty Offer Banner',
-  beauty_product_shelf: 'Beauty Product Shelf',
+  beauty_offer_banner: 'Promo Banner',
+  beauty_product_shelf: 'Product Card Carousel',
   beauty_routine_list: 'Beauty Routine List',
   beauty_tip_chips: 'Beauty Tip Chips',
   beauty_salon_carousel: 'Beauty Salon Carousel',
@@ -1031,10 +965,64 @@ export const blockLabels = {
 export const resolveBlockLabel = (blockType, fallback) =>
   blockLabels[blockType] || fallback || 'Block';
 
+const LEGACY_BLOCK_TYPE_ALIASES = {
+  beauty_quick_actions: 'quick_action_row',
+  beauty_hero_banner: 'promo_hero_banner',
+  beauty_trend_carousel: 'media_overlay_carousel',
+  beauty_offer_banner: 'promo_banner',
+  beauty_product_shelf: 'product_card_carousel',
+  deal_card_carousel: 'product_card_carousel',
+  beauty_routine_list: 'info_list',
+  beauty_tip_chips: 'chip_scroll',
+  bestseller_shelf: 'product_shelf_horizontal',
+};
+
+export const resolveLegacyBlockTypeAlias = (value) => {
+  const key = String(value || '').trim();
+  return LEGACY_BLOCK_TYPE_ALIASES[key] || key;
+};
+
+export const resolveLegacyStylePreset = (blockType, stylePreset) => {
+  const current = String(stylePreset || '').trim();
+  if (current) return current;
+  switch (String(blockType || '').trim()) {
+    case 'beauty_hero_banner':
+      return 'beauty';
+    case 'beauty_trend_carousel':
+      return 'beauty';
+    case 'beauty_offer_banner':
+      return 'beauty';
+    case 'beauty_product_shelf':
+      return 'beauty';
+    case 'deal_card_carousel':
+      return 'electronics';
+    case 'beauty_routine_list':
+      return 'beauty_routine';
+    case 'beauty_tip_chips':
+      return 'beauty';
+    default:
+      return '';
+  }
+};
+
+export const resolveLegacyCardVariant = (blockType, cardVariant) => {
+  const current = String(cardVariant || '').trim();
+  if (current) return current;
+  switch (String(blockType || '').trim()) {
+    case 'bestseller_shelf':
+      return 'bestseller';
+    default:
+      return '';
+  }
+};
+
 export const resolveBlockType = (section) => {
   if (!section) return '';
-  if (section.blockType === 'beauty_quick_actions') return 'quick_action_row';
-  if (section.blockType) return section.blockType;
+  const rawBlockType = String(section.blockType || '').trim();
+  if (rawBlockType === 'heroBanner' && section.bannerVariant === 'text_card') return 'promo_banner';
+  const resolvedBlockType = resolveLegacyBlockTypeAlias(rawBlockType);
+  if (resolvedBlockType) return resolvedBlockType;
+  if (section.type === 'banner' && section.bannerVariant === 'text_card') return 'promo_banner';
   if (section.type === 'hero_carousel') return 'hero_carousel';
   if (section.type === 'promo_hero_banner') return 'promo_hero_banner';
   if (section.type === 'horizontal_scroll_list') return 'horizontal_scroll_list';
@@ -1043,9 +1031,13 @@ export const resolveBlockType = (section) => {
   if (section.type === 'category_icon_grid') return 'category_icon_grid';
   if (section.type === 'brand_logo_grid') return 'brand_logo_grid';
   if (section.type === 'media_overlay_carousel') return 'media_overlay_carousel';
-  if (section.type === 'deal_card_carousel') return 'deal_card_carousel';
+  if (section.type === 'product_card_carousel') return 'product_card_carousel';
+  if (section.type === 'deal_card_carousel') return 'product_card_carousel';
   if (section.type === 'info_list') return 'info_list';
+  if (section.type === 'chip_scroll') return 'chip_scroll';
   if (section.type === 'category_showcase') return 'category_showcase';
+  const resolvedType = resolveLegacyBlockTypeAlias(section.type);
+  if (resolvedType && resolvedType !== section.type) return resolvedType;
   if (section.type === 'banner') return 'heroBanner';
   if (section.type === 'title') return 'sectionTitle';
   if (section.type === 'grid') return 'multiItemGrid';
@@ -1058,7 +1050,7 @@ export const normalizeCollectionId = (value) => (value === undefined || value ==
 export const normalizeMatchValue = (value) => (value === undefined || value === null ? '' : String(value).trim().toLowerCase());
 export const resolveIndustryId = (industry) =>
   normalizeCollectionId(
-    industry?.id ?? industry?._id ?? industry?.slug ?? industry?.industryId ?? industry?.industry_id ?? industry?.name
+    industry?.industryId ?? industry?.industry_id ?? industry?.id ?? industry?._id ?? industry?.slug ?? industry?.name
   );
 export const resolveIndustryLabel = (industry) => industry?.name || industry?.label || industry?.title || 'Industry';
 export const resolveMainCategoryId = (mainCategory) =>
@@ -1169,8 +1161,10 @@ export const phaseOneBlockTypes = new Set([
   'category_icon_grid',
   'brand_logo_grid',
   'media_overlay_carousel',
+  'product_card_carousel',
   'deal_card_carousel',
   'info_list',
+  'promo_banner',
   'product_shelf_horizontal',
   'icon_list',
   'chip_scroll',
@@ -1185,8 +1179,15 @@ export const phaseOneBlockTypes = new Set([
 ]);
 
 export const getPhaseOneDefaultItem = (blockType, index = 0) => {
-  const resolvedBlockType = blockType === 'beauty_quick_actions' ? 'quick_action_row' : blockType;
-  if (resolvedBlockType === 'beauty_offer_banner') {
+  const resolvedBlockType =
+    blockType === 'beauty_quick_actions'
+      ? 'quick_action_row'
+      : blockType === 'beauty_offer_banner'
+        ? 'promo_banner'
+        : blockType === 'deal_card_carousel' || blockType === 'beauty_product_shelf'
+          ? 'product_card_carousel'
+        : blockType;
+  if (resolvedBlockType === 'promo_banner') {
     return {};
   }
   if (resolvedBlockType === 'beauty_hero_banner') {
@@ -1238,7 +1239,7 @@ export const getPhaseOneDefaultItem = (blockType, index = 0) => {
       deepLink: '',
     };
   }
-  if (resolvedBlockType === 'deal_card_carousel') {
+  if (resolvedBlockType === 'product_card_carousel') {
     return {
       title: '',
       subtitle: '',
@@ -1255,15 +1256,6 @@ export const getPhaseOneDefaultItem = (blockType, index = 0) => {
       price: '',
       iconName: '',
       iconUrl: '',
-      deepLink: '',
-    };
-  }
-  if (resolvedBlockType === 'beauty_product_shelf') {
-    return {
-      title: '',
-      subtitle: '',
-      price: '',
-      imageUrl: '',
       deepLink: '',
     };
   }
@@ -1339,10 +1331,17 @@ export const getPhaseOneDefaultItem = (blockType, index = 0) => {
 
 export const normalizePhaseOneItems = (items, blockType) => {
   const list = Array.isArray(items) ? items : [];
-  const resolvedBlockType = blockType === 'beauty_quick_actions' ? 'quick_action_row' : blockType;
+  const resolvedBlockType =
+    blockType === 'beauty_quick_actions'
+      ? 'quick_action_row'
+      : blockType === 'beauty_offer_banner'
+        ? 'promo_banner'
+        : blockType === 'deal_card_carousel' || blockType === 'beauty_product_shelf'
+          ? 'product_card_carousel'
+        : blockType;
   const normalized = list.map((item, index) => {
     const base = getPhaseOneDefaultItem(resolvedBlockType, index);
-    if (resolvedBlockType === 'beauty_offer_banner') {
+    if (resolvedBlockType === 'promo_banner') {
       return {};
     }
     if (resolvedBlockType === 'beauty_hero_banner') {
@@ -1399,7 +1398,7 @@ export const normalizePhaseOneItems = (items, blockType) => {
         deepLink: item?.deepLink || item?.targetUrl || '',
       };
     }
-    if (resolvedBlockType === 'deal_card_carousel') {
+    if (resolvedBlockType === 'product_card_carousel') {
       return {
         ...base,
         title: item?.title || item?.name || item?.label || '',
@@ -1418,16 +1417,6 @@ export const normalizePhaseOneItems = (items, blockType) => {
         price: item?.price || item?.sellingPrice || '',
         iconName: item?.iconName || item?.icon || '',
         iconUrl: item?.iconUrl || '',
-        deepLink: item?.deepLink || item?.targetUrl || '',
-      };
-    }
-    if (resolvedBlockType === 'beauty_product_shelf') {
-      return {
-        ...base,
-        title: item?.title || item?.name || item?.label || '',
-        subtitle: item?.subtitle || '',
-        price: item?.price || item?.sellingPrice || '',
-        imageUrl: item?.imageUrl || item?.imageUri || item?.thumbnailImage || '',
         deepLink: item?.deepLink || item?.targetUrl || '',
       };
     }
@@ -1591,12 +1580,32 @@ export const STYLE_PRESET_OPTIONS = {
   ],
   media_overlay_carousel: [
     { value: 'electronics', label: 'Electronics' },
+    { value: 'beauty', label: 'Beauty' },
+  ],
+  product_card_carousel: [
+    { value: 'electronics', label: 'Electronics' },
+    { value: 'beauty', label: 'Beauty' },
   ],
   info_list: [
     { value: 'launch_rows', label: 'Launch rows' },
     { value: 'support_rows', label: 'Support rows' },
+    { value: 'beauty_routine', label: 'Beauty routine' },
+  ],
+  chip_scroll: [
+    { value: '', label: 'Default' },
+    { value: 'beauty', label: 'Beauty' },
+  ],
+  promo_banner: [
+    { value: '', label: 'Default' },
+    { value: 'beauty', label: 'Beauty' },
   ],
 };
+
+export const PRODUCT_SHELF_VARIANT_OPTIONS = [
+  { value: '', label: 'Auto / compact' },
+  { value: 'compact', label: 'Compact cards' },
+  { value: 'bestseller', label: 'Bestseller / wide cards' },
+];
 
 export const SHOWCASE_VARIANT_OPTIONS = [
   { value: 'circle', label: 'Circle' },
@@ -1605,6 +1614,9 @@ export const SHOWCASE_VARIANT_OPTIONS = [
 ];
 
 export const MULTI_ITEM_GRID_FEED_OPTIONS = [
+  { value: 'TOP_SELLING', label: 'Top selling', dataSourceRef: 'home_top_selling_products' },
+  { value: 'MOST_RATED', label: 'Most rated', dataSourceRef: 'home_most_rated_products' },
+  { value: 'RECOMMENDED', label: 'Recommended', dataSourceRef: 'home_recommended_products' },
   { value: 'FREQUENTLY_BOUGHT', label: 'Frequently bought', dataSourceRef: 'home_frequently_bought_products' },
   { value: 'LOWEST_PRICE', label: 'Lowest price', dataSourceRef: 'home_lowest_price_products' },
   { value: 'TRENDING', label: 'Trending', dataSourceRef: 'home_trending_products' },
@@ -1621,9 +1633,6 @@ export const resolveMultiItemGridFeedMode = (dataSourceRef, fallbackMode = 'FREQ
   const normalizedRef = String(dataSourceRef || '').trim();
   const match = MULTI_ITEM_GRID_FEED_OPTIONS.find((option) => option.dataSourceRef === normalizedRef);
   if (match?.value) return match.value;
-  if (normalizedRef === 'home_top_selling_products') return 'BESTSELLER';
-  if (normalizedRef === 'home_recommended_products') return 'FREQUENTLY_BOUGHT';
-  if (normalizedRef === 'home_most_rated_products') return 'TRENDING';
   return String(fallbackMode || 'FREQUENTLY_BOUGHT').trim().toUpperCase();
 };
 
@@ -2124,6 +2133,7 @@ export const defaultSectionForm = {
   imageGap: '',
   quickActionPreset: 'electronics',
   stylePreset: '',
+  cardVariant: '',
   bentoHeaderImage: '',
   bentoHeroImage: '',
   bentoHeroLink: '',
@@ -2158,6 +2168,7 @@ export const defaultSectionForm = {
   sourceLevel: 'CATEGORY',
   sourceActiveOnly: true,
   sourceHasImageOnly: true,
+  sourceInStockOnly: false,
   mappingTitleField: 'name',
   mappingImageField: 'imageUrl',
   mappingSecondaryImageField: '',

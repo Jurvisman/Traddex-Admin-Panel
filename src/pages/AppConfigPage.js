@@ -77,6 +77,7 @@ import {
   SOURCE_TYPE_OPTIONS,
   SHOWCASE_VARIANT_OPTIONS,
   STYLE_PRESET_OPTIONS,
+  PRODUCT_SHELF_VARIANT_OPTIONS,
   MULTI_ITEM_GRID_FEED_OPTIONS,
   resolveMultiItemGridDataSourceRef,
   resolveMultiItemGridFeedMode,
@@ -411,7 +412,9 @@ function AppConfigPage({ token }) {
   useEffect(() => {
     const resolvedBlockType = sectionForm.blockType || sectionForm.type || '';
     if (!phaseOneBlockTypes.has(resolvedBlockType)) return;
-    if ((sectionForm.sourceType || 'MANUAL') !== 'CATEGORY_FEED') {
+    const isProductFeedBlock =
+      resolvedBlockType === 'product_card_carousel' && Boolean(String(sectionForm.dataSourceRef || '').trim());
+    if ((sectionForm.sourceType || 'MANUAL') !== 'CATEGORY_FEED' && !isProductFeedBlock) {
       setSourceCategories([]);
       return;
     }
@@ -423,6 +426,28 @@ function AppConfigPage({ token }) {
     loadSourceCategories(mainId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sectionForm.blockType, sectionForm.type, sectionForm.sourceType, sectionForm.sourceMainCategoryId]);
+
+  useEffect(() => {
+    const current = normalizeCollectionId(sectionForm.sourceIndustryId);
+    if (!current || !industries.length) return;
+    const matched = industries.find((item) => {
+      const numericId = normalizeCollectionId(
+        item?.industryId ?? item?.industry_id ?? item?.id ?? item?._id
+      );
+      const slug = normalizeSlug(item?.slug || item?.name || '');
+      const name = normalizeMatchValue(item?.name || item?.label || item?.title || '');
+      return current === numericId || normalizeMatchValue(current) === slug || normalizeMatchValue(current) === name;
+    });
+    const normalizedId = matched ? resolveIndustryId(matched) : '';
+    if (!normalizedId || normalizedId === current) return;
+    setSectionForm((prev) => {
+      if (normalizeCollectionId(prev.sourceIndustryId) !== current) return prev;
+      return {
+        ...prev,
+        sourceIndustryId: normalizedId,
+      };
+    });
+  }, [industries, sectionForm.sourceIndustryId]);
 
   useEffect(() => {
     const resolvedBlockType = sectionForm.blockType || sectionForm.type || '';
@@ -2463,7 +2488,7 @@ function AppConfigPage({ token }) {
     screenBlockType === 'horizontal_scroll_list' ||
     screenBlockType === 'column_grid' ||
     screenBlockType === 'category_showcase';
-  const isHeroBanner = screenBlockType === 'heroBanner' || sectionForm.type === 'banner';
+  const isHeroBanner = screenBlockType === 'heroBanner';
   const isPhaseOneHorizontalList = screenBlockType === 'horizontal_scroll_list';
   const isPhaseOneColumnGrid = screenBlockType === 'column_grid';
   const isPhaseOneCategoryIconGrid = screenBlockType === 'category_icon_grid';
@@ -2475,17 +2500,26 @@ function AppConfigPage({ token }) {
   const isPhaseOneCategoryShowcase = screenBlockType === 'category_showcase';
   const isQuickActionRow = screenBlockType === 'quick_action_row';
   const isPromoHeroBanner = screenBlockType === 'promo_hero_banner';
-  const isDealCardCarousel = screenBlockType === 'deal_card_carousel';
+  const isPromoBanner = screenBlockType === 'promo_banner';
+  const isProductCardCarousel = screenBlockType === 'product_card_carousel';
   const isMediaOverlayCarousel = screenBlockType === 'media_overlay_carousel';
   const isInfoList = screenBlockType === 'info_list';
   const isBeautyHeroBanner = screenBlockType === 'beauty_hero_banner';
   const isQuickActionBlock = isQuickActionRow;
   const isBeautyTrendCarousel = screenBlockType === 'beauty_trend_carousel';
-  const isBeautyOfferBanner = screenBlockType === 'beauty_offer_banner';
-  const isBeautyProductShelf = screenBlockType === 'beauty_product_shelf';
   const isBeautyRoutineList = screenBlockType === 'beauty_routine_list';
   const isBeautyTipChips = screenBlockType === 'beauty_tip_chips';
   const isBeautySalonCarousel = screenBlockType === 'beauty_salon_carousel';
+  const infoListPreset = String(sectionForm.stylePreset || 'launch_rows').trim().toLowerCase();
+  const isLaunchInfoList = infoListPreset === 'launch_rows';
+  const mediaOverlayPreset = String(sectionForm.stylePreset || 'electronics').trim().toLowerCase();
+  const isBeautyMediaOverlay = mediaOverlayPreset === 'beauty';
+  const productCardPreset = String(sectionForm.stylePreset || 'electronics').trim().toLowerCase();
+  const isBeautyProductCardCarousel = productCardPreset === 'beauty';
+  const isProductCardCarouselFeed =
+    isProductCardCarousel && Boolean(String(sectionForm.dataSourceRef || '').trim());
+  const promoBannerPreset = String(sectionForm.stylePreset || '').trim().toLowerCase();
+  const isBeautyPromoBanner = promoBannerPreset === 'beauty';
   const stylePresetOptions = STYLE_PRESET_OPTIONS[screenBlockType] || [];
   const supportsStylePreset = stylePresetOptions.length > 0;
   const currentSourceFingerprint = buildCategoryFeedFingerprint(sectionForm, screenBlockType);
@@ -3064,20 +3098,21 @@ function AppConfigPage({ token }) {
                       ) : null}
                     </div>
                     {(isHeroBanner ||
+                      isPromoBanner ||
                       isMultiItemGrid ||
                       isCampaignBento ||
                       (isPhaseOneBlock && !isBeautyHeroBanner && !isPromoHeroBanner)) ? (
                       <label className="field field-span">
-                        <span>{isHeroBanner ? 'Banner title (optional)' : 'Section title'}</span>
+                        <span>{isHeroBanner || isPromoBanner ? 'Banner title (optional)' : 'Section title'}</span>
                         <input
                           type="text"
                           value={sectionForm.title}
                           onChange={(event) => setSectionForm((prev) => ({ ...prev, title: event.target.value }))}
-                          placeholder={isHeroBanner ? 'Hero banner title' : 'Frequently bought'}
+                          placeholder={isHeroBanner || isPromoBanner ? 'Hero banner title' : 'Frequently bought'}
                         />
                       </label>
                     ) : null}
-                    {isBeautyOfferBanner ? (
+                    {isPromoBanner ? (
                       <>
                         <label className="field field-span">
                           <span>Subtitle / description</span>
@@ -3085,7 +3120,11 @@ function AppConfigPage({ token }) {
                             type="text"
                             value={sectionForm.text}
                             onChange={(event) => setSectionForm((prev) => ({ ...prev, text: event.target.value }))}
-                            placeholder="Up to 40% off skincare sets and bundles"
+                            placeholder={
+                              isBeautyPromoBanner
+                                ? 'Up to 40% off skincare sets and bundles'
+                                : 'Up to 40% off on selected items'
+                            }
                           />
                         </label>
                         <label className="field">
@@ -3095,12 +3134,12 @@ function AppConfigPage({ token }) {
                               type="text"
                               value={sectionForm.sectionBgColor}
                               onChange={(event) => setSectionForm((prev) => ({ ...prev, sectionBgColor: event.target.value }))}
-                              placeholder="#E9C3B3"
+                              placeholder={isBeautyPromoBanner ? '#E9C3B3' : '#fce7f3'}
                             />
                             <input
                               type="color"
                               className="color-input"
-                              value={resolveHexColor(sectionForm.sectionBgColor, '#E9C3B3')}
+                              value={resolveHexColor(sectionForm.sectionBgColor, isBeautyPromoBanner ? '#E9C3B3' : '#fce7f3')}
                               onChange={(event) => setSectionForm((prev) => ({ ...prev, sectionBgColor: event.target.value }))}
                             />
                           </div>
@@ -3138,6 +3177,23 @@ function AppConfigPage({ token }) {
                         </select>
                       </label>
                     ) : null}
+                    {isPhaseOneProductShelf ? (
+                      <label className="field">
+                        <span>Shelf layout</span>
+                        <select
+                          value={sectionForm.cardVariant || ''}
+                          onChange={(event) =>
+                            setSectionForm((prev) => ({ ...prev, cardVariant: event.target.value }))
+                          }
+                        >
+                          {PRODUCT_SHELF_VARIANT_OPTIONS.map((option) => (
+                            <option key={`product-shelf-variant-${option.value || 'auto'}`} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    ) : null}
                     {isSectionTitleBlock ? (
                       <label className="field field-span">
                         <span>Title text</span>
@@ -3151,47 +3207,6 @@ function AppConfigPage({ token }) {
                     ) : null}
                     {isHeroBanner ? (
                       <>
-                        <label className="field">
-                          <span>Banner variant</span>
-                          <select
-                            value={sectionForm.bannerVariant}
-                            onChange={(event) => setSectionForm((prev) => ({ ...prev, bannerVariant: event.target.value }))}
-                          >
-                            <option value="image">Image banner</option>
-                            <option value="text_card">Text card with CTA</option>
-                          </select>
-                        </label>
-                        {sectionForm.bannerVariant === 'text_card' ? (
-                          <>
-                            <label className="field field-span">
-                              <span>Subtitle / description</span>
-                              <input
-                                type="text"
-                                value={sectionForm.text}
-                                onChange={(event) => setSectionForm((prev) => ({ ...prev, text: event.target.value }))}
-                                placeholder="Up to 40% off on selected items"
-                              />
-                            </label>
-                            <label className="field">
-                              <span>Background color</span>
-                              <div className="inline-row">
-                                <input
-                                  type="text"
-                                  value={sectionForm.sectionBgColor}
-                                  onChange={(event) => setSectionForm((prev) => ({ ...prev, sectionBgColor: event.target.value }))}
-                                  placeholder="#fce7f3"
-                                />
-                                <input
-                                  type="color"
-                                  className="color-input"
-                                  value={sectionForm.sectionBgColor || '#fce7f3'}
-                                  onChange={(event) => setSectionForm((prev) => ({ ...prev, sectionBgColor: event.target.value }))}
-                                />
-                              </div>
-                            </label>
-                          </>
-                        ) : null}
-                        {sectionForm.bannerVariant !== 'text_card' ? (
                         <label className="field field-span">
                           <span>Image URL</span>
                           <div className="inline-row">
@@ -3218,7 +3233,6 @@ function AppConfigPage({ token }) {
                             </button>
                           </div>
                         </label>
-                        ) : null}
                         <label className="field">
                           <span>Aspect ratio</span>
                           <input
@@ -3793,6 +3807,219 @@ function AppConfigPage({ token }) {
                             />
                           </label>
                         ) : null}
+                        {isProductCardCarousel ? (
+                          <>
+                            <label className="field">
+                              <span>Content source</span>
+                              <select
+                                value={isProductCardCarouselFeed ? 'PRODUCT_FEED' : 'MANUAL'}
+                                onChange={(event) => {
+                                  const nextMode = event.target.value;
+                                  if (nextMode === 'PRODUCT_FEED') {
+                                    const feedMode = sectionForm.productFeedMode || 'BESTSELLER';
+                                    setSectionForm((prev) => ({
+                                      ...prev,
+                                      sourceType: 'PRODUCT_FEED',
+                                      sourceIndustryId:
+                                        prev.sourceIndustryId || String(resolveIndustryId(pageIndustry) || ''),
+                                      sourceHasImageOnly:
+                                        prev.sourceType === 'PRODUCT_FEED' ? prev.sourceHasImageOnly : true,
+                                      sourceInStockOnly:
+                                        prev.sourceType === 'PRODUCT_FEED' ? prev.sourceInStockOnly : true,
+                                      productFeedMode: feedMode,
+                                      dataSourceRef: resolveMultiItemGridDataSourceRef(feedMode),
+                                      itemsPath: '$.products',
+                                    }));
+                                    return;
+                                  }
+                                  setSectionForm((prev) => ({
+                                    ...prev,
+                                    sourceType: 'MANUAL',
+                                    dataSourceRef: '',
+                                    itemsPath: '',
+                                  }));
+                                }}
+                              >
+                                <option value="MANUAL">Manual items</option>
+                                <option value="PRODUCT_FEED">Product feed</option>
+                              </select>
+                              <p className="field-help">
+                                Use manual cards for curated promos, or switch to a product feed to load live products automatically.
+                              </p>
+                            </label>
+                            {isProductCardCarouselFeed ? (
+                              <>
+                                <label className="field">
+                                  <span>Product feed</span>
+                                  <select
+                                    value={sectionForm.productFeedMode || 'BESTSELLER'}
+                                    onChange={(event) =>
+                                      setSectionForm((prev) => ({
+                                        ...prev,
+                                        sourceType: 'PRODUCT_FEED',
+                                        productFeedMode: event.target.value,
+                                        dataSourceRef: resolveMultiItemGridDataSourceRef(event.target.value),
+                                        itemsPath: '$.products',
+                                      }))
+                                    }
+                                  >
+                                    {MULTI_ITEM_GRID_FEED_OPTIONS.map((option) => (
+                                      <option key={option.value} value={option.value}>
+                                        {option.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </label>
+                                <label className="field">
+                                  <span>Initial visible products</span>
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    max="60"
+                                    value={sectionForm.productLimit || '8'}
+                                    onChange={(event) =>
+                                      setSectionForm((prev) => ({
+                                        ...prev,
+                                        productLimit: event.target.value,
+                                      }))
+                                    }
+                                  />
+                                  <p className="field-help">
+                                    Controls how many live products are rendered in this carousel on first load.
+                                  </p>
+                                </label>
+                                <label className="field">
+                                  <span>Industry</span>
+                                  <select
+                                    value={sectionForm.sourceIndustryId || ''}
+                                    onChange={(event) =>
+                                      setSectionForm((prev) => ({
+                                        ...prev,
+                                        sourceType: 'PRODUCT_FEED',
+                                        sourceIndustryId: event.target.value,
+                                        sourceMainCategoryId: '',
+                                        sourceCategoryIds: [],
+                                      }))
+                                    }
+                                  >
+                                    <option value="">All industries</option>
+                                    {industries.map((item) => {
+                                      const id = resolveIndustryId(item);
+                                      if (!id) return null;
+                                      return (
+                                        <option key={id} value={id}>
+                                          {resolveIndustryLabel(item)}
+                                        </option>
+                                      );
+                                    })}
+                                  </select>
+                                </label>
+                                <label className="field">
+                                  <span>Main category</span>
+                                  <select
+                                    value={sectionForm.sourceMainCategoryId || ''}
+                                    onChange={(event) =>
+                                      setSectionForm((prev) => ({
+                                        ...prev,
+                                        sourceType: 'PRODUCT_FEED',
+                                        sourceMainCategoryId: event.target.value,
+                                        sourceCategoryIds: [],
+                                      }))
+                                    }
+                                  >
+                                    <option value="">All main categories</option>
+                                    {filteredMainCategoryOptions.map((item) => {
+                                      const id = resolveMainCategoryId(item);
+                                      if (!id) return null;
+                                      return (
+                                        <option key={id} value={id}>
+                                          {resolveMainCategoryName(item)}
+                                        </option>
+                                      );
+                                    })}
+                                  </select>
+                                </label>
+                                <div className="field">
+                                  <span>Filters</span>
+                                  <label className="checkbox-row">
+                                    <input
+                                      type="checkbox"
+                                      checked={sectionForm.sourceHasImageOnly !== false}
+                                      onChange={(event) =>
+                                        setSectionForm((prev) => ({
+                                          ...prev,
+                                          sourceHasImageOnly: event.target.checked,
+                                        }))
+                                      }
+                                    />
+                                    With image only
+                                  </label>
+                                  <label className="checkbox-row">
+                                    <input
+                                      type="checkbox"
+                                      checked={sectionForm.sourceInStockOnly === true}
+                                      onChange={(event) =>
+                                        setSectionForm((prev) => ({
+                                          ...prev,
+                                          sourceInStockOnly: event.target.checked,
+                                        }))
+                                      }
+                                    />
+                                    In stock only
+                                  </label>
+                                </div>
+                                <label className="field field-span">
+                                  <span>Categories (optional)</span>
+                                  {isLoadingSourceCategories ? (
+                                    <p className="field-help">Loading categories...</p>
+                                  ) : sourceCategories.length ? (
+                                    <div className="checkbox-grid">
+                                      {sourceCategories.map((item) => {
+                                        const id = resolveCategoryId(item);
+                                        if (!id) return null;
+                                        const checked = Array.isArray(sectionForm.sourceCategoryIds)
+                                          ? sectionForm.sourceCategoryIds.includes(id)
+                                          : false;
+                                        return (
+                                          <label key={id} className="checkbox-row">
+                                            <input
+                                              type="checkbox"
+                                              checked={checked}
+                                              onChange={() =>
+                                                setSectionForm((prev) => {
+                                                  const current = Array.isArray(prev.sourceCategoryIds)
+                                                    ? prev.sourceCategoryIds
+                                                    : [];
+                                                  const next = new Set(current);
+                                                  if (next.has(id)) {
+                                                    next.delete(id);
+                                                  } else {
+                                                    next.add(id);
+                                                  }
+                                                  return {
+                                                    ...prev,
+                                                    sourceType: 'PRODUCT_FEED',
+                                                    sourceCategoryIds: Array.from(next),
+                                                  };
+                                                })
+                                              }
+                                            />
+                                            {resolveCategoryName(item)} <span className="muted">({id})</span>
+                                          </label>
+                                        );
+                                      })}
+                                    </div>
+                                  ) : (
+                                    <p className="field-help">Select main category to load categories.</p>
+                                  )}
+                                  <p className="field-help">
+                                    Leave categories empty to pull from the full industry or main-category feed.
+                                  </p>
+                                </label>
+                              </>
+                            ) : null}
+                          </>
+                        ) : null}
                         <label className="field field-span">
                           <span>Block items</span>
                           <div className="inline-row">
@@ -3800,7 +4027,8 @@ function AppConfigPage({ token }) {
                             !isPhaseOneBrandGrid &&
                             !isPhaseOneCategoryShowcase &&
                             !isBeautyHeroBanner &&
-                            !isBeautyOfferBanner ? (
+                            !isProductCardCarouselFeed &&
+                            !isPromoBanner ? (
                               <button type="button" className="ghost-btn small" onClick={addPhaseOneItem}>
                                 + Add item
                               </button>
@@ -3814,22 +4042,28 @@ function AppConfigPage({ token }) {
                                     ? 'Products come from the data source. Select a product API or collection for this list.'
                                     : isPromoHeroBanner
                                       ? 'Set image, title, subtitle, badge text, CTA, and deep link for the hero.'
-                                      : isDealCardCarousel
-                                        ? 'Set image, title, subtitle, price, badge, and deep link for each deal card.'
+                                      : isProductCardCarousel
+                                        ? isProductCardCarouselFeed
+                                          ? 'Products are loaded from the selected feed. Switch to Manual items to edit the cards directly.'
+                                          : 'Set image, title, subtitle, price, optional badge, and deep link for each product card.'
                                         : isMediaOverlayCarousel
                                           ? 'Set image, title, subtitle, and deep link for each overlay card.'
                                           : isInfoList
                                             ? 'Set title, subtitle, optional price, icon, and deep link for each row.'
                                     : isQuickActionBlock
                                       ? 'Set title, subtitle, CTA text, icon, and deep link for each action.'
-                                    : isBeautyOfferBanner
+                                    : isPromoBanner
                                       ? 'This banner uses the section title, text and CTA fields above.'
                                     : 'Set image + text + deep link for each card.'}
                             </span>
                           </div>
                         </label>
                         <div className="field field-span phase-one-item-grid">
-                          {normalizePhaseOneItems(sectionForm.sduiItems, screenBlockType).map((item, idx, allItems) => {
+                          {isProductCardCarouselFeed ? (
+                            <div className="field-help">
+                              This section is using a live product feed. Manual product card fields are hidden while feed mode is enabled.
+                            </div>
+                          ) : normalizePhaseOneItems(sectionForm.sduiItems, screenBlockType).map((item, idx, allItems) => {
                             const imageWarning = phaseOneImageWarnings[getWarningKey(idx, 'imageUrl')];
                             const secondaryImageWarning =
                               phaseOneImageWarnings[getWarningKey(idx, 'secondaryImageUrl')];
@@ -3843,12 +4077,13 @@ function AppConfigPage({ token }) {
                               !isPhaseOneProductShelf &&
                               !isPhaseOneCategoryShowcase &&
                               !isBeautyHeroBanner &&
-                              !isBeautyOfferBanner;
+                              !isProductCardCarouselFeed &&
+                              !isPromoBanner;
                             return (
                               <div
                                 key={`phase-one-item-${idx}`}
                                 className="phase-one-item-card"
-                                style={isBeautyOfferBanner ? { display: 'none' } : undefined}
+                                style={isPromoBanner ? { display: 'none' } : undefined}
                               >
                                 <div className="phase-one-item-header">
                                   <div className="bento-tile-title">
@@ -3901,7 +4136,7 @@ function AppConfigPage({ token }) {
                                 !isInfoList &&
                                 !isBeautyRoutineList &&
                                 !isBeautyTipChips &&
-                                !isBeautyOfferBanner ? (
+                                !isPromoBanner ? (
                                 <div className="phase-one-thumb-row">
                                   <div className="phase-one-thumb checkerboard">
                                     {item.imageUrl ? <img src={item.imageUrl} alt="" /> : <span>Main image</span>}
@@ -3917,7 +4152,7 @@ function AppConfigPage({ token }) {
                                   ) : null}
                                 </div>
                                 ) : null}
-                              {!isBrandHeroItem && !isBrandCtaItem && !isBeautyOfferBanner && !isBeautyTipChips ? (
+                              {!isBrandHeroItem && !isBrandCtaItem && !isPromoBanner && !isBeautyTipChips ? (
                                 <label className="field">
                                   <span>Title</span>
                                   <input
@@ -4098,7 +4333,7 @@ function AppConfigPage({ token }) {
                                   </label>
                                 </>
                               ) : null}
-                              {isDealCardCarousel ? (
+                              {isProductCardCarousel ? (
                                 <>
                                   <label className="field">
                                     <span>Subtitle</span>
@@ -4106,7 +4341,7 @@ function AppConfigPage({ token }) {
                                       type="text"
                                       value={item.subtitle || ''}
                                       onChange={(event) => updatePhaseOneItem(idx, 'subtitle', event.target.value)}
-                                      placeholder="12GB RAM, 256GB"
+                                      placeholder={isBeautyProductCardCarousel ? 'Vitamin C 15%' : '12GB RAM, 256GB'}
                                     />
                                   </label>
                                   <label className="field">
@@ -4115,18 +4350,20 @@ function AppConfigPage({ token }) {
                                       type="text"
                                       value={item.price || ''}
                                       onChange={(event) => updatePhaseOneItem(idx, 'price', event.target.value)}
-                                      placeholder="Rs 32,999"
+                                      placeholder={isBeautyProductCardCarousel ? 'Rs 1,499' : 'Rs 32,999'}
                                     />
                                   </label>
-                                  <label className="field">
-                                    <span>Badge text</span>
-                                    <input
-                                      type="text"
-                                      value={item.badgeText || ''}
-                                      onChange={(event) => updatePhaseOneItem(idx, 'badgeText', event.target.value)}
-                                      placeholder="18% off"
-                                    />
-                                  </label>
+                                  {!isBeautyProductCardCarousel ? (
+                                    <label className="field">
+                                      <span>Badge text</span>
+                                      <input
+                                        type="text"
+                                        value={item.badgeText || ''}
+                                        onChange={(event) => updatePhaseOneItem(idx, 'badgeText', event.target.value)}
+                                        placeholder="18% off"
+                                      />
+                                    </label>
+                                  ) : null}
                                 </>
                               ) : null}
                               {isMediaOverlayCarousel ? (
@@ -4136,7 +4373,7 @@ function AppConfigPage({ token }) {
                                     type="text"
                                     value={item.subtitle || ''}
                                     onChange={(event) => updatePhaseOneItem(idx, 'subtitle', event.target.value)}
-                                    placeholder="Lighting and security"
+                                    placeholder={isBeautyMediaOverlay ? 'Hydration heroes' : 'Lighting and security'}
                                   />
                                 </label>
                               ) : null}
@@ -4148,25 +4385,27 @@ function AppConfigPage({ token }) {
                                       type="text"
                                       value={item.subtitle || ''}
                                       onChange={(event) => updatePhaseOneItem(idx, 'subtitle', event.target.value)}
-                                      placeholder="Health and GPS"
+                                      placeholder={isLaunchInfoList ? 'Health and GPS' : 'Gentle gel cleanser'}
                                     />
                                   </label>
-                                  <label className="field">
-                                    <span>Price label (optional)</span>
-                                    <input
-                                      type="text"
-                                      value={item.price || ''}
-                                      onChange={(event) => updatePhaseOneItem(idx, 'price', event.target.value)}
-                                      placeholder="From Rs 24,990"
-                                    />
-                                  </label>
+                                  {isLaunchInfoList ? (
+                                    <label className="field">
+                                      <span>Price label (optional)</span>
+                                      <input
+                                        type="text"
+                                        value={item.price || ''}
+                                        onChange={(event) => updatePhaseOneItem(idx, 'price', event.target.value)}
+                                        placeholder="From Rs 24,990"
+                                      />
+                                    </label>
+                                  ) : null}
                                   <label className="field">
                                     <span>Icon name</span>
                                     <input
                                       type="text"
                                       value={item.iconName || ''}
                                       onChange={(event) => updatePhaseOneItem(idx, 'iconName', event.target.value)}
-                                      placeholder="flash-outline"
+                                      placeholder={isLaunchInfoList ? 'flash-outline' : 'water-outline'}
                                     />
                                   </label>
                                   <label className="field">
@@ -4203,18 +4442,6 @@ function AppConfigPage({ token }) {
                                   <span>Subtitle</span>
                                   <input type="text" value={item.subtitle || ''} onChange={(event) => updatePhaseOneItem(idx, 'subtitle', event.target.value)} placeholder="Hydration heroes" />
                                 </label>
-                              ) : null}
-                              {isBeautyProductShelf ? (
-                                <>
-                                  <label className="field">
-                                    <span>Subtitle</span>
-                                    <input type="text" value={item.subtitle || ''} onChange={(event) => updatePhaseOneItem(idx, 'subtitle', event.target.value)} placeholder="Vitamin C 15%" />
-                                  </label>
-                                  <label className="field">
-                                    <span>Price label</span>
-                                    <input type="text" value={item.price || ''} onChange={(event) => updatePhaseOneItem(idx, 'price', event.target.value)} placeholder="Rs 1,499" />
-                                  </label>
-                                </>
                               ) : null}
                               {isBeautyRoutineList ? (
                                 <>
@@ -4276,7 +4503,8 @@ function AppConfigPage({ token }) {
                               !isQuickActionBlock &&
                               !isBeautyRoutineList &&
                               !isBeautyTipChips &&
-                              !isBeautyOfferBanner ? (
+                              !isProductCardCarouselFeed &&
+                              !isPromoBanner ? (
                                 <label className="field">
                                   <span>Image URL</span>
                                   <div className="inline-row">
@@ -4343,7 +4571,8 @@ function AppConfigPage({ token }) {
                               {!isPhaseOneCategoryIconGrid &&
                               !isPhaseOneCategoryShowcase &&
                               !isPhaseOneProductShelf &&
-                              !isBeautyOfferBanner ? (
+                              !isProductCardCarouselFeed &&
+                              !isPromoBanner ? (
                                 <label className="field">
                                   <span>Deep link</span>
                                   <div className="inline-row">
@@ -6077,36 +6306,28 @@ function AppConfigPage({ token }) {
               {!isEditingFixed ? (
                 <>
                   <label className="field">
-                    <span>Action text</span>
+                    <span>{isPromoBanner ? 'CTA text' : 'Action text'}</span>
                     <input
                       type="text"
                       value={sectionForm.actionText}
                       onChange={(event) => setSectionForm((prev) => ({ ...prev, actionText: event.target.value }))}
-                      placeholder="View all"
+                      placeholder={isPromoBanner ? 'Shop offers' : 'View all'}
                     />
-                    <p className="field-help">Text for the section header action link (e.g. "View all", "Explore").</p>
+                    <p className="field-help">
+                      {isPromoBanner
+                        ? 'Text for the banner CTA pill.'
+                        : 'Text for the section header action link (e.g. "View all", "Explore").'}
+                    </p>
                   </label>
                   <label className="field">
-                    <span>Action link</span>
+                    <span>{isPromoBanner ? 'CTA link' : 'Action link'}</span>
                     <input
                       type="text"
                       value={sectionForm.actionLink}
                       onChange={(event) => setSectionForm((prev) => ({ ...prev, actionLink: event.target.value }))}
-                      placeholder="app://category/all"
+                      placeholder={isPromoBanner ? 'app://offers/all' : 'app://category/all'}
                     />
                   </label>
-                  {screenBlockType === 'heroBanner' ? (
-                    <label className="field">
-                      <span>Banner variant</span>
-                      <select
-                        value={sectionForm.bannerVariant}
-                        onChange={(event) => setSectionForm((prev) => ({ ...prev, bannerVariant: event.target.value }))}
-                      >
-                        <option value="image">Image banner</option>
-                        <option value="text_card">Text card with CTA</option>
-                      </select>
-                    </label>
-                  ) : null}
                 </>
               ) : null}
               {!isEditingFixed ? (
