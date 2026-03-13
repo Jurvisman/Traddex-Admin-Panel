@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   DndContext,
+  DragOverlay,
   PointerSensor,
   closestCenter,
+  pointerWithin,
   useDroppable,
   useSensor,
   useSensors,
@@ -112,6 +114,7 @@ import {
 import {
   SortableSectionRow,
   ToolboxItem,
+  ToolboxDragPreview,
   DropZone,
   SortablePreviewItem,
   getPreviewItems,
@@ -312,6 +315,7 @@ function AppConfigPage({ token }) {
   const [confirmAction, setConfirmAction] = useState(null);
   const [showVersionDropdown, setShowVersionDropdown] = useState(false);
   const [showHeaderAdvancedFields, setShowHeaderAdvancedFields] = useState(false);
+  const [activeDragId, setActiveDragId] = useState(null);
 
   const pagePresets = useMemo(() => buildPagePresets(industries), [industries]);
   const headerTabs = useMemo(() => buildHeaderTabs(industries), [industries]);
@@ -454,6 +458,29 @@ function AppConfigPage({ token }) {
       activationConstraint: { distance: 6 },
     })
   );
+
+  const activeToolboxItem = useMemo(() => {
+    const current = String(activeDragId || '');
+    if (!current.startsWith('toolbox:')) return null;
+    const key = current.replace('toolbox:', '');
+    return toolboxItems.find((entry) => entry.key === key) || null;
+  }, [activeDragId]);
+
+  const collisionDetectionStrategy = useCallback((args) => {
+    const activeId = String(args?.active?.id || '');
+    if (activeId.startsWith('toolbox:')) {
+      return pointerWithin(args).filter((entry) => {
+        const id = String(entry?.id || '');
+        return (
+          id === 'drop-header' ||
+          id === 'drop-screen' ||
+          id.startsWith('header-') ||
+          id.startsWith('section-')
+        );
+      });
+    }
+    return closestCenter(args);
+  }, []);
 
   const headerDrop = useDroppable({ id: 'drop-header' });
   const screenDrop = useDroppable({ id: 'drop-screen' });
@@ -2576,6 +2603,7 @@ function AppConfigPage({ token }) {
 
   const handleDragEnd = (event) => {
     const { active, over } = event;
+    setActiveDragId(null);
     if (!over) return;
     const activeId = String(active.id);
     const overId = String(over.id);
@@ -2630,6 +2658,14 @@ function AppConfigPage({ token }) {
     if (activeId.startsWith('section-') && overId.startsWith('section-')) {
       handleSectionDragEnd(event);
     }
+  };
+
+  const handleDragStart = (event) => {
+    setActiveDragId(String(event?.active?.id || ''));
+  };
+
+  const handleDragCancel = () => {
+    setActiveDragId(null);
   };
 
   const handleToolboxAdd = (item, targetOverride) => {
@@ -3220,7 +3256,13 @@ function AppConfigPage({ token }) {
             </button>
           </div>
         ) : (
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={collisionDetectionStrategy}
+            onDragStart={handleDragStart}
+            onDragCancel={handleDragCancel}
+            onDragEnd={handleDragEnd}
+          >
             <div className="app-config-body">
               <div className="app-config-builder">
                 <div className="toolbox-card">
@@ -6699,6 +6741,9 @@ function AppConfigPage({ token }) {
                 </div>
               ) : null}
             </div>
+            <DragOverlay>
+              {activeToolboxItem ? <ToolboxDragPreview item={activeToolboxItem} /> : null}
+            </DragOverlay>
             </div>
           </DndContext>
         )}

@@ -3200,10 +3200,11 @@ textarea {
 
 .app-config-body {
   display: grid;
-  grid-template-columns: minmax(260px, 1fr) 360px minmax(280px, 360px);
-  gap: 20px;
+  grid-template-columns: minmax(240px, 320px) minmax(320px, 360px) minmax(360px, 440px);
+  gap: 18px;
   margin-top: 16px;
   align-items: start;
+  justify-content: center;
 }
 
 .app-config-builder {
@@ -3254,6 +3255,8 @@ textarea {
   border: 1px solid #ebe7ff;
   box-shadow: 0 6px 16px rgba(70, 60, 120, 0.08);
   transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  cursor: grab;
+  touch-action: none;
 }
 .toolbox-item:hover {
   border-color: #c4b5fd;
@@ -3263,6 +3266,22 @@ textarea {
 
 .toolbox-item.is-dragging {
   box-shadow: 0 12px 24px rgba(70, 60, 120, 0.18);
+  cursor: grabbing;
+}
+
+.toolbox-item.is-drag-source {
+  transform: none !important;
+}
+
+.toolbox-drag-overlay {
+  width: min(320px, calc(100vw - 48px));
+  pointer-events: none;
+}
+
+.toolbox-drag-overlay .toolbox-item {
+  transform: none !important;
+  box-shadow: 0 18px 36px rgba(48, 31, 104, 0.24);
+  border-color: #c4b5fd;
 }
 
 .toolbox-grip {

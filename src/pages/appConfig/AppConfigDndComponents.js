@@ -32,16 +32,22 @@ export const ToolboxItem = ({ item, onAdd }) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `toolbox:${item.key}`,
   });
-  const style = {
-    transform: CSS.Transform.toString(transform),
-  };
+  const style = isDragging
+    ? {
+        opacity: 0.28,
+      }
+    : {
+        transform: CSS.Transform.toString(transform),
+      };
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`toolbox-item ${isDragging ? 'is-dragging' : ''}`}
+      className={`toolbox-item ${isDragging ? 'is-dragging is-drag-source' : ''}`}
+      {...attributes}
+      {...listeners}
     >
-      <div className="toolbox-grip" {...attributes} {...listeners} />
+      <div className="toolbox-grip" />
       <div className="toolbox-body">
         <div className="toolbox-title">{item.label}</div>
         <div className="toolbox-hint">{item.hint}</div>
@@ -49,6 +55,9 @@ export const ToolboxItem = ({ item, onAdd }) => {
       <button
         type="button"
         className="ghost-btn small"
+        onPointerDown={(event) => event.stopPropagation()}
+        onMouseDown={(event) => event.stopPropagation()}
+        onTouchStart={(event) => event.stopPropagation()}
         onClick={() => onAdd(item)}
       >
         Add
@@ -169,6 +178,18 @@ const renderQuickActionPreview = ({ section, index, hidden, title, items, preset
     </div>
   );
 };
+
+export const ToolboxDragPreview = ({ item }) => (
+  <div className="toolbox-drag-overlay">
+    <div className="toolbox-item is-dragging">
+      <div className="toolbox-grip" />
+      <div className="toolbox-body">
+        <div className="toolbox-title">{item.label}</div>
+        <div className="toolbox-hint">{item.hint}</div>
+      </div>
+    </div>
+  </div>
+);
 
 export const HeaderBlockPreview = ({ block, industries }) => {
   const blockType = resolveBlockType(block);
