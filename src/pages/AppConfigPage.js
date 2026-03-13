@@ -18,6 +18,8 @@ import {
   listCategories,
   listIndustries,
   listMainCategories,
+  listProductCollections,
+  listProducts,
   createIndustry,
   publishAppConfig,
   rollbackAppConfig,
@@ -79,6 +81,7 @@ import {
   STYLE_PRESET_OPTIONS,
   PRODUCT_SHELF_VARIANT_OPTIONS,
   MULTI_ITEM_GRID_FEED_OPTIONS,
+  COMMON_LINK_PRESETS,
   resolveMultiItemGridDataSourceRef,
   resolveMultiItemGridFeedMode,
   DEEP_LINK_TEMPLATE_PRESETS,
@@ -128,6 +131,124 @@ import {
   buildSectionFormFromConfig,
 } from './appConfig/appConfigBuilders';
 
+const CUSTOM_LINK_PRESET = '__custom__';
+const PHASE_ONE_DATA_PATH_PRESETS = [
+  { value: '$.items', label: 'Items ($.items)' },
+  { value: '$.slides', label: 'Slides ($.slides)' },
+  { value: '$.banners', label: 'Banners ($.banners)' },
+  { value: '$.hero', label: 'Hero object ($.hero)' },
+  { value: '$.banner', label: 'Banner object ($.banner)' },
+  { value: '$.cards', label: 'Cards ($.cards)' },
+  { value: '$.categories', label: 'Categories ($.categories)' },
+  { value: '$.rows', label: 'Rows ($.rows)' },
+];
+const DEFAULT_NAVIGATION_TARGET = 'COLLECTION';
+const NAVIGATION_TARGET_OPTIONS = [
+  { value: 'COLLECTION', label: 'Collection' },
+  { value: 'CAMPAIGN', label: 'Campaign' },
+  { value: 'PRODUCT', label: 'Product' },
+  { value: 'CATEGORY', label: 'Category' },
+  { value: 'EXTERNAL_URL', label: 'External URL' },
+  { value: 'CUSTOM', label: 'Custom deep link' },
+];
+const NAVIGATION_TARGET_PLACEHOLDERS = {
+  COLLECTION: 'summer-serums',
+  CAMPAIGN: 'beauty-fest',
+  PRODUCT: '12345',
+  CATEGORY: '987',
+  EXTERNAL_URL: 'https://example.com/offer',
+  CUSTOM: 'app://collection/summer-serums',
+};
+
+const resolveLinkPresetValue = (value, presets) => {
+  const current = String(value || '').trim();
+  if (!current) return CUSTOM_LINK_PRESET;
+  const match = (Array.isArray(presets) ? presets : []).find(
+    (option) => option?.value && current.toLowerCase().startsWith(String(option.value).toLowerCase())
+  );
+  return match?.value || CUSTOM_LINK_PRESET;
+};
+
+const parseNavigationTarget = (value, explicitType, explicitValue) => {
+  const current = String(value || '').trim();
+  const fallbackType = String(explicitType || '').trim().toUpperCase();
+  const fallbackValue = String(explicitValue || '').trim();
+  if (!current) {
+    if (fallbackType && NAVIGATION_TARGET_OPTIONS.some((option) => option.value === fallbackType)) {
+      return { type: fallbackType, value: fallbackValue, raw: '' };
+    }
+    return { type: DEFAULT_NAVIGATION_TARGET, value: '', raw: '' };
+  }
+  const lower = current.toLowerCase();
+  if (lower.startsWith('https://') || lower.startsWith('http://')) {
+    return { type: 'EXTERNAL_URL', value: current, raw: current };
+  }
+  const normalizedPath =
+    lower.startsWith('app://') || lower.startsWith('traddex://')
+      ? current.replace(/^[a-z]+:\/\//i, '').replace(/^\/+/, '')
+      : current.startsWith('/')
+        ? current.replace(/^\/+/, '')
+        : '';
+  if (normalizedPath) {
+    const [segment, ...restSegments] = normalizedPath.split('/');
+    const resolvedValue = decodeURIComponent(restSegments.join('/'));
+    if (segment === 'collection') return { type: 'COLLECTION', value: resolvedValue, raw: current };
+    if (segment === 'campaign') return { type: 'CAMPAIGN', value: resolvedValue, raw: current };
+    if (segment === 'product') return { type: 'PRODUCT', value: resolvedValue, raw: current };
+    if (segment === 'category') return { type: 'CATEGORY', value: resolvedValue, raw: current };
+  }
+  return { type: 'CUSTOM', value: current, raw: current };
+};
+
+const buildNavigationTargetLink = (targetType, targetValue) => {
+  const normalizedType = String(targetType || DEFAULT_NAVIGATION_TARGET).trim().toUpperCase();
+  const value = String(targetValue || '').trim();
+  if (!value) return '';
+  if (normalizedType === 'EXTERNAL_URL' || normalizedType === 'CUSTOM') {
+    return value;
+  }
+  const encodedValue = encodeURIComponent(value);
+  if (normalizedType === 'COLLECTION') return `app://collection/${encodedValue}`;
+  if (normalizedType === 'CAMPAIGN') return `app://campaign/${encodedValue}`;
+  if (normalizedType === 'PRODUCT') return `app://product/${encodedValue}`;
+  if (normalizedType === 'CATEGORY') return `app://category/${encodedValue}`;
+  return value;
+};
+
+const getNavigationTargetPlaceholder = (targetType) =>
+  NAVIGATION_TARGET_PLACEHOLDERS[String(targetType || DEFAULT_NAVIGATION_TARGET).trim().toUpperCase()] ||
+  NAVIGATION_TARGET_PLACEHOLDERS[DEFAULT_NAVIGATION_TARGET];
+
+const normalizeSearchText = (value) => String(value || '').trim().toLowerCase();
+
+const formatDestinationProductLabel = (product) => {
+  const productName = product?.productName || product?.name || `Product ${product?.id || ''}`;
+  const productId = product?.id != null ? `#${product.id}` : '';
+  const status = product?.approvalStatus ? ` · ${String(product.approvalStatus).replaceAll('_', ' ')}` : '';
+  return `${productName}${productId ? ` (${productId})` : ''}${status}`;
+};
+
+const getDestinationProductSearchText = (product) =>
+  [
+    product?.id,
+    product?.productName,
+    product?.brandName,
+    product?.businessName,
+    product?.sku,
+    product?.approvalStatus,
+    product?.category?.mainCategoryName,
+    product?.category?.categoryName,
+    product?.category?.subCategoryName,
+  ]
+    .map((value) => String(value || '').toLowerCase())
+    .join(' ');
+
+const formatDestinationCollectionLabel = (collection) => {
+  const title = collection?.title || collection?.name || collection?.label || 'Collection';
+  const slug = collection?.slug ? ` (${collection.slug})` : '';
+  return `${title}${slug}`;
+};
+
 function AppConfigPage({ token }) {
   const [draftText, setDraftText] = useState('');
   const [version, setVersion] = useState('');
@@ -169,6 +290,11 @@ function AppConfigPage({ token }) {
   const [pagePresetKey, setPagePresetKey] = useState('');
   const [collections, setCollections] = useState([]);
   const [isLoadingCollections, setIsLoadingCollections] = useState(false);
+  const [productCollections, setProductCollections] = useState([]);
+  const [isLoadingProductCollections, setIsLoadingProductCollections] = useState(false);
+  const [destinationProducts, setDestinationProducts] = useState([]);
+  const [isLoadingDestinationProducts, setIsLoadingDestinationProducts] = useState(false);
+  const [heroDestinationQueries, setHeroDestinationQueries] = useState({});
   const [mainCategories, setMainCategories] = useState([]);
   const [sourceCategories, setSourceCategories] = useState([]);
   const [isLoadingSourceCategories, setIsLoadingSourceCategories] = useState(false);
@@ -546,6 +672,45 @@ function AppConfigPage({ token }) {
     }
   };
 
+  const loadProductCollections = async () => {
+    setIsLoadingProductCollections(true);
+    try {
+      const response = await listProductCollections(token);
+      const items = response?.data || response;
+      const sorted = Array.isArray(items)
+        ? [...items].sort((a, b) =>
+            String(a?.title || a?.slug || '').localeCompare(String(b?.title || b?.slug || ''))
+          )
+        : [];
+      setProductCollections(sorted);
+    } catch (error) {
+      setProductCollections([]);
+    } finally {
+      setIsLoadingProductCollections(false);
+    }
+  };
+
+  const loadDestinationProducts = async (force = false) => {
+    if (!force && Array.isArray(destinationProducts) && destinationProducts.length > 0) {
+      return;
+    }
+    setIsLoadingDestinationProducts(true);
+    try {
+      const response = await listProducts(token);
+      const items = response?.data?.products || response?.data || [];
+      const sorted = Array.isArray(items)
+        ? [...items].sort((a, b) =>
+            String(a?.productName || a?.name || '').localeCompare(String(b?.productName || b?.name || ''))
+          )
+        : [];
+      setDestinationProducts(sorted);
+    } catch (error) {
+      setDestinationProducts([]);
+    } finally {
+      setIsLoadingDestinationProducts(false);
+    }
+  };
+
   const loadMainCategories = async () => {
     try {
       const response = await listMainCategories(token);
@@ -633,6 +798,7 @@ function AppConfigPage({ token }) {
     loadVersions();
     loadIndustries();
     loadCollections();
+    loadProductCollections();
     loadMainCategories();
     loadHeaderPresets();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1033,6 +1199,62 @@ function AppConfigPage({ token }) {
       nextItems[index] = { ...nextItems[index], [field]: value };
       return { ...prev, sduiItems: nextItems };
     });
+  };
+
+  const updateItemNavigationTarget = (index, targetType, targetValue) => {
+    setSectionForm((prev) => {
+      const blockType = prev.blockType || prev.type || '';
+      const nextItems = normalizePhaseOneItems(prev.sduiItems, blockType);
+      const currentItem = nextItems[index] || {};
+      const normalizedType = String(targetType || DEFAULT_NAVIGATION_TARGET).trim().toUpperCase();
+      const normalizedValue = String(targetValue || '').trim();
+      nextItems[index] = {
+        ...currentItem,
+        destinationType: normalizedType,
+        destinationValue: normalizedValue,
+        deepLink: buildNavigationTargetLink(normalizedType, normalizedValue),
+      };
+      return { ...prev, sduiItems: nextItems };
+    });
+  };
+
+  const updateItemNavigationTargetType = (index, nextType) => {
+    setSectionForm((prev) => {
+      const blockType = prev.blockType || prev.type || '';
+      const nextItems = normalizePhaseOneItems(prev.sduiItems, blockType);
+      const currentItem = nextItems[index] || {};
+      const currentTarget = parseNavigationTarget(
+        currentItem.deepLink || '',
+        currentItem.destinationType,
+        currentItem.destinationValue
+      );
+      const normalizedType = String(nextType || DEFAULT_NAVIGATION_TARGET).trim().toUpperCase();
+      const nextValue =
+        normalizedType === 'CUSTOM'
+          ? currentItem.deepLink || ''
+          : currentTarget.type === normalizedType
+            ? currentTarget.value
+            : '';
+      nextItems[index] = {
+        ...currentItem,
+        destinationType: normalizedType,
+        destinationValue: nextValue,
+        deepLink: buildNavigationTargetLink(normalizedType, nextValue),
+      };
+      return { ...prev, sduiItems: nextItems };
+    });
+  };
+
+  const handleHeroNavigationTargetTypeChange = (index, nextType) => {
+    updateItemNavigationTargetType(index, nextType);
+    const normalizedType = String(nextType || DEFAULT_NAVIGATION_TARGET).trim().toUpperCase();
+    if (normalizedType === 'PRODUCT') {
+      loadDestinationProducts();
+    }
+  };
+
+  const updateHeroDestinationQuery = (index, value) => {
+    setHeroDestinationQueries((prev) => ({ ...prev, [index]: value }));
   };
 
   const addPhaseOneItem = () => {
@@ -2487,7 +2709,8 @@ function AppConfigPage({ token }) {
     screenBlockType === 'category_icon_grid' ||
     screenBlockType === 'horizontal_scroll_list' ||
     screenBlockType === 'column_grid' ||
-    screenBlockType === 'category_showcase';
+    screenBlockType === 'category_showcase' ||
+    screenBlockType === 'media_overlay_carousel';
   const isHeroBanner = screenBlockType === 'heroBanner';
   const isPhaseOneHorizontalList = screenBlockType === 'horizontal_scroll_list';
   const isPhaseOneColumnGrid = screenBlockType === 'column_grid';
@@ -2518,6 +2741,43 @@ function AppConfigPage({ token }) {
   const isBeautyProductCardCarousel = productCardPreset === 'beauty';
   const isProductCardCarouselFeed =
     isProductCardCarousel && Boolean(String(sectionForm.dataSourceRef || '').trim());
+  const isPhaseOneDataSourceEligible =
+    isPhaseOneHeroCarousel || isMediaOverlayCarousel || isPromoHeroBanner;
+  const isPhaseOneHybridEligible = isPromoHeroBanner;
+  const phaseOneSourceType =
+    isPhaseOneCategoryIconGrid || isPhaseOneCategoryShowcase
+      ? 'CATEGORY_FEED'
+      : String(sectionForm.sourceType || 'MANUAL').trim().toUpperCase();
+  const phaseOneDataSourceConfigType = phaseOneSourceType === 'HYBRID' ? 'HYBRID' : 'DATA_SOURCE';
+
+  useEffect(() => {
+    const shouldLoadProducts =
+      screenBlockType === 'hero_carousel' &&
+      normalizePhaseOneItems(sectionForm.sduiItems, screenBlockType).some(
+        (item) =>
+          parseNavigationTarget(
+            item?.deepLink || '',
+            item?.destinationType,
+            item?.destinationValue
+          ).type === 'PRODUCT'
+      );
+    if (shouldLoadProducts) {
+      loadDestinationProducts();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screenBlockType, sectionForm.sduiItems]);
+
+  const isPhaseOneDataSourceFeed =
+    isPhaseOneDataSourceEligible &&
+    phaseOneSourceType === 'DATA_SOURCE' &&
+    Boolean(String(sectionForm.dataSourceRef || '').trim());
+  const isPromoHeroHybridFeed =
+    isPromoHeroBanner &&
+    phaseOneSourceType === 'HYBRID' &&
+    Boolean(String(sectionForm.dataSourceRef || '').trim());
+  const showPhaseOneDataSourceConfig =
+    isPhaseOneDataSourceEligible &&
+    (phaseOneSourceType === 'DATA_SOURCE' || phaseOneSourceType === 'HYBRID');
   const promoBannerPreset = String(sectionForm.stylePreset || '').trim().toLowerCase();
   const isBeautyPromoBanner = promoBannerPreset === 'beauty';
   const stylePresetOptions = STYLE_PRESET_OPTIONS[screenBlockType] || [];
@@ -2567,12 +2827,84 @@ function AppConfigPage({ token }) {
     return items.sort((a, b) => Number(a?.ordering ?? 999999) - Number(b?.ordering ?? 999999));
   }, [collections, sectionForm.sourceMainCategoryId]);
 
+  const productCollectionOptions = useMemo(
+    () =>
+      (Array.isArray(productCollections) ? productCollections : []).map((collection) => ({
+        value: String(collection?.slug || collection?.id || '').trim(),
+        label: formatDestinationCollectionLabel(collection),
+      })),
+    [productCollections]
+  );
+
+  const destinationMainCategoryOptions = useMemo(() => {
+    const items = Array.isArray(mainCategories) ? [...mainCategories] : [];
+    return items
+      .map((item) => {
+        const id = resolveMainCategoryId(item);
+        if (!id) return null;
+        const industryId = resolveMainCategoryIndustryId(item);
+        const industryLabel =
+          industries.find(
+            (industry) => normalizeMatchValue(resolveIndustryId(industry)) === normalizeMatchValue(industryId)
+          )?.name || '';
+        const categoryName = resolveMainCategoryName(item) || `Main category ${id}`;
+        return {
+          value: String(id),
+          label: industryLabel ? `${industryLabel} / ${categoryName}` : categoryName,
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => String(a.label || '').localeCompare(String(b.label || '')));
+  }, [mainCategories, industries]);
+
+  const approvedDestinationProducts = useMemo(
+    () =>
+      (Array.isArray(destinationProducts) ? destinationProducts : [])
+        .filter((product) => String(product?.approvalStatus || '').trim().toUpperCase() === 'APPROVED')
+        .sort((a, b) =>
+          String(a?.productName || a?.name || '').localeCompare(String(b?.productName || b?.name || ''))
+        ),
+    [destinationProducts]
+  );
+
   const headerAttachedEntries = useMemo(
     () =>
       selectedSections
         .map((section, index) => ({ section, index }))
         .filter((entry) => entry.section?.placement === 'header'),
     [selectedSections]
+  );
+
+  const availableDataSourceRefs = useMemo(() => {
+    const configuredSources =
+      configSnapshot?.dataSources && typeof configSnapshot.dataSources === 'object'
+        ? Object.keys(configSnapshot.dataSources)
+        : [];
+    return configuredSources.sort((a, b) => a.localeCompare(b));
+  }, [configSnapshot]);
+
+  const renderCommonLinkPresetField = (label, value, onSelect, helpText) => (
+    <label className="field">
+      <span>{label}</span>
+      <select
+        value={resolveLinkPresetValue(value, COMMON_LINK_PRESETS)}
+        onChange={(event) => {
+          const nextValue = event.target.value;
+          if (nextValue === CUSTOM_LINK_PRESET) return;
+          onSelect(nextValue);
+        }}
+      >
+        <option value={CUSTOM_LINK_PRESET}>Custom / keep current value</option>
+        {COMMON_LINK_PRESETS.map((option) => (
+          <option key={`${label}-${option.value}`} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      <p className="field-help">
+        {helpText || 'Choose a common link prefix, then complete the target in the field beside it if needed.'}
+      </p>
+    </label>
   );
 
   const bodySectionEntries = useMemo(
@@ -3302,7 +3634,7 @@ function AppConfigPage({ token }) {
                                   <label className="field">
                                     <span>Source type</span>
                                     <select
-                                      value={sectionForm.sourceType || 'MANUAL'}
+                                      value={phaseOneSourceType}
                                       onChange={(event) =>
                                         setSectionForm((prev) => ({
                                           ...prev,
@@ -3314,7 +3646,11 @@ function AppConfigPage({ token }) {
                                         <option
                                           key={opt.value}
                                           value={opt.value}
-                                          disabled={opt.value === 'CATEGORY_FEED' && !isCategoryFeedEligible}
+                                          disabled={
+                                            (opt.value === 'CATEGORY_FEED' && !isCategoryFeedEligible) ||
+                                            (opt.value === 'DATA_SOURCE' && !isPhaseOneDataSourceEligible) ||
+                                            (opt.value === 'HYBRID' && !isPhaseOneHybridEligible)
+                                          }
                                         >
                                           {opt.label}
                                         </option>
@@ -3444,6 +3780,103 @@ function AppConfigPage({ token }) {
                                       })}
                                     </select>
                                   </label>
+                                ) : null}
+                                {showPhaseOneDataSourceConfig ? (
+                                  <>
+                                    <label className="field">
+                                      <span>Data source ref</span>
+                                      <select
+                                        value={
+                                          availableDataSourceRefs.includes(sectionForm.dataSourceRef || '')
+                                            ? sectionForm.dataSourceRef || ''
+                                            : ''
+                                        }
+                                        onChange={(event) =>
+                                          setSectionForm((prev) => ({
+                                            ...prev,
+                                            sourceType: phaseOneDataSourceConfigType,
+                                            dataSourceRef: event.target.value || prev.dataSourceRef,
+                                          }))
+                                        }
+                                      >
+                                        <option value="">Custom / type manually</option>
+                                        {availableDataSourceRefs.map((ref) => (
+                                          <option key={`phase-one-data-source-${ref}`} value={ref}>
+                                            {ref}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    </label>
+                                    <label className="field">
+                                      <span>Items path preset</span>
+                                      <select
+                                        value={
+                                          PHASE_ONE_DATA_PATH_PRESETS.some(
+                                            (option) => option.value === (sectionForm.itemsPath || '')
+                                          )
+                                            ? sectionForm.itemsPath || ''
+                                            : ''
+                                        }
+                                        onChange={(event) =>
+                                          setSectionForm((prev) => ({
+                                            ...prev,
+                                            sourceType: phaseOneDataSourceConfigType,
+                                            itemsPath: event.target.value || prev.itemsPath,
+                                          }))
+                                        }
+                                      >
+                                        <option value="">Custom / type manually</option>
+                                        {PHASE_ONE_DATA_PATH_PRESETS.map((option) => (
+                                          <option key={`phase-one-path-${option.value}`} value={option.value}>
+                                            {option.label}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    </label>
+                                    <label className="field">
+                                      <span>Data source ref</span>
+                                      <input
+                                        type="text"
+                                        value={sectionForm.dataSourceRef || ''}
+                                        onChange={(event) =>
+                                          setSectionForm((prev) => ({
+                                            ...prev,
+                                            sourceType: phaseOneDataSourceConfigType,
+                                            dataSourceRef: event.target.value,
+                                          }))
+                                        }
+                                        placeholder="home.electronics or hero_campaign_feed"
+                                      />
+                                    </label>
+                                    <label className="field">
+                                      <span>Items path</span>
+                                      <input
+                                        type="text"
+                                        value={sectionForm.itemsPath || ''}
+                                        onChange={(event) =>
+                                          setSectionForm((prev) => ({
+                                            ...prev,
+                                            sourceType: phaseOneDataSourceConfigType,
+                                            itemsPath: event.target.value,
+                                          }))
+                                        }
+                                        placeholder={
+                                          isPhaseOneHeroCarousel
+                                            ? '$.slides'
+                                            : isPromoHeroBanner
+                                              ? '$.hero'
+                                              : '$.items'
+                                        }
+                                      />
+                                    </label>
+                                    <div className="field field-span">
+                                      <p className="field-help">
+                                        {phaseOneSourceType === 'HYBRID'
+                                          ? 'Hybrid mode pulls the first live item from the selected data source, then lets the manual hero fields below override it. Leave a field blank to keep the live value.'
+                                          : 'Data source feed mode pulls live items from the selected config data source and items path. Use this for hero banners, campaigns, stories, or any API that already returns image cards in the required shape.'}
+                                      </p>
+                                    </div>
+                                  </>
                                 ) : null}
                                 {((isPhaseOneCategoryIconGrid || isPhaseOneCategoryShowcase
                                   ? 'CATEGORY_FEED'
@@ -4028,6 +4461,7 @@ function AppConfigPage({ token }) {
                             !isPhaseOneCategoryShowcase &&
                             !isBeautyHeroBanner &&
                             !isProductCardCarouselFeed &&
+                            !isPhaseOneDataSourceFeed &&
                             !isPromoBanner ? (
                               <button type="button" className="ghost-btn small" onClick={addPhaseOneItem}>
                                 + Add item
@@ -4041,13 +4475,23 @@ function AppConfigPage({ token }) {
                                   : isPhaseOneProductShelf
                                     ? 'Products come from the data source. Select a product API or collection for this list.'
                                     : isPromoHeroBanner
-                                      ? 'Set image, title, subtitle, badge text, CTA, and deep link for the hero.'
-                                      : isProductCardCarousel
+                                      ? isPhaseOneDataSourceFeed
+                                        ? 'Promo hero is coming from the selected data source feed. Switch to Hybrid or Manual to edit hero content directly.'
+                                        : isPromoHeroHybridFeed
+                                          ? 'Manual hero fields below override the first item from the selected data source. Leave any field blank to keep the live feed value.'
+                                          : 'Set image, title, subtitle, badge text, CTA, and deep link for the hero.'
+                                      : isPhaseOneHeroCarousel
+                                        ? isPhaseOneDataSourceFeed
+                                          ? 'Hero slides are coming from the selected data source feed. Switch to Manual to edit slide images and destinations directly.'
+                                          : 'Set slide image and destination for each hero card. Extra text fields are hidden because the current app UI only uses the image and tap target.'
+                                        : isProductCardCarousel
                                         ? isProductCardCarouselFeed
                                           ? 'Products are loaded from the selected feed. Switch to Manual items to edit the cards directly.'
                                           : 'Set image, title, subtitle, price, optional badge, and deep link for each product card.'
                                         : isMediaOverlayCarousel
-                                          ? 'Set image, title, subtitle, and deep link for each overlay card.'
+                                          ? isPhaseOneDataSourceFeed
+                                            ? 'Overlay cards are coming from the selected data source feed. Switch to Manual to edit cards directly.'
+                                            : 'Set image, title, subtitle, and deep link for each overlay card.'
                                           : isInfoList
                                             ? 'Set title, subtitle, optional price, icon, and deep link for each row.'
                                     : isQuickActionBlock
@@ -4059,14 +4503,34 @@ function AppConfigPage({ token }) {
                           </div>
                         </label>
                         <div className="field field-span phase-one-item-grid">
-                          {isProductCardCarouselFeed ? (
+                          {isProductCardCarouselFeed || isPhaseOneDataSourceFeed ? (
                             <div className="field-help">
-                              This section is using a live product feed. Manual product card fields are hidden while feed mode is enabled.
+                              {isProductCardCarouselFeed
+                                ? 'This section is using a live product feed. Manual product card fields are hidden while feed mode is enabled.'
+                                : isPromoHeroBanner
+                                  ? 'This promo hero is using a live data source feed. Switch to Hybrid or Manual to edit hero fields directly.'
+                                  : 'This section is using a live data source feed. Manual item fields are hidden while feed mode is enabled.'}
                             </div>
                           ) : normalizePhaseOneItems(sectionForm.sduiItems, screenBlockType).map((item, idx, allItems) => {
                             const imageWarning = phaseOneImageWarnings[getWarningKey(idx, 'imageUrl')];
                             const secondaryImageWarning =
                               phaseOneImageWarnings[getWarningKey(idx, 'secondaryImageUrl')];
+                            const navigationTarget = parseNavigationTarget(
+                              item.deepLink || '',
+                              item.destinationType,
+                              item.destinationValue
+                            );
+                            const heroDestinationQuery = heroDestinationQueries[idx] || '';
+                            const filteredHeroProductOptions = isPhaseOneHeroCarousel
+                              ? approvedDestinationProducts
+                                  .filter((product) => {
+                                    if (!heroDestinationQuery.trim()) return true;
+                                    return getDestinationProductSearchText(product).includes(
+                                      normalizeSearchText(heroDestinationQuery)
+                                    );
+                                  })
+                                  .slice(0, 80)
+                              : [];
                             const itemKind = item?.kind || 'tile';
                             const isBrandHeroItem = isPhaseOneBrandGrid && itemKind === 'hero';
                             const isBrandCtaItem = isPhaseOneBrandGrid && itemKind === 'cta';
@@ -4078,6 +4542,7 @@ function AppConfigPage({ token }) {
                               !isPhaseOneCategoryShowcase &&
                               !isBeautyHeroBanner &&
                               !isProductCardCarouselFeed &&
+                              !isPhaseOneDataSourceFeed &&
                               !isPromoBanner;
                             return (
                               <div
@@ -4152,7 +4617,11 @@ function AppConfigPage({ token }) {
                                   ) : null}
                                 </div>
                                 ) : null}
-                              {!isBrandHeroItem && !isBrandCtaItem && !isPromoBanner && !isBeautyTipChips ? (
+                              {!isBrandHeroItem &&
+                              !isBrandCtaItem &&
+                              !isPromoBanner &&
+                              !isBeautyTipChips &&
+                              !isPhaseOneHeroCarousel ? (
                                 <label className="field">
                                   <span>Title</span>
                                   <input
@@ -4221,26 +4690,6 @@ function AppConfigPage({ token }) {
                                   />
                                 </label>
                               ) : null}
-                              {isPhaseOneHeroCarousel ? (
-                                <>
-                                  <label className="field">
-                                    <span>Subtitle</span>
-                                    <input type="text" value={item.subtitle || ''} onChange={(event) => updatePhaseOneItem(idx, 'subtitle', event.target.value)} placeholder="Curated picks for you" />
-                                  </label>
-                                  <label className="field">
-                                    <span>Badge text</span>
-                                    <input type="text" value={item.badgeText || ''} onChange={(event) => updatePhaseOneItem(idx, 'badgeText', event.target.value)} placeholder="Glow Edit" />
-                                  </label>
-                                  <label className="field">
-                                    <span>CTA button text</span>
-                                    <input type="text" value={item.ctaText || ''} onChange={(event) => updatePhaseOneItem(idx, 'ctaText', event.target.value)} placeholder="Shop the edit" />
-                                  </label>
-                                  <label className="field">
-                                    <span>CTA link</span>
-                                    <input type="text" value={item.ctaLink || ''} onChange={(event) => updatePhaseOneItem(idx, 'ctaLink', event.target.value)} placeholder="app://collection/glow" />
-                                  </label>
-                                </>
-                              ) : null}
                               {isBeautyHeroBanner ? (
                                 <>
                                   <label className="field">
@@ -4255,6 +4704,12 @@ function AppConfigPage({ token }) {
                                     <span>CTA button text</span>
                                     <input type="text" value={item.ctaText || ''} onChange={(event) => updatePhaseOneItem(idx, 'ctaText', event.target.value)} placeholder="Shop the edit" />
                                   </label>
+                                  {renderCommonLinkPresetField(
+                                    'CTA link preset',
+                                    item.ctaLink || '',
+                                    (nextValue) => updatePhaseOneItem(idx, 'ctaLink', nextValue),
+                                    'Pick a common target type for this CTA, then fine-tune the final path in the link field.'
+                                  )}
                                   <label className="field">
                                     <span>CTA link</span>
                                     <input type="text" value={item.ctaLink || ''} onChange={(event) => updatePhaseOneItem(idx, 'ctaLink', event.target.value)} placeholder="app://collection/glow" />
@@ -4290,6 +4745,12 @@ function AppConfigPage({ token }) {
                                       placeholder="Shop now"
                                     />
                                   </label>
+                                  {renderCommonLinkPresetField(
+                                    'CTA link preset',
+                                    item.ctaLink || '',
+                                    (nextValue) => updatePhaseOneItem(idx, 'ctaLink', nextValue),
+                                    'Pick a common target type for this CTA, then fine-tune the final path in the link field.'
+                                  )}
                                   <label className="field">
                                     <span>CTA link</span>
                                     <input
@@ -4504,6 +4965,7 @@ function AppConfigPage({ token }) {
                               !isBeautyRoutineList &&
                               !isBeautyTipChips &&
                               !isProductCardCarouselFeed &&
+                              !isPhaseOneDataSourceFeed &&
                               !isPromoBanner ? (
                                 <label className="field">
                                   <span>Image URL</span>
@@ -4572,50 +5034,225 @@ function AppConfigPage({ token }) {
                               !isPhaseOneCategoryShowcase &&
                               !isPhaseOneProductShelf &&
                               !isProductCardCarouselFeed &&
+                              !isPhaseOneDataSourceFeed &&
                               !isPromoBanner ? (
-                                <label className="field">
-                                  <span>Deep link</span>
-                                  <div className="inline-row">
-                                    <select
-                                      value={
-                                        ITEM_DEEP_LINK_PRESETS.some(
-                                          (opt) =>
-                                            opt.value &&
-                                            (item.deepLink || '').toLowerCase().startsWith(opt.value.toLowerCase())
-                                        )
-                                          ? ITEM_DEEP_LINK_PRESETS.find((opt) =>
-                                              (item.deepLink || '')
-                                                .toLowerCase()
-                                                .startsWith(opt.value.toLowerCase())
-                                            )?.value || ''
-                                          : ''
-                                      }
-                                      onChange={(event) => {
-                                        const preset = ITEM_DEEP_LINK_PRESETS.find(
-                                          (opt) => opt.value === event.target.value
-                                        );
-                                        if (preset) {
-                                          updatePhaseOneItem(idx, 'deepLink', preset.value);
-                                        } else {
-                                          updatePhaseOneItem(idx, 'deepLink', item.deepLink || '');
+                                isPhaseOneHeroCarousel ? (
+                                  <>
+                                    <label className="field">
+                                      <span>Destination type</span>
+                                      <select
+                                        value={navigationTarget.type}
+                                        onChange={(event) =>
+                                          handleHeroNavigationTargetTypeChange(idx, event.target.value)
                                         }
-                                      }}
-                                    >
-                                      <option value="">Custom</option>
-                                      {ITEM_DEEP_LINK_PRESETS.map((opt) => (
-                                        <option key={opt.value} value={opt.value}>
-                                          {opt.label}
-                                        </option>
-                                      ))}
-                                    </select>
-                                    <input
-                                      type="text"
-                                      value={item.deepLink || ''}
-                                      onChange={(event) => updatePhaseOneItem(idx, 'deepLink', event.target.value)}
-                                      placeholder="app://collection/featured"
-                                    />
-                                  </div>
-                                </label>
+                                      >
+                                        {NAVIGATION_TARGET_OPTIONS.map((option) => (
+                                          <option key={`nav-target-${option.value}`} value={option.value}>
+                                            {option.label}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    </label>
+                                    {navigationTarget.type === 'COLLECTION' ? (
+                                      <label className="field field-span">
+                                        <span>Collection</span>
+                                        <select
+                                          value={navigationTarget.value}
+                                          onChange={(event) =>
+                                            updateItemNavigationTarget(idx, 'COLLECTION', event.target.value)
+                                          }
+                                        >
+                                          <option value="">Select collection</option>
+                                          {!productCollectionOptions.some(
+                                            (option) => option.value === navigationTarget.value
+                                          ) && navigationTarget.value ? (
+                                            <option value={navigationTarget.value}>
+                                              Current: {navigationTarget.value}
+                                            </option>
+                                          ) : null}
+                                          {productCollectionOptions.map((option) => (
+                                            <option key={`hero-collection-${option.value}`} value={option.value}>
+                                              {option.label}
+                                            </option>
+                                          ))}
+                                        </select>
+                                        <p className="field-help">
+                                          {isLoadingProductCollections
+                                            ? 'Loading product collections...'
+                                            : `Resolved link: ${
+                                                buildNavigationTargetLink('COLLECTION', navigationTarget.value) ||
+                                                '(empty)'
+                                              }`}
+                                        </p>
+                                      </label>
+                                    ) : null}
+                                    {navigationTarget.type === 'PRODUCT' ? (
+                                      <>
+                                        <label className="field">
+                                          <span>Search products</span>
+                                          <input
+                                            type="search"
+                                            value={heroDestinationQuery}
+                                            onChange={(event) =>
+                                              updateHeroDestinationQuery(idx, event.target.value)
+                                            }
+                                            placeholder="Search by product name, id, brand, SKU"
+                                          />
+                                        </label>
+                                        <label className="field field-span">
+                                          <span>Product</span>
+                                          <select
+                                            value={navigationTarget.value}
+                                            onChange={(event) =>
+                                              updateItemNavigationTarget(idx, 'PRODUCT', event.target.value)
+                                            }
+                                          >
+                                            <option value="">Select product</option>
+                                            {!filteredHeroProductOptions.some(
+                                              (product) => String(product?.id || '') === navigationTarget.value
+                                            ) && navigationTarget.value ? (
+                                              <option value={navigationTarget.value}>
+                                                Current product #{navigationTarget.value}
+                                              </option>
+                                            ) : null}
+                                            {filteredHeroProductOptions.map((product) => (
+                                              <option
+                                                key={`hero-product-${product?.id}`}
+                                                value={String(product?.id || '')}
+                                              >
+                                                {formatDestinationProductLabel(product)}
+                                              </option>
+                                            ))}
+                                          </select>
+                                          <p className="field-help">
+                                            {isLoadingDestinationProducts
+                                              ? 'Loading approved products...'
+                                              : `Resolved link: ${
+                                                  buildNavigationTargetLink('PRODUCT', navigationTarget.value) ||
+                                                  '(empty)'
+                                                }`}
+                                          </p>
+                                        </label>
+                                      </>
+                                    ) : null}
+                                    {navigationTarget.type === 'CATEGORY' ? (
+                                      <label className="field field-span">
+                                        <span>Main category</span>
+                                        <select
+                                          value={navigationTarget.value}
+                                          onChange={(event) =>
+                                            updateItemNavigationTarget(idx, 'CATEGORY', event.target.value)
+                                          }
+                                        >
+                                          <option value="">Select main category</option>
+                                          {!destinationMainCategoryOptions.some(
+                                            (option) => option.value === navigationTarget.value
+                                          ) && navigationTarget.value ? (
+                                            <option value={navigationTarget.value}>
+                                              Current main category #{navigationTarget.value}
+                                            </option>
+                                          ) : null}
+                                          {destinationMainCategoryOptions.map((option) => (
+                                            <option key={`hero-category-${option.value}`} value={option.value}>
+                                              {option.label}
+                                            </option>
+                                          ))}
+                                        </select>
+                                        <p className="field-help">
+                                          Current app routing treats `Category` destination as `IndustryCategory` by
+                                          `mainCategoryId`. Resolved link:{' '}
+                                          {buildNavigationTargetLink('CATEGORY', navigationTarget.value) || '(empty)'}
+                                        </p>
+                                      </label>
+                                    ) : null}
+                                    {(navigationTarget.type === 'CAMPAIGN' ||
+                                      navigationTarget.type === 'EXTERNAL_URL' ||
+                                      navigationTarget.type === 'CUSTOM') ? (
+                                      <label className="field field-span">
+                                        <span>
+                                          {navigationTarget.type === 'CUSTOM'
+                                            ? 'Deep link'
+                                            : navigationTarget.type === 'EXTERNAL_URL'
+                                              ? 'External URL'
+                                              : 'Campaign slug'}
+                                        </span>
+                                        <input
+                                          type="text"
+                                          value={navigationTarget.value}
+                                          onChange={(event) =>
+                                            updateItemNavigationTarget(
+                                              idx,
+                                              navigationTarget.type,
+                                              event.target.value
+                                            )
+                                          }
+                                          placeholder={getNavigationTargetPlaceholder(navigationTarget.type)}
+                                        />
+                                        <p className="field-help">
+                                          {navigationTarget.type === 'CUSTOM'
+                                            ? 'Use a full app:// deep link or any custom route string.'
+                                            : navigationTarget.type === 'CAMPAIGN'
+                                              ? `Resolved link: ${
+                                                  buildNavigationTargetLink(
+                                                    navigationTarget.type,
+                                                    navigationTarget.value
+                                                  ) || '(empty)'
+                                                }. Current app still uses placeholder campaign routing.`
+                                            : `Resolved link: ${
+                                                buildNavigationTargetLink(
+                                                  navigationTarget.type,
+                                                  navigationTarget.value
+                                                ) || '(empty)'
+                                              }`}
+                                        </p>
+                                      </label>
+                                    ) : null}
+                                  </>
+                                ) : (
+                                  <label className="field">
+                                    <span>Deep link</span>
+                                    <div className="inline-row">
+                                      <select
+                                        value={
+                                          ITEM_DEEP_LINK_PRESETS.some(
+                                            (opt) =>
+                                              opt.value &&
+                                              (item.deepLink || '').toLowerCase().startsWith(opt.value.toLowerCase())
+                                          )
+                                            ? ITEM_DEEP_LINK_PRESETS.find((opt) =>
+                                                (item.deepLink || '')
+                                                  .toLowerCase()
+                                                  .startsWith(opt.value.toLowerCase())
+                                              )?.value || ''
+                                            : ''
+                                        }
+                                        onChange={(event) => {
+                                          const preset = ITEM_DEEP_LINK_PRESETS.find(
+                                            (opt) => opt.value === event.target.value
+                                          );
+                                          if (preset) {
+                                            updatePhaseOneItem(idx, 'deepLink', preset.value);
+                                          } else {
+                                            updatePhaseOneItem(idx, 'deepLink', item.deepLink || '');
+                                          }
+                                        }}
+                                      >
+                                        <option value="">Custom</option>
+                                        {ITEM_DEEP_LINK_PRESETS.map((opt) => (
+                                          <option key={opt.value} value={opt.value}>
+                                            {opt.label}
+                                          </option>
+                                        ))}
+                                      </select>
+                                      <input
+                                        type="text"
+                                        value={item.deepLink || ''}
+                                        onChange={(event) => updatePhaseOneItem(idx, 'deepLink', event.target.value)}
+                                        placeholder="app://collection/featured"
+                                      />
+                                    </div>
+                                  </label>
+                                )
                               ) : null}
                               {isPhaseOneHorizontalList ? (
                                 <span className="field-help">
@@ -6303,7 +6940,7 @@ function AppConfigPage({ token }) {
                   </div>
                 </div>
               ) : null}
-              {!isEditingFixed ? (
+              {!isEditingFixed && !isPhaseOneHeroCarousel ? (
                 <>
                   <label className="field">
                     <span>{isPromoBanner ? 'CTA text' : 'Action text'}</span>
@@ -6328,6 +6965,14 @@ function AppConfigPage({ token }) {
                       placeholder={isPromoBanner ? 'app://offers/all' : 'app://category/all'}
                     />
                   </label>
+                  {renderCommonLinkPresetField(
+                    isPromoBanner ? 'CTA link preset' : 'Action link preset',
+                    sectionForm.actionLink,
+                    (nextValue) => setSectionForm((prev) => ({ ...prev, actionLink: nextValue })),
+                    isPromoBanner
+                      ? 'Choose the common target type for this banner CTA, then finish the exact path in the CTA link field.'
+                      : 'Choose the common target type for the section action, then finish the exact path in the action link field.'
+                  )}
                 </>
               ) : null}
               {!isEditingFixed ? (

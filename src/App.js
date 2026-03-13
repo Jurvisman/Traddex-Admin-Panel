@@ -9,6 +9,7 @@ import {
   BusinessPage,
   BusinessProfileEditPage,
   IndustryPage,
+  CollectionPage,
   LoginPage,
   InquiryConfigPage,
   InquiryReportPage,
@@ -264,6 +265,11 @@ const ADMIN_META = [
     match: '/admin/catalog-manager/categories',
     title: 'Category',
     subtitle: '',
+  },
+  {
+    match: '/admin/catalog-manager/collections',
+    title: 'Collections',
+    subtitle: 'Create curated or feed-based collection landing pages for app deep links.',
   },
   {
     match: '/admin/catalog-manager/sub-categories',
@@ -544,6 +550,7 @@ function AppRoutes() {
               { path: '/admin/catalog-manager/industries', label: 'Industry', icon: ICONS.catalog, tone: NAV_TONES.catalog },
               { path: '/admin/catalog-manager/main-categories', label: 'Main Category', icon: ICONS.catalog, tone: NAV_TONES.catalog },
               { path: '/admin/catalog-manager/categories', label: 'Category', icon: ICONS.catalog, tone: NAV_TONES.catalog },
+              { path: '/admin/catalog-manager/collections', label: 'Collections', icon: ICONS.catalog, tone: NAV_TONES.catalog },
               { path: '/admin/catalog-manager/sub-categories', label: 'Sub-Category', icon: ICONS.catalog, tone: NAV_TONES.catalog },
               { path: '/admin/product-attribute', label: 'Reusable Fields', icon: ICONS.attributes, tone: NAV_TONES.fields },
             ],
@@ -882,6 +889,18 @@ function AppRoutes() {
               fallbackPath={routeFallbackPath}
             >
               <CategoryPage token={authToken} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="catalog-manager/collections"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={canAccessPath('/admin/catalog-manager/collections')}
+              fallbackPath={routeFallbackPath}
+            >
+              <CollectionPage token={authToken} />
             </PermissionGate>
           }
         />

@@ -93,6 +93,17 @@ export const updateCategory = (token, id, payload) =>
   request(`/categories/${id}`, { method: 'PUT', body: payload, token });
 export const deleteCategory = (token, id) => request(`/categories/${id}`, { method: 'DELETE', token });
 
+export const listProductCollections = (token, active) => {
+  const query = active === true || active === false ? `?active=${active}` : '';
+  return request(`/collections${query}`, { token });
+};
+export const createProductCollection = (token, payload) =>
+  request('/collections', { method: 'POST', body: payload, token });
+export const updateProductCollection = (token, id, payload) =>
+  request(`/collections/${id}`, { method: 'PUT', body: payload, token });
+export const deleteProductCollection = (token, id) =>
+  request(`/collections/${id}`, { method: 'DELETE', token });
+
 export const listSubCategories = (token, categoryId) => {
   const query = categoryId ? `?categoryId=${categoryId}` : '';
   return request(`/sub-categories${query}`, { token });

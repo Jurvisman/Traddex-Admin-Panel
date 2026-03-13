@@ -97,6 +97,33 @@ export const SortablePreviewItem = ({ id, className, onClick, children }) => {
 };
 
 export const getPreviewItems = (section, fallbackCount = 4) => {
+  const blockType = resolveBlockType(section);
+  const sourceType = String(section?.dataSource?.sourceType || section?.sourceType || '').trim().toUpperCase();
+  const hasManualItems = Array.isArray(section?.items) && section.items.length > 0;
+  if (
+    (sourceType === 'DATA_SOURCE' || (sourceType === 'HYBRID' && !hasManualItems)) &&
+    blockType === 'promo_hero_banner'
+  ) {
+    return [
+      {
+        _placeholder: true,
+        title: 'Promo hero',
+        subtitle: sourceType === 'HYBRID' ? 'Hybrid live item' : 'Live feed item',
+        badgeText: 'Campaign',
+        ctaText: 'Open',
+      },
+    ];
+  }
+  if (
+    sourceType === 'DATA_SOURCE' &&
+    (blockType === 'hero_carousel' || blockType === 'media_overlay_carousel')
+  ) {
+    return Array.from({ length: fallbackCount }).map((_, index) => ({
+      _placeholder: true,
+      title: blockType === 'hero_carousel' ? `Slide ${index + 1}` : `Card ${index + 1}`,
+      subtitle: blockType === 'hero_carousel' ? 'Live feed item' : 'Live data source item',
+    }));
+  }
   if (Array.isArray(section?.items) && section.items.length > 0) {
     return section.items;
   }

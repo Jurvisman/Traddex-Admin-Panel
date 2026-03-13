@@ -1478,6 +1478,8 @@ export const normalizePhaseOneItems = (items, blockType) => {
       id: item?.id ? String(item.id) : '',
       kind: item?.kind ? String(item.kind) : base.kind,
       collectionId: item?.collectionId ? String(item.collectionId) : '',
+      destinationType: item?.destinationType ? String(item.destinationType) : '',
+      destinationValue: item?.destinationValue ? String(item.destinationValue) : '',
       title: item?.title || item?.name || item?.label || '',
       subtitle: item?.subtitle || '',
       badgeText: item?.badgeText || '',
@@ -1566,6 +1568,8 @@ export const CATEGORY_ICON_FEED_MODE_OPTIONS = [
 ];
 export const SOURCE_TYPE_OPTIONS = [
   { value: 'MANUAL', label: 'Manual' },
+  { value: 'DATA_SOURCE', label: 'Data source feed' },
+  { value: 'HYBRID', label: 'Hybrid (manual + feed)' },
   { value: 'CATEGORY_FEED', label: 'Category feed' },
 ];
 
@@ -1642,11 +1646,17 @@ export const DEEP_LINK_TEMPLATE_PRESETS = [
   { value: 'app://campaign/{slug}', label: 'Campaign (app://campaign/{slug})' },
 ];
 
-export const ITEM_DEEP_LINK_PRESETS = [
+export const COMMON_LINK_PRESETS = [
   { value: 'app://category/', label: 'Category (append category id)' },
   { value: 'app://collection/', label: 'Collection (append collection id)' },
   { value: 'app://campaign/', label: 'Campaign (append slug)' },
   { value: 'app://product/', label: 'Product (append product id)' },
+  { value: 'app://brand/', label: 'Brand (append brand id or slug)' },
+  { value: 'https://', label: 'External URL (https://...)' },
+];
+
+export const ITEM_DEEP_LINK_PRESETS = [
+  ...COMMON_LINK_PRESETS,
 ];
 
 export const toNumberOrNull = (value) => {

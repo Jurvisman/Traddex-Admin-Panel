@@ -408,6 +408,10 @@ export const buildSectionFormFromConfig = (section, fallbackType) => {
   const mapping = section?.mapping && typeof section.mapping === 'object' ? section.mapping : {};
   const resolvedType = section?.type === 'campaign' ? 'campaignBento' : section?.type || fallbackType;
   const resolvedBlockType = resolveBlockType(section);
+  const isVisualDataSourceBlock =
+    resolvedBlockType === 'hero_carousel' ||
+    resolvedBlockType === 'media_overlay_carousel' ||
+    resolvedBlockType === 'promo_hero_banner';
   return {
     id: section?.id || '',
     type: resolvedType,
@@ -473,7 +477,11 @@ export const buildSectionFormFromConfig = (section, fallbackType) => {
     targetSubscriptionStatuses: formatCsvList(section?.targeting?.subscriptionStatuses),
     sourceType:
       source?.sourceType ||
-      ((resolvedBlockType === 'product_card_carousel' && section?.dataSourceRef) ? 'PRODUCT_FEED' : section?.sourceType) ||
+      ((resolvedBlockType === 'product_card_carousel' && section?.dataSourceRef)
+        ? 'PRODUCT_FEED'
+        : (isVisualDataSourceBlock && section?.dataSourceRef)
+          ? 'DATA_SOURCE'
+          : section?.sourceType) ||
       'MANUAL',
     sourceIndustryId: source?.industryId ? String(source.industryId) : (section?.sourceIndustryId ? String(section.sourceIndustryId) : ''),
     sourceFeedMode: source?.mode || section?.sourceFeedMode || defaultSectionForm.sourceFeedMode,
