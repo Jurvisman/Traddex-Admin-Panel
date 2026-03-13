@@ -323,8 +323,8 @@ const ADMIN_META = [
   },
   {
     match: '/admin/app-config',
-    title: 'Buyer Config',
-    subtitle: 'Edit and publish buyer-side dynamic UI configuration.',
+    title: 'CMS',
+    subtitle: 'Edit and publish dynamic app content and layout configuration.',
   },
   {
     match: '/admin/timezones',
@@ -586,7 +586,7 @@ function AppRoutes() {
               { path: '/admin/settings/roles', label: 'Role & Permission', icon: ICONS.settingsRole, tone: NAV_TONES.settingsRole },
             ],
           },
-          { path: '/admin/app-config', label: 'Buyer Config', icon: ICONS.appConfig, tone: NAV_TONES.appConfig },
+          { path: '/admin/app-config', label: 'CMS', icon: ICONS.appConfig, tone: NAV_TONES.appConfig },
           {
             key: 'location-root',
             label: 'Location',
