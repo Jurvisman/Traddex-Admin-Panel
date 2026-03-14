@@ -298,6 +298,7 @@ function AppConfigPage({ token }) {
   const [destinationProducts, setDestinationProducts] = useState([]);
   const [isLoadingDestinationProducts, setIsLoadingDestinationProducts] = useState(false);
   const [heroDestinationQueries, setHeroDestinationQueries] = useState({});
+  const [sectionDestinationQuery, setSectionDestinationQuery] = useState('');
   const [mainCategories, setMainCategories] = useState([]);
   const [sourceCategories, setSourceCategories] = useState([]);
   const [isLoadingSourceCategories, setIsLoadingSourceCategories] = useState(false);
@@ -1274,6 +1275,102 @@ function AppConfigPage({ token }) {
 
   const handleHeroNavigationTargetTypeChange = (index, nextType) => {
     updateItemNavigationTargetType(index, nextType);
+    const normalizedType = String(nextType || DEFAULT_NAVIGATION_TARGET).trim().toUpperCase();
+    if (normalizedType === 'PRODUCT') {
+      loadDestinationProducts();
+    }
+  };
+
+  const updateSectionNavigationTarget = (targetType, targetValue) => {
+    setSectionForm((prev) => {
+      const normalizedType = String(targetType || DEFAULT_NAVIGATION_TARGET).trim().toUpperCase();
+      const normalizedValue = String(targetValue || '').trim();
+      return {
+        ...prev,
+        destinationType: normalizedType,
+        destinationValue: normalizedValue,
+        deepLink: buildNavigationTargetLink(normalizedType, normalizedValue),
+      };
+    });
+  };
+
+  const updateSectionNavigationTargetType = (nextType) => {
+    setSectionForm((prev) => {
+      const currentTarget = parseNavigationTarget(prev.deepLink || '', prev.destinationType, prev.destinationValue);
+      const normalizedType = String(nextType || DEFAULT_NAVIGATION_TARGET).trim().toUpperCase();
+      const nextValue =
+        normalizedType === 'CUSTOM'
+          ? prev.deepLink || ''
+          : currentTarget.type === normalizedType
+            ? currentTarget.value
+            : '';
+      return {
+        ...prev,
+        destinationType: normalizedType,
+        destinationValue: nextValue,
+        deepLink: buildNavigationTargetLink(normalizedType, nextValue),
+      };
+    });
+  };
+
+  const handleSectionNavigationTargetTypeChange = (nextType) => {
+    updateSectionNavigationTargetType(nextType);
+    const normalizedType = String(nextType || DEFAULT_NAVIGATION_TARGET).trim().toUpperCase();
+    if (normalizedType === 'PRODUCT') {
+      loadDestinationProducts();
+    }
+  };
+
+  const updateItemCtaNavigationTarget = (index, targetType, targetValue) => {
+    setSectionForm((prev) => {
+      const blockType = prev.blockType || prev.type || '';
+      const nextItems = normalizePhaseOneItems(prev.sduiItems, blockType);
+      const currentItem = nextItems[index] || {};
+      const normalizedType = String(targetType || DEFAULT_NAVIGATION_TARGET).trim().toUpperCase();
+      const normalizedValue = String(targetValue || '').trim();
+      const resolvedLink = buildNavigationTargetLink(normalizedType, normalizedValue);
+      nextItems[index] = {
+        ...currentItem,
+        destinationType: normalizedType,
+        destinationValue: normalizedValue,
+        ctaLink: resolvedLink,
+        deepLink: resolvedLink,
+      };
+      return { ...prev, sduiItems: nextItems };
+    });
+  };
+
+  const updateItemCtaNavigationTargetType = (index, nextType) => {
+    setSectionForm((prev) => {
+      const blockType = prev.blockType || prev.type || '';
+      const nextItems = normalizePhaseOneItems(prev.sduiItems, blockType);
+      const currentItem = nextItems[index] || {};
+      const currentTarget = parseNavigationTarget(
+        currentItem.ctaLink || currentItem.deepLink || '',
+        currentItem.destinationType,
+        currentItem.destinationValue
+      );
+      const normalizedType = String(nextType || DEFAULT_NAVIGATION_TARGET).trim().toUpperCase();
+      const nextValue =
+        normalizedType === 'CUSTOM'
+          ? currentItem.ctaLink || currentItem.deepLink || ''
+          : currentTarget.type === normalizedType
+            ? currentTarget.value
+            : '';
+      const resolvedLink = buildNavigationTargetLink(normalizedType, nextValue);
+      nextItems[index] = {
+        ...currentItem,
+        destinationType: normalizedType,
+        destinationValue: nextValue,
+        ctaLink: resolvedLink,
+        deepLink: resolvedLink,
+      };
+      return { ...prev, sduiItems: nextItems };
+    });
+  };
+
+  const handleHeroCtaNavigationTargetTypeChange = (index, nextType) => {
+    updateItemCtaNavigationTargetType(index, nextType);
     const normalizedType = String(nextType || DEFAULT_NAVIGATION_TARGET).trim().toUpperCase();
     if (normalizedType === 'PRODUCT') {
       loadDestinationProducts();
@@ -2788,20 +2885,25 @@ function AppConfigPage({ token }) {
 
   useEffect(() => {
     const shouldLoadProducts =
-      screenBlockType === 'hero_carousel' &&
-      normalizePhaseOneItems(sectionForm.sduiItems, screenBlockType).some(
-        (item) =>
-          parseNavigationTarget(
-            item?.deepLink || '',
-            item?.destinationType,
-            item?.destinationValue
-          ).type === 'PRODUCT'
+      (isHeroBanner && sectionNavigationTarget.type === 'PRODUCT') ||
+      (
+        ['hero_carousel', 'promo_hero_banner', 'beauty_hero_banner', 'media_overlay_carousel'].includes(screenBlockType) &&
+        normalizePhaseOneItems(sectionForm.sduiItems, screenBlockType).some(
+          (item) =>
+            parseNavigationTarget(
+              screenBlockType === 'hero_carousel' || screenBlockType === 'media_overlay_carousel'
+                ? item?.deepLink || ''
+                : item?.ctaLink || item?.deepLink || '',
+              item?.destinationType,
+              item?.destinationValue
+            ).type === 'PRODUCT'
+        )
       );
     if (shouldLoadProducts) {
       loadDestinationProducts();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [screenBlockType, sectionForm.sduiItems]);
+  }, [isHeroBanner, screenBlockType, sectionForm.destinationType, sectionForm.destinationValue, sectionForm.deepLink, sectionForm.sduiItems]);
 
   const isPhaseOneDataSourceFeed =
     isPhaseOneDataSourceEligible &&
@@ -2872,6 +2974,16 @@ function AppConfigPage({ token }) {
     [productCollections]
   );
 
+  const sectionNavigationTarget = useMemo(
+    () =>
+      parseNavigationTarget(
+        sectionForm.deepLink || '',
+        sectionForm.destinationType,
+        sectionForm.destinationValue
+      ),
+    [sectionForm.deepLink, sectionForm.destinationType, sectionForm.destinationValue]
+  );
+
   const destinationMainCategoryOptions = useMemo(() => {
     const items = Array.isArray(mainCategories) ? [...mainCategories] : [];
     return items
@@ -2902,6 +3014,14 @@ function AppConfigPage({ token }) {
         ),
     [destinationProducts]
   );
+
+  const filteredSectionProductOptions = useMemo(() => {
+    const query = normalizeSearchText(sectionDestinationQuery);
+    if (!query) return approvedDestinationProducts;
+    return approvedDestinationProducts.filter((product) =>
+      getDestinationProductSearchText(product).includes(query)
+    );
+  }, [approvedDestinationProducts, sectionDestinationQuery]);
 
   const headerAttachedEntries = useMemo(
     () =>
@@ -3477,13 +3597,30 @@ function AppConfigPage({ token }) {
                       isCampaignBento ||
                       (isPhaseOneBlock && !isBeautyHeroBanner && !isPromoHeroBanner)) ? (
                       <label className="field field-span">
-                        <span>{isHeroBanner || isPromoBanner ? 'Banner title (optional)' : 'Section title'}</span>
+                        <span>
+                          {isPromoBanner
+                            ? 'Banner title (optional)'
+                            : isHeroBanner
+                              ? 'Section title (optional)'
+                              : 'Section title'}
+                        </span>
                         <input
                           type="text"
                           value={sectionForm.title}
                           onChange={(event) => setSectionForm((prev) => ({ ...prev, title: event.target.value }))}
-                          placeholder={isHeroBanner || isPromoBanner ? 'Hero banner title' : 'Frequently bought'}
+                          placeholder={
+                            isPromoBanner
+                              ? 'Hero banner title'
+                              : isHeroBanner
+                                ? 'Optional heading above the banner'
+                                : 'Frequently bought'
+                          }
                         />
+                        {isHeroBanner ? (
+                          <p className="field-help">
+                            Optional heading shown above the banner in body placement. Header-attached banners usually keep this empty.
+                          </p>
+                        ) : null}
                       </label>
                     ) : null}
                     {isPromoBanner ? (
@@ -3613,18 +3750,158 @@ function AppConfigPage({ token }) {
                             type="text"
                             value={sectionForm.aspectRatio}
                             onChange={(event) => setSectionForm((prev) => ({ ...prev, aspectRatio: event.target.value }))}
-                            placeholder="2:1"
+                            placeholder="3:1"
                           />
+                          <p className="field-help">Controls banner height. Wide hero banners usually work best around `3:1` or `2.4:1`.</p>
                         </label>
-                        <label className="field field-span">
-                          <span>Target URL (deep link)</span>
-                          <input
-                            type="text"
-                            value={sectionForm.deepLink}
-                            onChange={(event) => setSectionForm((prev) => ({ ...prev, deepLink: event.target.value }))}
-                            placeholder="app://brand/minimalist"
-                          />
+                        <label className="field">
+                          <span>Destination type</span>
+                          <select
+                            value={sectionNavigationTarget.type}
+                            onChange={(event) => handleSectionNavigationTargetTypeChange(event.target.value)}
+                          >
+                            {NAVIGATION_TARGET_OPTIONS.map((option) => (
+                              <option key={`section-nav-target-${option.value}`} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
                         </label>
+                        {sectionNavigationTarget.type === 'COLLECTION' ? (
+                          <label className="field field-span">
+                            <span>Collection</span>
+                            <select
+                              value={sectionNavigationTarget.value}
+                              onChange={(event) => updateSectionNavigationTarget('COLLECTION', event.target.value)}
+                            >
+                              <option value="">Select collection</option>
+                              {!productCollectionOptions.some((option) => option.value === sectionNavigationTarget.value) &&
+                              sectionNavigationTarget.value ? (
+                                <option value={sectionNavigationTarget.value}>
+                                  Current: {sectionNavigationTarget.value}
+                                </option>
+                              ) : null}
+                              {productCollectionOptions.map((option) => (
+                                <option key={`section-collection-${option.value}`} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                            <p className="field-help">
+                              {isLoadingProductCollections
+                                ? 'Loading product collections...'
+                                : `Resolved link: ${
+                                    buildNavigationTargetLink('COLLECTION', sectionNavigationTarget.value) || '(empty)'
+                                  }`}
+                            </p>
+                          </label>
+                        ) : null}
+                        {sectionNavigationTarget.type === 'PRODUCT' ? (
+                          <>
+                            <label className="field">
+                              <span>Search products</span>
+                              <input
+                                type="search"
+                                value={sectionDestinationQuery}
+                                onChange={(event) => setSectionDestinationQuery(event.target.value)}
+                                placeholder="Search by product name, id, brand, SKU"
+                              />
+                            </label>
+                            <label className="field field-span">
+                              <span>Product</span>
+                              <select
+                                value={sectionNavigationTarget.value}
+                                onChange={(event) => updateSectionNavigationTarget('PRODUCT', event.target.value)}
+                              >
+                                <option value="">Select product</option>
+                                {!filteredSectionProductOptions.some(
+                                  (product) => String(product?.id || '') === sectionNavigationTarget.value
+                                ) && sectionNavigationTarget.value ? (
+                                  <option value={sectionNavigationTarget.value}>
+                                    Current product #{sectionNavigationTarget.value}
+                                  </option>
+                                ) : null}
+                                {filteredSectionProductOptions.map((product) => (
+                                  <option key={`section-product-${product?.id}`} value={String(product?.id || '')}>
+                                    {formatDestinationProductLabel(product)}
+                                  </option>
+                                ))}
+                              </select>
+                              <p className="field-help">
+                                {isLoadingDestinationProducts
+                                  ? 'Loading approved products...'
+                                  : `Resolved link: ${
+                                      buildNavigationTargetLink('PRODUCT', sectionNavigationTarget.value) || '(empty)'
+                                    }`}
+                              </p>
+                            </label>
+                          </>
+                        ) : null}
+                        {sectionNavigationTarget.type === 'CATEGORY' ? (
+                          <label className="field field-span">
+                            <span>Main category</span>
+                            <select
+                              value={sectionNavigationTarget.value}
+                              onChange={(event) => updateSectionNavigationTarget('CATEGORY', event.target.value)}
+                            >
+                              <option value="">Select main category</option>
+                              {!destinationMainCategoryOptions.some(
+                                (option) => option.value === sectionNavigationTarget.value
+                              ) && sectionNavigationTarget.value ? (
+                                <option value={sectionNavigationTarget.value}>
+                                  Current main category #{sectionNavigationTarget.value}
+                                </option>
+                              ) : null}
+                              {destinationMainCategoryOptions.map((option) => (
+                                <option key={`section-category-${option.value}`} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                            <p className="field-help">
+                              Current app routing treats `Category` destination as `IndustryCategory` by `mainCategoryId`.
+                              Resolved link: {buildNavigationTargetLink('CATEGORY', sectionNavigationTarget.value) || '(empty)'}
+                            </p>
+                          </label>
+                        ) : null}
+                        {(sectionNavigationTarget.type === 'CAMPAIGN' ||
+                          sectionNavigationTarget.type === 'EXTERNAL_URL' ||
+                          sectionNavigationTarget.type === 'CUSTOM') ? (
+                          <label className="field field-span">
+                            <span>
+                              {sectionNavigationTarget.type === 'CUSTOM'
+                                ? 'Deep link'
+                                : sectionNavigationTarget.type === 'EXTERNAL_URL'
+                                  ? 'External URL'
+                                  : 'Campaign slug'}
+                            </span>
+                            <input
+                              type="text"
+                              value={sectionNavigationTarget.value}
+                              onChange={(event) =>
+                                updateSectionNavigationTarget(sectionNavigationTarget.type, event.target.value)
+                              }
+                              placeholder={getNavigationTargetPlaceholder(sectionNavigationTarget.type)}
+                            />
+                            <p className="field-help">
+                              {sectionNavigationTarget.type === 'CUSTOM'
+                                ? 'Use a full app:// deep link or any custom route string for banner tap.'
+                                : sectionNavigationTarget.type === 'CAMPAIGN'
+                                  ? `Resolved link: ${
+                                      buildNavigationTargetLink(
+                                        sectionNavigationTarget.type,
+                                        sectionNavigationTarget.value
+                                      ) || '(empty)'
+                                    }. Current app still uses placeholder campaign routing.`
+                                  : `Resolved link: ${
+                                      buildNavigationTargetLink(
+                                        sectionNavigationTarget.type,
+                                        sectionNavigationTarget.value
+                                      ) || '(empty)'
+                                    }`}
+                            </p>
+                          </label>
+                        ) : null}
                         <label className="field">
                           <span>Schedule start (local)</span>
                           <input
@@ -4557,13 +4834,16 @@ function AppConfigPage({ token }) {
                             const imageWarning = phaseOneImageWarnings[getWarningKey(idx, 'imageUrl')];
                             const secondaryImageWarning =
                               phaseOneImageWarnings[getWarningKey(idx, 'secondaryImageUrl')];
+                            const usesCtaDestination = isBeautyHeroBanner || isPromoHeroBanner;
+                            const showHeroDestinationPicker =
+                              isPhaseOneHeroCarousel || isMediaOverlayCarousel || usesCtaDestination;
                             const navigationTarget = parseNavigationTarget(
-                              item.deepLink || '',
+                              usesCtaDestination ? item.ctaLink || item.deepLink || '' : item.deepLink || '',
                               item.destinationType,
                               item.destinationValue
                             );
                             const heroDestinationQuery = heroDestinationQueries[idx] || '';
-                            const filteredHeroProductOptions = isPhaseOneHeroCarousel
+                            const filteredHeroProductOptions = showHeroDestinationPicker
                               ? approvedDestinationProducts
                                   .filter((product) => {
                                     if (!heroDestinationQuery.trim()) return true;
@@ -4665,12 +4945,16 @@ function AppConfigPage({ token }) {
                               !isBeautyTipChips &&
                               !isPhaseOneHeroCarousel ? (
                                 <label className="field">
-                                  <span>Title</span>
+                                  <span>{isMediaOverlayCarousel ? 'Overlay title' : 'Title'}</span>
                                   <input
                                     type="text"
                                     value={item.title || ''}
                                     onChange={(event) => updatePhaseOneItem(idx, 'title', event.target.value)}
-                                    placeholder="Item title"
+                                    placeholder={
+                                      isMediaOverlayCarousel
+                                        ? (isBeautyMediaOverlay ? 'Glass Skin' : 'Smart Home')
+                                        : 'Item title'
+                                    }
                                     disabled={isBrandTileItem || isPhaseOneCategoryIconGrid || isPhaseOneCategoryShowcase}
                                   />
                                 </label>
@@ -4746,16 +5030,6 @@ function AppConfigPage({ token }) {
                                     <span>CTA button text</span>
                                     <input type="text" value={item.ctaText || ''} onChange={(event) => updatePhaseOneItem(idx, 'ctaText', event.target.value)} placeholder="Shop the edit" />
                                   </label>
-                                  {renderCommonLinkPresetField(
-                                    'CTA link preset',
-                                    item.ctaLink || '',
-                                    (nextValue) => updatePhaseOneItem(idx, 'ctaLink', nextValue),
-                                    'Pick a common target type for this CTA, then fine-tune the final path in the link field.'
-                                  )}
-                                  <label className="field">
-                                    <span>CTA link</span>
-                                    <input type="text" value={item.ctaLink || ''} onChange={(event) => updatePhaseOneItem(idx, 'ctaLink', event.target.value)} placeholder="app://collection/glow" />
-                                  </label>
                                 </>
                               ) : null}
                               {isPromoHeroBanner ? (
@@ -4785,21 +5059,6 @@ function AppConfigPage({ token }) {
                                       value={item.ctaText || ''}
                                       onChange={(event) => updatePhaseOneItem(idx, 'ctaText', event.target.value)}
                                       placeholder="Shop now"
-                                    />
-                                  </label>
-                                  {renderCommonLinkPresetField(
-                                    'CTA link preset',
-                                    item.ctaLink || '',
-                                    (nextValue) => updatePhaseOneItem(idx, 'ctaLink', nextValue),
-                                    'Pick a common target type for this CTA, then fine-tune the final path in the link field.'
-                                  )}
-                                  <label className="field">
-                                    <span>CTA link</span>
-                                    <input
-                                      type="text"
-                                      value={item.ctaLink || ''}
-                                      onChange={(event) => updatePhaseOneItem(idx, 'ctaLink', event.target.value)}
-                                      placeholder="app://electronics/featured"
                                     />
                                   </label>
                                 </>
@@ -4871,7 +5130,7 @@ function AppConfigPage({ token }) {
                               ) : null}
                               {isMediaOverlayCarousel ? (
                                 <label className="field">
-                                  <span>Subtitle</span>
+                                  <span>Overlay subtitle</span>
                                   <input
                                     type="text"
                                     value={item.subtitle || ''}
@@ -5010,13 +5269,17 @@ function AppConfigPage({ token }) {
                               !isPhaseOneDataSourceFeed &&
                               !isPromoBanner ? (
                                 <label className="field">
-                                  <span>Image URL</span>
+                                  <span>{isMediaOverlayCarousel ? 'Background image' : 'Image URL'}</span>
                                   <div className="inline-row">
                                     <input
                                       type="text"
                                       value={item.imageUrl || ''}
                                       onChange={(event) => handlePhaseOneImageChange(idx, 'imageUrl', event.target.value)}
-                                      placeholder="https://cdn.example.com/item.jpg"
+                                      placeholder={
+                                        isMediaOverlayCarousel
+                                          ? 'https://cdn.example.com/overlay-card.jpg'
+                                          : 'https://cdn.example.com/item.jpg'
+                                      }
                                     />
                                     <button
                                       type="button"
@@ -5078,14 +5341,16 @@ function AppConfigPage({ token }) {
                               !isProductCardCarouselFeed &&
                               !isPhaseOneDataSourceFeed &&
                               !isPromoBanner ? (
-                                isPhaseOneHeroCarousel ? (
+                                showHeroDestinationPicker ? (
                                   <>
                                     <label className="field">
-                                      <span>Destination type</span>
+                                      <span>{usesCtaDestination ? 'CTA destination type' : 'Destination type'}</span>
                                       <select
                                         value={navigationTarget.type}
                                         onChange={(event) =>
-                                          handleHeroNavigationTargetTypeChange(idx, event.target.value)
+                                          usesCtaDestination
+                                            ? handleHeroCtaNavigationTargetTypeChange(idx, event.target.value)
+                                            : handleHeroNavigationTargetTypeChange(idx, event.target.value)
                                         }
                                       >
                                         {NAVIGATION_TARGET_OPTIONS.map((option) => (
@@ -5101,7 +5366,9 @@ function AppConfigPage({ token }) {
                                         <select
                                           value={navigationTarget.value}
                                           onChange={(event) =>
-                                            updateItemNavigationTarget(idx, 'COLLECTION', event.target.value)
+                                            usesCtaDestination
+                                              ? updateItemCtaNavigationTarget(idx, 'COLLECTION', event.target.value)
+                                              : updateItemNavigationTarget(idx, 'COLLECTION', event.target.value)
                                           }
                                         >
                                           <option value="">Select collection</option>
@@ -5121,9 +5388,8 @@ function AppConfigPage({ token }) {
                                         <p className="field-help">
                                           {isLoadingProductCollections
                                             ? 'Loading product collections...'
-                                            : `Resolved link: ${
-                                                buildNavigationTargetLink('COLLECTION', navigationTarget.value) ||
-                                                '(empty)'
+                                            : `${usesCtaDestination ? 'Resolved CTA link' : 'Resolved link'}: ${
+                                                buildNavigationTargetLink('COLLECTION', navigationTarget.value) || '(empty)'
                                               }`}
                                         </p>
                                       </label>
@@ -5143,12 +5409,14 @@ function AppConfigPage({ token }) {
                                         </label>
                                         <label className="field field-span">
                                           <span>Product</span>
-                                          <select
-                                            value={navigationTarget.value}
-                                            onChange={(event) =>
-                                              updateItemNavigationTarget(idx, 'PRODUCT', event.target.value)
-                                            }
-                                          >
+                                        <select
+                                          value={navigationTarget.value}
+                                          onChange={(event) =>
+                                            usesCtaDestination
+                                              ? updateItemCtaNavigationTarget(idx, 'PRODUCT', event.target.value)
+                                              : updateItemNavigationTarget(idx, 'PRODUCT', event.target.value)
+                                          }
+                                        >
                                             <option value="">Select product</option>
                                             {!filteredHeroProductOptions.some(
                                               (product) => String(product?.id || '') === navigationTarget.value
@@ -5169,9 +5437,8 @@ function AppConfigPage({ token }) {
                                           <p className="field-help">
                                             {isLoadingDestinationProducts
                                               ? 'Loading approved products...'
-                                              : `Resolved link: ${
-                                                  buildNavigationTargetLink('PRODUCT', navigationTarget.value) ||
-                                                  '(empty)'
+                                              : `${usesCtaDestination ? 'Resolved CTA link' : 'Resolved link'}: ${
+                                                  buildNavigationTargetLink('PRODUCT', navigationTarget.value) || '(empty)'
                                                 }`}
                                           </p>
                                         </label>
@@ -5183,7 +5450,9 @@ function AppConfigPage({ token }) {
                                         <select
                                           value={navigationTarget.value}
                                           onChange={(event) =>
-                                            updateItemNavigationTarget(idx, 'CATEGORY', event.target.value)
+                                            usesCtaDestination
+                                              ? updateItemCtaNavigationTarget(idx, 'CATEGORY', event.target.value)
+                                              : updateItemNavigationTarget(idx, 'CATEGORY', event.target.value)
                                           }
                                         >
                                           <option value="">Select main category</option>
@@ -5202,7 +5471,7 @@ function AppConfigPage({ token }) {
                                         </select>
                                         <p className="field-help">
                                           Current app routing treats `Category` destination as `IndustryCategory` by
-                                          `mainCategoryId`. Resolved link:{' '}
+                                          `mainCategoryId`. {usesCtaDestination ? 'Resolved CTA link' : 'Resolved link'}:{' '}
                                           {buildNavigationTargetLink('CATEGORY', navigationTarget.value) || '(empty)'}
                                         </p>
                                       </label>
@@ -5222,25 +5491,33 @@ function AppConfigPage({ token }) {
                                           type="text"
                                           value={navigationTarget.value}
                                           onChange={(event) =>
-                                            updateItemNavigationTarget(
-                                              idx,
-                                              navigationTarget.type,
-                                              event.target.value
-                                            )
+                                            usesCtaDestination
+                                              ? updateItemCtaNavigationTarget(
+                                                  idx,
+                                                  navigationTarget.type,
+                                                  event.target.value
+                                                )
+                                              : updateItemNavigationTarget(
+                                                  idx,
+                                                  navigationTarget.type,
+                                                  event.target.value
+                                                )
                                           }
                                           placeholder={getNavigationTargetPlaceholder(navigationTarget.type)}
                                         />
                                         <p className="field-help">
                                           {navigationTarget.type === 'CUSTOM'
-                                            ? 'Use a full app:// deep link or any custom route string.'
+                                            ? `Use a full app:// deep link or any custom route string for the ${
+                                                usesCtaDestination ? 'CTA button' : 'banner tap'
+                                              }.`
                                             : navigationTarget.type === 'CAMPAIGN'
-                                              ? `Resolved link: ${
+                                              ? `${usesCtaDestination ? 'Resolved CTA link' : 'Resolved link'}: ${
                                                   buildNavigationTargetLink(
                                                     navigationTarget.type,
                                                     navigationTarget.value
                                                   ) || '(empty)'
                                                 }. Current app still uses placeholder campaign routing.`
-                                            : `Resolved link: ${
+                                            : `${usesCtaDestination ? 'Resolved CTA link' : 'Resolved link'}: ${
                                                 buildNavigationTargetLink(
                                                   navigationTarget.type,
                                                   navigationTarget.value
@@ -6985,7 +7262,7 @@ function AppConfigPage({ token }) {
                   </div>
                 </div>
               ) : null}
-              {!isEditingFixed && !isPhaseOneHeroCarousel ? (
+              {!isEditingFixed && !isPhaseOneHeroCarousel && !isHeroBanner ? (
                 <>
                   <label className="field">
                     <span>{isPromoBanner ? 'CTA text' : 'Action text'}</span>

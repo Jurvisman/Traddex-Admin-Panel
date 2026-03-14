@@ -326,7 +326,10 @@ export const PreviewSection = ({ section, index, collections }) => {
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
         {title ? <div className="preview-title">{title}</div> : null}
-        <div className="preview-banner" style={bannerStyle || undefined}>
+        <div
+          className={`preview-banner ${section?.placement === 'header' ? 'is-header-attached' : ''}`}
+          style={bannerStyle || undefined}
+        >
           {image ? <img src={image} alt="" /> : <div className="preview-banner-placeholder" />}
         </div>
       </div>
@@ -393,11 +396,14 @@ export const PreviewSection = ({ section, index, collections }) => {
             {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
           </div>
         ) : null}
-        <div className="preview-phase-one-carousel">
+        <div className={`preview-phase-one-carousel ${section?.placement === 'header' ? 'is-header-attached' : ''}`}>
           {items.map((item, itemIndex) => {
             const image = getPreviewImage(item);
             return (
-              <div key={`preview-hero-carousel-${index}-${itemIndex}`} className="preview-phase-one-hero-card">
+              <div
+                key={`preview-hero-carousel-${index}-${itemIndex}`}
+                className={`preview-phase-one-hero-card ${section?.placement === 'header' ? 'is-header-attached' : ''}`}
+              >
                 {image ? <img src={image} alt="" /> : <div className="preview-banner-placeholder" />}
                 {item.badgeText ? <span className="preview-hero-badge">{item.badgeText}</span> : null}
                 {item.ctaText ? <span className="preview-hero-cta">{item.ctaText}</span> : null}
@@ -592,7 +598,11 @@ export const PreviewSection = ({ section, index, collections }) => {
     const isBeautyPreset = String(stylePreset || '').trim().toLowerCase() === 'beauty';
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
-        <div className={`preview-promo-hero ${isBeautyPreset ? 'is-beauty' : 'is-electronics'}`}>
+        <div
+          className={`preview-promo-hero ${isBeautyPreset ? 'is-beauty' : 'is-electronics'} ${
+            section?.placement === 'header' ? 'is-header-attached' : ''
+          }`}
+        >
           {image ? <img src={image} alt="" /> : <div className="preview-banner-placeholder" />}
           <div className="preview-promo-hero-overlay">
             {hero?.badgeText ? <span className="preview-promo-hero-badge">{hero.badgeText}</span> : null}

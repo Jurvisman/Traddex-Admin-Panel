@@ -3661,6 +3661,11 @@ textarea {
   border: 1px solid #cfd9f7;
 }
 
+.preview-phase-one-hero-card.is-header-attached {
+  border-radius: 0;
+  border-width: 0;
+}
+
 .preview-phase-one-hero-card img {
   width: 100%;
   height: 100%;
@@ -4031,6 +4036,10 @@ textarea {
   border-radius: 18px;
   overflow: hidden;
   background: #f3f4f6;
+}
+
+.preview-promo-hero.is-header-attached {
+  border-radius: 0;
 }
 
 .preview-promo-hero img {
@@ -5256,6 +5265,10 @@ textarea {
   overflow: hidden;
   background: #e9e2ff;
   aspect-ratio: 16 / 9;
+}
+
+.preview-banner.is-header-attached {
+  border-radius: 0;
 }
 
 .preview-banner img {

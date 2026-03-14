@@ -1197,6 +1197,8 @@ export const getPhaseOneDefaultItem = (blockType, index = 0) => {
       badgeText: '',
       ctaText: '',
       ctaLink: '',
+      destinationType: '',
+      destinationValue: '',
       imageUrl: '',
       deepLink: '',
     };
@@ -1208,6 +1210,8 @@ export const getPhaseOneDefaultItem = (blockType, index = 0) => {
       badgeText: '',
       ctaText: '',
       ctaLink: '',
+      destinationType: '',
+      destinationValue: '',
       imageUrl: '',
       deepLink: '',
     };
@@ -1236,6 +1240,8 @@ export const getPhaseOneDefaultItem = (blockType, index = 0) => {
       title: '',
       subtitle: '',
       imageUrl: '',
+      destinationType: '',
+      destinationValue: '',
       deepLink: '',
     };
   }
@@ -1352,6 +1358,8 @@ export const normalizePhaseOneItems = (items, blockType) => {
         badgeText: item?.badgeText || '',
         ctaText: item?.ctaText || '',
         ctaLink: item?.ctaLink || '',
+        destinationType: item?.destinationType ? String(item.destinationType) : '',
+        destinationValue: item?.destinationValue ? String(item.destinationValue) : '',
         imageUrl: item?.imageUrl || item?.imageUri || item?.thumbnailImage || '',
         deepLink: item?.deepLink || item?.targetUrl || '',
       };
@@ -1364,6 +1372,8 @@ export const normalizePhaseOneItems = (items, blockType) => {
         badgeText: item?.badgeText || item?.badge || '',
         ctaText: item?.ctaText || item?.ctaLabel || '',
         ctaLink: item?.ctaLink || '',
+        destinationType: item?.destinationType ? String(item.destinationType) : '',
+        destinationValue: item?.destinationValue ? String(item.destinationValue) : '',
         imageUrl: item?.imageUrl || item?.imageUri || item?.thumbnailImage || '',
         deepLink: item?.deepLink || item?.targetUrl || '',
       };
@@ -1395,6 +1405,8 @@ export const normalizePhaseOneItems = (items, blockType) => {
         title: item?.title || item?.name || item?.label || '',
         subtitle: item?.subtitle || '',
         imageUrl: item?.imageUrl || item?.imageUri || item?.thumbnailImage || '',
+        destinationType: item?.destinationType ? String(item.destinationType) : '',
+        destinationValue: item?.destinationValue ? String(item.destinationValue) : '',
         deepLink: item?.deepLink || item?.targetUrl || '',
       };
     }
@@ -2124,6 +2136,8 @@ export const defaultSectionForm = {
   imageUrl: '',
   aspectRatio: '',
   deepLink: '',
+  destinationType: '',
+  destinationValue: '',
   collectionIds: [],
   placement: '',
   placeholder: '',

@@ -94,6 +94,13 @@ export const buildSectionFromForm = (base, form) => {
   setOrDelete('imageUrl', form.imageUrl?.trim());
   setOrDelete('aspectRatio', form.aspectRatio?.trim());
   setOrDelete('deepLink', form.deepLink?.trim());
+  if (resolvedBlockType === 'heroBanner') {
+    setOrDelete('destinationType', form.destinationType?.trim().toUpperCase());
+    setOrDelete('destinationValue', form.destinationValue?.trim());
+  } else {
+    delete next.destinationType;
+    delete next.destinationValue;
+  }
   setOrDelete('placeholder', form.placeholder?.trim());
   setOrDelete('sectionBgColor', form.sectionBgColor?.trim());
   if (isColumnGridBlock) {
@@ -408,6 +415,38 @@ export const buildSectionFormFromConfig = (section, fallbackType) => {
   const mapping = section?.mapping && typeof section.mapping === 'object' ? section.mapping : {};
   const resolvedType = section?.type === 'campaign' ? 'campaignBento' : section?.type || fallbackType;
   const resolvedBlockType = resolveBlockType(section);
+  const resolvedDeepLink = section?.deepLink || firstItem?.deepLink || firstItem?.targetUrl || '';
+  const parsedNavigationTarget = (() => {
+    const current = String(resolvedDeepLink || '').trim();
+    const fallbackDestinationType = String(section?.destinationType || '').trim().toUpperCase();
+    const fallbackDestinationValue = String(section?.destinationValue || '').trim();
+    if (!current) {
+      return {
+        type: fallbackDestinationType,
+        value: fallbackDestinationValue,
+      };
+    }
+    const lower = current.toLowerCase();
+    if (lower.startsWith('https://') || lower.startsWith('http://')) {
+      return { type: 'EXTERNAL_URL', value: current };
+    }
+    const normalizedPath =
+      lower.startsWith('app://') || lower.startsWith('traddex://')
+        ? current.replace(/^[a-z]+:\/\//i, '').replace(/^\/+/, '')
+        : current.startsWith('/')
+          ? current.replace(/^\/+/, '')
+          : '';
+    if (!normalizedPath) {
+      return { type: 'CUSTOM', value: current };
+    }
+    const [segment, ...restSegments] = normalizedPath.split('/');
+    const value = decodeURIComponent(restSegments.join('/'));
+    if (segment === 'collection') return { type: 'COLLECTION', value };
+    if (segment === 'campaign') return { type: 'CAMPAIGN', value };
+    if (segment === 'product') return { type: 'PRODUCT', value };
+    if (segment === 'category') return { type: 'CATEGORY', value };
+    return { type: 'CUSTOM', value: current };
+  })();
   const isVisualDataSourceBlock =
     resolvedBlockType === 'hero_carousel' ||
     resolvedBlockType === 'media_overlay_carousel' ||
@@ -429,7 +468,9 @@ export const buildSectionFormFromConfig = (section, fallbackType) => {
     showcaseVariant: section?.showcaseVariant || 'circle',
     imageUrl: section?.imageUrl || firstItem?.imageUrl || '',
     aspectRatio: section?.aspectRatio || '',
-    deepLink: section?.deepLink || firstItem?.deepLink || firstItem?.targetUrl || '',
+    deepLink: resolvedDeepLink,
+    destinationType: parsedNavigationTarget.type || '',
+    destinationValue: parsedNavigationTarget.value || '',
     sectionBgColor: section?.sectionBgColor || '',
     sectionBgImage: section?.sectionBgImage || '',
     columnTopLineStyle: normalizeColumnTopLineStyle(section?.columnTopLineStyle),
