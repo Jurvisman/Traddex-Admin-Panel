@@ -1,0 +1,529 @@
+/**
+ * GSC Inventory / Items datatable style for TradeX admin panel.
+ * Matches gsc-items-/gsc src/pages/inventory/ItemsList.tsx.
+ */
+
+/* ---- Single surface: no box-in-box (stage + card flat) ---- */
+.admin-shell-gsc .admin-main {
+  background: #ffffff;
+}
+
+.admin-shell-gsc .admin-stage {
+  background: #ffffff;
+  border: none;
+  border-radius: 0;
+  padding: 12px 0 24px;
+  box-shadow: none;
+}
+
+.admin-shell-gsc .panel.card.users-table-card {
+  border-radius: 0;
+  padding: 0 0 24px;
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+
+.admin-shell-gsc .panel.card.users-table-card .table-shell {
+  background: #ffffff;
+  border-radius: 0;
+}
+
+/* ---- Toolbar: one row with table, no extra box ---- */
+.admin-shell-gsc .gsc-datatable-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.admin-shell-gsc .gsc-datatable-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* GSC: rounded-lg px-3 py-1 bg-gray-100 text-gray-500 hover:bg-gray-200 */
+.admin-shell-gsc .gsc-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 8px;
+  background: #f3f4f6;
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.admin-shell-gsc .gsc-toolbar-btn:hover {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.admin-shell-gsc .gsc-toolbar-btn svg {
+  width: 16px;
+  height: 16px;
+  color: inherit;
+}
+
+/* Active filter state (when Filter is toggled on) - optional, add .active class in JS if needed */
+.admin-shell-gsc .gsc-toolbar-btn.active {
+  background: var(--gsc-primary);
+  color: #ffffff;
+}
+
+.admin-shell-gsc .gsc-datatable-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* GSC: rounded-xl border-none bg-gray-100 py-1, search icon on right */
+.admin-shell-gsc .gsc-toolbar-search {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 6px 36px 6px 12px;
+  border: none;
+  border-radius: 12px;
+  background: #f3f4f6;
+  min-width: 176px;
+  max-width: 256px;
+}
+
+.admin-shell-gsc .gsc-toolbar-search input {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  outline: none;
+  font-size: 14px;
+  font-weight: 400;
+  color: #111827;
+}
+
+.admin-shell-gsc .gsc-toolbar-search input::placeholder {
+  color: #9ca3af;
+}
+
+/* GSC: h-7 w-7 rounded-lg bg-primary (green) - using your primary ---- */
+.admin-shell-gsc .gsc-create-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  background: var(--gsc-primary);
+  color: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.admin-shell-gsc .gsc-create-btn:hover {
+  filter: brightness(1.08);
+}
+
+.admin-shell-gsc .gsc-create-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* ---- Table: horizontal scroll when many columns (like GSC reference) ---- */
+.admin-shell-gsc .table-shell {
+  overflow-x: auto;
+  overflow-y: visible;
+  background: #ffffff;
+  font-size: 14px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.admin-shell-gsc .table-shell::-webkit-scrollbar {
+  height: 8px;
+}
+
+.admin-shell-gsc .table-shell::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.admin-shell-gsc .table-shell::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.admin-shell-gsc .table-shell::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.admin-shell-gsc .admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #ffffff;
+  table-layout: fixed;
+}
+
+.admin-shell-gsc .admin-table thead {
+  background: #f3f4f6;
+}
+
+.admin-shell-gsc .admin-table th {
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 600;
+  color: #6b7280;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-shell-gsc .admin-table th.table-actions {
+  text-align: center;
+  width: 48px;
+}
+
+.admin-shell-gsc .admin-table th:first-child {
+  width: 48px;
+  padding-left: 8px;
+}
+
+/* Actions column: do not clip so dropdown can show */
+.admin-shell-gsc .admin-table td.table-actions {
+  overflow: visible;
+  text-overflow: clip;
+}
+
+/* Image column: fixed width so table fits container without horizontal scroll */
+.admin-shell-gsc .admin-table th:nth-child(2),
+.admin-shell-gsc .admin-table td:nth-child(2) {
+  width: 56px;
+  max-width: 56px;
+  box-sizing: border-box;
+}
+
+.admin-shell-gsc .admin-table tbody {
+  background: #ffffff;
+}
+
+.admin-shell-gsc .admin-table tbody tr {
+  border-bottom: 1px solid #f3f4f6;
+  transition: background 0.1s ease;
+  background: #ffffff;
+}
+
+.admin-shell-gsc .admin-table tbody tr:nth-child(even) {
+  background: #ffffff;
+}
+
+.admin-shell-gsc .admin-table tbody tr:hover td {
+  background: #fafafa;
+}
+
+.admin-shell-gsc .admin-table tbody tr:nth-child(even):hover td {
+  background: #fafafa;
+}
+
+.admin-shell-gsc .admin-table td {
+  padding: 10px 12px;
+  color: #374151;
+  font-size: 13px;
+  border-bottom: 1px solid #f3f4f6;
+  vertical-align: middle;
+  background: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-shell-gsc .admin-table td:first-child {
+  padding-left: 12px;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+/* Checkbox: small square, light grey border */
+.admin-shell-gsc .admin-table .select-checkbox {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  cursor: pointer;
+  border-radius: 3px;
+  border: 1px solid #d1d5db;
+  accent-color: var(--gsc-primary);
+}
+
+/* ---- Product table: single-line cells, GSC font size (13px / 0.8125rem) ---- */
+.admin-shell-gsc .product-page .users-table-card .admin-table thead th {
+  background: #f3f4f6;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.admin-shell-gsc .product-page .product-table td {
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.admin-shell-gsc .product-page .product-table .product-table-code {
+  white-space: nowrap;
+}
+
+.admin-shell-gsc .product-page .product-table .product-table-primary {
+  white-space: nowrap;
+}
+
+.admin-shell-gsc .product-page .product-table .user-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+
+.admin-shell-gsc .product-page .status-pill {
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.admin-shell-gsc .product-page .product-price-main {
+  white-space: nowrap;
+}
+
+/* Image: square thumbnail with slightly rounded corners (GSC row style) */
+.admin-shell-gsc .product-page .product-image-cell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.admin-shell-gsc .product-page .product-row-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  object-fit: cover;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.admin-shell-gsc .product-page .product-row-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Name column: purple (your primary), single line with ellipsis */
+.admin-shell-gsc .product-page .product-table .user-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gsc-primary);
+  text-decoration: none;
+  cursor: pointer;
+  display: block;
+}
+
+.admin-shell-gsc .product-page .product-table tr:hover .user-name {
+  text-decoration: underline;
+}
+
+.admin-shell-gsc .product-page .product-row-meta {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 2px;
+  line-height: 1.35;
+}
+
+/* Code / primary-secondary stacks (GSC: 13px single line) */
+.admin-shell-gsc .product-page .product-table-code {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.admin-shell-gsc .product-page .product-table-primary {
+  font-size: 13px;
+  color: #374151;
+  font-weight: 500;
+}
+
+.admin-shell-gsc .product-page .product-table-secondary {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 400;
+}
+
+/* Status pills: rounded, subtle (GSC has Approve/Pending style) */
+.admin-shell-gsc .product-page .status-pill {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.admin-shell-gsc .product-page .status-pill.approved {
+  background: rgba(34, 197, 94, 0.15);
+  color: #15803d;
+}
+
+.admin-shell-gsc .product-page .status-pill.pending,
+.admin-shell-gsc .product-page .status-pill.pending-review {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.admin-shell-gsc .product-page .status-pill.rejected,
+.admin-shell-gsc .product-page .status-pill.changes-required {
+  background: rgba(239, 68, 68, 0.1);
+  color: #b91c1c;
+}
+
+/* Actions: 3-dots trigger + dropdown (all actions on tap) */
+.admin-shell-gsc .product-page .product-table .table-actions {
+  width: auto;
+  min-width: 48px;
+  text-align: center;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.admin-shell-gsc .product-page .product-table .product-table-action-menu {
+  position: relative;
+  display: inline-flex;
+  justify-content: center;
+}
+
+.admin-shell-gsc .product-page .product-table .product-table-action-trigger {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.admin-shell-gsc .product-page .product-table .product-table-action-trigger:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.admin-shell-gsc .product-page .product-table .product-table-action-trigger svg {
+  width: 18px;
+  height: 18px;
+}
+
+.admin-shell-gsc .product-page .product-table .product-table-action-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 50;
+  min-width: 160px;
+  padding: 4px 0;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+}
+
+.admin-shell-gsc .product-page .product-table .product-table-action-dropdown button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: 0;
+  background: 0;
+  padding: 10px 14px;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-shell-gsc .product-page .product-table .product-table-action-dropdown button:hover:not(:disabled) {
+  background: #f3f4f6;
+}
+
+.admin-shell-gsc .product-page .product-table .product-table-action-dropdown button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.admin-shell-gsc .product-page .product-table .product-table-action-dropdown button + button {
+  border-top: 1px solid #f3f4f6;
+}
+
+.admin-shell-gsc .product-page .product-table .product-table-action-dropdown .gsc-product-view-menu-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.admin-shell-gsc .product-page .product-table .product-table-action-dropdown .gsc-product-view-menu-icon.view {
+  color: #2563eb;
+}
+
+.admin-shell-gsc .product-page .product-table .product-table-action-dropdown .gsc-product-view-menu-icon.edit {
+  color: var(--gsc-primary);
+}
+
+.admin-shell-gsc .product-page .product-table .product-table-action-dropdown .gsc-product-view-menu-icon.delete {
+  color: #ef4444;
+}
+
+.admin-shell-gsc .product-page .product-table .product-table-action-dropdown .gsc-product-view-menu-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Numeric columns right-align (Price, Qty, etc.) */
+.admin-shell-gsc .product-page .product-price-cell,
+.admin-shell-gsc .product-page .product-updated-cell {
+  text-align: left;
+}
+
+.admin-shell-gsc .product-page .product-price-main {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.admin-shell-gsc .product-page .product-price-sub {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* Row clickable - keep cursor */
+.admin-shell-gsc .product-page .product-table .table-row-clickable {
+  cursor: pointer;
+}
+
+/* Empty state */
+.admin-shell-gsc .panel.card.users-table-card .empty-state {
+  padding: 24px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 14px;
+}

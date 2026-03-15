@@ -362,10 +362,12 @@ function ProductPage({ token, adminUserId }) {
   const [productFormTab, setProductFormTab] = useState('general');
   const [activeProductViewTab, setActiveProductViewTab] = useState('overview');
   const [showViewActionMenu, setShowViewActionMenu] = useState(false);
+  const [openProductActionId, setOpenProductActionId] = useState(null);
   const didInitRef = useRef(false);
   const mediaInputRef = useRef(null);
   const uomSectionRef = useRef(null);
   const viewActionMenuRef = useRef(null);
+  const productActionMenuRef = useRef(null);
   const navigate = useNavigate();
   const { id } = useParams();
   const editMatch = useMatch('/admin/products/:id/edit');
@@ -1071,6 +1073,17 @@ function ProductPage({ token, adminUserId }) {
       document.removeEventListener('mousedown', handlePointerDown);
     };
   }, [showViewActionMenu]);
+
+  useEffect(() => {
+    if (openProductActionId == null) return undefined;
+    const handlePointerDown = (event) => {
+      if (productActionMenuRef.current && !productActionMenuRef.current.contains(event.target)) {
+        setOpenProductActionId(null);
+      }
+    };
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => document.removeEventListener('mousedown', handlePointerDown);
+  }, [openProductActionId]);
 
   useEffect(() => {
     if (!selectedProduct) {
@@ -4638,7 +4651,8 @@ function ProductPage({ token, adminUserId }) {
                     <th>Name</th>
                     <th>Business</th>
                     <th>Category</th>
-                    <th>Brand / UOM</th>
+                    <th>Brand</th>
+                    <th>UOM</th>
                     <th>Price</th>
                     <th>Status</th>
                     <th>Updated</th>
@@ -4684,134 +4698,124 @@ function ProductPage({ token, adminUserId }) {
                           </div>
                         </td>
                         <td>
-                          <div className="product-table-stack product-code-cell">
-                            <span className="product-table-code">{productCode}</span>
-                            <span className="product-table-secondary">ID {formatValue(product?.id || product?.productId)}</span>
-                          </div>
+                          <span className="product-table-code">{productCode}</span>
                         </td>
                         <td>
-                          <div className="product-row-main">
-                            <div className="product-row-copy">
-                              <p className="user-name">{product?.productName || '-'}</p>
-                              <p className="product-row-meta">{product?.shortDescription || 'No short description'}</p>
-                            </div>
-                          </div>
+                          <p className="user-name">{product?.productName || '-'}</p>
                         </td>
                         <td>
-                          <div className="product-table-stack">
-                            <span className="product-table-primary">{product?.businessName || '-'}</span>
-                            <span className="product-table-secondary">
-                              {product?.productType || 'Product'}
-                            </span>
-                          </div>
+                          <span className="product-table-primary">{product?.businessName || '-'}</span>
                         </td>
                         <td>
-                          <div className="product-table-stack">
-                            <span className="product-table-primary">{categoryParts.primary}</span>
-                            <span className="product-table-secondary">
-                              {categoryParts.secondary || 'No subcategory mapped'}
-                            </span>
-                          </div>
+                          <span className="product-table-primary">{categoryParts.primary}</span>
                         </td>
                         <td>
-                          <div className="product-table-stack">
-                            <span className="product-table-primary">{brandLabel}</span>
-                            <span className="product-table-secondary">{uomLabel}</span>
-                          </div>
+                          <span className="product-table-primary">{brandLabel}</span>
                         </td>
                         <td>
-                          <div className="product-price-cell">
-                            <span className="product-price-main">
-                              {formatPrice(product?.sellingPrice, product?.currency)}
-                            </span>
-                            <span className="product-price-sub">
-                              {product?.mrp !== null && product?.mrp !== undefined && product?.mrp !== ''
-                                ? `MRP ${formatPrice(product?.mrp, product?.currency)}`
-                                : formatValue(product?.baseUomName || product?.currency || '-')}
-                            </span>
-                          </div>
+                          <span className="product-table-primary">{uomLabel}</span>
+                        </td>
+                        <td>
+                          <span className="product-price-main">
+                            {product?.mrp !== null && product?.mrp !== undefined && product?.mrp !== ''
+                              ? formatPrice(product.mrp, product?.currency)
+                              : '-'}
+                          </span>
                         </td>
                         <td>
                           <span className={statusClass}>{formatStatus(statusValue)}</span>
                         </td>
                         <td>
-                          <div className="product-table-stack product-updated-cell">
-                            <span className="product-table-primary">{formatDateOnly(updatedAt)}</span>
-                            <span className="product-table-secondary">{formatTimeOnly(updatedAt)}</span>
-                          </div>
+                          <span className="product-table-primary">{formatDateTime(updatedAt)}</span>
                         </td>
-                        <td className="table-actions">
-                          <div className="table-action-group">
+                        <td className="table-actions" onClick={(e) => e.stopPropagation()}>
+                          <div className="product-table-action-menu" ref={openProductActionId === (product?.id || product?.productId) ? productActionMenuRef : null}>
                             <button
                               type="button"
-                              className="icon-btn view"
-                              aria-label="View product"
+                              className="icon-btn product-table-action-trigger"
+                              aria-label="Actions"
+                              aria-expanded={openProductActionId === (product?.id || product?.productId)}
                               onClick={(event) => {
                                 event.stopPropagation();
-                                handleViewProduct(product.id);
+                                setOpenProductActionId((prev) => (prev === (product?.id || product?.productId) ? null : (product?.id || product?.productId)));
                               }}
                             >
-                              {ACTION_ICONS.view}
+                              {ACTION_ICONS.more}
                             </button>
-                            <button
-                              type="button"
-                              className="icon-btn edit"
-                              aria-label="Edit product"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                navigate(`/admin/products/${product.id}/edit`);
-                              }}
-                            >
-                              {ACTION_ICONS.edit}
-                            </button>
-                            <button
-                              type="button"
-                              className="icon-btn delete"
-                              aria-label="Delete product"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                handleDelete(product.id);
-                              }}
-                            >
-                              {ACTION_ICONS.trash}
-                            </button>
-                            {['PENDING_REVIEW', 'CHANGES_REQUIRED'].includes(String(statusValue || '').toUpperCase()) ? (
-                              <>
+                            {openProductActionId === (product?.id || product?.productId) ? (
+                              <div className="product-table-action-dropdown">
                                 <button
                                   type="button"
-                                  className="icon-btn approve"
-                                  aria-label="Approve product"
-                                  disabled={!hasFullCategoryPath}
                                   onClick={(event) => {
                                     event.stopPropagation();
-                                    handleRowStatusUpdate(product.id, 'APPROVED');
+                                    setOpenProductActionId(null);
+                                    handleViewProduct(product.id);
                                   }}
                                 >
-                                  {ACTION_ICONS.approve}
+                                  <span className="gsc-product-view-menu-icon view">{ACTION_ICONS.view}</span>
+                                  View
                                 </button>
                                 <button
                                   type="button"
-                                  className="icon-btn request-changes"
-                                  aria-label="Request changes"
                                   onClick={(event) => {
                                     event.stopPropagation();
-                                    handleRowStatusUpdate(product.id, 'CHANGES_REQUIRED');
+                                    setOpenProductActionId(null);
+                                    navigate(`/admin/products/${product.id}/edit`);
                                   }}
                                 >
-                                  {ACTION_ICONS.requestChanges}
+                                  <span className="gsc-product-view-menu-icon edit">{ACTION_ICONS.edit}</span>
+                                  Edit
                                 </button>
                                 <button
                                   type="button"
-                                  className="icon-btn reject"
-                                  aria-label="Reject product"
                                   onClick={(event) => {
                                     event.stopPropagation();
-                                    handleRowStatusUpdate(product.id, 'REJECTED');
+                                    setOpenProductActionId(null);
+                                    handleDelete(product.id);
                                   }}
                                 >
-                                  {ACTION_ICONS.reject}
+                                  <span className="gsc-product-view-menu-icon delete">{ACTION_ICONS.trash}</span>
+                                  Delete
                                 </button>
-                              </>
+                                {['PENDING_REVIEW', 'CHANGES_REQUIRED'].includes(String(statusValue || '').toUpperCase()) ? (
+                                  <>
+                                    <button
+                                      type="button"
+                                      disabled={!hasFullCategoryPath}
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        setOpenProductActionId(null);
+                                        handleRowStatusUpdate(product.id, 'APPROVED');
+                                      }}
+                                    >
+                                      <span className="gsc-product-view-menu-icon approve">{ACTION_ICONS.approve}</span>
+                                      Approve
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        setOpenProductActionId(null);
+                                        handleRowStatusUpdate(product.id, 'CHANGES_REQUIRED');
+                                      }}
+                                    >
+                                      <span className="gsc-product-view-menu-icon request-changes">{ACTION_ICONS.requestChanges}</span>
+                                      Request changes
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        setOpenProductActionId(null);
+                                        handleRowStatusUpdate(product.id, 'REJECTED');
+                                      }}
+                                    >
+                                      <span className="gsc-product-view-menu-icon reject">{ACTION_ICONS.reject}</span>
+                                      Reject
+                                    </button>
+                                  </>
+                                ) : null}
+                              </div>
                             ) : null}
                           </div>
                         </td>

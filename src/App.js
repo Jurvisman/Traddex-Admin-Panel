@@ -38,6 +38,7 @@ import {
 import { fetchMyPermissions } from './services/adminApi';
 import './App.css';
 import './styles/AdminShellGsc.css';
+import './styles/DatatableGsc.css';
 
 const ICONS = {
   dashboard: (
