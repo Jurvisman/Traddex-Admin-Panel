@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Banner } from '../components';
+import { Banner, TableRowActionMenu } from '../components';
 import { createSubCategory, deleteSubCategory, listCategories, listSubCategories, updateSubCategory } from '../services/adminApi';
 
 const initialForm = {
@@ -21,6 +21,7 @@ function SubCategoryPage({ token }) {
   const [showForm, setShowForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [editItem, setEditItem] = useState(null);
+  const [openActionRowId, setOpenActionRowId] = useState(null);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -212,7 +213,7 @@ function SubCategoryPage({ token }) {
         </div>
       ) : null}
       <div className="panel-grid">
-        <div className="panel card">
+        <div className="panel card users-table-card">
           <div className="panel-split">
             <div className="category-list-head-left">
               <h3 className="panel-subheading">Sub-category list</h3>
@@ -291,6 +292,7 @@ function SubCategoryPage({ token }) {
               <table className="admin-table">
                 <thead>
                   <tr>
+                    <th>Sr</th>
                     <th>Name</th>
                     <th>Category</th>
                     <th>Active</th>
@@ -305,18 +307,28 @@ function SubCategoryPage({ token }) {
                       const haystack = `${item.name || ''} ${item.categoryName || ''}`.toLowerCase();
                       return haystack.includes(q);
                     })
-                    .map((item) => (
+                    .sort((a, b) => {
+                      const orderA = a.ordering != null ? Number(a.ordering) : Infinity;
+                      const orderB = b.ordering != null ? Number(b.ordering) : Infinity;
+                      if (orderA !== orderB) return orderA - orderB;
+                      return (a.id ?? 0) - (b.id ?? 0);
+                    })
+                    .map((item, index) => (
                     <tr key={item.id}>
+                      <td>{index + 1}</td>
                       <td>{item.name}</td>
                       <td>{item.categoryName || '-'}</td>
                       <td>{item.active === 1 ? 'Yes' : 'No'}</td>
-                      <td className="table-actions">
-                        <button type="button" className="ghost-btn small" onClick={() => handleEdit(item)}>
-                          Edit
-                        </button>
-                        <button type="button" className="ghost-btn small" onClick={() => handleDelete(item.id)}>
-                          Delete
-                        </button>
+                      <td className="table-actions" onClick={(e) => e.stopPropagation()}>
+                        <TableRowActionMenu
+                          rowId={item.id}
+                          openRowId={openActionRowId}
+                          onToggle={setOpenActionRowId}
+                          actions={[
+                            { label: 'Edit', onClick: () => handleEdit(item) },
+                            { label: 'Delete', onClick: () => handleDelete(item.id), danger: true },
+                          ]}
+                        />
                       </td>
                     </tr>
                   ))}

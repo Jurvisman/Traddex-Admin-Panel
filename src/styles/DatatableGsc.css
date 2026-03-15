@@ -8,6 +8,12 @@
   background: #ffffff;
 }
 
+/* List pages (Industry, Main Category, etc.): toolbar row spacing above table */
+.admin-shell-gsc .panel.card .panel-split:has(.category-list-head-left) {
+  margin-bottom: 14px;
+  padding-bottom: 0;
+}
+
 .admin-shell-gsc .admin-stage {
   background: #ffffff;
   border: none;
@@ -38,7 +44,6 @@
   gap: 12px;
   margin-bottom: 12px;
   padding-bottom: 12px;
-  border-bottom: 1px solid #e5e7eb;
 }
 
 .admin-shell-gsc .gsc-datatable-toolbar-left {
@@ -145,6 +150,9 @@
   background: #ffffff;
   font-size: 14px;
   -webkit-overflow-scrolling: touch;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .admin-shell-gsc .table-shell::-webkit-scrollbar {
@@ -173,43 +181,142 @@
 }
 
 .admin-shell-gsc .admin-table thead {
-  background: #f3f4f6;
+  background: #f8fafc;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.admin-shell-gsc .admin-table thead tr:first-child th:first-child {
+  border-radius: 10px 0 0 0;
+}
+
+.admin-shell-gsc .admin-table thead tr:first-child th:last-child {
+  border-radius: 0 10px 0 0;
 }
 
 .admin-shell-gsc .admin-table th {
-  padding: 10px 12px;
+  padding: 12px 14px;
   text-align: left;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
-  color: #6b7280;
-  border-bottom: 1px solid #e5e7eb;
+  color: #475569;
+  letter-spacing: 0.01em;
+  border-bottom: 2px solid #e2e8f0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .admin-shell-gsc .admin-table th.table-actions {
-  text-align: center;
-  width: 48px;
+  text-align: right;
+  width: 140px;
+  padding-right: 12px;
 }
 
-.admin-shell-gsc .admin-table th:first-child {
+/* Product table: checkbox column and image column fixed widths */
+.admin-shell-gsc .admin-table.product-table th:first-child {
   width: 48px;
   padding-left: 8px;
+}
+
+.admin-shell-gsc .admin-table.product-table th:nth-child(2),
+.admin-shell-gsc .admin-table.product-table td:nth-child(2) {
+  width: 56px;
+  max-width: 56px;
+  box-sizing: border-box;
+}
+
+/* List tables (Industry, Main Category, etc.): Name / first column gets space so headers don’t truncate */
+.admin-shell-gsc .admin-table:not(.product-table) th:first-child,
+.admin-shell-gsc .admin-table:not(.product-table) td:first-child {
+  width: 48px;
+  min-width: 48px;
+  max-width: 48px;
+  text-align: center;
+  padding-left: 8px;
+  padding-right: 8px;
+  box-sizing: border-box;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.admin-shell-gsc .admin-table:not(.product-table) th:nth-child(2) {
+  width: 40%;
+  min-width: 120px;
+  padding-left: 12px;
+}
+
+.admin-shell-gsc .admin-table:not(.product-table) th:nth-child(3) {
+  width: 18%;
+  min-width: 72px;
+}
+
+.admin-shell-gsc .admin-table:not(.product-table) th:nth-child(4) {
+  width: 18%;
+  min-width: 72px;
+}
+
+.admin-shell-gsc .admin-table:not(.product-table) th.table-actions,
+.admin-shell-gsc .admin-table:not(.product-table) th:last-child {
+  width: 140px;
+  min-width: 120px;
 }
 
 /* Actions column: do not clip so dropdown can show */
 .admin-shell-gsc .admin-table td.table-actions {
   overflow: visible;
   text-overflow: clip;
+  text-align: right;
+  padding-right: 14px;
 }
 
-/* Image column: fixed width so table fits container without horizontal scroll */
-.admin-shell-gsc .admin-table th:nth-child(2),
-.admin-shell-gsc .admin-table td:nth-child(2) {
-  width: 56px;
-  max-width: 56px;
-  box-sizing: border-box;
+.admin-shell-gsc .admin-table.product-table td:first-child {
+  overflow: visible;
+  text-overflow: clip;
+}
+
+/* List table row actions: Edit / Delete as compact pills with clear hover */
+.admin-shell-gsc .admin-table .table-actions .ghost-btn.small {
+  margin-left: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #475569;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.admin-shell-gsc .admin-table .table-actions .ghost-btn.small:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+
+.admin-shell-gsc .admin-table .table-actions .ghost-btn.small:first-of-type {
+  margin-left: 0;
+  color: var(--gsc-primary);
+  border-color: #c4b5fd;
+  background: #f5f3ff;
+}
+
+.admin-shell-gsc .admin-table .table-actions .ghost-btn.small:first-of-type:hover {
+  background: #ede9fe;
+  border-color: var(--gsc-primary);
+}
+
+/* Delete as danger style when it's the second button in row actions */
+.admin-shell-gsc .admin-table .table-actions .ghost-btn.small.danger,
+.admin-shell-gsc .admin-table .table-actions .ghost-btn.small:last-of-type:not(:first-of-type) {
+  color: #b91c1c;
+  border-color: rgba(185, 28, 28, 0.35);
+  background: rgba(185, 28, 28, 0.06);
+}
+
+.admin-shell-gsc .admin-table .table-actions .ghost-btn.small.danger:hover,
+.admin-shell-gsc .admin-table .table-actions .ghost-btn.small:last-of-type:not(:first-of-type):hover {
+  background: rgba(185, 28, 28, 0.12);
+  border-color: #b91c1c;
 }
 
 .admin-shell-gsc .admin-table tbody {
@@ -217,21 +324,29 @@
 }
 
 .admin-shell-gsc .admin-table tbody tr {
-  border-bottom: 1px solid #f3f4f6;
-  transition: background 0.1s ease;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.12s ease, box-shadow 0.12s ease;
   background: #ffffff;
 }
 
 .admin-shell-gsc .admin-table tbody tr:nth-child(even) {
-  background: #ffffff;
+  background: #fafbfc;
 }
 
 .admin-shell-gsc .admin-table tbody tr:hover td {
-  background: #fafafa;
+  background: #f1f5f9;
 }
 
 .admin-shell-gsc .admin-table tbody tr:nth-child(even):hover td {
-  background: #fafafa;
+  background: #e2e8f0;
+}
+
+.admin-shell-gsc .admin-table tbody tr:last-child td:first-child {
+  border-radius: 0 0 0 10px;
+}
+
+.admin-shell-gsc .admin-table tbody tr:last-child td:last-child {
+  border-radius: 0 0 10px 0;
 }
 
 .admin-shell-gsc .admin-table td {
@@ -248,8 +363,6 @@
 
 .admin-shell-gsc .admin-table td:first-child {
   padding-left: 12px;
-  overflow: visible;
-  text-overflow: clip;
 }
 
 /* Checkbox: small square, light grey border */
@@ -494,6 +607,96 @@
 }
 
 .admin-shell-gsc .product-page .product-table .product-table-action-dropdown .gsc-product-view-menu-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* ---- 3-dots action menu for all datatables (Industry, Main Category, Category, Sub Category) ---- */
+.admin-shell-gsc .admin-table .table-action-menu {
+  position: relative;
+  display: inline-flex;
+  justify-content: flex-end;
+}
+
+.admin-shell-gsc .admin-table .table-action-trigger {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.admin-shell-gsc .admin-table .table-action-trigger:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.admin-shell-gsc .admin-table .table-action-trigger svg {
+  width: 18px;
+  height: 18px;
+}
+
+.admin-shell-gsc .admin-table .table-action-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 50;
+  min-width: 160px;
+  padding: 4px 0;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+}
+
+.admin-shell-gsc .admin-table .table-action-dropdown button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: 0;
+  background: 0;
+  padding: 10px 14px;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-shell-gsc .admin-table .table-action-dropdown button:hover:not(:disabled) {
+  background: #f3f4f6;
+}
+
+.admin-shell-gsc .admin-table .table-action-dropdown button.danger {
+  color: #b91c1c;
+}
+
+.admin-shell-gsc .admin-table .table-action-dropdown button.danger:hover {
+  background: rgba(185, 28, 28, 0.08);
+}
+
+.admin-shell-gsc .admin-table .table-action-dropdown button + button {
+  border-top: 1px solid #f3f4f6;
+}
+
+.admin-shell-gsc .admin-table .table-action-dropdown .table-action-menu-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: inherit;
+}
+
+.admin-shell-gsc .admin-table .table-action-dropdown .table-action-menu-icon svg {
   width: 18px;
   height: 18px;
 }

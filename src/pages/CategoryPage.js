@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Banner } from '../components';
+import { Banner, TableRowActionMenu } from '../components';
 import {
   createAttributeDefinition,
   createAttributeMapping,
@@ -102,6 +102,7 @@ function CategoryPage({ token }) {
   const [addFieldMode, setAddFieldMode] = useState('new');
   const [selectedExistingFieldId, setSelectedExistingFieldId] = useState('');
   const [categorySearchQuery, setCategorySearchQuery] = useState('');
+  const [openActionRowId, setOpenActionRowId] = useState(null);
 
   const definitionById = useMemo(() => {
     const map = new Map();
@@ -819,7 +820,7 @@ function CategoryPage({ token }) {
         </div>
       ) : null}
       <div className="panel-grid">
-        <div className="panel card">
+        <div className="panel card users-table-card">
           <div className="panel-split">
             <div className="category-list-head-left">
               <h3 className="panel-subheading">Category list</h3>
@@ -898,6 +899,7 @@ function CategoryPage({ token }) {
               <table className="admin-table">
                 <thead>
                   <tr>
+                    <th>Sr</th>
                     <th>Name</th>
                     <th>Main category</th>
                     <th>Active</th>
@@ -912,21 +914,29 @@ function CategoryPage({ token }) {
                       const haystack = `${item.name || ''} ${item.mainCategoryName || ''}`.toLowerCase();
                       return haystack.includes(q);
                     })
-                    .map((item) => (
+                    .sort((a, b) => {
+                      const orderA = a.ordering != null ? Number(a.ordering) : Infinity;
+                      const orderB = b.ordering != null ? Number(b.ordering) : Infinity;
+                      if (orderA !== orderB) return orderA - orderB;
+                      return (a.id ?? 0) - (b.id ?? 0);
+                    })
+                    .map((item, index) => (
                     <tr key={item.id}>
+                      <td>{index + 1}</td>
                       <td>{item.name}</td>
                       <td>{item.mainCategoryName || '-'}</td>
                       <td>{Number(item.active) === 1 ? 'Yes' : 'No'}</td>
-                      <td className="table-actions">
-                        <button type="button" className="ghost-btn small" onClick={() => openFieldManager(item)}>
-                          Manage Fields
-                        </button>
-                        <button type="button" className="ghost-btn small" onClick={() => handleEdit(item)}>
-                          Edit
-                        </button>
-                        <button type="button" className="ghost-btn small" onClick={() => handleDelete(item.id)}>
-                          Delete
-                        </button>
+                      <td className="table-actions" onClick={(e) => e.stopPropagation()}>
+                        <TableRowActionMenu
+                          rowId={item.id}
+                          openRowId={openActionRowId}
+                          onToggle={setOpenActionRowId}
+                          actions={[
+                            { label: 'Manage Fields', onClick: () => openFieldManager(item) },
+                            { label: 'Edit', onClick: () => handleEdit(item) },
+                            { label: 'Delete', onClick: () => handleDelete(item.id), danger: true },
+                          ]}
+                        />
                       </td>
                     </tr>
                   ))}
