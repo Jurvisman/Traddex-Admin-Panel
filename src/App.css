@@ -8962,10 +8962,11 @@ textarea {
   inset: 0 auto 0 0;
   z-index: 40;
   display: flex;
-  width: 220px;
+  width: 240px;
   flex-direction: column;
   background: var(--gsc-shell);
   color: #ffffff;
+  border-left: 3px solid rgba(139, 90, 43, 0.55);
   border-right: 1px solid rgba(255, 255, 255, 0.06);
   transition: width 0.28s ease, transform 0.28s ease;
   box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
@@ -8987,9 +8988,9 @@ textarea {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-height: 58px;
-  padding: 0 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  min-height: 72px;
+  padding: 24px 20px 28px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .admin-shell-gsc .brand-mark {
@@ -9030,11 +9031,15 @@ textarea {
 .admin-shell-gsc .admin-nav {
   flex: 1;
   overflow-y: auto;
-  padding: 12px 10px 16px;
+  padding: 24px 14px 24px;
 }
 
 .admin-shell-gsc .admin-nav::-webkit-scrollbar {
-  width: 5px;
+  width: 6px;
+}
+
+.admin-shell-gsc .admin-nav::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .admin-shell-gsc .admin-nav::-webkit-scrollbar-thumb {
@@ -9044,11 +9049,11 @@ textarea {
 
 .admin-shell-gsc .admin-nav-group {
   display: grid;
-  gap: 10px;
+  gap: 16px;
 }
 
 .admin-shell-gsc .admin-nav-title {
-  margin: 4px 10px 0;
+  margin: 4px 10px 6px;
   color: rgba(255, 255, 255, 0.42);
   font-size: 11px;
   font-weight: 700;
@@ -9058,24 +9063,24 @@ textarea {
 
 .admin-shell-gsc .admin-nav-items {
   display: grid;
-  gap: 5px;
+  gap: 6px;
 }
 
 .admin-shell-gsc .admin-nav-item {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-height: 30px;
+  min-height: 48px;
   width: 100%;
-  padding: 0 12px;
+  padding: 12px 20px;
   border: 0;
-  border-radius: 999px;
+  border-radius: 10px;
   background: transparent;
   color: rgba(255, 255, 255, 0.92);
   text-decoration: none;
   cursor: pointer;
-  font-size: 0.875rem;
-  font-weight: 600;
+  font-size: 0.9375rem;
+  font-weight: 500;
   transition: background 0.2s ease, color 0.2s ease;
 }
 
@@ -9092,7 +9097,7 @@ textarea {
 .admin-shell-gsc .admin-nav-item.active {
   background: var(--gsc-primary);
   color: #ffffff;
-  box-shadow: 0 8px 18px rgba(65, 121, 20, 0.28);
+  box-shadow: 0 4px 12px rgba(110, 70, 255, 0.25);
 }
 
 .admin-shell-gsc .admin-nav-icon {
@@ -9113,14 +9118,14 @@ textarea {
 .admin-shell-gsc .admin-nav-label {
   flex: 1;
   min-width: 0;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 500;
   white-space: nowrap;
 }
 
 .admin-shell-gsc .admin-nav-parent {
   display: grid;
-  gap: 6px;
+  gap: 10px;
 }
 
 .admin-shell-gsc .admin-nav-parent-trigger {
@@ -9152,32 +9157,40 @@ textarea {
 
 .admin-shell-gsc .admin-subnav-items {
   display: grid;
-  gap: 2px;
-  margin-left: 24px;
-  padding-left: 18px;
-  border-left: 1px solid rgba(255, 255, 255, 0.12);
+  gap: 4px;
+  margin-left: 20px;
+  margin-top: 8px;
+  padding-left: 20px;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .admin-shell-gsc .admin-nav-subitem {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 32px;
-  color: rgba(255, 255, 255, 0.82);
+  min-height: 38px;
+  padding: 8px 0 8px 8px;
+  color: rgba(255, 255, 255, 0.85);
   text-decoration: none;
-  transition: color 0.22s ease, transform 0.22s ease;
+  font-size: 13px;
+  font-weight: 400;
+  transition: color 0.22s ease, background 0.2s ease;
+}
+
+.admin-shell-gsc .admin-nav-subitem .admin-nav-label {
+  font-size: 13px;
+  font-weight: 400;
 }
 
 .admin-shell-gsc .admin-nav-subitem:hover {
   color: #ffffff;
-  transform: translateX(2px);
 }
 
 .admin-shell-gsc .admin-nav-subitem.active {
-  background: rgba(255, 255, 255, 0.18);
-  color: #f9fafb;
-  border-radius: 999px;
-  padding-inline: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #e8e0ff;
+  border-radius: 8px;
+  padding: 8px 12px;
 }
 
 .admin-shell-gsc .admin-nav-subdot {
@@ -9190,7 +9203,7 @@ textarea {
 }
 
 .admin-shell-gsc .admin-sidebar-footer {
-  padding: 12px 10px 16px;
+  padding: 24px 18px 28px;
   border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
 
@@ -9198,16 +9211,17 @@ textarea {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 12px;
   width: 100%;
-  min-height: 44px;
+  min-height: 48px;
+  padding: 12px 20px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
   color: #ffffff;
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 0.875rem;
-  font-weight: 600;
+  font-family: inherit;
+  font-size: 0.9375rem;
+  font-weight: 500;
   cursor: pointer;
   transition: background 0.22s ease, border-color 0.22s ease;
 }
@@ -9234,7 +9248,7 @@ textarea {
   min-width: 0;
   flex: 1;
   flex-direction: column;
-  padding-left: 220px;
+  padding-left: 240px;
   transition: padding-left 0.28s ease;
 }
 

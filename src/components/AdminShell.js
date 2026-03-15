@@ -104,7 +104,7 @@ function AdminShell({ navItems, onLogout, pageTitle, pageSubtitle, children }) {
         <div className="admin-brand">
           {showExpandedSidebar ? (
             <div className="brand-copy">
-              <div className="brand-title">TRADDEX</div>
+              <div className="brand-title">TRAD<span className="brand-title-accent">D</span>EX</div>
               <div className="brand-tag">ADMIN PANEL</div>
             </div>
           ) : null}

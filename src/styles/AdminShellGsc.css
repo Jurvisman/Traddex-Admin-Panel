@@ -1,0 +1,301 @@
+/**
+ * GSC sidebar — copied from gsc-items-/gsc src/components/layout/Sidebar.tsx
+ * Exact match: #2F3133, w-[220px], rounded-full, px-2 py-1.5, gap-3, text-sm font-semibold.
+ * Active: your purple (--gsc-primary) with shadow like GSC.
+ */
+
+/* Sidebar container — GSC: bg-[#2F3133], w-[220px] */
+.admin-shell-gsc .admin-sidebar {
+  width: 220px !important;
+  min-width: 220px !important;
+  max-width: 220px !important;
+  background: #2F3133 !important;
+  border-left: none !important;
+  border-right: none !important;
+  box-sizing: border-box !important;
+}
+
+.admin-shell-gsc .admin-sidebar.is-collapsed {
+  width: 80px !important;
+  min-width: 80px !important;
+  max-width: 80px !important;
+}
+
+/* Logo — GSC: h-14 sm:h-16, border-b border-gray-800, px-4 */
+.admin-shell-gsc .admin-brand {
+  flex-shrink: 0 !important;
+  min-height: 56px !important;
+  padding: 0 16px !important;
+  border-bottom: 1px solid rgba(31, 41, 55, 1) !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.admin-shell-gsc .brand-copy {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+}
+
+.admin-shell-gsc .brand-title {
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.05em !important;
+  line-height: 1.2 !important;
+  color: #ffffff !important;
+}
+
+.admin-shell-gsc .brand-title-accent {
+  color: #bb52a1 !important;
+}
+
+.admin-shell-gsc .brand-tag {
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.15em !important;
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+
+/* Nav — GSC: flex-1 overflow-y-auto py-3, ul space-y-0.5 px-2 */
+.admin-shell-gsc .admin-nav {
+  flex: 1 1 auto !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding: 12px 8px !important;
+  box-sizing: border-box !important;
+}
+
+.admin-shell-gsc .admin-nav::-webkit-scrollbar {
+  width: 4px !important;
+}
+
+.admin-shell-gsc .admin-nav::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.admin-shell-gsc .admin-nav::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-radius: 999px !important;
+}
+
+.admin-shell-gsc .admin-nav-group {
+  gap: 0 !important;
+}
+
+.admin-shell-gsc .admin-nav-title {
+  margin: 0 0 4px 8px !important;
+  padding: 0 !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.08em !important;
+  color: rgba(255, 255, 255, 0.45) !important;
+  text-transform: uppercase !important;
+}
+
+/* Menu list — GSC: space-y-0.5 = 2px gap */
+.admin-shell-gsc .admin-nav-items {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+}
+
+/* Each item — GSC: rounded-full px-2 py-1.5 gap-3 text-sm font-semibold, icon h-4 w-4 */
+.admin-shell-gsc .admin-nav-item,
+.admin-shell-gsc .admin-nav-parent-trigger {
+  display: flex !important;
+  align-items: center !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  min-height: auto !important;
+  padding: 6px 8px !important;
+  margin: 0 !important;
+  border: none !important;
+  border-radius: 9999px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: #ffffff !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+  gap: 12px !important;
+  text-align: left !important;
+  background: transparent !important;
+  appearance: none !important;
+  outline: none !important;
+}
+
+.admin-shell-gsc a.admin-nav-item {
+  padding: 6px 8px !important;
+}
+
+.admin-shell-gsc .admin-nav-item:hover,
+.admin-shell-gsc .admin-nav-parent-trigger:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
+}
+
+/* Active — GSC: bg-primary text-white shadow-lg shadow-primary/20 (we use purple) */
+.admin-shell-gsc .admin-nav-item.active,
+.admin-shell-gsc .admin-nav-parent-trigger.active {
+  background: var(--gsc-primary) !important;
+  color: #ffffff !important;
+  padding: 6px 8px !important;
+  border-radius: 9999px !important;
+  box-shadow: 0 10px 15px -3px rgba(110, 70, 255, 0.2), 0 4px 6px -2px rgba(110, 70, 255, 0.15) !important;
+}
+
+.admin-shell-gsc .admin-nav-label {
+  flex: 1 !important;
+  min-width: 0 !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  white-space: nowrap !important;
+}
+
+.admin-shell-gsc .admin-nav-icon {
+  flex: 0 0 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 16px !important;
+  height: 16px !important;
+  color: inherit !important;
+}
+
+.admin-shell-gsc .admin-nav-icon svg {
+  width: 16px !important;
+  height: 16px !important;
+}
+
+.admin-shell-gsc .admin-nav-caret {
+  flex: 0 0 auto !important;
+  width: 16px !important;
+  height: 16px !important;
+  color: inherit !important;
+}
+
+.admin-shell-gsc .admin-nav-caret svg {
+  width: 10px !important;
+  height: 6px !important;
+}
+
+.admin-shell-gsc .admin-sidebar.is-collapsed .admin-nav-item,
+.admin-shell-gsc .admin-sidebar.is-collapsed .admin-nav-parent-trigger {
+  padding: 6px 0 !important;
+  justify-content: center !important;
+}
+
+/* Submenu — GSC: mt-2 pl-4, child py-1 pl-5 pr-1 text-sm font-medium */
+.admin-shell-gsc .admin-nav-parent {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+}
+
+.admin-shell-gsc .admin-subnav-items {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+  margin-left: 0 !important;
+  margin-top: 8px !important;
+  padding-left: 16px !important;
+  border-left: none !important;
+  box-sizing: border-box !important;
+}
+
+.admin-shell-gsc .admin-nav-subitem {
+  display: flex !important;
+  align-items: center !important;
+  box-sizing: border-box !important;
+  min-height: auto !important;
+  padding: 4px 4px 4px 20px !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: #ffffff !important;
+  text-decoration: none !important;
+  gap: 0 !important;
+  background: transparent !important;
+}
+
+.admin-shell-gsc .admin-nav-subitem .admin-nav-label {
+  font-size: 14px !important;
+  font-weight: 500 !important;
+}
+
+.admin-shell-gsc .admin-nav-subitem:hover {
+  color: rgba(255, 255, 255, 0.9) !important;
+  background: transparent !important;
+}
+
+.admin-shell-gsc .admin-nav-subitem.active {
+  background: transparent !important;
+  color: var(--gsc-primary) !important;
+  padding: 4px 4px 4px 20px !important;
+}
+
+.admin-shell-gsc .admin-nav-subdot {
+  display: none !important;
+}
+
+/* Footer + Logout — GSC doesn’t show logout in sidebar ref; keep minimal */
+.admin-shell-gsc .admin-sidebar-footer {
+  flex-shrink: 0 !important;
+  padding: 16px 8px 20px !important;
+  border-top: 1px solid rgba(31, 41, 55, 1) !important;
+  box-sizing: border-box !important;
+}
+
+.admin-shell-gsc .admin-logout {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  min-height: 40px !important;
+  padding: 6px 8px !important;
+  margin: 0 !important;
+  border: none !important;
+  border-radius: 9999px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  gap: 12px !important;
+  cursor: pointer !important;
+  appearance: none !important;
+  outline: none !important;
+}
+
+.admin-shell-gsc .admin-logout:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+}
+
+.admin-shell-gsc .admin-logout-icon {
+  width: 16px !important;
+  height: 16px !important;
+  flex-shrink: 0 !important;
+}
+
+.admin-shell-gsc .admin-logout-icon svg {
+  width: 16px !important;
+  height: 16px !important;
+}
+
+/* Main content offset — GSC: pl-[220px] / pl-20 */
+.admin-shell-gsc .admin-main-shell {
+  padding-left: 220px !important;
+  box-sizing: border-box !important;
+}
+
+.admin-shell-gsc .admin-main-shell.sidebar-collapsed {
+  padding-left: 80px !important;
+}
+
+@media (max-width: 1079px) {
+  .admin-shell-gsc .admin-main-shell,
+  .admin-shell-gsc .admin-main-shell.sidebar-collapsed {
+    padding-left: 0 !important;
+  }
+}
