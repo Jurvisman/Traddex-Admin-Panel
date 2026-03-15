@@ -2937,7 +2937,7 @@ textarea {
   border: none;
   background: transparent;
   font: inherit;
-  color: #15803d;
+  color: #6e46ff;
   font-weight: 600;
   cursor: pointer;
 }
@@ -8252,7 +8252,7 @@ textarea {
 .role-permission-page .users-table input[type='checkbox'] {
   width: 16px;
   height: 16px;
-  accent-color: #15803d;
+  accent-color: #6e46ff;
 }
 
 .role-permission-groups {
