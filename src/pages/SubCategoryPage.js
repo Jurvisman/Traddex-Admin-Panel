@@ -1,6 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Banner, TableRowActionMenu } from '../components';
-import { createSubCategory, deleteSubCategory, listCategories, listSubCategories, updateSubCategory } from '../services/adminApi';
+import {
+  createSubCategory,
+  deleteSubCategory,
+  listCategories,
+  listSubCategories,
+  updateSubCategory,
+} from '../services/adminApi';
+import { buildOrderingWarning, findNextAvailableOrdering, findOrderingConflict, parseOrderingInput } from '../utils/ordering';
 
 const initialForm = {
   name: '',
@@ -45,6 +52,28 @@ function SubCategoryPage({ token }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const requestedOrdering = parseOrderingInput(form.ordering);
+  const orderingConflict = useMemo(
+    () =>
+      findOrderingConflict({
+        items,
+        requestedOrder: requestedOrdering,
+        currentItemId: editItem?.id,
+        matchesScope: (item) => String(item.categoryId ?? item.category_id ?? '') === String(form.categoryId ?? ''),
+      }),
+    [editItem?.id, form.categoryId, items, requestedOrdering]
+  );
+  const suggestedOrdering = useMemo(
+    () =>
+      findNextAvailableOrdering({
+        items,
+        currentItemId: editItem?.id,
+        matchesScope: (item) => String(item.categoryId ?? item.category_id ?? '') === String(form.categoryId ?? ''),
+      }),
+    [editItem?.id, form.categoryId, items]
+  );
+  const orderingWarning = buildOrderingWarning(requestedOrdering, orderingConflict, suggestedOrdering);
+
   const handleChange = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
@@ -75,12 +104,16 @@ function SubCategoryPage({ token }) {
       setMessage({ type: 'error', text: 'Name and category are required.' });
       return;
     }
+    if (Number.isNaN(requestedOrdering)) {
+      setMessage({ type: 'error', text: 'Ordering must be a whole number greater than 0.' });
+      return;
+    }
     const payload = {
       name: form.name.trim(),
       categoryId: Number(form.categoryId),
       subCategoryIcon: form.subCategoryIcon || null,
       imageUrl: form.imageUrl || null,
-      ordering: form.ordering ? Number(form.ordering) : null,
+      ordering: requestedOrdering,
       path: form.path || null,
       active: Number(form.active),
     };
@@ -169,7 +202,10 @@ function SubCategoryPage({ token }) {
                   value={form.ordering}
                   onChange={(event) => handleChange('ordering', event.target.value)}
                   placeholder="1"
+                  min="1"
+                  step="1"
                 />
+                {orderingWarning ? <span className="field-help field-warning">{orderingWarning}</span> : null}
               </label>
               <label className="field">
                 <span>Path</span>

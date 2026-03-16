@@ -75,6 +75,8 @@ export const listIndustries = (token) => request('/industries', { token });
 export const createIndustry = (token, payload) => request('/industries', { method: 'POST', body: payload, token });
 export const updateIndustry = (token, id, payload) =>
   request(`/industries/${id}`, { method: 'PUT', body: payload, token });
+export const updateIndustryOrder = (token, id, position) =>
+  request(`/industries/${id}/order`, { method: 'POST', body: { position }, token });
 export const deleteIndustry = (token, id) => request(`/industries/${id}`, { method: 'DELETE', token });
 
 export const listMainCategories = (token) => request('/main-categories', { token });
@@ -82,6 +84,8 @@ export const createMainCategory = (token, payload) =>
   request('/main-categories', { method: 'POST', body: payload, token });
 export const updateMainCategory = (token, id, payload) =>
   request(`/main-categories/${id}`, { method: 'PUT', body: payload, token });
+export const updateMainCategoryOrder = (token, id, position, industryId) =>
+  request(`/main-categories/${id}/order`, { method: 'POST', body: { position, industryId }, token });
 export const deleteMainCategory = (token, id) => request(`/main-categories/${id}`, { method: 'DELETE', token });
 
 export const listCategories = (token, mainCategoryId) => {
@@ -91,6 +95,8 @@ export const listCategories = (token, mainCategoryId) => {
 export const createCategory = (token, payload) => request('/categories', { method: 'POST', body: payload, token });
 export const updateCategory = (token, id, payload) =>
   request(`/categories/${id}`, { method: 'PUT', body: payload, token });
+export const updateCategoryOrder = (token, id, position, mainCategoryId) =>
+  request(`/categories/${id}/order`, { method: 'POST', body: { position, mainCategoryId }, token });
 export const deleteCategory = (token, id) => request(`/categories/${id}`, { method: 'DELETE', token });
 
 export const listProductCollections = (token, active) => {
@@ -112,6 +118,8 @@ export const createSubCategory = (token, payload) =>
   request('/sub-categories', { method: 'POST', body: payload, token });
 export const updateSubCategory = (token, id, payload) =>
   request(`/sub-categories/${id}`, { method: 'PUT', body: payload, token });
+export const updateSubCategoryOrder = (token, id, position, categoryId) =>
+  request(`/sub-categories/${id}/order`, { method: 'POST', body: { position, categoryId }, token });
 export const deleteSubCategory = (token, id) => request(`/sub-categories/${id}`, { method: 'DELETE', token });
 
 export const listProducts = (token) => request('/admin/product/getall', { token });

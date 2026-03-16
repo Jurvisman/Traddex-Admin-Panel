@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Banner, TableRowActionMenu } from '../components';
 import { createIndustry, deleteIndustry, listIndustries, updateIndustry } from '../services/adminApi';
+import { buildOrderingWarning, findNextAvailableOrdering, findOrderingConflict, parseOrderingInput } from '../utils/ordering';
 
 const initialForm = {
   name: '',
@@ -40,6 +41,28 @@ function IndustryPage({ token }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const requestedOrdering = parseOrderingInput(form.ordering);
+  const orderingConflict = useMemo(
+    () =>
+      findOrderingConflict({
+        items,
+        requestedOrder: requestedOrdering,
+        currentItemId: editItem?.id,
+        getItemId: (item) => item.id ?? item.industryId,
+      }),
+    [editItem?.id, items, requestedOrdering]
+  );
+  const suggestedOrdering = useMemo(
+    () =>
+      findNextAvailableOrdering({
+        items,
+        currentItemId: editItem?.id,
+        getItemId: (item) => item.id ?? item.industryId,
+      }),
+    [editItem?.id, items]
+  );
+  const orderingWarning = buildOrderingWarning(requestedOrdering, orderingConflict, suggestedOrdering);
+
   const handleChange = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
@@ -69,11 +92,15 @@ function IndustryPage({ token }) {
       setMessage({ type: 'error', text: 'Industry name is required.' });
       return;
     }
+    if (Number.isNaN(requestedOrdering)) {
+      setMessage({ type: 'error', text: 'Ordering must be a whole number greater than 0.' });
+      return;
+    }
     const payload = {
       name: form.name.trim(),
       industryIcon: form.industryIcon || null,
       industryImage: form.industryImage || null,
-      ordering: form.ordering ? Number(form.ordering) : null,
+      ordering: requestedOrdering,
       path: form.path || null,
       active: Number(form.active),
     };
@@ -144,7 +171,10 @@ function IndustryPage({ token }) {
                   value={form.ordering}
                   onChange={(event) => handleChange('ordering', event.target.value)}
                   placeholder="1"
+                  min="1"
+                  step="1"
                 />
+                {orderingWarning ? <span className="field-help field-warning">{orderingWarning}</span> : null}
               </label>
               <label className="field">
                 <span>Path</span>

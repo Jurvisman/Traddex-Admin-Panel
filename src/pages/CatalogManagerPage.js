@@ -19,6 +19,7 @@ import {
   updateMainCategory,
   updateSubCategory,
 } from '../services/adminApi';
+import { buildOrderingWarning, findNextAvailableOrdering, findOrderingConflict, parseOrderingInput } from '../utils/ordering';
 
 const initialIndustryForm = {
   name: '',
@@ -67,6 +68,9 @@ function CatalogManagerPage({ token }) {
   const [mainCategories, setMainCategories] = useState([]);
   const [categories, setCategories] = useState([]);
   const [subCategories, setSubCategories] = useState([]);
+  const [allMainCategories, setAllMainCategories] = useState([]);
+  const [allCategories, setAllCategories] = useState([]);
+  const [allSubCategories, setAllSubCategories] = useState([]);
   const [selectedIndustryId, setSelectedIndustryId] = useState('');
   const [selectedMainId, setSelectedMainId] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
@@ -112,7 +116,9 @@ function CatalogManagerPage({ token }) {
     setMessage({ type: 'info', text: '' });
     try {
       const response = await listMainCategories(token);
-      const list = (response?.data || []).filter((item) => String(item.industryId) === String(industryId));
+      const allItems = response?.data || [];
+      setAllMainCategories(allItems);
+      const list = allItems.filter((item) => String(item.industryId) === String(industryId));
       setMainCategories(list);
       const preferred = preferredId ? String(preferredId) : '';
       const hasPreferred = preferred.length > 0 && list.some((item) => String(item.id) === preferred);
@@ -164,10 +170,58 @@ function CatalogManagerPage({ token }) {
     }
   };
 
+  const loadAllMainCategories = async () => {
+    const response = await listMainCategories(token);
+    const list = response?.data || [];
+    setAllMainCategories(list);
+    return list;
+  };
+
+  const loadAllCategories = async () => {
+    const response = await listCategories(token);
+    const list = response?.data || [];
+    setAllCategories(list);
+    return list;
+  };
+
+  const loadAllSubCategories = async () => {
+    const response = await listSubCategories(token);
+    const list = response?.data || [];
+    setAllSubCategories(list);
+    return list;
+  };
+
+  const refreshOrderingCatalogCaches = async () => {
+    await Promise.allSettled([
+      loadAllMainCategories(),
+      loadAllCategories(),
+      loadAllSubCategories(),
+    ]);
+  };
+
   useEffect(() => {
     loadIndustries(false);
+    refreshOrderingCatalogCaches();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!mainForm.industryId) return;
+    loadAllMainCategories().catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mainForm.industryId]);
+
+  useEffect(() => {
+    if (!categoryForm.mainCategoryId) return;
+    loadAllCategories().catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categoryForm.mainCategoryId]);
+
+  useEffect(() => {
+    if (!subForm.categoryId) return;
+    loadAllSubCategories().catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subForm.categoryId]);
 
   useEffect(() => {
     if (!selectedIndustryId) return;
@@ -216,6 +270,67 @@ function CatalogManagerPage({ token }) {
   const selectedIndustry = industryLookup.get(String(selectedIndustryId));
   const selectedMain = mainLookup.get(String(selectedMainId));
   const selectedCategory = categories.find((item) => String(item.id) === String(selectedCategoryId));
+  const requestedIndustryOrdering = parseOrderingInput(industryForm.ordering);
+  const requestedMainOrdering = parseOrderingInput(mainForm.ordering);
+  const requestedCategoryOrdering = parseOrderingInput(categoryForm.ordering);
+  const requestedSubOrdering = parseOrderingInput(subForm.ordering);
+
+  const industryOrderingWarning = buildOrderingWarning(
+    requestedIndustryOrdering,
+    findOrderingConflict({
+      items: industries,
+      requestedOrder: requestedIndustryOrdering,
+      currentItemId: editingIndustryId,
+      getItemId: (item) => item.id ?? item.industryId,
+    }),
+    findNextAvailableOrdering({
+      items: industries,
+      currentItemId: editingIndustryId,
+      getItemId: (item) => item.id ?? item.industryId,
+    })
+  );
+  const mainOrderingWarning = buildOrderingWarning(
+    requestedMainOrdering,
+    findOrderingConflict({
+      items: allMainCategories,
+      requestedOrder: requestedMainOrdering,
+      currentItemId: editingMainId,
+      matchesScope: (item) => String(item.industryId ?? '') === String(mainForm.industryId ?? ''),
+    }),
+    findNextAvailableOrdering({
+      items: allMainCategories,
+      currentItemId: editingMainId,
+      matchesScope: (item) => String(item.industryId ?? '') === String(mainForm.industryId ?? ''),
+    })
+  );
+  const categoryOrderingWarning = buildOrderingWarning(
+    requestedCategoryOrdering,
+    findOrderingConflict({
+      items: allCategories,
+      requestedOrder: requestedCategoryOrdering,
+      currentItemId: editingCategoryId,
+      matchesScope: (item) => String(item.mainCategoryId ?? item.main_category_id ?? '') === String(categoryForm.mainCategoryId ?? ''),
+    }),
+    findNextAvailableOrdering({
+      items: allCategories,
+      currentItemId: editingCategoryId,
+      matchesScope: (item) => String(item.mainCategoryId ?? item.main_category_id ?? '') === String(categoryForm.mainCategoryId ?? ''),
+    })
+  );
+  const subOrderingWarning = buildOrderingWarning(
+    requestedSubOrdering,
+    findOrderingConflict({
+      items: allSubCategories,
+      requestedOrder: requestedSubOrdering,
+      currentItemId: editingSubId,
+      matchesScope: (item) => String(item.categoryId ?? item.category_id ?? '') === String(subForm.categoryId ?? ''),
+    }),
+    findNextAvailableOrdering({
+      items: allSubCategories,
+      currentItemId: editingSubId,
+      matchesScope: (item) => String(item.categoryId ?? item.category_id ?? '') === String(subForm.categoryId ?? ''),
+    })
+  );
 
   const resetIndustryEditor = () => {
     setEditingIndustryId(null);
@@ -248,25 +363,31 @@ function CatalogManagerPage({ token }) {
       setMessage({ type: 'error', text: 'Industry name is required.' });
       return;
     }
+    if (Number.isNaN(requestedIndustryOrdering)) {
+      setMessage({ type: 'error', text: 'Ordering must be a whole number greater than 0.' });
+      return;
+    }
     try {
       setIsLoading(true);
       const payload = {
         name: industryForm.name.trim(),
         industryIcon: industryForm.industryIcon || null,
         industryImage: industryForm.industryImage || null,
-        ordering: industryForm.ordering ? Number(industryForm.ordering) : null,
+        ordering: requestedIndustryOrdering,
         path: industryForm.path || null,
         active: Number(industryForm.active),
       };
       if (editingIndustryId) {
         await updateIndustry(token, editingIndustryId, payload);
         await loadIndustries(true);
+        await refreshOrderingCatalogCaches();
         resetIndustryEditor();
         setMessage({ type: 'success', text: 'Industry updated.' });
       } else {
         await createIndustry(token, payload);
         setIndustryForm(initialIndustryForm);
         await loadIndustries(false);
+        await refreshOrderingCatalogCaches();
         setMessage({ type: 'success', text: 'Industry created.' });
       }
     } catch (error) {
@@ -282,6 +403,10 @@ function CatalogManagerPage({ token }) {
       setMessage({ type: 'error', text: 'Main category name and industry are required.' });
       return;
     }
+    if (Number.isNaN(requestedMainOrdering)) {
+      setMessage({ type: 'error', text: 'Ordering must be a whole number greater than 0.' });
+      return;
+    }
     try {
       setIsLoading(true);
       const payload = {
@@ -289,19 +414,21 @@ function CatalogManagerPage({ token }) {
         industryId: Number(mainForm.industryId),
         mainCategoryIcon: mainForm.mainCategoryIcon || null,
         imageUrl: mainForm.imageUrl || null,
-        ordering: mainForm.ordering ? Number(mainForm.ordering) : null,
+        ordering: requestedMainOrdering,
         path: mainForm.path || null,
         active: Number(mainForm.active),
       };
       if (editingMainId) {
         await updateMainCategory(token, editingMainId, payload);
         await loadMainCategories(mainForm.industryId, editingMainId);
+        await refreshOrderingCatalogCaches();
         resetMainEditor();
         setMessage({ type: 'success', text: 'Main category updated.' });
       } else {
         await createMainCategory(token, payload);
         setMainForm((prev) => ({ ...initialMainForm, industryId: prev.industryId }));
         await loadMainCategories(mainForm.industryId);
+        await refreshOrderingCatalogCaches();
         setMessage({ type: 'success', text: 'Main category created.' });
       }
     } catch (error) {
@@ -317,6 +444,10 @@ function CatalogManagerPage({ token }) {
       setMessage({ type: 'error', text: 'Category name and main category are required.' });
       return;
     }
+    if (Number.isNaN(requestedCategoryOrdering)) {
+      setMessage({ type: 'error', text: 'Ordering must be a whole number greater than 0.' });
+      return;
+    }
     try {
       setIsLoading(true);
       const payload = {
@@ -324,7 +455,7 @@ function CatalogManagerPage({ token }) {
         mainCategoryId: Number(categoryForm.mainCategoryId),
         categoryIcon: categoryForm.categoryIcon || null,
         imageUrl: categoryForm.imageUrl || null,
-        ordering: categoryForm.ordering ? Number(categoryForm.ordering) : null,
+        ordering: requestedCategoryOrdering,
         path: categoryForm.path || null,
         active: Number(categoryForm.active),
         hasSubCategory: Number(categoryForm.hasSubCategory),
@@ -332,12 +463,14 @@ function CatalogManagerPage({ token }) {
       if (editingCategoryId) {
         await updateCategory(token, editingCategoryId, payload);
         await loadCategories(categoryForm.mainCategoryId, editingCategoryId);
+        await refreshOrderingCatalogCaches();
         resetCategoryEditor();
         setMessage({ type: 'success', text: 'Category updated.' });
       } else {
         await createCategory(token, payload);
         setCategoryForm((prev) => ({ ...initialCategoryForm, mainCategoryId: prev.mainCategoryId }));
         await loadCategories(categoryForm.mainCategoryId);
+        await refreshOrderingCatalogCaches();
         setMessage({ type: 'success', text: 'Category created.' });
       }
     } catch (error) {
@@ -353,6 +486,10 @@ function CatalogManagerPage({ token }) {
       setMessage({ type: 'error', text: 'Sub-category name and category are required.' });
       return;
     }
+    if (Number.isNaN(requestedSubOrdering)) {
+      setMessage({ type: 'error', text: 'Ordering must be a whole number greater than 0.' });
+      return;
+    }
     try {
       setIsLoading(true);
       const payload = {
@@ -360,19 +497,21 @@ function CatalogManagerPage({ token }) {
         categoryId: Number(subForm.categoryId),
         subCategoryIcon: subForm.subCategoryIcon || null,
         imageUrl: subForm.imageUrl || null,
-        ordering: subForm.ordering ? Number(subForm.ordering) : null,
+        ordering: requestedSubOrdering,
         path: subForm.path || null,
         active: Number(subForm.active),
       };
       if (editingSubId) {
         await updateSubCategory(token, editingSubId, payload);
         await loadSubCategories(subForm.categoryId);
+        await refreshOrderingCatalogCaches();
         resetSubEditor();
         setMessage({ type: 'success', text: 'Sub-category updated.' });
       } else {
         await createSubCategory(token, payload);
         setSubForm((prev) => ({ ...initialSubForm, categoryId: prev.categoryId }));
         await loadSubCategories(subForm.categoryId);
+        await refreshOrderingCatalogCaches();
         setMessage({ type: 'success', text: 'Sub-category created.' });
       }
     } catch (error) {
@@ -387,6 +526,7 @@ function CatalogManagerPage({ token }) {
       setIsLoading(true);
       await deleteIndustry(token, id);
       await loadIndustries(false);
+      await refreshOrderingCatalogCaches();
       setMessage({ type: 'success', text: 'Industry deleted.' });
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to delete industry.' });
@@ -462,6 +602,7 @@ function CatalogManagerPage({ token }) {
       setIsLoading(true);
       await deleteMainCategory(token, id);
       await loadMainCategories(selectedIndustryId);
+      await refreshOrderingCatalogCaches();
       setMessage({ type: 'success', text: 'Main category deleted.' });
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to delete main category.' });
@@ -475,6 +616,7 @@ function CatalogManagerPage({ token }) {
       setIsLoading(true);
       await deleteCategory(token, id);
       await loadCategories(selectedMainId);
+      await refreshOrderingCatalogCaches();
       setMessage({ type: 'success', text: 'Category deleted.' });
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to delete category.' });
@@ -488,6 +630,7 @@ function CatalogManagerPage({ token }) {
       setIsLoading(true);
       await deleteSubCategory(token, id);
       await loadSubCategories(selectedCategoryId);
+      await refreshOrderingCatalogCaches();
       setMessage({ type: 'success', text: 'Sub-category deleted.' });
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to delete sub-category.' });
@@ -533,7 +676,10 @@ function CatalogManagerPage({ token }) {
                   value={mainForm.ordering}
                   onChange={(event) => setMainForm((prev) => ({ ...prev, ordering: event.target.value }))}
                   placeholder="1"
+                  min="1"
+                  step="1"
                 />
+                {mainOrderingWarning ? <span className="field-help field-warning">{mainOrderingWarning}</span> : null}
               </label>
               <label className="field">
                 <span>Path</span>
@@ -619,7 +765,10 @@ function CatalogManagerPage({ token }) {
                   value={categoryForm.ordering}
                   onChange={(event) => setCategoryForm((prev) => ({ ...prev, ordering: event.target.value }))}
                   placeholder="1"
+                  min="1"
+                  step="1"
                 />
+                {categoryOrderingWarning ? <span className="field-help field-warning">{categoryOrderingWarning}</span> : null}
               </label>
               <label className="field">
                 <span>Has Sub-Category</span>
@@ -715,7 +864,10 @@ function CatalogManagerPage({ token }) {
                   value={subForm.ordering}
                   onChange={(event) => setSubForm((prev) => ({ ...prev, ordering: event.target.value }))}
                   placeholder="1"
+                  min="1"
+                  step="1"
                 />
+                {subOrderingWarning ? <span className="field-help field-warning">{subOrderingWarning}</span> : null}
               </label>
               <label className="field">
                 <span>Active</span>
@@ -788,7 +940,10 @@ function CatalogManagerPage({ token }) {
                   value={industryForm.ordering}
                   onChange={(event) => setIndustryForm((prev) => ({ ...prev, ordering: event.target.value }))}
                   placeholder="1"
+                  min="1"
+                  step="1"
                 />
+                {industryOrderingWarning ? <span className="field-help field-warning">{industryOrderingWarning}</span> : null}
               </label>
               <label className="field">
                 <span>Path</span>

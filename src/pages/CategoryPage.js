@@ -12,6 +12,7 @@ import {
   listMainCategories,
   updateCategory,
 } from '../services/adminApi';
+import { buildOrderingWarning, findNextAvailableOrdering, findOrderingConflict, parseOrderingInput } from '../utils/ordering';
 
 const initialForm = {
   name: '',
@@ -220,6 +221,27 @@ function CategoryPage({ token }) {
   const activeCount = items.filter((item) => Number(item.active) === 1).length;
   const inactiveCount = Math.max(0, items.length - activeCount);
   const categoryPath = [selectedCategory?.mainCategoryName, selectedCategory?.name].filter(Boolean).join(' / ');
+  const requestedOrdering = parseOrderingInput(form.ordering);
+  const orderingConflict = useMemo(
+    () =>
+      findOrderingConflict({
+        items,
+        requestedOrder: requestedOrdering,
+        currentItemId: editItem?.id,
+        matchesScope: (item) => String(item.mainCategoryId ?? item.main_category_id ?? '') === String(form.mainCategoryId ?? ''),
+      }),
+    [editItem?.id, form.mainCategoryId, items, requestedOrdering]
+  );
+  const suggestedOrdering = useMemo(
+    () =>
+      findNextAvailableOrdering({
+        items,
+        currentItemId: editItem?.id,
+        matchesScope: (item) => String(item.mainCategoryId ?? item.main_category_id ?? '') === String(form.mainCategoryId ?? ''),
+      }),
+    [editItem?.id, form.mainCategoryId, items]
+  );
+  const orderingWarning = buildOrderingWarning(requestedOrdering, orderingConflict, suggestedOrdering);
 
   const handleChange = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -252,12 +274,16 @@ function CategoryPage({ token }) {
       setMessage({ type: 'error', text: 'Name and main category are required.' });
       return;
     }
+    if (Number.isNaN(requestedOrdering)) {
+      setMessage({ type: 'error', text: 'Ordering must be a whole number greater than 0.' });
+      return;
+    }
     const payload = {
       name: form.name.trim(),
       mainCategoryId: Number(form.mainCategoryId),
       categoryIcon: form.categoryIcon || null,
       imageUrl: form.imageUrl || null,
-      ordering: form.ordering ? Number(form.ordering) : null,
+      ordering: requestedOrdering,
       path: form.path || null,
       active: Number(form.active),
       hasSubCategory: Number(form.hasSubCategory),
@@ -558,7 +584,10 @@ function CategoryPage({ token }) {
                   value={form.ordering}
                   onChange={(event) => handleChange('ordering', event.target.value)}
                   placeholder="1"
+                  min="1"
+                  step="1"
                 />
+                {orderingWarning ? <span className="field-help field-warning">{orderingWarning}</span> : null}
               </label>
               <label className="field">
                 <span>Path</span>
