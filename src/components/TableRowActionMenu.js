@@ -1,11 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const ICON_MORE = (
   <svg viewBox="0 0 24 24" aria-hidden="true">
-    <path
-      d="M12 7a1.75 1.75 0 1 1 0-3.5A1.75 1.75 0 0 1 12 7Zm0 6.75a1.75 1.75 0 1 1 0-3.5 1.75 1.75 0 0 1 0 3.5Zm0 6.75a1.75 1.75 0 1 1 0-3.5 1.75 1.75 0 0 1 0 3.5Z"
-      fill="currentColor"
-    />
+    <circle cx="5" cy="12" r="1.75" fill="currentColor" />
+    <circle cx="12" cy="12" r="1.75" fill="currentColor" />
+    <circle cx="19" cy="12" r="1.75" fill="currentColor" />
   </svg>
 );
 
@@ -37,6 +36,7 @@ const ICON_TRASH = (
 function TableRowActionMenu({ rowId, openRowId, onToggle, actions }) {
   const menuRef = useRef(null);
   const isOpen = openRowId === rowId;
+  const [dropdownStyle, setDropdownStyle] = useState(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -48,6 +48,42 @@ function TableRowActionMenu({ rowId, openRowId, onToggle, actions }) {
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, [isOpen, onToggle]);
+
+  // When menu is open, decide whether to render dropdown above or below
+  // Position dropdown using viewport coordinates so it doesn't get cut off
+  useEffect(() => {
+    if (!isOpen) return;
+    const menuEl = menuRef.current;
+    if (!menuEl) return;
+
+    const measurePlacement = () => {
+      const triggerRect = menuEl.getBoundingClientRect();
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+      const margin = 12;
+      const estimatedHeight = actions.length * 40 + 20;
+
+      let top = triggerRect.bottom + 6;
+      if (top + estimatedHeight + margin > viewportHeight) {
+        top = Math.max(margin, triggerRect.top - estimatedHeight - 6);
+      }
+
+      const right = Math.max(0, window.innerWidth - triggerRect.right);
+
+      setDropdownStyle({
+        position: 'fixed',
+        top,
+        right,
+        zIndex: 60,
+      });
+    };
+
+    const rafId = window.requestAnimationFrame(measurePlacement);
+    window.addEventListener('resize', measurePlacement);
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      window.removeEventListener('resize', measurePlacement);
+    };
+  }, [isOpen, actions.length]);
 
   const getIcon = (action, index) => {
     if (action.icon) return action.icon;
@@ -70,7 +106,7 @@ function TableRowActionMenu({ rowId, openRowId, onToggle, actions }) {
         {ICON_MORE}
       </button>
       {isOpen ? (
-        <div className="table-action-dropdown">
+        <div className="table-action-dropdown" style={dropdownStyle || undefined}>
           {actions.map((action, index) => (
             <button
               key={index}

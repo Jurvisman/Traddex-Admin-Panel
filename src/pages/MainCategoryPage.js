@@ -316,48 +316,57 @@ function MainCategoryPage({ token }) {
               <table className="admin-table">
                 <thead>
                   <tr>
-                    <th>Sr</th>
+                    <th>Sr. No.</th>
                     <th>Name</th>
                     <th>Industry</th>
-                    <th>Active</th>
-                    <th />
+                    <th>Status</th>
+                    <th className="table-actions">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {items
-                    .filter((item) => {
-                      const q = searchQuery.trim().toLowerCase();
-                      if (!q) return true;
-                      const haystack = `${item.name || ''} ${industryNameById.get(item.industryId) || ''}`.toLowerCase();
-                      return haystack.includes(q);
-                    })
-                    .sort((a, b) => {
-                      const orderA = a.ordering != null ? Number(a.ordering) : Infinity;
-                      const orderB = b.ordering != null ? Number(b.ordering) : Infinity;
-                      if (orderA !== orderB) return orderA - orderB;
-                      return (a.id ?? 0) - (b.id ?? 0);
-                    })
-                    .map((item, index) => (
-                    <tr key={item.id}>
-                      <td>{index + 1}</td>
-                      <td>{item.name}</td>
-                      <td>{industryNameById.get(item.industryId) || '-'}</td>
-                      <td>{item.active === 1 ? 'Yes' : 'No'}</td>
-                      <td className="table-actions" onClick={(e) => e.stopPropagation()}>
-                        <TableRowActionMenu
-                          rowId={item.id}
-                          openRowId={openActionRowId}
-                          onToggle={setOpenActionRowId}
-                          actions={[
-                            { label: 'Edit', onClick: () => handleEdit(item) },
-                            { label: 'Delete', onClick: () => handleDelete(item.id), danger: true },
-                          ]}
-                        />
-                      </td>
-                    </tr>
-                  ))}
+                  {(() => {
+                    const filtered = items
+                      .filter((item) => {
+                        const q = searchQuery.trim().toLowerCase();
+                        if (!q) return true;
+                        const haystack = `${item.name || ''} ${industryNameById.get(item.industryId) || ''}`.toLowerCase();
+                        return haystack.includes(q);
+                      })
+                      .sort((a, b) => {
+                        const orderA = a.ordering != null ? Number(a.ordering) : Infinity;
+                        const orderB = b.ordering != null ? Number(b.ordering) : Infinity;
+                        if (orderA !== orderB) return orderA - orderB;
+                        return (a.id ?? 0) - (b.id ?? 0);
+                      });
+                    return filtered.map((item, index) => (
+                      <tr key={item.id}>
+                        <td>{index + 1}</td>
+                        <td>{item.name}</td>
+                        <td>{industryNameById.get(item.industryId) || '-'}</td>
+                        <td>
+                          <span className={item.active === 1 ? 'status-active' : 'status-inactive'}>
+                            {item.active === 1 ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
+                        <td className="table-actions" onClick={(e) => e.stopPropagation()}>
+                          <TableRowActionMenu
+                            rowId={item.id}
+                            openRowId={openActionRowId}
+                            onToggle={setOpenActionRowId}
+                            actions={[
+                              { label: 'Edit', onClick: () => handleEdit(item) },
+                              { label: 'Delete', onClick: () => handleDelete(item.id), danger: true },
+                            ]}
+                          />
+                        </td>
+                      </tr>
+                    ));
+                  })()}
                 </tbody>
               </table>
+              <div className="table-record-count">
+                <span>Showing {items.filter((item) => { const q = searchQuery.trim().toLowerCase(); if (!q) return true; return `${item.name || ''} ${industryNameById.get(item.industryId) || ''}`.toLowerCase().includes(q); }).length} of {items.length} records</span>
+              </div>
             </div>
           )}
         </div>

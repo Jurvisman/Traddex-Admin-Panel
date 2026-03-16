@@ -3768,7 +3768,7 @@ function AppConfigPage({ token }) {
                           </select>
                         </label>
                         {sectionNavigationTarget.type === 'COLLECTION' ? (
-                          <label className="field field-span">
+                        <label className="field field-span">
                             <span>Collection</span>
                             <select
                               value={sectionNavigationTarget.value}
@@ -3875,8 +3875,8 @@ function AppConfigPage({ token }) {
                                   ? 'External URL'
                                   : 'Campaign slug'}
                             </span>
-                            <input
-                              type="text"
+                          <input
+                            type="text"
                               value={sectionNavigationTarget.value}
                               onChange={(event) =>
                                 updateSectionNavigationTarget(sectionNavigationTarget.type, event.target.value)
@@ -3900,7 +3900,7 @@ function AppConfigPage({ token }) {
                                       ) || '(empty)'
                                     }`}
                             </p>
-                          </label>
+                        </label>
                         ) : null}
                         <label className="field">
                           <span>Schedule start (local)</span>
@@ -3950,82 +3950,82 @@ function AppConfigPage({ token }) {
                             ) : (
                               <>
                                 {!isPhaseOneCategoryIconGrid && !isPhaseOneBrandGrid && !isPhaseOneCategoryShowcase ? (
-                                  <label className="field">
-                                    <span>Source type</span>
-                                    <select
+                              <label className="field">
+                                <span>Source type</span>
+                                <select
                                       value={phaseOneSourceType}
-                                      onChange={(event) =>
-                                        setSectionForm((prev) => ({
-                                          ...prev,
-                                          sourceType: event.target.value,
-                                        }))
-                                      }
-                                    >
-                                      {SOURCE_TYPE_OPTIONS.map((opt) => (
-                                        <option
-                                          key={opt.value}
-                                          value={opt.value}
+                                  onChange={(event) =>
+                                    setSectionForm((prev) => ({
+                                      ...prev,
+                                      sourceType: event.target.value,
+                                    }))
+                                  }
+                                >
+                                  {SOURCE_TYPE_OPTIONS.map((opt) => (
+                                    <option
+                                      key={opt.value}
+                                      value={opt.value}
                                           disabled={
                                             (opt.value === 'CATEGORY_FEED' && !isCategoryFeedEligible) ||
                                             (opt.value === 'DATA_SOURCE' && !isPhaseOneDataSourceEligible) ||
                                             (opt.value === 'HYBRID' && !isPhaseOneHybridEligible)
                                           }
-                                        >
-                                          {opt.label}
+                                    >
+                                      {opt.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </label>
+                            ) : null}
+                            {isPhaseOneCategoryIconGrid ? (
+                              <>
+                                <label className="field">
+                                  <span>Industry</span>
+                                  <select
+                                    value={sectionForm.sourceIndustryId || ''}
+                                    onChange={(event) =>
+                                      setSectionForm((prev) => ({
+                                        ...prev,
+                                        sourceType: 'CATEGORY_FEED',
+                                        sourceIndustryId: event.target.value,
+                                        sourceMainCategoryId: '',
+                                        sourceCategoryIds: [],
+                                      }))
+                                    }
+                                  >
+                                    <option value="">Select industry</option>
+                                    {industries.map((item) => {
+                                      const id = resolveIndustryId(item);
+                                      if (!id) return null;
+                                      return (
+                                        <option key={id} value={id}>
+                                          {resolveIndustryLabel(item)}
                                         </option>
-                                      ))}
-                                    </select>
-                                  </label>
-                                ) : null}
-                                {isPhaseOneCategoryIconGrid ? (
-                                  <>
-                                    <label className="field">
-                                      <span>Industry</span>
-                                      <select
-                                        value={sectionForm.sourceIndustryId || ''}
-                                        onChange={(event) =>
-                                          setSectionForm((prev) => ({
-                                            ...prev,
-                                            sourceType: 'CATEGORY_FEED',
-                                            sourceIndustryId: event.target.value,
-                                            sourceMainCategoryId: '',
-                                            sourceCategoryIds: [],
-                                          }))
-                                        }
-                                      >
-                                        <option value="">Select industry</option>
-                                        {industries.map((item) => {
-                                          const id = resolveIndustryId(item);
-                                          if (!id) return null;
-                                          return (
-                                            <option key={id} value={id}>
-                                              {resolveIndustryLabel(item)}
-                                            </option>
-                                          );
-                                        })}
-                                      </select>
-                                    </label>
-                                    <label className="field">
-                                      <span>Feed mode</span>
-                                      <select
-                                        value={sectionForm.sourceFeedMode || 'TOP_SELLING'}
-                                        onChange={(event) =>
-                                          setSectionForm((prev) => ({
-                                            ...prev,
-                                            sourceType: 'CATEGORY_FEED',
-                                            sourceFeedMode: event.target.value,
-                                          }))
-                                        }
-                                      >
-                                        {CATEGORY_ICON_FEED_MODE_OPTIONS.map((opt) => (
-                                          <option key={opt.value} value={opt.value}>
-                                            {opt.label}
-                                          </option>
-                                        ))}
-                                      </select>
-                                    </label>
-                                  </>
-                                ) : null}
+                                      );
+                                    })}
+                                  </select>
+                                </label>
+                                <label className="field">
+                                  <span>Feed mode</span>
+                                  <select
+                                    value={sectionForm.sourceFeedMode || 'TOP_SELLING'}
+                                    onChange={(event) =>
+                                      setSectionForm((prev) => ({
+                                        ...prev,
+                                        sourceType: 'CATEGORY_FEED',
+                                        sourceFeedMode: event.target.value,
+                                      }))
+                                    }
+                                  >
+                                    {CATEGORY_ICON_FEED_MODE_OPTIONS.map((opt) => (
+                                      <option key={opt.value} value={opt.value}>
+                                        {opt.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </label>
+                              </>
+                            ) : null}
                                 {isPhaseOneCategoryShowcase ? (
                                   <>
                                     <label className="field">
@@ -4074,32 +4074,32 @@ function AppConfigPage({ token }) {
                                     </label>
                                   </>
                                 ) : null}
-                                {isPhaseOneBrandGrid ? (
-                                  <label className="field">
-                                    <span>Main category filter</span>
-                                    <select
-                                      value={sectionForm.sourceMainCategoryId || ''}
-                                      onChange={(event) =>
-                                        setSectionForm((prev) => ({
-                                          ...prev,
-                                          sourceType: 'BRAND_COLLECTIONS',
-                                          sourceMainCategoryId: event.target.value,
-                                        }))
-                                      }
-                                    >
-                                      <option value="">All main categories</option>
-                                      {mainCategories.map((item) => {
-                                        const id = resolveMainCategoryId(item);
-                                        if (!id) return null;
-                                        return (
-                                          <option key={id} value={id}>
-                                            {resolveMainCategoryName(item)}
-                                          </option>
-                                        );
-                                      })}
-                                    </select>
-                                  </label>
-                                ) : null}
+                            {isPhaseOneBrandGrid ? (
+                              <label className="field">
+                                <span>Main category filter</span>
+                                <select
+                                  value={sectionForm.sourceMainCategoryId || ''}
+                                  onChange={(event) =>
+                                    setSectionForm((prev) => ({
+                                      ...prev,
+                                      sourceType: 'BRAND_COLLECTIONS',
+                                      sourceMainCategoryId: event.target.value,
+                                    }))
+                                  }
+                                >
+                                  <option value="">All main categories</option>
+                                  {mainCategories.map((item) => {
+                                    const id = resolveMainCategoryId(item);
+                                    if (!id) return null;
+                                    return (
+                                      <option key={id} value={id}>
+                                        {resolveMainCategoryName(item)}
+                                      </option>
+                                    );
+                                  })}
+                                </select>
+                              </label>
+                            ) : null}
                                 {showPhaseOneDataSourceConfig ? (
                                   <>
                                     <label className="field">
@@ -4198,149 +4198,149 @@ function AppConfigPage({ token }) {
                                   </>
                                 ) : null}
                                 {((isPhaseOneCategoryIconGrid || isPhaseOneCategoryShowcase
-                                  ? 'CATEGORY_FEED'
-                                  : String(sectionForm.sourceType || 'MANUAL').toUpperCase()) === 'CATEGORY_FEED') &&
+                              ? 'CATEGORY_FEED'
+                              : String(sectionForm.sourceType || 'MANUAL').toUpperCase()) === 'CATEGORY_FEED') &&
                                 (isCategoryFeedEligible || isPhaseOneCategoryIconGrid || isPhaseOneCategoryShowcase) ? (
-                                  <>
-                                    <label className="field">
-                                      <span>
+                              <>
+                                <label className="field">
+                                  <span>
                                         {(isPhaseOneCategoryIconGrid || isPhaseOneCategoryShowcase) &&
-                                        String(sectionForm.sourceFeedMode || 'TOP_SELLING').toUpperCase() === 'TOP_SELLING'
-                                          ? 'Main category (optional)'
-                                          : 'Main category'}
-                                      </span>
-                                      <select
-                                        value={sectionForm.sourceMainCategoryId || ''}
-                                        onChange={(event) =>
-                                          setSectionForm((prev) => ({
-                                            ...prev,
+                                    String(sectionForm.sourceFeedMode || 'TOP_SELLING').toUpperCase() === 'TOP_SELLING'
+                                      ? 'Main category (optional)'
+                                      : 'Main category'}
+                                  </span>
+                                  <select
+                                    value={sectionForm.sourceMainCategoryId || ''}
+                                    onChange={(event) =>
+                                      setSectionForm((prev) => ({
+                                        ...prev,
                                             sourceType: (isPhaseOneCategoryIconGrid || isPhaseOneCategoryShowcase) ? 'CATEGORY_FEED' : prev.sourceType,
-                                            sourceMainCategoryId: event.target.value,
-                                            sourceCategoryIds: [],
-                                          }))
-                                        }
-                                      >
-                                        <option value="">Select main category</option>
+                                        sourceMainCategoryId: event.target.value,
+                                        sourceCategoryIds: [],
+                                      }))
+                                    }
+                                  >
+                                    <option value="">Select main category</option>
                                         {((isPhaseOneCategoryIconGrid || isPhaseOneCategoryShowcase) ? filteredMainCategoryOptions : mainCategories).map((item) => {
-                                          const id = resolveMainCategoryId(item);
+                                      const id = resolveMainCategoryId(item);
+                                      if (!id) return null;
+                                      return (
+                                        <option key={id} value={id}>
+                                          {resolveMainCategoryName(item)}
+                                        </option>
+                                      );
+                                    })}
+                                  </select>
+                                </label>
+                                <label className="field">
+                                  <span>Limit</span>
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    max="20"
+                                    value={sectionForm.sourceLimit || '8'}
+                                    onChange={(event) =>
+                                      setSectionForm((prev) => ({
+                                        ...prev,
+                                        sourceLimit: event.target.value,
+                                      }))
+                                    }
+                                  />
+                                </label>
+                                    {!isPhaseOneCategoryIconGrid && !isPhaseOneCategoryShowcase ? (
+                                  <label className="field">
+                                    <span>Sort</span>
+                                    <select
+                                      value={sectionForm.sourceSortBy || 'MANUAL_RANK'}
+                                      onChange={(event) =>
+                                        setSectionForm((prev) => ({
+                                          ...prev,
+                                          sourceSortBy: event.target.value,
+                                        }))
+                                      }
+                                    >
+                                      {CATEGORY_FEED_SORT_OPTIONS.map((opt) => (
+                                        <option key={opt.value} value={opt.value}>
+                                          {opt.label}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </label>
+                                ) : null}
+                                <div className="field">
+                                  <span>Filters</span>
+                                  <label className="checkbox-row">
+                                    <input
+                                      type="checkbox"
+                                      checked={sectionForm.sourceActiveOnly !== false}
+                                      onChange={(event) =>
+                                        setSectionForm((prev) => ({
+                                          ...prev,
+                                          sourceActiveOnly: event.target.checked,
+                                        }))
+                                      }
+                                    />
+                                    Active only
+                                  </label>
+                                  <label className="checkbox-row">
+                                    <input
+                                      type="checkbox"
+                                      checked={sectionForm.sourceHasImageOnly !== false}
+                                      onChange={(event) =>
+                                        setSectionForm((prev) => ({
+                                          ...prev,
+                                          sourceHasImageOnly: event.target.checked,
+                                        }))
+                                      }
+                                    />
+                                    With image only
+                                  </label>
+                                </div>
+                                    {((!isPhaseOneCategoryIconGrid && !isPhaseOneCategoryShowcase) ||
+                                  String(sectionForm.sourceFeedMode || 'TOP_SELLING').toUpperCase() ===
+                                    'MAIN_CATEGORY') ? (
+                                  <label className="field field-span">
+                                    <span>Pick categories (optional)</span>
+                                    {isLoadingSourceCategories ? (
+                                      <p className="field-help">Loading categories...</p>
+                                    ) : sourceCategories.length ? (
+                                      <div className="checkbox-grid">
+                                        {sourceCategories.map((item) => {
+                                          const id = resolveCategoryId(item);
                                           if (!id) return null;
+                                          const checked = Array.isArray(sectionForm.sourceCategoryIds)
+                                            ? sectionForm.sourceCategoryIds.includes(id)
+                                            : false;
                                           return (
-                                            <option key={id} value={id}>
-                                              {resolveMainCategoryName(item)}
-                                            </option>
+                                            <label key={id} className="checkbox-row">
+                                              <input
+                                                type="checkbox"
+                                                checked={checked}
+                                                onChange={() =>
+                                                  setSectionForm((prev) => {
+                                                    const current = Array.isArray(prev.sourceCategoryIds)
+                                                      ? prev.sourceCategoryIds
+                                                      : [];
+                                                    const next = new Set(current);
+                                                    if (next.has(id)) {
+                                                      next.delete(id);
+                                                    } else {
+                                                      next.add(id);
+                                                    }
+                                                    return { ...prev, sourceCategoryIds: Array.from(next) };
+                                                  })
+                                                }
+                                              />
+                                              {resolveCategoryName(item)} <span className="muted">({id})</span>
+                                            </label>
                                           );
                                         })}
-                                      </select>
-                                    </label>
-                                    <label className="field">
-                                      <span>Limit</span>
-                                      <input
-                                        type="number"
-                                        min="1"
-                                        max="20"
-                                        value={sectionForm.sourceLimit || '8'}
-                                        onChange={(event) =>
-                                          setSectionForm((prev) => ({
-                                            ...prev,
-                                            sourceLimit: event.target.value,
-                                          }))
-                                        }
-                                      />
-                                    </label>
-                                    {!isPhaseOneCategoryIconGrid && !isPhaseOneCategoryShowcase ? (
-                                      <label className="field">
-                                        <span>Sort</span>
-                                        <select
-                                          value={sectionForm.sourceSortBy || 'MANUAL_RANK'}
-                                          onChange={(event) =>
-                                            setSectionForm((prev) => ({
-                                              ...prev,
-                                              sourceSortBy: event.target.value,
-                                            }))
-                                          }
-                                        >
-                                          {CATEGORY_FEED_SORT_OPTIONS.map((opt) => (
-                                            <option key={opt.value} value={opt.value}>
-                                              {opt.label}
-                                            </option>
-                                          ))}
-                                        </select>
-                                      </label>
-                                    ) : null}
-                                    <div className="field">
-                                      <span>Filters</span>
-                                      <label className="checkbox-row">
-                                        <input
-                                          type="checkbox"
-                                          checked={sectionForm.sourceActiveOnly !== false}
-                                          onChange={(event) =>
-                                            setSectionForm((prev) => ({
-                                              ...prev,
-                                              sourceActiveOnly: event.target.checked,
-                                            }))
-                                          }
-                                        />
-                                        Active only
-                                      </label>
-                                      <label className="checkbox-row">
-                                        <input
-                                          type="checkbox"
-                                          checked={sectionForm.sourceHasImageOnly !== false}
-                                          onChange={(event) =>
-                                            setSectionForm((prev) => ({
-                                              ...prev,
-                                              sourceHasImageOnly: event.target.checked,
-                                            }))
-                                          }
-                                        />
-                                        With image only
-                                      </label>
-                                    </div>
-                                    {((!isPhaseOneCategoryIconGrid && !isPhaseOneCategoryShowcase) ||
-                                      String(sectionForm.sourceFeedMode || 'TOP_SELLING').toUpperCase() ===
-                                        'MAIN_CATEGORY') ? (
-                                      <label className="field field-span">
-                                        <span>Pick categories (optional)</span>
-                                        {isLoadingSourceCategories ? (
-                                          <p className="field-help">Loading categories...</p>
-                                        ) : sourceCategories.length ? (
-                                          <div className="checkbox-grid">
-                                            {sourceCategories.map((item) => {
-                                              const id = resolveCategoryId(item);
-                                              if (!id) return null;
-                                              const checked = Array.isArray(sectionForm.sourceCategoryIds)
-                                                ? sectionForm.sourceCategoryIds.includes(id)
-                                                : false;
-                                              return (
-                                                <label key={id} className="checkbox-row">
-                                                  <input
-                                                    type="checkbox"
-                                                    checked={checked}
-                                                    onChange={() =>
-                                                      setSectionForm((prev) => {
-                                                        const current = Array.isArray(prev.sourceCategoryIds)
-                                                          ? prev.sourceCategoryIds
-                                                          : [];
-                                                        const next = new Set(current);
-                                                        if (next.has(id)) {
-                                                          next.delete(id);
-                                                        } else {
-                                                          next.add(id);
-                                                        }
-                                                        return { ...prev, sourceCategoryIds: Array.from(next) };
-                                                      })
-                                                    }
-                                                  />
-                                                  {resolveCategoryName(item)} <span className="muted">({id})</span>
-                                                </label>
-                                              );
-                                            })}
-                                          </div>
-                                        ) : (
-                                          <p className="field-help">Select main category to load categories.</p>
-                                        )}
-                                      </label>
-                                    ) : null}
+                                      </div>
+                                    ) : (
+                                      <p className="field-help">Select main category to load categories.</p>
+                                    )}
+                                  </label>
+                                ) : null}
                                     <div className="field field-span">
                                       <div className="inline-row">
                                         {isPhaseOneColumnGrid ? (
@@ -4437,8 +4437,8 @@ function AppConfigPage({ token }) {
                                                 />
                                               </label>
                                             ) : null}
-                                            <label className="field field-span">
-                                              <span>Deep link template</span>
+                                  <label className="field field-span">
+                                    <span>Deep link template</span>
                                               <div className="inline-row">
                                                 <select
                                                   value={
@@ -4465,17 +4465,17 @@ function AppConfigPage({ token }) {
                                                     </option>
                                                   ))}
                                                 </select>
-                                                <input
-                                                  type="text"
-                                                  value={sectionForm.mappingDeepLinkTemplate || 'app://category/{id}'}
-                                                  onChange={(event) =>
-                                                    setSectionForm((prev) => ({
-                                                      ...prev,
-                                                      mappingDeepLinkTemplate: event.target.value,
-                                                    }))
-                                                  }
-                                                  placeholder="app://category/{id}"
-                                                />
+                                    <input
+                                      type="text"
+                                      value={sectionForm.mappingDeepLinkTemplate || 'app://category/{id}'}
+                                      onChange={(event) =>
+                                        setSectionForm((prev) => ({
+                                          ...prev,
+                                          mappingDeepLinkTemplate: event.target.value,
+                                        }))
+                                      }
+                                      placeholder="app://category/{id}"
+                                    />
                                               </div>
                                               <p className="field-help">
                                                 Use {'{id}'}, {'{name}'}, {'{slug}'} placeholders. Example:{' '}
@@ -4487,55 +4487,55 @@ function AppConfigPage({ token }) {
                                                   Deep link should start with app://, traddex://, / or http(s)://
                                                 </span>
                                               ) : null}
-                                            </label>
+                                  </label>
                                           </>
                                         ) : null}
                                       </div>
-                                    ) : null}
-                                    <div className="field field-span">
-                                      <div className="inline-row">
-                                        <button
-                                          type="button"
-                                          className="ghost-btn small"
-                                          onClick={handleApplyCategoryFeed}
-                                          disabled={isResolvingSource}
-                                        >
+                                ) : null}
+                                <div className="field field-span">
+                                  <div className="inline-row">
+                                    <button
+                                      type="button"
+                                      className="ghost-btn small"
+                                      onClick={handleApplyCategoryFeed}
+                                      disabled={isResolvingSource}
+                                    >
                                           {isResolvingSource
                                             ? 'Loading...'
                                             : isPhaseOneColumnGrid
                                               ? 'Refresh feed'
                                               : 'Apply source'}
-                                        </button>
-                                        <span className="field-help">
+                                    </button>
+                                    <span className="field-help">
                                           {isPhaseOneCategoryIconGrid || isPhaseOneCategoryShowcase
                                             ? 'Main category title and category icons will auto-fill.'
                                             : isPhaseOneColumnGrid
                                               ? 'Preview images will refresh from the selected categories.'
                                               : 'Top categories will load and item cards below will auto-fill.'}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  </>
-                                ) : (
-                                  isPhaseOneBrandGrid ? (
-                                    <div className="field field-span">
-                                      <div className="inline-row">
-                                        <button
-                                          type="button"
-                                          className="ghost-btn small"
-                                          onClick={handleApplyBrandCollections}
-                                          disabled={isResolvingSource}
-                                        >
-                                          {isResolvingSource ? 'Loading...' : 'Load selected collections'}
-                                        </button>
-                                        <span className="field-help">
+                                    </span>
+                                  </div>
+                                </div>
+                              </>
+                            ) : (
+                              isPhaseOneBrandGrid ? (
+                                <div className="field field-span">
+                                  <div className="inline-row">
+                                    <button
+                                      type="button"
+                                      className="ghost-btn small"
+                                      onClick={handleApplyBrandCollections}
+                                      disabled={isResolvingSource}
+                                    >
+                                      {isResolvingSource ? 'Loading...' : 'Load selected collections'}
+                                    </button>
+                                    <span className="field-help">
                                           The middle 4 tiles will auto-populate from the category preview API.
-                                        </span>
-                                      </div>
-                                    </div>
-                                  ) : (
+                                    </span>
+                                  </div>
+                                </div>
+                              ) : (
                                     <p className="field-help field-span">In manual mode you can directly edit items below.</p>
-                                  )
+                              )
                                 )}
                               </>
                             )}
@@ -4817,7 +4817,7 @@ function AppConfigPage({ token }) {
                                       ? 'Set title, subtitle, CTA text, icon, and deep link for each action.'
                                     : isPromoBanner
                                       ? 'This banner uses the section title, text and CTA fields above.'
-                                    : 'Set image + text + deep link for each card.'}
+                                  : 'Set image + text + deep link for each card.'}
                             </span>
                           </div>
                         </label>
@@ -5018,7 +5018,7 @@ function AppConfigPage({ token }) {
                               ) : null}
                               {isBeautyHeroBanner ? (
                                 <>
-                                  <label className="field">
+                                <label className="field">
                                     <span>Subtitle</span>
                                     <input type="text" value={item.subtitle || ''} onChange={(event) => updatePhaseOneItem(idx, 'subtitle', event.target.value)} placeholder="Curated skincare, makeup, and salon essentials" />
                                   </label>
@@ -5343,7 +5343,7 @@ function AppConfigPage({ token }) {
                               !isPromoBanner ? (
                                 showHeroDestinationPicker ? (
                                   <>
-                                    <label className="field">
+                                <label className="field">
                                       <span>{usesCtaDestination ? 'CTA destination type' : 'Destination type'}</span>
                                       <select
                                         value={navigationTarget.type}
@@ -5398,15 +5398,15 @@ function AppConfigPage({ token }) {
                                       <>
                                         <label className="field">
                                           <span>Search products</span>
-                                          <input
+                                  <input
                                             type="search"
                                             value={heroDestinationQuery}
                                             onChange={(event) =>
                                               updateHeroDestinationQuery(idx, event.target.value)
                                             }
                                             placeholder="Search by product name, id, brand, SKU"
-                                          />
-                                        </label>
+                                  />
+                                </label>
                                         <label className="field field-span">
                                           <span>Product</span>
                                         <select
@@ -5424,7 +5424,7 @@ function AppConfigPage({ token }) {
                                               <option value={navigationTarget.value}>
                                                 Current product #{navigationTarget.value}
                                               </option>
-                                            ) : null}
+                              ) : null}
                                             {filteredHeroProductOptions.map((product) => (
                                               <option
                                                 key={`hero-product-${product?.id}`}
@@ -5487,8 +5487,8 @@ function AppConfigPage({ token }) {
                                               ? 'External URL'
                                               : 'Campaign slug'}
                                         </span>
-                                        <input
-                                          type="text"
+                                      <input
+                                        type="text"
                                           value={navigationTarget.value}
                                           onChange={(event) =>
                                             usesCtaDestination
@@ -5524,7 +5524,7 @@ function AppConfigPage({ token }) {
                                                 ) || '(empty)'
                                               }`}
                                         </p>
-                                      </label>
+                                  </label>
                                     ) : null}
                                   </>
                                 ) : (
@@ -5586,8 +5586,8 @@ function AppConfigPage({ token }) {
                           <>
                             <div className="field field-span">
                               <div className="inline-row">
-                                <button
-                                  type="button"
+                                        <button
+                                          type="button"
                                   className="ghost-btn small"
                                   onClick={applyFestiveColumnGridPreset}
                                 >
@@ -5596,92 +5596,92 @@ function AppConfigPage({ token }) {
                                 <span className="field-help">
                                   Applies recommended festive defaults and auto-configures CATEGORY_FEED mapping.
                                 </span>
-                              </div>
+                                    </div>
                             </div>
-                            <label className="field">
+                                  <label className="field">
                               <span>Section background color</span>
-                              <div className="inline-row">
-                                <input
-                                  type="text"
+                                    <div className="inline-row">
+                                      <input
+                                        type="text"
                                   value={sectionForm.sectionBgColor}
                                   onChange={(event) =>
                                     setSectionForm((prev) => ({ ...prev, sectionBgColor: event.target.value }))
                                   }
                                   placeholder="#f5f0dc"
-                                />
-                                <input
-                                  type="color"
-                                  className="color-input"
+                                      />
+                                      <input
+                                        type="color"
+                                        className="color-input"
                                   value={resolveHexColor(sectionForm.sectionBgColor, '#f5f0dc')}
                                   onChange={(event) =>
                                     setSectionForm((prev) => ({ ...prev, sectionBgColor: event.target.value }))
                                   }
-                                />
-                              </div>
-                              <div className="color-palette-row">
+                                      />
+                                    </div>
+                                    <div className="color-palette-row">
                                 {COLUMN_GRID_BG_PALETTE.map((color) => (
-                                  <button
+                                        <button
                                     key={`col-grid-bg-${color}`}
-                                    type="button"
-                                    className={`color-palette-swatch ${
+                                          type="button"
+                                          className={`color-palette-swatch ${
                                       (sectionForm.sectionBgColor || '').toLowerCase() === color.toLowerCase()
-                                        ? 'is-selected'
-                                        : ''
-                                    }`}
-                                    style={{ backgroundColor: color }}
-                                    title={color}
+                                              ? 'is-selected'
+                                              : ''
+                                          }`}
+                                          style={{ backgroundColor: color }}
+                                          title={color}
                                     onClick={() =>
                                       setSectionForm((prev) => ({
                                         ...prev,
                                         sectionBgColor: color,
                                       }))
                                     }
-                                  />
-                                ))}
-                              </div>
-                            </label>
-                            <label className="field">
+                                        />
+                                      ))}
+                                    </div>
+                                  </label>
+                                  <label className="field">
                               <span>Card color (all cards)</span>
-                              <div className="inline-row">
-                                <input
-                                  type="text"
+                                    <div className="inline-row">
+                                      <input
+                                        type="text"
                                   value={sectionForm.cardBgColor}
-                                  onChange={(event) =>
+                                        onChange={(event) =>
                                     setSectionForm((prev) => ({ ...prev, cardBgColor: event.target.value }))
-                                  }
+                                        }
                                   placeholder="#9ad8f8"
-                                />
-                                <input
-                                  type="color"
-                                  className="color-input"
+                                      />
+                                      <input
+                                        type="color"
+                                        className="color-input"
                                   value={resolveHexColor(sectionForm.cardBgColor, '#9ad8f8')}
-                                  onChange={(event) =>
+                                        onChange={(event) =>
                                     setSectionForm((prev) => ({ ...prev, cardBgColor: event.target.value }))
-                                  }
-                                />
-                              </div>
-                              <div className="color-palette-row">
+                                        }
+                                      />
+                                    </div>
+                                    <div className="color-palette-row">
                                 {COLUMN_GRID_CARD_BG_PALETTE.map((color) => (
-                                  <button
+                                        <button
                                     key={`col-grid-card-${color}`}
-                                    type="button"
-                                    className={`color-palette-swatch ${
+                                          type="button"
+                                          className={`color-palette-swatch ${
                                       (sectionForm.cardBgColor || '').toLowerCase() === color.toLowerCase()
-                                        ? 'is-selected'
-                                        : ''
-                                    }`}
-                                    style={{ backgroundColor: color }}
-                                    title={color}
+                                              ? 'is-selected'
+                                              : ''
+                                          }`}
+                                          style={{ backgroundColor: color }}
+                                          title={color}
                                     onClick={() =>
                                       setSectionForm((prev) => ({
                                         ...prev,
                                         cardBgColor: color,
                                       }))
                                     }
-                                  />
-                                ))}
-                              </div>
-                            </label>
+                                        />
+                                      ))}
+                                    </div>
+                                  </label>
                             <label className="field field-span">
                               <span>Section background image URL (optional)</span>
                               <div className="inline-row">
@@ -5708,7 +5708,7 @@ function AppConfigPage({ token }) {
                                 >
                                   Library
                                 </button>
-                              </div>
+                                </div>
                               <p className="field-help">
                                 If a background image is set it will be rendered in the section; the color is used as a fallback.
                               </p>
@@ -5735,7 +5735,7 @@ function AppConfigPage({ token }) {
                               "Curve" shows a festive curvy edge; "Flat" shows a straight top strip.
                             </p>
                           </>
-                        ) : null}
+                              ) : null}
                       </>
                     ) : null}
                     {isMultiItemGrid ? (
@@ -5783,67 +5783,67 @@ function AppConfigPage({ token }) {
                             </label>
                           </>
                         ) : (
-                          <>
-                            <label className="field field-span">
-                              <span>Select collections</span>
-                              {isLoadingCollections ? (
-                                <p className="field-help">Loading collections...</p>
-                              ) : collections.length ? (
-                                <div className="checkbox-grid">
-                                  {collections.map((collection) => {
-                                    const rawId =
-                                      collection?.id ?? collection?.categoryId ?? collection?._id ?? collection?.code;
-                                    const id = normalizeCollectionId(rawId);
-                                    if (!id) return null;
-                                    const label =
-                                      collection?.name ||
-                                      collection?.label ||
-                                      collection?.title ||
-                                      `Collection ${id}`;
-                                    const isChecked = Array.isArray(sectionForm.collectionIds)
-                                      ? sectionForm.collectionIds.includes(id)
-                                      : false;
-                                    return (
-                                      <label key={id} className="checkbox-row">
-                                        <input
-                                          type="checkbox"
-                                          checked={isChecked}
-                                          onChange={() =>
-                                            setSectionForm((prev) => {
-                                              const current = Array.isArray(prev.collectionIds) ? prev.collectionIds : [];
-                                              const next = new Set(current);
-                                              if (next.has(id)) {
-                                                next.delete(id);
-                                              } else {
-                                                next.add(id);
-                                              }
-                                              return { ...prev, collectionIds: Array.from(next) };
-                                            })
+                      <>
+                        <label className="field field-span">
+                          <span>Select collections</span>
+                          {isLoadingCollections ? (
+                            <p className="field-help">Loading collections...</p>
+                          ) : collections.length ? (
+                            <div className="checkbox-grid">
+                              {collections.map((collection) => {
+                                const rawId =
+                                  collection?.id ?? collection?.categoryId ?? collection?._id ?? collection?.code;
+                                const id = normalizeCollectionId(rawId);
+                                if (!id) return null;
+                                const label =
+                                  collection?.name ||
+                                  collection?.label ||
+                                  collection?.title ||
+                                  `Collection ${id}`;
+                                const isChecked = Array.isArray(sectionForm.collectionIds)
+                                  ? sectionForm.collectionIds.includes(id)
+                                  : false;
+                                return (
+                                  <label key={id} className="checkbox-row">
+                                    <input
+                                      type="checkbox"
+                                      checked={isChecked}
+                                      onChange={() =>
+                                        setSectionForm((prev) => {
+                                          const current = Array.isArray(prev.collectionIds) ? prev.collectionIds : [];
+                                          const next = new Set(current);
+                                          if (next.has(id)) {
+                                            next.delete(id);
+                                          } else {
+                                            next.add(id);
                                           }
-                                        />
-                                        {label} <span className="muted">({id})</span>
-                                      </label>
-                                    );
-                                  })}
-                                </div>
-                              ) : (
-                                <p className="field-help">No collections found yet.</p>
-                              )}
-                            </label>
-                            <label className="field field-span">
-                              <span>Collection IDs (comma separated)</span>
-                              <input
-                                type="text"
-                                value={(sectionForm.collectionIds || []).join(', ')}
-                                onChange={(event) =>
-                                  setSectionForm((prev) => ({
-                                    ...prev,
-                                    collectionIds: parseCsvList(event.target.value),
-                                  }))
-                                }
-                                placeholder="Veg_Fruits, Dairy, Chocolates"
-                              />
-                            </label>
+                                          return { ...prev, collectionIds: Array.from(next) };
+                                        })
+                                      }
+                                    />
+                                    {label} <span className="muted">({id})</span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <p className="field-help">No collections found yet.</p>
+                          )}
+                        </label>
+                        <label className="field field-span">
+                          <span>Collection IDs (comma separated)</span>
+                          <input
+                            type="text"
+                            value={(sectionForm.collectionIds || []).join(', ')}
+                            onChange={(event) =>
+                              setSectionForm((prev) => ({
+                                ...prev,
+                                collectionIds: parseCsvList(event.target.value),
+                              }))
+                            }
+                            placeholder="Veg_Fruits, Dairy, Chocolates"
+                          />
+                        </label>
                           </>
                         )}
                         {isCategoryPreviewGrid ? (

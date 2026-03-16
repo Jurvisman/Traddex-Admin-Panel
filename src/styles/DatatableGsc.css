@@ -18,7 +18,7 @@
   background: #ffffff;
   border: none;
   border-radius: 0;
-  padding: 12px 0 24px;
+  padding: 12px 0 12px;
   box-shadow: none;
 }
 
@@ -143,30 +143,28 @@
   height: 18px;
 }
 
-/* ---- Table: horizontal scroll when many columns (like GSC reference) ---- */
+/* ---- Table: flat, non-boxed list style (GSC-like) ---- */
 .admin-shell-gsc .table-shell {
   overflow-x: auto;
   overflow-y: visible;
-  background: #ffffff;
-  font-size: 14px;
+  background: transparent;
+  font-size: 13px;
   -webkit-overflow-scrolling: touch;
-  border-radius: 10px;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: none;
+  border-radius: 0;
 }
 
 .admin-shell-gsc .table-shell::-webkit-scrollbar {
-  height: 8px;
+  height: 6px;
 }
 
 .admin-shell-gsc .table-shell::-webkit-scrollbar-track {
   background: #f1f5f9;
-  border-radius: 4px;
 }
 
 .admin-shell-gsc .table-shell::-webkit-scrollbar-thumb {
   background: #cbd5e1;
-  border-radius: 4px;
+  border-radius: 3px;
 }
 
 .admin-shell-gsc .table-shell::-webkit-scrollbar-thumb:hover {
@@ -176,40 +174,32 @@
 .admin-shell-gsc .admin-table {
   width: 100%;
   border-collapse: collapse;
-  background: #ffffff;
+  background: transparent;
   table-layout: fixed;
 }
 
 .admin-shell-gsc .admin-table thead {
-  background: #f8fafc;
-  border-bottom: 2px solid #e2e8f0;
-}
-
-.admin-shell-gsc .admin-table thead tr:first-child th:first-child {
-  border-radius: 10px 0 0 0;
-}
-
-.admin-shell-gsc .admin-table thead tr:first-child th:last-child {
-  border-radius: 0 10px 0 0;
+  background: transparent;
 }
 
 .admin-shell-gsc .admin-table th {
-  padding: 12px 14px;
+  padding: 8px 14px;
   text-align: left;
-  font-size: 13px;
-  font-weight: 600;
-  color: #475569;
-  letter-spacing: 0.01em;
-  border-bottom: 2px solid #e2e8f0;
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  border-bottom: 1px solid #e5e7eb;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .admin-shell-gsc .admin-table th.table-actions {
-  text-align: right;
-  width: 140px;
-  padding-right: 12px;
+  text-align: center;
+  width: 96px;
+  padding-right: 10px;
 }
 
 /* Product table: checkbox column and image column fixed widths */
@@ -226,47 +216,43 @@
 }
 
 /* List tables (Industry, Main Category, etc.): Name / first column gets space so headers don’t truncate */
+/* Sr. No. column (list tables) */
 .admin-shell-gsc .admin-table:not(.product-table) th:first-child,
 .admin-shell-gsc .admin-table:not(.product-table) td:first-child {
-  width: 48px;
-  min-width: 48px;
-  max-width: 48px;
+  width: 56px;
+  min-width: 56px;
+  max-width: 56px;
   text-align: center;
-  padding-left: 8px;
-  padding-right: 8px;
+  padding-left: 10px;
+  padding-right: 10px;
   box-sizing: border-box;
   overflow: visible;
   text-overflow: clip;
+  color: #9ca3af;
+  font-weight: 400;
 }
 
+/* Name column (list tables) */
 .admin-shell-gsc .admin-table:not(.product-table) th:nth-child(2) {
-  width: 40%;
-  min-width: 120px;
-  padding-left: 12px;
+  min-width: 140px;
 }
 
-.admin-shell-gsc .admin-table:not(.product-table) th:nth-child(3) {
-  width: 18%;
-  min-width: 72px;
-}
-
-.admin-shell-gsc .admin-table:not(.product-table) th:nth-child(4) {
-  width: 18%;
-  min-width: 72px;
-}
-
+/* Actions column (list tables): wider so label is visible */
 .admin-shell-gsc .admin-table:not(.product-table) th.table-actions,
 .admin-shell-gsc .admin-table:not(.product-table) th:last-child {
-  width: 140px;
-  min-width: 120px;
+  width: 96px;
+  min-width: 96px;
+  text-align: center;
+  overflow: visible;
+  text-overflow: clip;
 }
 
-/* Actions column: do not clip so dropdown can show */
+/* Actions column cells: keep dropdown visible */
 .admin-shell-gsc .admin-table td.table-actions {
   overflow: visible;
   text-overflow: clip;
-  text-align: right;
-  padding-right: 14px;
+  text-align: center;
+  padding-right: 10px;
 }
 
 .admin-shell-gsc .admin-table.product-table td:first-child {
@@ -320,49 +306,68 @@
 }
 
 .admin-shell-gsc .admin-table tbody {
-  background: #ffffff;
+  background: transparent;
 }
 
 .admin-shell-gsc .admin-table tbody tr {
-  border-bottom: 1px solid #f1f5f9;
-  transition: background 0.12s ease, box-shadow 0.12s ease;
-  background: #ffffff;
-}
-
-.admin-shell-gsc .admin-table tbody tr:nth-child(even) {
-  background: #fafbfc;
+  border-bottom: 1px solid #e5e7eb;
+  transition: background 0.1s ease;
+  background: transparent;
 }
 
 .admin-shell-gsc .admin-table tbody tr:hover td {
-  background: #f1f5f9;
-}
-
-.admin-shell-gsc .admin-table tbody tr:nth-child(even):hover td {
-  background: #e2e8f0;
-}
-
-.admin-shell-gsc .admin-table tbody tr:last-child td:first-child {
-  border-radius: 0 0 0 10px;
-}
-
-.admin-shell-gsc .admin-table tbody tr:last-child td:last-child {
-  border-radius: 0 0 10px 0;
+  background: #f9fafb;
 }
 
 .admin-shell-gsc .admin-table td {
-  padding: 10px 12px;
-  color: #374151;
-  font-size: 13px;
+  padding: 6px 14px;
+  color: #111827;
+  font-size: 12px;
+  font-weight: 400;
   border-bottom: 1px solid #f3f4f6;
   vertical-align: middle;
   background: inherit;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.4;
 }
 
 .admin-shell-gsc .admin-table td:first-child {
-  padding-left: 12px;
+  padding-left: 14px;
+}
+
+/* ---- Record count footer (GXC style) ---- */
+.admin-shell-gsc .table-record-count {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  font-size: 12px;
+  font-weight: 400;
+  color: #9ca3af;
+  border-top: 1px solid #f3f4f6;
+}
+
+/* ---- Status pills for list tables (Active / Inactive) ---- */
+.admin-shell-gsc .admin-table .status-active {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.admin-shell-gsc .admin-table .status-inactive {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  background: #fef2f2;
+  color: #dc2626;
 }
 
 /* Checkbox: small square, light grey border */

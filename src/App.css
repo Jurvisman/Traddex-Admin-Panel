@@ -9455,16 +9455,16 @@ textarea {
 .admin-shell-gsc .admin-main {
   flex: 1;
   min-width: 0;
-  padding: 12px 14px 14px;
+  padding: 12px 14px 0;
   background: var(--gsc-stage);
 }
 
 .admin-shell-gsc .admin-stage {
-  min-height: calc(100vh - 98px);
-  padding: 12px;
-  border-radius: 18px;
+  min-height: calc(100vh - 86px);
+  padding: 12px 0 12px;
+  border-radius: 0;
   background: var(--gsc-stage);
-  border: 1px solid var(--gsc-stage-border);
+  border: none;
 }
 
 .admin-shell-gsc .admin-stage-head {
@@ -11140,7 +11140,7 @@ textarea {
   border: 0;
   padding: 0;
   background: none;
-  color: #417914;
+  color: var(--gsc-primary);
   font-weight: 600;
   cursor: pointer;
 }

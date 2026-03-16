@@ -271,7 +271,7 @@ const ADMIN_META = [
   {
     match: '/admin/catalog-manager/collections',
     title: 'Collections',
-    subtitle: 'Create curated or feed-based collection landing pages for app deep links.',
+    // subtitle: 'Create curated or feed-based collection landing pages for app deep links.',
   },
   {
     match: '/admin/catalog-manager/sub-categories',

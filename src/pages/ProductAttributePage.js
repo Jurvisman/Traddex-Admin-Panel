@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Banner } from '../components';
+import { Banner, TableRowActionMenu } from '../components';
 import {
   createAttributeDefinition,
   createAttributeMapping,
@@ -172,6 +172,7 @@ function ProductAttributePage({ token }) {
   const [categoryOptionsByMain, setCategoryOptionsByMain] = useState({});
   const [subCategoryOptionsByCategory, setSubCategoryOptionsByCategory] = useState({});
   const [showMoreFilters, setShowMoreFilters] = useState(false);
+  const [openActionRowId, setOpenActionRowId] = useState(null);
 
   const definitionMap = useMemo(() => {
     const map = new Map();
@@ -1869,7 +1870,7 @@ function ProductAttributePage({ token }) {
         </div>
       ) : null}
 
-      <div className="panel card">
+      <div className="panel card users-table-card">
           <div className="gsc-datatable-toolbar">
             <div className="gsc-datatable-toolbar-left" />
             <div className="gsc-datatable-toolbar-right">
@@ -1919,13 +1920,13 @@ function ProductAttributePage({ token }) {
                 <table className="admin-table">
                   <thead>
                     <tr>
-                      <th style={{ width: '60px' }}>Sr. No.</th>
+                      <th>Sr. No.</th>
                       <th>Field name</th>
                       <th>Type</th>
                       <th>Key</th>
                       <th>Used in</th>
                       <th>Status</th>
-                      <th style={{ width: '160px' }}>Actions</th>
+                      <th className="table-actions">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1955,34 +1956,28 @@ function ProductAttributePage({ token }) {
                           <td>{typeLabel(definition.dataType)}</td>
                           <td>{definition.key || '-'}</td>
                           <td>{scopeLabel}</td>
-                          <td>{definition.active !== false ? 'Active' : 'Inactive'}</td>
-                          <td className="table-actions">
-                            <button
-                              type="button"
-                              className="ghost-btn small"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                handleEditDefinition(definition);
-                              }}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              type="button"
-                              className="ghost-btn small"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                handleDeleteDefinition(definition.id);
-                              }}
-                              disabled={definition.mappingCount > 0}
-                              title={
-                                definition.mappingCount > 0
-                                  ? 'Remove category mappings before deleting this field from the library.'
-                                  : 'Delete this library field.'
-                              }
-                            >
-                              Delete
-                            </button>
+                          <td>
+                            <span className={definition.active !== false ? 'status-active' : 'status-inactive'}>
+                              {definition.active !== false ? 'Active' : 'Inactive'}
+                            </span>
+                          </td>
+                          <td className="table-actions" onClick={(event) => event.stopPropagation()}>
+                            <TableRowActionMenu
+                              rowId={definition.id}
+                              openRowId={openActionRowId}
+                              onToggle={setOpenActionRowId}
+                              actions={[
+                                {
+                                  label: 'Edit',
+                                  onClick: () => handleEditDefinition(definition),
+                                },
+                                {
+                                  label: 'Delete',
+                                  onClick: () => handleDeleteDefinition(definition.id),
+                                  danger: true,
+                                },
+                              ]}
+                            />
                           </td>
                         </tr>
                       );
@@ -1990,7 +1985,11 @@ function ProductAttributePage({ token }) {
                   </tbody>
                 </table>
               </div>
-
+              <div className="table-record-count">
+                <span>
+                  Showing {filteredDefinitionLibrary.length} of {definitions.length} records
+                </span>
+              </div>
             </>
           )}
         </div>

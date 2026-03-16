@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Banner } from '../components';
+import { Banner, TableRowActionMenu } from '../components';
 import {
   createProductCollection,
   deleteProductCollection,
@@ -142,6 +142,7 @@ function CollectionPage({ token }) {
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [openActionRowId, setOpenActionRowId] = useState(null);
   const [isSlugDirty, setIsSlugDirty] = useState(false);
   const [productPickerQuery, setProductPickerQuery] = useState('');
   const [isProductOptionsLoading, setIsProductOptionsLoading] = useState(false);
@@ -776,35 +777,8 @@ function CollectionPage({ token }) {
         </div>
       ) : null}
 
-      <section className="catalog-hero">
-        <div>
-          <span className="section-tag">Destination content</span>
-          <h2>Collections</h2>
-          <p>Manage reusable collection landing pages for `app://collection/{'{slug}'}` links.</p>
-        </div>
-      </section>
-
-      <div className="stat-grid">
-        <div className="stat-card">
-          <span className="stat-label">Total collections</span>
-          <strong>{items.length}</strong>
-        </div>
-        <div className="stat-card">
-          <span className="stat-label">Active</span>
-          <strong>{activeCount}</strong>
-        </div>
-        <div className="stat-card">
-          <span className="stat-label">Curated</span>
-          <strong>{curatedCount}</strong>
-        </div>
-        <div className="stat-card">
-          <span className="stat-label">Feed based</span>
-          <strong>{feedCount}</strong>
-        </div>
-      </div>
-
       <div className="panel-grid">
-        <div className="panel card">
+        <div className="panel card users-table-card">
           <div className="panel-split">
             <div className="category-list-head-left">
               <h3 className="panel-subheading">Collection list</h3>
@@ -857,17 +831,19 @@ function CollectionPage({ token }) {
               <table className="admin-table">
                 <thead>
                   <tr>
+                    <th>Sr. No.</th>
                     <th>Title</th>
                     <th>Slug</th>
                     <th>Source</th>
                     <th>Scope</th>
-                    <th>Active</th>
-                    <th />
+                    <th>Status</th>
+                    <th className="table-actions">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredItems.map((item) => (
+                  {filteredItems.map((item, index) => (
                     <tr key={item.id}>
+                      <td>{index + 1}</td>
                       <td>
                         <div className="user-name">
                           <strong>{item.title}</strong>
@@ -885,19 +861,31 @@ function CollectionPage({ token }) {
                           .filter(Boolean)
                           .join(' / ') || '-'}
                       </td>
-                      <td>{Number(item.active) === 1 ? 'Yes' : 'No'}</td>
-                      <td className="table-actions">
-                        <button type="button" className="ghost-btn small" onClick={() => handleEdit(item)}>
-                          Edit
-                        </button>
-                        <button type="button" className="ghost-btn small" onClick={() => handleDelete(item.id)}>
-                          Delete
-                        </button>
+                      <td>
+                        <span className={Number(item.active) === 1 ? 'status-active' : 'status-inactive'}>
+                          {Number(item.active) === 1 ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                      <td className="table-actions" onClick={(e) => e.stopPropagation()}>
+                        <TableRowActionMenu
+                          rowId={item.id}
+                          openRowId={openActionRowId}
+                          onToggle={setOpenActionRowId}
+                          actions={[
+                            { label: 'Edit', onClick: () => handleEdit(item) },
+                            { label: 'Delete', onClick: () => handleDelete(item.id), danger: true },
+                          ]}
+                        />
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              <div className="table-record-count">
+                <span>
+                  Showing {filteredItems.length} of {items.length} records
+                </span>
+              </div>
             </div>
           )}
         </div>

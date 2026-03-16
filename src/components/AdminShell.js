@@ -303,11 +303,6 @@ function AdminShell({ navItems, onLogout, pageTitle, pageSubtitle, children }) {
               <div className={`admin-stage-head ${!shouldShowBack && !shouldShowStageNote ? 'is-compact' : ''}`}>
                 <div className="admin-stage-copy">
                   <p className="admin-stage-path">{stageParts.join(' / ')}</p>
-                  {shouldShowBack ? (
-                    <button type="button" className="admin-stage-back" onClick={() => window.history.back()}>
-                      &lt; Back
-                    </button>
-                  ) : null}
                   {shouldShowStageNote ? <p className="admin-stage-note">{pageSubtitle}</p> : null}
                 </div>
               </div>
