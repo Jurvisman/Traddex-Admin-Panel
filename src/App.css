@@ -2674,9 +2674,20 @@ textarea {
   white-space: nowrap;
 }
 
+.plan-features-table th,
+.plan-features-table td {
+  font-size: 12px;
+  text-align: left;
+}
+
+/* Right-align numeric limit, keep others left for readability */
+.plan-features-table td:nth-child(3),
+.plan-features-table th:nth-child(3) {
+  text-align: right;
+}
+
 /* Reusable datatable name link (plans, business, etc.) */
 .bdt-name-link {
-  color: #2563eb;
   font-weight: 500;
   cursor: pointer;
   text-decoration: none;
@@ -2689,7 +2700,6 @@ textarea {
 
 .bdt-name-link:hover {
   text-decoration: underline;
-  color: #1d4ed8;
 }
 
 /* Soften labels in subscription plan view */
