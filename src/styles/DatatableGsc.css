@@ -179,14 +179,18 @@
 }
 
 .admin-shell-gsc .admin-table thead {
-  background: transparent;
+  background: #f3f4f6;
+}
+
+.admin-shell-gsc .admin-table thead tr {
+  background: #f3f4f6;
 }
 
 .admin-shell-gsc .admin-table th {
   padding: 8px 14px;
   text-align: left;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
   color: #6b7280;
   letter-spacing: 0.02em;
   text-transform: none;
@@ -600,7 +604,7 @@
 }
 
 .admin-shell-gsc .product-page .product-table .product-table-action-dropdown .gsc-product-view-menu-icon.view {
-  color: #2563eb;
+  color: #6e46ff;
 }
 
 .admin-shell-gsc .product-page .product-table .product-table-action-dropdown .gsc-product-view-menu-icon.edit {
@@ -734,4 +738,240 @@
   text-align: center;
   color: #6b7280;
   font-size: 14px;
+}
+
+/* =====================================================================
+   Business Datatable — GXC Retail Reference Style
+   Light header (like reference), checkboxes, compact flat rows,
+   spreadsheet-like feel
+   ===================================================================== */
+
+.admin-shell-gsc .business-table-shell {
+  border: none;
+  border-radius: 0;
+  overflow-x: auto;
+  background: #ffffff;
+}
+
+.admin-shell-gsc .business-datatable {
+  table-layout: auto;
+}
+
+/* Header: very light, thin, uppercase like GSC */
+.admin-shell-gsc .business-datatable thead tr {
+  background: #ffffff;
+}
+
+.admin-shell-gsc .business-datatable thead th {
+  background: #f8fafb;
+  color: #6b7280;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 6px 10px;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+
+.admin-shell-gsc .business-datatable thead th.bdt-checkbox-col {
+  width: 40px;
+  min-width: 40px;
+  max-width: 40px;
+  text-align: center;
+  padding-left: 12px;
+  padding-right: 4px;
+}
+
+.admin-shell-gsc .business-datatable thead th:first-child {
+  width: 40px;
+  min-width: 40px;
+  max-width: 40px;
+  overflow: visible;
+  text-align: center;
+  color: #4b5563;
+}
+
+.admin-shell-gsc .business-datatable thead th:nth-child(2) {
+  width: 56px;
+  min-width: 56px;
+  text-align: center;
+}
+
+.admin-shell-gsc .business-datatable thead th.table-actions {
+  text-align: center;
+  width: 140px;
+  min-width: 140px;
+  color: #4b5563;
+}
+
+.admin-shell-gsc .business-datatable tbody tr {
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  transition: background 0.1s ease;
+}
+
+.admin-shell-gsc .business-datatable tbody tr:hover td {
+  background: #f8fafc;
+}
+
+.admin-shell-gsc .business-datatable tbody tr.bdt-row-selected td {
+  background: #eff6ff;
+}
+
+.admin-shell-gsc .business-datatable tbody td {
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 400;
+  color: #374151;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.5;
+}
+
+.admin-shell-gsc .business-datatable td.bdt-checkbox-col {
+  width: 40px;
+  min-width: 40px;
+  max-width: 40px;
+  text-align: center;
+  padding-left: 12px;
+  padding-right: 4px;
+  overflow: visible;
+}
+
+.admin-shell-gsc .business-datatable td:first-child {
+  width: 40px;
+  min-width: 40px;
+  max-width: 40px;
+  text-align: center;
+  color: #374151;
+  padding-left: 12px;
+}
+
+.admin-shell-gsc .business-datatable td:nth-child(2) {
+  width: 56px;
+  min-width: 56px;
+  text-align: center;
+  color: #6b7280;
+}
+
+.admin-shell-gsc .business-datatable .select-checkbox {
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  cursor: pointer;
+  border-radius: 3px;
+  border: 1px solid #d1d5db;
+  accent-color: #22c55e;
+  vertical-align: middle;
+}
+
+.admin-shell-gsc .business-datatable .bdt-name-link {
+  color: #6e46ff;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  font-size: 12px;
+}
+
+.admin-shell-gsc .business-datatable .bdt-name-link:hover {
+  text-decoration: underline;
+  color: #1d4ed8;
+}
+
+.admin-shell-gsc .business-datatable .bdt-email-cell {
+  color: #6b7280;
+  font-size: 12px;
+  max-width: 180px;
+}
+
+.admin-shell-gsc .business-datatable .verify-pill {
+  font-size: 11px;
+  padding: 3px 9px;
+  font-weight: 600;
+  border-radius: 999px;
+}
+
+.admin-shell-gsc .business-datatable .status-pill {
+  font-size: 11px;
+  padding: 3px 9px;
+  font-weight: 600;
+  border-radius: 999px;
+}
+
+.admin-shell-gsc .business-datatable td.table-actions {
+  text-align: center;
+  width: 140px;
+  min-width: 140px;
+  overflow: visible;
+}
+
+.admin-shell-gsc .business-datatable .table-action-group {
+  justify-content: center;
+  gap: 6px;
+}
+
+.admin-shell-gsc .business-datatable .table-action-group .ghost-btn.small {
+  padding: 3px 11px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  background: #ffffff;
+  color: #4b5563;
+}
+
+.admin-shell-gsc .business-datatable .table-action-group .ghost-btn.small:hover {
+  background: #eef2ff;
+}
+
+.admin-shell-gsc .business-datatable .table-action-group .primary-btn.compact,
+.admin-shell-gsc .business-datatable .table-action-group .ghost-btn.small:last-of-type:not(:first-of-type) {
+  border: 1px solid rgba(248, 113, 113, 0.7);
+  background: #ffffff;
+  color: #b91c1c;
+  font-weight: 500;
+  padding: 3px 11px;
+  font-size: 11px;
+  border-radius: 999px;
+}
+
+.admin-shell-gsc .business-datatable .table-action-group .primary-btn.compact:hover,
+.admin-shell-gsc .business-datatable .table-action-group .ghost-btn.small:last-of-type:not(:first-of-type):hover {
+  background: #fee2e2;
+}
+
+.admin-shell-gsc .business-page .table-record-count {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  font-size: 12px;
+  font-weight: 400;
+  color: #9ca3af;
+  border-top: 1px solid #e5e7eb;
+  background: #ffffff;
+}
+
+.admin-shell-gsc .business-page .table-record-count .bdt-no-more {
+  color: #9ca3af;
+  font-size: 12px;
+  font-style: italic;
+}
+
+.admin-shell-gsc .business-page .users-filters {
+  margin-bottom: 0;
+}
+
+.admin-shell-gsc .business-page .panel-split {
+  padding: 12px 14px;
+}
+
+.admin-shell-gsc .business-page .panel-subheading {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
 }

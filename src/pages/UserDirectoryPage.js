@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Banner } from '../components';
+import { Banner, TableRowActionMenu } from '../components';
 import { fetchUsers, updateUser } from '../services/adminApi';
 
 const normalize = (value) => String(value || '').toLowerCase();
@@ -57,6 +57,8 @@ function UserDirectoryPage({ token, allowedActions }) {
   const [message, setMessage] = useState({ type: 'info', text: '' });
   const [isLoading, setIsLoading] = useState(false);
   const [activeUserId, setActiveUserId] = useState(null);
+  const [openActionRowId, setOpenActionRowId] = useState(null);
+  const [selectedRows, setSelectedRows] = useState(new Set());
 
   const allowedActionSet = useMemo(() => {
     const next = new Set();
@@ -161,42 +163,7 @@ function UserDirectoryPage({ token, allowedActions }) {
 
   return (
     <div className="users-page">
-      <div className="users-head">
-        <div>
-          <h2 className="panel-title">Users</h2>
-          <p className="panel-subtitle">Customer, logistic, and insurance accounts in a single table view.</p>
-        </div>
-        <div className="users-head-actions">
-          <button type="button" className="ghost-btn" onClick={loadUsers} disabled={isLoading}>
-            {isLoading ? 'Refreshing...' : 'Refresh'}
-          </button>
-        </div>
-      </div>
-
       <Banner message={message} />
-
-      <div className="stat-grid">
-        <div className="stat-card admin-stat" style={{ '--stat-accent': '#4F46E5' }}>
-          <p className="stat-label">Total users</p>
-          <p className="stat-value">{users.length}</p>
-          <p className="stat-sub">Non-business accounts</p>
-        </div>
-        <div className="stat-card admin-stat" style={{ '--stat-accent': '#16A34A' }}>
-          <p className="stat-label">Active</p>
-          <p className="stat-value">{activeCount}</p>
-          <p className="stat-sub">Enabled accounts</p>
-        </div>
-        <div className="stat-card admin-stat" style={{ '--stat-accent': '#0EA5E9' }}>
-          <p className="stat-label">Verified</p>
-          <p className="stat-value">{verifiedCount}</p>
-          <p className="stat-sub">KYC completed</p>
-        </div>
-        <div className="stat-card admin-stat" style={{ '--stat-accent': '#F97316' }}>
-          <p className="stat-label">Inactive</p>
-          <p className="stat-value">{inactiveCount}</p>
-          <p className="stat-sub">Needs reactivation</p>
-        </div>
-      </div>
 
       <div className="users-filters">
         <span className="status-chip login">{activeCount} Active</span>
@@ -205,28 +172,76 @@ function UserDirectoryPage({ token, allowedActions }) {
       </div>
 
       <div className="panel card users-table-card">
-        <div className="users-search">
-          <span className="icon icon-search" />
-          <input
-            type="search"
-            placeholder="Search users by name, email, or phone..."
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-          {query ? (
-            <button type="button" className="ghost-btn small" onClick={() => setQuery('')}>
-              Clear
-            </button>
-          ) : null}
+        <div className="panel-split">
+          <div className="category-list-head-left">
+            <h3 className="panel-subheading">User list</h3>
+            <div className="gsc-datatable-toolbar-left">
+              <button type="button" className="gsc-toolbar-btn" title="Filter">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M4 6h16M4 12h10M4 18h6" />
+                </svg>
+                Filter
+              </button>
+              <button type="button" className="gsc-toolbar-btn" title="Columns">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="3" width="7" height="18" rx="1" />
+                  <rect x="14" y="3" width="7" height="18" rx="1" />
+                </svg>
+                Columns
+              </button>
+              <button type="button" className="gsc-toolbar-btn" title="Import/Export">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                </svg>
+                Import/Export
+              </button>
+            </div>
+          </div>
+          <div className="gsc-datatable-toolbar-right">
+            <div className="gsc-toolbar-search">
+              <input
+                type="search"
+                placeholder="Search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                aria-label="Search users"
+              />
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                style={{ width: 18, height: 18, color: '#6b7280', flexShrink: 0 }}
+              >
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.35-4.35" />
+              </svg>
+            </div>
+          </div>
         </div>
 
         {filteredUsers.length === 0 ? (
           <p className="empty-state">No users found.</p>
         ) : (
-          <div className="table-shell">
-            <table className="admin-table users-table">
+          <div className="table-shell business-table-shell">
+            <table className="admin-table users-table business-datatable">
               <thead>
                 <tr>
+                  <th className="bdt-checkbox-col">
+                    <input
+                      type="checkbox"
+                      className="select-checkbox"
+                      checked={selectedRows.size === filteredUsers.length && filteredUsers.length > 0}
+                      onChange={(event) => {
+                        if (event.target.checked) {
+                          setSelectedRows(new Set(filteredUsers.map((user) => user?.id || user?.user_id)));
+                        } else {
+                          setSelectedRows(new Set());
+                        }
+                      }}
+                    />
+                  </th>
+                  <th>Sr. No.</th>
                   <th>User</th>
                   <th>Type</th>
                   <th>Phone</th>
@@ -237,19 +252,39 @@ function UserDirectoryPage({ token, allowedActions }) {
                 </tr>
               </thead>
               <tbody>
-                {filteredUsers.map((user) => {
+                {filteredUsers.map((user, index) => {
                   const verificationMeta = resolveVerification(user);
                   const isActive = Number(user?.active) === 1;
+                  const rowId = user?.id || user?.user_id;
                   return (
-                    <tr key={user?.id || user?.user_id || getUserEmail(user)}>
+                    <tr
+                      key={rowId || getUserEmail(user)}
+                      className={rowId && selectedRows.has(rowId) ? 'bdt-row-selected' : ''}
+                    >
+                      <td className="bdt-checkbox-col">
+                        <input
+                          type="checkbox"
+                          className="select-checkbox"
+                          checked={rowId ? selectedRows.has(rowId) : false}
+                          onChange={(event) => {
+                            if (!rowId) return;
+                            setSelectedRows((prev) => {
+                              const next = new Set(prev);
+                              if (event.target.checked) {
+                                next.add(rowId);
+                              } else {
+                                next.delete(rowId);
+                              }
+                              return next;
+                            });
+                          }}
+                        />
+                      </td>
+                      <td>{index + 1}</td>
                       <td>
                         <div className="user-cell">
-                          <div className={`user-avatar ${isActive ? 'login' : 'logout'}`}>
-                            <span>{getInitials(user)}</span>
-                            <span className={`user-presence ${isActive ? 'login' : 'logout'}`} />
-                          </div>
                           <div>
-                            <p className="user-name">{getUserName(user)}</p>
+                            <span className="bdt-name-link">{getUserName(user)}</span>
                             <p className="user-email">{getUserEmail(user)}</p>
                           </div>
                         </div>
@@ -268,18 +303,24 @@ function UserDirectoryPage({ token, allowedActions }) {
                       </td>
                       <td>{formatDate(user?.created_at || user?.createdAt || user?.joined_at)}</td>
                       <td className="table-actions">
-                        {canUserUpdate ? (
-                          <button
-                            type="button"
-                            className={isActive ? 'ghost-btn small' : 'primary-btn compact'}
-                            onClick={() => handleToggleActive(user)}
-                            disabled={activeUserId === user?.id}
-                          >
-                            {activeUserId === user?.id ? 'Saving...' : isActive ? 'Deactivate' : 'Activate'}
-                          </button>
-                        ) : (
-                          <span className="user-email">Read only</span>
-                        )}
+                        <div className="table-action-group">
+                          {canUserUpdate ? (
+                            <TableRowActionMenu
+                              rowId={rowId}
+                              openRowId={openActionRowId}
+                              onToggle={setOpenActionRowId}
+                              actions={[
+                                {
+                                  label: isActive ? 'Deactivate' : 'Activate',
+                                  onClick: () => handleToggleActive(user),
+                                  danger: isActive,
+                                },
+                              ]}
+                            />
+                          ) : (
+                            <span className="user-email">Read only</span>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );

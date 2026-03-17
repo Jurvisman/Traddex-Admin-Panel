@@ -11,6 +11,8 @@
   --accent: #8660ff;
   --accent-strong: #5c4bff;
   --line: #e5e2f4;
+  --primary-color: #238257;
+  --primary-light: rgba(42, 138, 95, 0.12);
   --shadow-soft: 0 20px 50px rgba(20, 18, 34, 0.08);
   --shadow-hero: 0 24px 80px rgba(105, 83, 255, 0.25);
 }
@@ -1916,6 +1918,23 @@ textarea {
   gap: 12px;
 }
 
+/* Subscription / Plans + Features: remove extra box-in-box card feel */
+.subscription-plan-list-grid,
+.subscription-feature-list-grid {
+  margin-top: 8px;
+}
+
+.subscription-plan-list-card,
+.subscription-feature-list-card {
+  display: grid;
+  gap: 12px;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+  padding: 0 0 16px;
+  background: transparent;
+}
+
 .field-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -2488,6 +2507,14 @@ textarea {
   font-size: 10px;
 }
 
+.admin-table thead {
+  background: #f3f4f6;
+}
+
+.admin-table thead th {
+  background: #f3f4f6;
+}
+
 .admin-table th,
 .admin-table td {
   padding: 8px 6px;
@@ -2496,10 +2523,10 @@ textarea {
 }
 
 .admin-table th {
-  font-size: 10px;
+  font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--muted);
+  letter-spacing: 0.16em;
+  color: #6b7280;
 }
 
 .catalog-manager {
@@ -2977,20 +3004,20 @@ textarea {
 .status-pill {
   display: inline-flex;
   align-items: center;
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
   border: 1px solid var(--line);
   background: var(--panel-soft);
   color: var(--muted);
-  text-transform: capitalize;
+  text-transform: none;
 }
 
 .status-pill.approved {
-  border-color: rgba(77, 168, 121, 0.35);
-  background: rgba(77, 168, 121, 0.12);
-  color: #2b7a4a;
+  border: none;
+  background: var(--primary-light); /* light brand green */
+  color: var(--primary-color);      /* main brand green */
 }
 
 .status-pill.rejected {
@@ -6463,9 +6490,9 @@ textarea {
 }
 
 .product-page .product-status-pill.approved {
-  border-color: rgba(22, 163, 74, 0.45);
-  background: linear-gradient(180deg, rgba(22, 163, 74, 0.2) 0%, rgba(22, 163, 74, 0.12) 100%);
-  color: #86efac;
+  border: none;
+  background: var(--primary-light);
+  color: var(--primary-color);
 }
 
 .product-page .product-status-pill.rejected {
@@ -7598,7 +7625,7 @@ textarea {
 }
 
 .business-page .users-table-card {
-  padding: 12px 16px 16px;
+  padding: 8px 0 0;
 }
 
 .users-search {
@@ -7646,22 +7673,15 @@ textarea {
   align-items: center;
 }
 
-/* Business list actions: compact, right-aligned buttons */
-.business-page .admin-table .table-actions {
-  text-align: right;
-  width: 190px;
+/* Business list: styles are now in DatatableGsc.css (.business-datatable) */
+.business-page .admin-table.business-datatable .table-actions {
+  text-align: center;
+  width: 140px;
 }
 
-.business-page .admin-table .table-actions .table-action-group {
-  gap: 4px;
-}
-
-.business-page .admin-table .table-actions .ghost-btn.small,
-.business-page .admin-table .table-actions .primary-btn.compact {
-  min-width: 72px;
-  padding: 5px 10px;
-  font-size: 11px;
-  border-radius: 999px;
+.business-page .admin-table.business-datatable .table-actions .table-action-group {
+  gap: 6px;
+  justify-content: center;
 }
 
 .business-approval-strip {
@@ -9712,8 +9732,8 @@ textarea {
 .admin-shell-gsc .verify-pill.verified,
 .admin-shell-gsc .profile-status-pill.verified,
 .admin-shell-gsc .product-status-pill.approved {
-  background: rgba(65, 121, 20, 0.12);
-  color: var(--gsc-primary);
+  background: var(--primary-light);
+  color: var(--primary-color);
 }
 
 .admin-shell-gsc .status-chip.pending,
@@ -9796,7 +9816,7 @@ textarea {
 }
 
 .admin-shell-gsc .admin-table th {
-  background: #ffffff;
+  background: #eef1f4;
   color: #6b7280;
   font-weight: 600;
   font-size: 0.8125rem;

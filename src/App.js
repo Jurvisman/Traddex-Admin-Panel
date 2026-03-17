@@ -488,7 +488,7 @@ function AppRoutes() {
   });
   const [redirectPath, setRedirectPath] = useState('/admin/dashboard');
   const [permissionPayload, setPermissionPayload] = useState(null);
-  const [isPermissionLoading, setIsPermissionLoading] = useState(false);
+  const [isPermissionLoading, setIsPermissionLoading] = useState(() => Boolean(localStorage.getItem('authToken')));
 
   useEffect(() => {
     const fromPath = location.state?.from?.pathname;
@@ -701,12 +701,12 @@ function AppRoutes() {
   const routeFallbackPath = firstAllowedAdminPath || '/login';
 
   useEffect(() => {
-    if (!authToken || isPermissionLoading) return;
+    if (!authToken || isPermissionLoading || !permissionPayload) return;
     if (!location.pathname.startsWith('/admin')) return;
     if (canAccessPath(location.pathname)) return;
     navigate(routeFallbackPath, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authToken, isPermissionLoading, location.pathname, routeFallbackPath]);
+  }, [authToken, isPermissionLoading, permissionPayload, location.pathname, routeFallbackPath]);
 
   const handleOtpSent = (digits) => {
     setPhone(digits);
@@ -727,6 +727,8 @@ function AppRoutes() {
     const userId = userData?.id || null;
     setAuthToken(token);
     setAuthUserId(userId);
+    setPermissionPayload(null);
+    setIsPermissionLoading(Boolean(token));
     if (token) {
       localStorage.setItem('authToken', token);
     } else {

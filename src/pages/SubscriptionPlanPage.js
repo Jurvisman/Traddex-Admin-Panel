@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Banner } from '../components';
+import { Banner, TableRowActionMenu } from '../components';
 import {
   createSubscriptionPlan,
   deleteSubscriptionPlan,
@@ -65,6 +65,7 @@ function SubscriptionPlanPage({ token }) {
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const didInitRef = useRef(false);
+  const [openActionRowId, setOpenActionRowId] = useState(null);
 
   const monthlyPrice = form.price ? String(form.price) : '';
   const yearlyPrice = form.price ? String(Math.round(Number(form.price) * 12)) : '';
@@ -301,8 +302,8 @@ function SubscriptionPlanPage({ token }) {
       </div>
       <Banner message={message} />
 
-      <div className="panel-grid">
-        <div className="panel card">
+      <div className="panel-grid subscription-plan-list-grid">
+        <div className="subscription-plan-list-card">
           <div className="panel-split">
             <h3 className="panel-subheading">Plan list</h3>
             <div className="gsc-datatable-toolbar-right">
@@ -354,29 +355,47 @@ function SubscriptionPlanPage({ token }) {
               <table className="admin-table">
                 <thead>
                   <tr>
+                    <th>Sr. No.</th>
                     <th>Name</th>
                     <th>User type</th>
                     <th>Price</th>
                     <th>Duration</th>
                     <th>Status</th>
-                    <th />
+                    <th className="table-actions">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredPlans.map((plan) => (
+                  {filteredPlans.map((plan, index) => (
                     <tr key={plan.id}>
+                      <td className="feature-srno-cell">{index + 1}</td>
                       <td>{plan.plan_name}</td>
                       <td>{plan.user_type}</td>
                       <td>{plan.price}</td>
                       <td>{plan.duration_months || plan.duration}</td>
-                      <td>{plan.is_active === 1 ? 'Active' : 'Inactive'}</td>
+                      <td>
+                        <span className={`status-pill ${plan.is_active === 1 ? 'approved' : 'rejected'}`}>
+                          {plan.is_active === 1 ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
                       <td className="table-actions">
-                        <button type="button" className="ghost-btn small" onClick={() => handleEdit(plan)}>
-                          Edit
-                        </button>
-                        <button type="button" className="ghost-btn small" onClick={() => handleDelete(plan.id)}>
-                          Deactivate
-                        </button>
+                        <div className="table-action-group">
+                          <TableRowActionMenu
+                            rowId={plan.id}
+                            openRowId={openActionRowId}
+                            onToggle={setOpenActionRowId}
+                            actions={[
+                              {
+                                label: 'Edit',
+                                onClick: () => handleEdit(plan),
+                              },
+                              {
+                                label: plan.is_active === 1 ? 'Deactivate' : 'Activate',
+                                onClick: () => handleDelete(plan.id),
+                                danger: plan.is_active === 1,
+                              },
+                            ]}
+                          />
+                        </div>
                       </td>
                     </tr>
                   ))}

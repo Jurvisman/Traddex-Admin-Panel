@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Banner } from '../components';
+import { Banner, TableRowActionMenu } from '../components';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   fetchBusinessDetails,
@@ -205,9 +205,11 @@ function BusinessPage({ token, allowedActions }) {
   const [isViewLoading, setIsViewLoading] = useState(false);
   const [linkedProductCount, setLinkedProductCount] = useState(0);
   const [activeUserId, setActiveUserId] = useState(null);
+  const [openActionRowId, setOpenActionRowId] = useState(null);
   const [editBusinessProfile, setEditBusinessProfile] = useState(null);
   const [editBusinessForm, setEditBusinessForm] = useState(() => buildBusinessFormState(null));
   const [isBusinessSaving, setIsBusinessSaving] = useState(false);
+  const [selectedRows, setSelectedRows] = useState(new Set());
 
   const allowedActionSet = useMemo(() => {
     const next = new Set();
@@ -564,37 +566,67 @@ function BusinessPage({ token, allowedActions }) {
             {filteredBusinesses.length === 0 ? (
               <p className="empty-state">No business accounts found.</p>
             ) : (
-              <div className="table-shell">
-                <table className="admin-table users-table">
+              <div className="table-shell business-table-shell">
+                <table className="admin-table users-table business-datatable">
                   <thead>
                     <tr>
-                      <th>Business</th>
+                      <th className="bdt-checkbox-col">
+                        <input
+                          type="checkbox"
+                          className="select-checkbox"
+                          checked={selectedRows.size === filteredBusinesses.length && filteredBusinesses.length > 0}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedRows(new Set(filteredBusinesses.map((u) => u?.id || u?.user_id)));
+                            } else {
+                              setSelectedRows(new Set());
+                            }
+                          }}
+                        />
+                      </th>
+                      <th>Sr. No.</th>
+                      <th>Name</th>
+                      <th>Company Name/Code</th>
                       <th>Phone</th>
+                      <th>Email</th>
                       <th>Verification</th>
                       <th>Status</th>
+                      <th>Created By</th>
                       <th>Joined</th>
                       <th className="table-actions">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredBusinesses.map((user) => {
+                    {filteredBusinesses.map((user, index) => {
                       const rowVerification = resolveBusinessVerification(user?.kycStatus);
                       const isActive = Number(user?.active) === 1;
+                      const rowId = user?.id || user?.user_id;
                       return (
-                        <tr key={user?.id || user?.user_id || getUserEmail(user)}>
-                          <td>
-                            <div className="user-cell">
-                              <div className={`user-avatar ${isActive ? 'login' : 'logout'}`}>
-                                <span>{getInitials(user)}</span>
-                                <span className={`user-presence ${isActive ? 'login' : 'logout'}`} />
-                              </div>
-                              <div>
-                                <p className="user-name">{getUserName(user)}</p>
-                                <p className="user-email">{getUserEmail(user)}</p>
-                              </div>
-                            </div>
+                        <tr key={rowId || getUserEmail(user)} className={selectedRows.has(rowId) ? 'bdt-row-selected' : ''}>
+                          <td className="bdt-checkbox-col">
+                            <input
+                              type="checkbox"
+                              className="select-checkbox"
+                              checked={selectedRows.has(rowId)}
+                              onChange={(e) => {
+                                setSelectedRows((prev) => {
+                                  const next = new Set(prev);
+                                  if (e.target.checked) next.add(rowId);
+                                  else next.delete(rowId);
+                                  return next;
+                                });
+                              }}
+                            />
                           </td>
+                          <td>{index + 1}</td>
+                          <td>
+                            <span className="bdt-name-link" onClick={() => handleView(user)} role="button" tabIndex={0}>
+                              {getUserName(user)}
+                            </span>
+                          </td>
+                          <td>{user?.businessName || '-'}</td>
                           <td>{user?.number || user?.mobile || user?.phone || '-'}</td>
+                          <td className="bdt-email-cell">{getUserEmail(user)}</td>
                           <td>
                             <span className={`verify-pill ${rowVerification.className}`}>{rowVerification.label}</span>
                           </td>
@@ -603,22 +635,30 @@ function BusinessPage({ token, allowedActions }) {
                               {isActive ? 'Active' : 'Inactive'}
                             </span>
                           </td>
+                          <td>{user?.createdByName || '-'}</td>
                           <td>{formatDate(user?.created_at || user?.createdAt || user?.joined_at)}</td>
                           <td className="table-actions">
                             <div className="table-action-group">
-                              <button type="button" className="ghost-btn small" onClick={() => handleView(user)}>
-                                View
-                              </button>
-                              {canApprove ? (
-                                <button
-                                  type="button"
-                                  className={isActive ? 'ghost-btn small' : 'primary-btn compact'}
-                                  onClick={() => handleToggleActive(user)}
-                                  disabled={activeUserId === user?.id}
-                                >
-                                  {activeUserId === user?.id ? 'Saving...' : isActive ? 'Deactivate' : 'Activate'}
-                                </button>
-                              ) : null}
+                              <TableRowActionMenu
+                                rowId={rowId}
+                                openRowId={openActionRowId}
+                                onToggle={setOpenActionRowId}
+                                actions={[
+                                  {
+                                    label: 'View',
+                                    onClick: () => handleView(user),
+                                  },
+                                  ...(canApprove
+                                    ? [
+                                        {
+                                          label: isActive ? 'Deactivate' : 'Activate',
+                                          onClick: () => handleToggleActive(user),
+                                          danger: isActive,
+                                        },
+                                      ]
+                                    : []),
+                                ]}
+                              />
                             </div>
                           </td>
                         </tr>
@@ -626,6 +666,12 @@ function BusinessPage({ token, allowedActions }) {
                     })}
                   </tbody>
                 </table>
+                <div className="table-record-count">
+                  <span>
+                    Showing {filteredBusinesses.length} of {businesses.length} records
+                  </span>
+                  <span className="bdt-no-more">No more records to show</span>
+                </div>
               </div>
             )}
           </div>

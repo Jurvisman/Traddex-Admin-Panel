@@ -766,30 +766,14 @@ function AdminUsersPage({ token, allowedActions }) {
       <div className="users-head">
         <div>
           <h2 className="panel-title">{isDetailRoute ? 'User Details' : 'Users'}</h2>
-          <p className="panel-subtitle">
-            {isDetailRoute ? (viewUser ? getUserName(viewUser) : 'Loading user details...') : `Manage all ${users.length} registered users.`}
-          </p>
         </div>
         <div className="users-head-actions">
           {isDetailRoute ? (
-            <>
-              <button type="button" className="ghost-btn" onClick={() => navigate('/admin/users')}>
-                Back to Users
-              </button>
-              <button
-                type="button"
-                className="ghost-btn"
-                onClick={() => refreshViewDetails(viewUser?.id || routeUserId)}
-                disabled={isViewLoading}
-              >
-                {isViewLoading ? 'Refreshing...' : 'Refresh'}
-              </button>
-            </>
+            <button type="button" className="ghost-btn" onClick={() => navigate('/admin/users')}>
+              Back to Users
+            </button>
           ) : (
             <>
-              <button type="button" className="ghost-btn" onClick={loadUsers} disabled={isLoading}>
-                {isLoading ? 'Refreshing...' : 'Refresh'}
-              </button>
               {canUserDelete ? (
                 <button
                   type="button"
@@ -814,29 +798,6 @@ function AdminUsersPage({ token, allowedActions }) {
 
       {!isDetailRoute ? (
         <>
-      <div className="stat-grid">
-        <div className="stat-card admin-stat" style={{ '--stat-accent': '#4F46E5' }}>
-          <p className="stat-label">Total users</p>
-          <p className="stat-value">{users.length}</p>
-          <p className="stat-sub">All registered accounts</p>
-        </div>
-        <div className="stat-card admin-stat" style={{ '--stat-accent': '#16A34A' }}>
-          <p className="stat-label">Logged in</p>
-          <p className="stat-value">{loginCount}</p>
-          <p className="stat-sub">Active sessions</p>
-        </div>
-        <div className="stat-card admin-stat" style={{ '--stat-accent': '#0EA5E9' }}>
-          <p className="stat-label">Verified</p>
-          <p className="stat-value">{verifiedCount}</p>
-          <p className="stat-sub">KYC complete</p>
-        </div>
-        <div className="stat-card admin-stat" style={{ '--stat-accent': '#F97316' }}>
-          <p className="stat-label">Pending</p>
-          <p className="stat-value">{pendingCount}</p>
-          <p className="stat-sub">Needs verification</p>
-        </div>
-      </div>
-
       <div className="users-filters">
         <span className="status-chip login">{loginCount} Login</span>
         <span className="status-chip logout">{logoutCount} Logout</span>

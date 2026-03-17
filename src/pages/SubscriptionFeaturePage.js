@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Banner } from '../components';
+import { Banner, TableRowActionMenu } from '../components';
 import {
   createSubscriptionFeature,
   deleteSubscriptionFeature,
@@ -29,6 +29,7 @@ function SubscriptionFeaturePage({ token }) {
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const didInitRef = useRef(false);
+  const [openActionRowId, setOpenActionRowId] = useState(null);
 
   const loadFeatures = async () => {
     setIsLoading(true);
@@ -198,8 +199,8 @@ function SubscriptionFeaturePage({ token }) {
         </div>
       ) : null}
 
-      <div className="panel-grid">
-        <div className="panel card">
+      <div className="panel-grid subscription-feature-list-grid">
+        <div className="subscription-feature-list-card">
           <div className="gsc-datatable-toolbar">
             <div className="gsc-datatable-toolbar-left">
               <h3 className="panel-subheading">Feature list</h3>
@@ -251,30 +252,51 @@ function SubscriptionFeaturePage({ token }) {
               <table className="admin-table">
                 <thead>
                   <tr>
+                    <th>Sr. No.</th>
                     <th>Code</th>
                     <th>Name</th>
                     <th>Type</th>
                     <th>Status</th>
-                    <th />
+                    <th className="table-actions">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredFeatures.map((feature) => (
-                    <tr key={feature.id}>
-                      <td>{feature.code}</td>
-                      <td>{feature.name}</td>
-                      <td>{feature.type}</td>
-                      <td>{feature.is_active === 1 ? 'Active' : 'Inactive'}</td>
-                      <td className="table-actions">
-                        <button type="button" className="ghost-btn small" onClick={() => handleEdit(feature)}>
-                          Edit
-                        </button>
-                        <button type="button" className="ghost-btn small" onClick={() => handleDelete(feature.id)}>
-                          Deactivate
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {filteredFeatures.map((feature, index) => {
+                    const isActive = Number(feature.is_active) === 1;
+                    return (
+                      <tr key={feature.id}>
+                        <td className="feature-srno-cell">{index + 1}</td>
+                        <td>{feature.code}</td>
+                        <td>{feature.name}</td>
+                        <td>{feature.type}</td>
+                        <td>
+                          <span className={`status-pill ${isActive ? 'approved' : 'rejected'}`}>
+                            {isActive ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
+                        <td className="table-actions">
+                          <div className="table-action-group">
+                            <TableRowActionMenu
+                              rowId={feature.id}
+                              openRowId={openActionRowId}
+                              onToggle={setOpenActionRowId}
+                              actions={[
+                                {
+                                  label: 'Edit',
+                                  onClick: () => handleEdit(feature),
+                                },
+                                {
+                                  label: isActive ? 'Deactivate' : 'Activate',
+                                  onClick: () => handleDelete(feature.id),
+                                  danger: isActive,
+                                },
+                              ]}
+                            />
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
