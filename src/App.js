@@ -36,6 +36,7 @@ import {
   SalesOrdersPage,
 } from './pages';
 import { fetchMyPermissions } from './services/adminApi';
+import { PermissionsContext } from './shared/permissions';
 import './App.css';
 import './styles/AdminShellGsc.css';
 import './styles/DatatableGsc.css';
@@ -234,7 +235,7 @@ const ADMIN_META = [
     ...DEFAULT_ADMIN_META,
   },
   {
-    matchPrefix: '/admin/users/business',
+    matchPrefix: '/admin/businesses',
     title: 'Business',
     // subtitle: 'Review business profiles, KYC tabs, and account status.',
   },
@@ -381,7 +382,14 @@ const normalizeAdminPath = (value) => {
   const raw = String(value || '').trim();
   if (!raw) return '';
   if (raw === '/') return '/';
-  return raw.endsWith('/') ? raw.slice(0, -1) : raw;
+  const normalized = raw.endsWith('/') ? raw.slice(0, -1) : raw;
+  if (normalized === '/admin/users/business') {
+    return '/admin/businesses';
+  }
+  if (normalized.startsWith('/admin/users/business/')) {
+    return normalized.replace('/admin/users/business', '/admin/businesses');
+  }
+  return normalized;
 };
 
 const buildPermissionState = (permissionPayload) => {
@@ -541,7 +549,7 @@ function AppRoutes() {
         items: [
           { path: '/admin/dashboard', label: 'Dashboard', icon: ICONS.dashboard, tone: NAV_TONES.dashboard },
           { path: '/admin/users', label: 'User', icon: ICONS.users, tone: NAV_TONES.users, exact: true },
-          { path: '/admin/users/business', label: 'Business', icon: ICONS.business, tone: NAV_TONES.business },
+          { path: '/admin/businesses', label: 'Business', icon: ICONS.business, tone: NAV_TONES.business },
           { path: '/admin/products', label: 'Product', icon: ICONS.products, tone: NAV_TONES.products },
           {
             key: 'product-masters-root',
@@ -555,6 +563,16 @@ function AppRoutes() {
               { path: '/admin/catalog-manager/collections', label: 'Collections', icon: ICONS.catalog, tone: NAV_TONES.catalog },
               { path: '/admin/catalog-manager/sub-categories', label: 'Sub-Category', icon: ICONS.catalog, tone: NAV_TONES.catalog },
               { path: '/admin/product-attribute', label: 'Reusable Fields', icon: ICONS.attributes, tone: NAV_TONES.fields },
+            ],
+          },
+          {
+            key: 'inquiry-root',
+            label: 'Inquiry',
+            icon: ICONS.inquiryConfig,
+            tone: NAV_TONES.inquiryConfig,
+            children: [
+              { path: '/admin/inquiry/config', label: 'Inquiry Config', icon: ICONS.inquiryConfig, tone: NAV_TONES.inquiryConfig },
+              { path: '/admin/inquiry/report', label: 'Inquiry Report', icon: ICONS.inquiryReport, tone: NAV_TONES.inquiryReport },
             ],
           },
           {
@@ -604,6 +622,8 @@ function AppRoutes() {
             children: [
               { path: '/admin/orders/purchase', label: 'Purchase Orders', icon: ICONS.orders, tone: NAV_TONES.orders },
               { path: '/admin/orders/sales', label: 'Sales Orders', icon: ICONS.orders, tone: NAV_TONES.orders },
+              { path: '/admin/orders/disputes', label: 'Order Disputes', icon: ICONS.disputes, tone: NAV_TONES.orders },
+              { path: '/admin/orders/returns', label: 'Order Returns', icon: ICONS.returns, tone: NAV_TONES.orders },
             ],
           },
           { path: '/admin/support', label: 'Support', icon: ICONS.support, tone: NAV_TONES.support },
@@ -617,32 +637,57 @@ function AppRoutes() {
   const allowedPaths = permissionState.paths;
   const allowedActionCodes = permissionState.actions;
 
+  const permissionsValue = useMemo(() => {
+    const hasPermission = (code) => {
+      const normalized = String(code || '').trim().toUpperCase();
+      if (!normalized) return false;
+      return allowedActionCodes.has(normalized);
+    };
+    const hasAny = (codes) => {
+      if (!Array.isArray(codes) || codes.length === 0) return false;
+      return codes.some((c) => hasPermission(c));
+    };
+    const hasAll = (codes) => {
+      if (!Array.isArray(codes) || codes.length === 0) return false;
+      return codes.every((c) => hasPermission(c));
+    };
+    return {
+      allowedPaths,
+      allowedActions: allowedActionCodes,
+      hasPermission,
+      hasAny,
+      hasAll,
+    };
+  }, [allowedPaths, allowedActionCodes]);
+
   const canAccessPath = (path) => {
     if (!authToken) return false;
     if (isPermissionLoading) return true;
     if (!path) return true;
-    if (allowedPaths.size === 0) return true;
+    if (allowedPaths.size === 0) return false;
     return hasPathAccess(allowedPaths, path);
   };
 
   const navItems = useMemo(() => {
     if (!authToken) return allNavItems;
     if (isPermissionLoading) return allNavItems;
-    if (allowedPaths.size === 0) return allNavItems;
+    if (allowedPaths.size === 0) return [];
+
+    const canSeeNavPath = (path) => {
+      if (!path) return true;
+      return hasPathAccess(allowedPaths, path);
+    };
 
     return allNavItems
       .map((group) => {
         const visibleItems = (group?.items || [])
           .map((item) => {
             if (Array.isArray(item?.children) && item.children.length > 0) {
-              const visibleChildren =
-                allowedPaths.size === 0
-                  ? item.children
-                  : item.children.filter((child) => hasPathAccess(allowedPaths, child?.path));
+              const visibleChildren = item.children.filter((child) => canSeeNavPath(child?.path));
               if (visibleChildren.length === 0) return null;
               return { ...item, children: visibleChildren };
             }
-            return hasPathAccess(allowedPaths, item?.path) ? item : null;
+            return canSeeNavPath(item?.path) ? item : null;
           })
           .filter(Boolean);
         if (visibleItems.length === 0) return null;
@@ -739,7 +784,9 @@ function AppRoutes() {
         path="/admin"
         element={
           <RequireAuth token={authToken}>
-            <AdminLayout navItems={navItems} onLogout={handleLogout} />
+            <PermissionsContext.Provider value={permissionsValue}>
+              <AdminLayout navItems={navItems} onLogout={handleLogout} />
+            </PermissionsContext.Provider>
           </RequireAuth>
         }
       >
@@ -763,11 +810,57 @@ function AppRoutes() {
               isLoading={isPermissionLoading}
               isAllowed={
                 canAccessPath('/admin/users') &&
-                (allowedActionCodes.size === 0 || allowedActionCodes.has('ADMIN_USERS_READ'))
+                allowedActionCodes.has('ADMIN_USERS_READ')
               }
               fallbackPath={routeFallbackPath}
             >
               <UserDirectoryPage token={authToken} allowedActions={allowedActionCodes} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="businesses"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={
+                canAccessPath('/admin/businesses') &&
+                allowedActionCodes.has('ADMIN_BUSINESS_READ')
+              }
+              fallbackPath={routeFallbackPath}
+            >
+              <BusinessPage token={authToken} allowedActions={allowedActionCodes} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="businesses/:id"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={
+                canAccessPath('/admin/businesses/:id') &&
+                allowedActionCodes.has('ADMIN_BUSINESS_READ')
+              }
+              fallbackPath={routeFallbackPath}
+            >
+              <BusinessPage token={authToken} allowedActions={allowedActionCodes} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="businesses/:id/edit"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={
+                canAccessPath('/admin/businesses') &&
+                allowedActionCodes.has('ADMIN_BUSINESS_READ') &&
+                allowedActionCodes.has('ADMIN_BUSINESS_KYC_UPDATE')
+              }
+              fallbackPath={routeFallbackPath}
+            >
+              <BusinessProfileEditPage token={authToken} allowedActions={allowedActionCodes} />
             </PermissionGate>
           }
         />
@@ -777,8 +870,8 @@ function AppRoutes() {
             <PermissionGate
               isLoading={isPermissionLoading}
               isAllowed={
-                canAccessPath('/admin/users/business') &&
-                (allowedActionCodes.size === 0 || allowedActionCodes.has('ADMIN_USERS_READ'))
+                canAccessPath('/admin/businesses') &&
+                allowedActionCodes.has('ADMIN_BUSINESS_READ')
               }
               fallbackPath={routeFallbackPath}
             >
@@ -792,8 +885,8 @@ function AppRoutes() {
             <PermissionGate
               isLoading={isPermissionLoading}
               isAllowed={
-                canAccessPath('/admin/users/business/:id') &&
-                (allowedActionCodes.size === 0 || allowedActionCodes.has('ADMIN_USERS_READ'))
+                canAccessPath('/admin/businesses/:id') &&
+                allowedActionCodes.has('ADMIN_BUSINESS_READ')
               }
               fallbackPath={routeFallbackPath}
             >
@@ -807,8 +900,9 @@ function AppRoutes() {
             <PermissionGate
               isLoading={isPermissionLoading}
               isAllowed={
-                canAccessPath('/admin/users/business') &&
-                (allowedActionCodes.size === 0 || allowedActionCodes.has('ADMIN_USERS_UPDATE'))
+                canAccessPath('/admin/businesses') &&
+                allowedActionCodes.has('ADMIN_BUSINESS_READ') &&
+                allowedActionCodes.has('ADMIN_BUSINESS_KYC_UPDATE')
               }
               fallbackPath={routeFallbackPath}
             >
@@ -823,7 +917,7 @@ function AppRoutes() {
               isLoading={isPermissionLoading}
               isAllowed={
                 canAccessPath('/admin/users') &&
-                (allowedActionCodes.size === 0 || allowedActionCodes.has('ADMIN_USERS_READ'))
+                allowedActionCodes.has('ADMIN_USERS_READ')
               }
               fallbackPath={routeFallbackPath}
             >
@@ -838,7 +932,7 @@ function AppRoutes() {
               isLoading={isPermissionLoading}
               isAllowed={
                 canAccessPath('/admin/employees') &&
-                (allowedActionCodes.size === 0 || allowedActionCodes.has('ADMIN_EMPLOYEES_READ'))
+                allowedActionCodes.has('ADMIN_EMPLOYEES_READ')
               }
               fallbackPath={routeFallbackPath}
             >
@@ -863,7 +957,10 @@ function AppRoutes() {
           element={
             <PermissionGate
               isLoading={isPermissionLoading}
-              isAllowed={canAccessPath('/admin/catalog-manager/industries')}
+              isAllowed={
+                canAccessPath('/admin/catalog-manager/industries') &&
+                allowedActionCodes.has('ADMIN_INDUSTRY_READ')
+              }
               fallbackPath={routeFallbackPath}
             >
               <IndustryPage token={authToken} />
@@ -875,7 +972,10 @@ function AppRoutes() {
           element={
             <PermissionGate
               isLoading={isPermissionLoading}
-              isAllowed={canAccessPath('/admin/catalog-manager/main-categories')}
+              isAllowed={
+                canAccessPath('/admin/catalog-manager/main-categories') &&
+                allowedActionCodes.has('ADMIN_MAIN_CATEGORY_READ')
+              }
               fallbackPath={routeFallbackPath}
             >
               <MainCategoryPage token={authToken} />
@@ -887,7 +987,10 @@ function AppRoutes() {
           element={
             <PermissionGate
               isLoading={isPermissionLoading}
-              isAllowed={canAccessPath('/admin/catalog-manager/categories')}
+              isAllowed={
+                canAccessPath('/admin/catalog-manager/categories') &&
+                allowedActionCodes.has('ADMIN_CATEGORY_READ')
+              }
               fallbackPath={routeFallbackPath}
             >
               <CategoryPage token={authToken} />
@@ -899,7 +1002,10 @@ function AppRoutes() {
           element={
             <PermissionGate
               isLoading={isPermissionLoading}
-              isAllowed={canAccessPath('/admin/catalog-manager/collections')}
+              isAllowed={
+                canAccessPath('/admin/catalog-manager/collections') &&
+                allowedActionCodes.has('ADMIN_COLLECTION_READ')
+              }
               fallbackPath={routeFallbackPath}
             >
               <CollectionPage token={authToken} />
@@ -911,7 +1017,10 @@ function AppRoutes() {
           element={
             <PermissionGate
               isLoading={isPermissionLoading}
-              isAllowed={canAccessPath('/admin/catalog-manager/sub-categories')}
+              isAllowed={
+                canAccessPath('/admin/catalog-manager/sub-categories') &&
+                allowedActionCodes.has('ADMIN_SUB_CATEGORY_READ')
+              }
               fallbackPath={routeFallbackPath}
             >
               <SubCategoryPage token={authToken} />
@@ -923,7 +1032,10 @@ function AppRoutes() {
           element={
             <PermissionGate
               isLoading={isPermissionLoading}
-              isAllowed={canAccessPath('/admin/product-attribute')}
+              isAllowed={
+                canAccessPath('/admin/product-attribute') &&
+                allowedActionCodes.has('ADMIN_DYNAMIC_FIELDS_READ')
+              }
               fallbackPath={routeFallbackPath}
             >
               <ProductAttributePage token={authToken} />
@@ -935,7 +1047,10 @@ function AppRoutes() {
           element={
             <PermissionGate
               isLoading={isPermissionLoading}
-              isAllowed={canAccessPath('/admin/products')}
+              isAllowed={
+                canAccessPath('/admin/products') &&
+                allowedActionCodes.has('ADMIN_PRODUCTS_READ')
+              }
               fallbackPath={routeFallbackPath}
             >
               <ProductPage token={authToken} adminUserId={authUserId} />
@@ -947,7 +1062,10 @@ function AppRoutes() {
           element={
             <PermissionGate
               isLoading={isPermissionLoading}
-              isAllowed={canAccessPath('/admin/products')}
+              isAllowed={
+                canAccessPath('/admin/products') &&
+                allowedActionCodes.has('ADMIN_PRODUCTS_READ')
+              }
               fallbackPath={routeFallbackPath}
             >
               <ProductPage token={authToken} adminUserId={authUserId} />
@@ -959,7 +1077,11 @@ function AppRoutes() {
           element={
             <PermissionGate
               isLoading={isPermissionLoading}
-              isAllowed={canAccessPath('/admin/products')}
+              isAllowed={
+                canAccessPath('/admin/products') &&
+                allowedActionCodes.has('ADMIN_PRODUCTS_READ') &&
+                allowedActionCodes.has('ADMIN_PRODUCTS_UPDATE')
+              }
               fallbackPath={routeFallbackPath}
             >
               <ProductPage token={authToken} adminUserId={authUserId} />
@@ -971,7 +1093,10 @@ function AppRoutes() {
           element={
             <PermissionGate
               isLoading={isPermissionLoading}
-              isAllowed={canAccessPath('/admin/inquiry/config')}
+              isAllowed={
+                canAccessPath('/admin/inquiry/config') &&
+                allowedActionCodes.has('ADMIN_INQUIRY_CONFIG_READ')
+              }
               fallbackPath={routeFallbackPath}
             >
               <InquiryConfigPage token={authToken} />
@@ -983,7 +1108,10 @@ function AppRoutes() {
           element={
             <PermissionGate
               isLoading={isPermissionLoading}
-              isAllowed={canAccessPath('/admin/inquiry/report')}
+              isAllowed={
+                canAccessPath('/admin/inquiry/report') &&
+                allowedActionCodes.has('ADMIN_INQUIRY_REPORT_READ')
+              }
               fallbackPath={routeFallbackPath}
             >
               <InquiryReportPage token={authToken} />
@@ -995,7 +1123,10 @@ function AppRoutes() {
           element={
             <PermissionGate
               isLoading={isPermissionLoading}
-              isAllowed={canAccessPath('/admin/subscription/overview')}
+              isAllowed={
+                canAccessPath('/admin/subscription/overview') &&
+                allowedActionCodes.has('ADMIN_SUBSCRIPTION_OVERVIEW_READ')
+              }
               fallbackPath={routeFallbackPath}
             >
               <SubscriptionOverviewPage token={authToken} />
@@ -1007,7 +1138,10 @@ function AppRoutes() {
           element={
             <PermissionGate
               isLoading={isPermissionLoading}
-              isAllowed={canAccessPath('/admin/subscription/features')}
+              isAllowed={
+                canAccessPath('/admin/subscription/features') &&
+                allowedActionCodes.has('ADMIN_SUBSCRIPTION_FEATURES_READ')
+              }
               fallbackPath={routeFallbackPath}
             >
               <SubscriptionFeaturePage token={authToken} />
@@ -1019,7 +1153,10 @@ function AppRoutes() {
           element={
             <PermissionGate
               isLoading={isPermissionLoading}
-              isAllowed={canAccessPath('/admin/subscription/plans')}
+              isAllowed={
+                canAccessPath('/admin/subscription/plans') &&
+                allowedActionCodes.has('ADMIN_SUBSCRIPTION_PLANS_READ')
+              }
               fallbackPath={routeFallbackPath}
             >
               <SubscriptionPlanPage token={authToken} />
@@ -1031,7 +1168,10 @@ function AppRoutes() {
           element={
             <PermissionGate
               isLoading={isPermissionLoading}
-              isAllowed={canAccessPath('/admin/subscription/plans')}
+              isAllowed={
+                canAccessPath('/admin/subscription/plans') &&
+                allowedActionCodes.has('ADMIN_SUBSCRIPTION_PLANS_CREATE')
+              }
               fallbackPath={routeFallbackPath}
             >
               <SubscriptionPlanCreatePage token={authToken} />
@@ -1079,7 +1219,10 @@ function AppRoutes() {
           element={
             <PermissionGate
               isLoading={isPermissionLoading}
-              isAllowed={canAccessPath('/admin/app-config')}
+              isAllowed={
+                canAccessPath('/admin/app-config') &&
+                allowedActionCodes.has('ADMIN_APP_CONFIG_READ')
+              }
               fallbackPath={routeFallbackPath}
             >
               <AppConfigPage token={authToken} />
@@ -1103,7 +1246,10 @@ function AppRoutes() {
           element={
             <PermissionGate
               isLoading={isPermissionLoading}
-              isAllowed={canAccessPath('/admin/orders/disputes')}
+              isAllowed={
+                canAccessPath('/admin/orders/disputes') &&
+                allowedActionCodes.has('ADMIN_ORDER_DISPUTES_READ')
+              }
               fallbackPath={routeFallbackPath}
             >
               <OrderDisputesPage token={authToken} />
@@ -1115,7 +1261,10 @@ function AppRoutes() {
           element={
             <PermissionGate
               isLoading={isPermissionLoading}
-              isAllowed={canAccessPath('/admin/orders/returns')}
+              isAllowed={
+                canAccessPath('/admin/orders/returns') &&
+                allowedActionCodes.has('ADMIN_ORDER_RETURNS_READ')
+              }
               fallbackPath={routeFallbackPath}
             >
               <OrderReturnsPage token={authToken} />

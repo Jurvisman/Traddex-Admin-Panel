@@ -63,7 +63,11 @@ export const saveRolePermissions = (token, roleId, actionIds) =>
   request(`/admin/rbac/roles/${roleId}/permissions`, { method: 'PUT', body: { actionIds }, token });
 export const fetchMyPermissions = (token) => request('/admin/permissions', { token });
 export const fetchUserDetails = (token, id) => request(`/users/${id}/details`, { token });
+export const fetchBusinessDetails = (token, id) => request(`/admin/businesses/${id}/details`, { token });
 export const logoutUser = (token, id) => request(`/users/${id}/logout`, { method: 'POST', token });
+export const fetchBusinesses = (token) => request('/admin/businesses', { token });
+export const updateBusinessAccount = (token, id, payload) =>
+  request(`/admin/businesses/${id}`, { method: 'PUT', body: payload, token });
 export const updateBusinessProfile = (token, userId, payload, status) => {
   const query = status ? `?status=${encodeURIComponent(status)}` : '';
   return request(`/admin/profile/${userId}/business${query}`, { method: 'PUT', body: payload, token });
@@ -124,6 +128,7 @@ export const deleteSubCategory = (token, id) => request(`/sub-categories/${id}`,
 
 export const listProducts = (token) => request('/admin/product/getall', { token });
 export const listProductsByUser = (token, userId) => request(`/admin/product/by-user?userId=${userId}`, { token });
+export const listProductsByBusinessUser = (token, userId) => request(`/admin/businesses/${userId}/products`, { token });
 export const createProduct = (token, payload) =>
   request('/admin/product/create', { method: 'POST', body: payload, token });
 export const getProduct = (token, id) => request(`/admin/product/${id}`, { token });

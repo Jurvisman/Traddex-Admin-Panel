@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Banner } from '../components';
-import { fetchUserDetails, updateBusinessProfile } from '../services/adminApi';
+import { fetchBusinessDetails, updateBusinessProfile } from '../services/adminApi';
 
 const getUserName = (user) =>
   user?.name || user?.full_name || user?.fullName || user?.username || user?.mobile || `Business #${user?.id || ''}`;
@@ -139,7 +139,7 @@ function BusinessProfileEditPage({ token }) {
       setIsLoading(true);
       setMessage({ type: 'info', text: '' });
       try {
-        const response = await fetchUserDetails(token, id);
+        const response = await fetchBusinessDetails(token, id);
         const data = response?.data || {};
         setViewUser(data.user || null);
         const profile = data.businessProfile || null;
@@ -160,7 +160,7 @@ function BusinessProfileEditPage({ token }) {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const saveProfile = async (status) => {
+  const saveProfile = async () => {
     if (!businessProfile?.userId) {
       setMessage({ type: 'error', text: 'Business profile is missing user information.' });
       return;
@@ -174,13 +174,9 @@ function BusinessProfileEditPage({ token }) {
       if (!payload.businessName) {
         throw new Error('Business name is required.');
       }
-      await updateBusinessProfile(token, businessProfile.userId, payload, status || undefined);
-      if (status === 'VERIFIED') {
-        setMessage({ type: 'success', text: 'Business profile saved and submitted for KYC.' });
-      } else {
-        setMessage({ type: 'success', text: 'Business profile updated.' });
-      }
-      navigate(`/admin/users/business/${businessProfile.userId}`);
+      await updateBusinessProfile(token, businessProfile.userId, payload);
+      setMessage({ type: 'success', text: 'Business profile updated.' });
+      navigate(`/admin/businesses/${businessProfile.userId}`);
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to update business profile.' });
     } finally {
@@ -190,11 +186,7 @@ function BusinessProfileEditPage({ token }) {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    await saveProfile(null);
-  };
-
-  const handleSubmitAndVerify = async () => {
-    await saveProfile('VERIFIED');
+    await saveProfile();
   };
 
   const titleName = businessProfile?.businessName || getUserName(viewUser);
@@ -275,23 +267,13 @@ function BusinessProfileEditPage({ token }) {
               <button
                 type="button"
                 className="ghost-btn"
-                onClick={() => navigate(`/admin/users/business/${id || businessProfile?.userId || ''}`)}
+                onClick={() => navigate(`/admin/businesses/${id || businessProfile?.userId || ''}`)}
               >
                 Cancel
               </button>
-              <div className="business-edit-primary">
-                <button type="submit" form="business-edit-form" className="primary-btn split-main" disabled={isSaving}>
-                  {isSaving ? 'Saving...' : 'Update'}
-                </button>
-                <button
-                  type="button"
-                  className="primary-btn split-toggle"
-                  disabled={isSaving}
-                  onClick={handleSubmitAndVerify}
-                >
-                  <span className="split-caret">▾</span>
-                </button>
-              </div>
+              <button type="submit" form="business-edit-form" className="primary-btn" disabled={isSaving}>
+                {isSaving ? 'Saving...' : 'Update'}
+              </button>
             </div>
           </>
         )}
@@ -301,4 +283,3 @@ function BusinessProfileEditPage({ token }) {
 }
 
 export default BusinessProfileEditPage;
-

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMatch, useNavigate, useParams } from 'react-router-dom';
 import { Banner } from '../components';
+import { PRODUCT_PERMISSIONS } from '../constants/adminPermissions';
+import { usePermissions } from '../shared/permissions';
 import {
   createProduct,
   createUom,
@@ -322,6 +324,7 @@ function ProductTableThumbnail({ imageUrl, alt }) {
 }
 
 function ProductPage({ token, adminUserId }) {
+  const { hasPermission } = usePermissions();
   const [products, setProducts] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [mainCategories, setMainCategories] = useState([]);
@@ -423,6 +426,25 @@ function ProductPage({ token, adminUserId }) {
   const isViewing = Boolean(selectedProductId);
   const showViewOnly = isViewing && !showForm;
   const isEditRoute = Boolean(editMatch);
+  const canCreateProduct = hasPermission(PRODUCT_PERMISSIONS.create);
+  const canViewProduct = hasPermission(PRODUCT_PERMISSIONS.view);
+  const canEditProduct = hasPermission(PRODUCT_PERMISSIONS.edit);
+  const canDeleteProduct = hasPermission(PRODUCT_PERMISSIONS.delete);
+  const canApproveProduct = hasPermission(PRODUCT_PERMISSIONS.approve);
+  const canRequestChangesProduct = hasPermission(PRODUCT_PERMISSIONS.requestChanges);
+  const canRejectProduct = hasPermission(PRODUCT_PERMISSIONS.reject);
+  const hasProductListActions = Boolean(
+    canViewProduct ||
+      canEditProduct ||
+      canDeleteProduct ||
+      canApproveProduct ||
+      canRequestChangesProduct ||
+      canRejectProduct
+  );
+  const hasProductDetailActions = Boolean(canEditProduct || canDeleteProduct);
+  const hasProductReviewActions = Boolean(
+    canApproveProduct || canRequestChangesProduct || canRejectProduct
+  );
 
   const loadProducts = async () => {
     const response = await listProducts(token);
@@ -1636,6 +1658,10 @@ function ProductPage({ token, adminUserId }) {
   };
 
   const handleOpenCreateForm = () => {
+    if (!canCreateProduct) {
+      setMessage({ type: 'error', text: 'You do not have permission to create products.' });
+      return;
+    }
     setEditingProductId(null);
     setForm(initialForm);
     setAttributeMappings([]);
@@ -1649,6 +1675,10 @@ function ProductPage({ token, adminUserId }) {
   };
 
   const handleOpenEditForm = () => {
+    if (!canEditProduct) {
+      setMessage({ type: 'error', text: 'You do not have permission to edit products.' });
+      return;
+    }
     if (!selectedProduct) return;
     navigate(`/admin/products/${selectedProduct.id}/edit`);
     populateEditForm(selectedProduct).catch((error) => {
@@ -1667,6 +1697,10 @@ function ProductPage({ token, adminUserId }) {
   };
 
   const handleViewProduct = (productId) => {
+    if (!canViewProduct) {
+      setMessage({ type: 'error', text: 'You do not have permission to view products.' });
+      return;
+    }
     navigate(`/admin/products/${productId}`);
     setShowForm(false);
     setEditingProductId(null);
@@ -1760,6 +1794,14 @@ function ProductPage({ token, adminUserId }) {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (isEditing && !canEditProduct) {
+      setMessage({ type: 'error', text: 'You do not have permission to edit products.' });
+      return;
+    }
+    if (!isEditing && !canCreateProduct) {
+      setMessage({ type: 'error', text: 'You do not have permission to create products.' });
+      return;
+    }
     if (
       !form.productName.trim() ||
       !form.mainCategoryId ||
@@ -2046,6 +2088,10 @@ function ProductPage({ token, adminUserId }) {
   };
 
   const handleDelete = async (id) => {
+    if (!canDeleteProduct) {
+      setMessage({ type: 'error', text: 'You do not have permission to delete products.' });
+      return;
+    }
     const ok = window.confirm('Delete this product? This will remove it from the list.');
     if (!ok) return;
     try {
@@ -2066,6 +2112,10 @@ function ProductPage({ token, adminUserId }) {
   };
 
   const handleSaveReviewCategory = async () => {
+    if (!canEditProduct) {
+      setMessage({ type: 'error', text: 'You do not have permission to edit products.' });
+      return;
+    }
     if (!selectedProductId) return;
     const adminId = getAdminId();
     if (!adminId) return;
@@ -2090,6 +2140,10 @@ function ProductPage({ token, adminUserId }) {
   };
 
   const openChangeRequestModal = () => {
+    if (!canRequestChangesProduct) {
+      setMessage({ type: 'error', text: 'You do not have permission to request product changes.' });
+      return;
+    }
     if (!reviewCategoryComplete) {
       setMessage({ type: 'error', text: 'Assign main category and category before requesting changes.' });
       return;
@@ -2113,6 +2167,10 @@ function ProductPage({ token, adminUserId }) {
   };
 
   const handleSubmitChangeRequest = async () => {
+    if (!canRequestChangesProduct) {
+      setMessage({ type: 'error', text: 'You do not have permission to request product changes.' });
+      return;
+    }
     if (!selectedProductId) return;
     const adminId = getAdminId();
     if (!adminId) return;
@@ -2149,10 +2207,18 @@ function ProductPage({ token, adminUserId }) {
     const adminId = getAdminId();
     if (!adminId) return;
     if (nextStatus === 'CHANGES_REQUIRED') {
+      if (!canRequestChangesProduct) {
+        setMessage({ type: 'error', text: 'You do not have permission to request product changes.' });
+        return;
+      }
       openChangeRequestModal();
       return;
     }
     if (nextStatus === 'APPROVED') {
+      if (!canApproveProduct) {
+        setMessage({ type: 'error', text: 'You do not have permission to approve products.' });
+        return;
+      }
       if (!reviewCategoryComplete) {
         setMessage({ type: 'error', text: 'Assign main category and category before approval.' });
         return;
@@ -2166,6 +2232,10 @@ function ProductPage({ token, adminUserId }) {
         });
         return;
       }
+    }
+    if (nextStatus === 'REJECTED' && !canRejectProduct) {
+      setMessage({ type: 'error', text: 'You do not have permission to reject products.' });
+      return;
     }
     try {
       setIsLoading(true);
@@ -2193,8 +2263,20 @@ function ProductPage({ token, adminUserId }) {
   const handleRowStatusUpdate = async (productId, nextStatus) => {
     if (!productId) return;
     if (nextStatus === 'CHANGES_REQUIRED') {
+      if (!canRequestChangesProduct) {
+        setMessage({ type: 'error', text: 'You do not have permission to request product changes.' });
+        return;
+      }
       navigate(`/admin/products/${productId}`);
       setMessage({ type: 'info', text: 'Open the review workspace to request structured changes.' });
+      return;
+    }
+    if (nextStatus === 'APPROVED' && !canApproveProduct) {
+      setMessage({ type: 'error', text: 'You do not have permission to approve products.' });
+      return;
+    }
+    if (nextStatus === 'REJECTED' && !canRejectProduct) {
+      setMessage({ type: 'error', text: 'You do not have permission to reject products.' });
       return;
     }
     const adminId = getAdminId();
@@ -2224,6 +2306,14 @@ function ProductPage({ token, adminUserId }) {
 
   const handleVariantStatusUpdate = async (variantId, nextStatus) => {
     if (!selectedProductId || !variantId) return;
+    if (nextStatus === 'APPROVED' && !canApproveProduct) {
+      setMessage({ type: 'error', text: 'You do not have permission to approve products.' });
+      return;
+    }
+    if (nextStatus === 'REJECTED' && !canRejectProduct) {
+      setMessage({ type: 'error', text: 'You do not have permission to reject products.' });
+      return;
+    }
     const adminId = getAdminId();
     if (!adminId) return;
     try {
@@ -2341,22 +2431,27 @@ function ProductPage({ token, adminUserId }) {
       .filter((group) => group && group.items.length > 0);
   }, [selectedProduct?.dynamicAttributes, viewAttributeMappings, definitionById, definitionByKey]);
   const variants = Array.isArray(selectedProduct?.variants) ? selectedProduct.variants : [];
-  const disableApprove = isLoading || !selectedProduct || statusValue === 'APPROVED';
-  const disableReject = isLoading || !selectedProduct || statusValue === 'REJECTED';
+  const disableApprove = isLoading || !selectedProduct || !canApproveProduct || statusValue === 'APPROVED';
+  const disableReject = isLoading || !selectedProduct || !canRejectProduct || statusValue === 'REJECTED';
   const disableRequestChanges =
     isLoading ||
     !selectedProduct ||
+    !canRequestChangesProduct ||
     statusValue === 'APPROVED' ||
     statusValue === 'REJECTED';
-  const disableEdit = isLoading || !selectedProduct;
+  const disableEdit = isLoading || !selectedProduct || !canEditProduct;
   const productViewTabs = [
     { key: 'general', label: 'General Details' },
     { key: 'classification', label: 'Classification' },
     { key: 'pricing', label: 'Pricing Details' },
     { key: 'company', label: 'Company Mapping' },
     { key: 'variants', label: `Variants (${variants.length})` },
-    { key: 'review', label: 'Review Workspace' },
-  ];
+    {
+      key: 'review',
+      label: 'Review Workspace',
+      visible: Boolean(canEditProduct || canApproveProduct || canRequestChangesProduct || canRejectProduct),
+    },
+  ].filter((tab) => tab.visible !== false);
   const resolvedProductViewTab = productViewTabs.some((tab) => tab.key === activeProductViewTab)
     ? activeProductViewTab
     : productViewTabs[0]?.key || 'general';
@@ -2648,6 +2743,8 @@ function ProductPage({ token, adminUserId }) {
           const variantTitle = variant?.variantName || variant?.sku || `Variant ${index + 1}`;
           const disableVariantApprove = isLoading || variantStatus === 'APPROVED';
           const disableVariantReject = isLoading || variantStatus === 'REJECTED';
+          const showVariantApprove = canApproveProduct;
+          const showVariantReject = canRejectProduct;
           const attributes = Array.isArray(variant?.attributes) ? variant.attributes : [];
 
           return (
@@ -2704,24 +2801,30 @@ function ProductPage({ token, adminUserId }) {
                   </div>
                 </div>
               ) : null}
-              <div className="inline-row variant-actions">
-                <button
-                  type="button"
-                  className="primary-btn compact"
-                  onClick={() => handleVariantStatusUpdate(variant?.variantId, 'APPROVED')}
-                  disabled={disableVariantApprove || !variant?.variantId}
-                >
-                  Approve
-                </button>
-                <button
-                  type="button"
-                  className="ghost-btn small"
-                  onClick={() => handleVariantStatusUpdate(variant?.variantId, 'REJECTED')}
-                  disabled={disableVariantReject || !variant?.variantId}
-                >
-                  Reject
-                </button>
-              </div>
+              {showVariantApprove || showVariantReject ? (
+                <div className="inline-row variant-actions">
+                  {showVariantApprove ? (
+                    <button
+                      type="button"
+                      className="primary-btn compact"
+                      onClick={() => handleVariantStatusUpdate(variant?.variantId, 'APPROVED')}
+                      disabled={disableVariantApprove || !variant?.variantId}
+                    >
+                      Approve
+                    </button>
+                  ) : null}
+                  {showVariantReject ? (
+                    <button
+                      type="button"
+                      className="ghost-btn small"
+                      onClick={() => handleVariantStatusUpdate(variant?.variantId, 'REJECTED')}
+                      disabled={disableVariantReject || !variant?.variantId}
+                    >
+                      Reject
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           );
         })}
@@ -2746,6 +2849,7 @@ function ProductPage({ token, adminUserId }) {
             <select
               value={reviewForm.mainCategoryId}
               onChange={(event) => handleReviewCategoryChange('mainCategoryId', event.target.value)}
+              disabled={!canEditProduct}
             >
               <option value="">Select main category</option>
               {mainCategories.map((item) => (
@@ -2760,7 +2864,7 @@ function ProductPage({ token, adminUserId }) {
             <select
               value={reviewForm.categoryId}
               onChange={(event) => handleReviewCategoryChange('categoryId', event.target.value)}
-              disabled={!reviewForm.mainCategoryId}
+              disabled={!canEditProduct || !reviewForm.mainCategoryId}
             >
               <option value="">Select category</option>
               {reviewCategories.map((item) => (
@@ -2775,7 +2879,7 @@ function ProductPage({ token, adminUserId }) {
             <select
               value={reviewForm.subCategoryId}
               onChange={(event) => handleReviewCategoryChange('subCategoryId', event.target.value)}
-              disabled={!reviewForm.categoryId}
+              disabled={!canEditProduct || !reviewForm.categoryId}
             >
               <option value="">{reviewForm.categoryId ? 'All sub-categories' : 'Select category first'}</option>
               {reviewSubCategories.map((item) => (
@@ -2786,14 +2890,16 @@ function ProductPage({ token, adminUserId }) {
             </select>
           </label>
         </div>
-        <button
-          type="button"
-          className="ghost-btn small"
-          onClick={handleSaveReviewCategory}
-          disabled={isLoading || !reviewCategoryDirty || !reviewCategoryComplete}
-        >
-          Save Category Assignment
-        </button>
+        {canEditProduct ? (
+          <button
+            type="button"
+            className="ghost-btn small"
+            onClick={handleSaveReviewCategory}
+            disabled={isLoading || !reviewCategoryDirty || !reviewCategoryComplete}
+          >
+            Save Category Assignment
+          </button>
+        ) : null}
       </div>
 
       <div className="gsc-product-view-section">
@@ -2825,35 +2931,43 @@ function ProductPage({ token, adminUserId }) {
         </div>
       </div>
 
-      <div className="gsc-product-view-section">
-        <h4 className="gsc-product-view-section-title">Moderation Actions</h4>
-        <div className="product-review-actions">
-          <button
-            type="button"
-            className="primary-btn compact"
-            onClick={() => handleStatusUpdate('APPROVED')}
-            disabled={disableApprove}
-          >
-            Approve Product
-          </button>
-          <button
-            type="button"
-            className="ghost-btn small warning"
-            onClick={openChangeRequestModal}
-            disabled={disableRequestChanges}
-          >
-            Request Changes
-          </button>
-          <button
-            type="button"
-            className="ghost-btn small"
-            onClick={() => handleStatusUpdate('REJECTED')}
-            disabled={disableReject}
-          >
-            Reject Product
-          </button>
+      {hasProductReviewActions ? (
+        <div className="gsc-product-view-section">
+          <h4 className="gsc-product-view-section-title">Moderation Actions</h4>
+          <div className="product-review-actions">
+            {canApproveProduct ? (
+              <button
+                type="button"
+                className="primary-btn compact"
+                onClick={() => handleStatusUpdate('APPROVED')}
+                disabled={disableApprove}
+              >
+                Approve Product
+              </button>
+            ) : null}
+            {canRequestChangesProduct ? (
+              <button
+                type="button"
+                className="ghost-btn small warning"
+                onClick={openChangeRequestModal}
+                disabled={disableRequestChanges}
+              >
+                Request Changes
+              </button>
+            ) : null}
+            {canRejectProduct ? (
+              <button
+                type="button"
+                className="ghost-btn small"
+                onClick={() => handleStatusUpdate('REJECTED')}
+                disabled={disableReject}
+              >
+                Reject Product
+              </button>
+            ) : null}
+          </div>
         </div>
-      </div>
+      ) : null}
     </div>
   );
   const renderProductViewBody = () => {
@@ -4403,42 +4517,48 @@ function ProductPage({ token, adminUserId }) {
                     </span>
                     <span>Back</span>
                   </button>
-                  <div className="gsc-product-view-menu-shell" ref={viewActionMenuRef}>
-                    <button
-                      type="button"
-                      className="gsc-product-view-menu-trigger"
-                      aria-label="Open product actions"
-                      aria-expanded={showViewActionMenu}
-                      onClick={() => setShowViewActionMenu((prev) => !prev)}
-                    >
-                      {ACTION_ICONS.more}
-                    </button>
-                    {showViewActionMenu ? (
-                      <div className="gsc-product-view-menu-panel">
-                        <button
-                          type="button"
-                          className="gsc-product-view-menu-item"
-                          onClick={() => {
-                            setShowViewActionMenu(false);
-                            handleOpenEditForm();
-                          }}
-                          disabled={disableEdit}
-                        >
-                          <span className="gsc-product-view-menu-icon edit">{ACTION_ICONS.edit}</span>
-                          <span>Edit</span>
-                        </button>
-                        <button
-                          type="button"
-                          className="gsc-product-view-menu-item delete"
-                          onClick={() => handleDelete(selectedProduct.id)}
-                          disabled={isLoading}
-                        >
-                          <span className="gsc-product-view-menu-icon delete">{ACTION_ICONS.trash}</span>
-                          <span>Delete</span>
-                        </button>
-                      </div>
-                    ) : null}
-                  </div>
+                  {hasProductDetailActions ? (
+                    <div className="gsc-product-view-menu-shell" ref={viewActionMenuRef}>
+                      <button
+                        type="button"
+                        className="gsc-product-view-menu-trigger"
+                        aria-label="Open product actions"
+                        aria-expanded={showViewActionMenu}
+                        onClick={() => setShowViewActionMenu((prev) => !prev)}
+                      >
+                        {ACTION_ICONS.more}
+                      </button>
+                      {showViewActionMenu ? (
+                        <div className="gsc-product-view-menu-panel">
+                          {canEditProduct ? (
+                            <button
+                              type="button"
+                              className="gsc-product-view-menu-item"
+                              onClick={() => {
+                                setShowViewActionMenu(false);
+                                handleOpenEditForm();
+                              }}
+                              disabled={disableEdit}
+                            >
+                              <span className="gsc-product-view-menu-icon edit">{ACTION_ICONS.edit}</span>
+                              <span>Edit</span>
+                            </button>
+                          ) : null}
+                          {canDeleteProduct ? (
+                            <button
+                              type="button"
+                              className="gsc-product-view-menu-item delete"
+                              onClick={() => handleDelete(selectedProduct.id)}
+                              disabled={isLoading}
+                            >
+                              <span className="gsc-product-view-menu-icon delete">{ACTION_ICONS.trash}</span>
+                              <span>Delete</span>
+                            </button>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </div>
                 <div className="product-view-tabs">
                   {productViewTabs.map((tab) => (
@@ -4602,17 +4722,19 @@ function ProductPage({ token, adminUserId }) {
                   <path d="m21 21-4.35-4.35" />
                 </svg>
               </div>
-              <button
-                type="button"
-                className="gsc-create-btn"
-                onClick={handleOpenCreateForm}
-                title="Create product"
-                aria-label="Create product"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 5v14M5 12h14" />
-                </svg>
-              </button>
+              {canCreateProduct ? (
+                <button
+                  type="button"
+                  className="gsc-create-btn"
+                  onClick={handleOpenCreateForm}
+                  title="Create product"
+                  aria-label="Create product"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
+                </button>
+              ) : null}
             </div>
           </div>
           <div className="users-search" style={{ display: 'none' }}>
@@ -4676,8 +4798,8 @@ function ProductPage({ token, adminUserId }) {
                       return (
                         <tr
                           key={product?.id || product?.productId}
-                          className="table-row-clickable"
-                          onClick={() => handleViewProduct(product.id)}
+                          className={canViewProduct ? 'table-row-clickable' : ''}
+                          onClick={canViewProduct ? () => handleViewProduct(product?.id || product?.productId) : undefined}
                         >
                         <td>
                           <input
@@ -4729,95 +4851,125 @@ function ProductPage({ token, adminUserId }) {
                           <span className="product-table-primary">{formatDateTime(updatedAt)}</span>
                         </td>
                         <td className="table-actions" onClick={(e) => e.stopPropagation()}>
-                          <div className="product-table-action-menu" ref={openProductActionId === (product?.id || product?.productId) ? productActionMenuRef : null}>
-                            <button
-                              type="button"
-                              className="icon-btn product-table-action-trigger"
-                              aria-label="Actions"
-                              aria-expanded={openProductActionId === (product?.id || product?.productId)}
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                setOpenProductActionId((prev) => (prev === (product?.id || product?.productId) ? null : (product?.id || product?.productId)));
-                              }}
-                            >
-                              {ACTION_ICONS.more}
-                            </button>
-                            {openProductActionId === (product?.id || product?.productId) ? (
-                              <div className="product-table-action-dropdown">
+                          {(() => {
+                            const productId = product?.id || product?.productId;
+                            const statusCode = String(statusValue || '').toUpperCase();
+                            const canModerateRow = ['PENDING_REVIEW', 'CHANGES_REQUIRED'].includes(statusCode);
+                            const showApproveRow = canApproveProduct && canModerateRow;
+                            const showRequestChangesRow = canRequestChangesProduct && canModerateRow;
+                            const showRejectRow = canRejectProduct && canModerateRow;
+                            const hasRowActions =
+                              canViewProduct ||
+                              canEditProduct ||
+                              canDeleteProduct ||
+                              showApproveRow ||
+                              showRequestChangesRow ||
+                              showRejectRow;
+
+                            if (!hasRowActions || !hasProductListActions) {
+                              return null;
+                            }
+
+                            return (
+                              <div className="product-table-action-menu" ref={openProductActionId === productId ? productActionMenuRef : null}>
                                 <button
                                   type="button"
+                                  className="icon-btn product-table-action-trigger"
+                                  aria-label="Actions"
+                                  aria-expanded={openProductActionId === productId}
                                   onClick={(event) => {
                                     event.stopPropagation();
-                                    setOpenProductActionId(null);
-                                    handleViewProduct(product.id);
+                                    setOpenProductActionId((prev) => (prev === productId ? null : productId));
                                   }}
                                 >
-                                  <span className="gsc-product-view-menu-icon view">{ACTION_ICONS.view}</span>
-                                  View
+                                  {ACTION_ICONS.more}
                                 </button>
-                                <button
-                                  type="button"
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    setOpenProductActionId(null);
-                                    navigate(`/admin/products/${product.id}/edit`);
-                                  }}
-                                >
-                                  <span className="gsc-product-view-menu-icon edit">{ACTION_ICONS.edit}</span>
-                                  Edit
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    setOpenProductActionId(null);
-                                    handleDelete(product.id);
-                                  }}
-                                >
-                                  <span className="gsc-product-view-menu-icon delete">{ACTION_ICONS.trash}</span>
-                                  Delete
-                                </button>
-                                {['PENDING_REVIEW', 'CHANGES_REQUIRED'].includes(String(statusValue || '').toUpperCase()) ? (
-                                  <>
-                                    <button
-                                      type="button"
-                                      disabled={!hasFullCategoryPath}
-                                      onClick={(event) => {
-                                        event.stopPropagation();
-                                        setOpenProductActionId(null);
-                                        handleRowStatusUpdate(product.id, 'APPROVED');
-                                      }}
-                                    >
-                                      <span className="gsc-product-view-menu-icon approve">{ACTION_ICONS.approve}</span>
-                                      Approve
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={(event) => {
-                                        event.stopPropagation();
-                                        setOpenProductActionId(null);
-                                        handleRowStatusUpdate(product.id, 'CHANGES_REQUIRED');
-                                      }}
-                                    >
-                                      <span className="gsc-product-view-menu-icon request-changes">{ACTION_ICONS.requestChanges}</span>
-                                      Request changes
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={(event) => {
-                                        event.stopPropagation();
-                                        setOpenProductActionId(null);
-                                        handleRowStatusUpdate(product.id, 'REJECTED');
-                                      }}
-                                    >
-                                      <span className="gsc-product-view-menu-icon reject">{ACTION_ICONS.reject}</span>
-                                      Reject
-                                    </button>
-                                  </>
+                                {openProductActionId === productId ? (
+                                  <div className="product-table-action-dropdown">
+                                    {canViewProduct ? (
+                                      <button
+                                        type="button"
+                                        onClick={(event) => {
+                                          event.stopPropagation();
+                                          setOpenProductActionId(null);
+                                          handleViewProduct(productId);
+                                        }}
+                                      >
+                                        <span className="gsc-product-view-menu-icon view">{ACTION_ICONS.view}</span>
+                                        View
+                                      </button>
+                                    ) : null}
+                                    {canEditProduct ? (
+                                      <button
+                                        type="button"
+                                        onClick={(event) => {
+                                          event.stopPropagation();
+                                          setOpenProductActionId(null);
+                                          navigate(`/admin/products/${productId}/edit`);
+                                        }}
+                                      >
+                                        <span className="gsc-product-view-menu-icon edit">{ACTION_ICONS.edit}</span>
+                                        Edit
+                                      </button>
+                                    ) : null}
+                                    {canDeleteProduct ? (
+                                      <button
+                                        type="button"
+                                        onClick={(event) => {
+                                          event.stopPropagation();
+                                          setOpenProductActionId(null);
+                                          handleDelete(productId);
+                                        }}
+                                      >
+                                        <span className="gsc-product-view-menu-icon delete">{ACTION_ICONS.trash}</span>
+                                        Delete
+                                      </button>
+                                    ) : null}
+                                    {showApproveRow ? (
+                                      <button
+                                        type="button"
+                                        disabled={!hasFullCategoryPath}
+                                        onClick={(event) => {
+                                          event.stopPropagation();
+                                          setOpenProductActionId(null);
+                                          handleRowStatusUpdate(productId, 'APPROVED');
+                                        }}
+                                      >
+                                        <span className="gsc-product-view-menu-icon approve">{ACTION_ICONS.approve}</span>
+                                        Approve
+                                      </button>
+                                    ) : null}
+                                    {showRequestChangesRow ? (
+                                      <button
+                                        type="button"
+                                        onClick={(event) => {
+                                          event.stopPropagation();
+                                          setOpenProductActionId(null);
+                                          handleRowStatusUpdate(productId, 'CHANGES_REQUIRED');
+                                        }}
+                                      >
+                                        <span className="gsc-product-view-menu-icon request-changes">{ACTION_ICONS.requestChanges}</span>
+                                        Request changes
+                                      </button>
+                                    ) : null}
+                                    {showRejectRow ? (
+                                      <button
+                                        type="button"
+                                        onClick={(event) => {
+                                          event.stopPropagation();
+                                          setOpenProductActionId(null);
+                                          handleRowStatusUpdate(productId, 'REJECTED');
+                                        }}
+                                      >
+                                        <span className="gsc-product-view-menu-icon reject">{ACTION_ICONS.reject}</span>
+                                        Reject
+                                      </button>
+                                    ) : null}
+                                  </div>
                                 ) : null}
                               </div>
-                            ) : null}
-                          </div>
+                            );
+                          })()}
                         </td>
                       </tr>
                     );

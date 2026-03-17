@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Banner, TableRowActionMenu } from '../components';
+import { usePermissions } from '../shared/permissions';
 import { createIndustry, deleteIndustry, listIndustries, updateIndustry } from '../services/adminApi';
 import { buildOrderingWarning, findNextAvailableOrdering, findOrderingConflict, parseOrderingInput } from '../utils/ordering';
+import { PRODUCT_MASTER_PERMISSIONS } from '../constants/adminPermissions';
 
 const initialForm = {
   name: '',
@@ -21,6 +23,10 @@ function IndustryPage({ token }) {
   const [editItem, setEditItem] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [openActionRowId, setOpenActionRowId] = useState(null);
+  const { hasPermission } = usePermissions();
+  const canCreate = hasPermission(PRODUCT_MASTER_PERMISSIONS.industry.create);
+  const canUpdate = hasPermission(PRODUCT_MASTER_PERMISSIONS.industry.update);
+  const canDelete = hasPermission(PRODUCT_MASTER_PERMISSIONS.industry.delete);
 
   const loadIndustries = async () => {
     setIsLoading(true);
@@ -68,6 +74,10 @@ function IndustryPage({ token }) {
   };
 
   const handleEdit = (item) => {
+    if (!canUpdate) {
+      setMessage({ type: 'error', text: 'You do not have permission to update industries.' });
+      return;
+    }
     setEditItem(item);
     setForm({
       name: item.name || '',
@@ -88,6 +98,13 @@ function IndustryPage({ token }) {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (editItem ? !canUpdate : !canCreate) {
+      setMessage({
+        type: 'error',
+        text: editItem ? 'You do not have permission to update industries.' : 'You do not have permission to create industries.',
+      });
+      return;
+    }
     if (!form.name.trim()) {
       setMessage({ type: 'error', text: 'Industry name is required.' });
       return;
@@ -125,6 +142,10 @@ function IndustryPage({ token }) {
   };
 
   const handleDelete = async (id) => {
+    if (!canDelete) {
+      setMessage({ type: 'error', text: 'You do not have permission to delete industries.' });
+      return;
+    }
     try {
       setIsLoading(true);
       await deleteIndustry(token, id);
@@ -264,32 +285,34 @@ function IndustryPage({ token }) {
                   <path d="m21 21-4.35-4.35" />
                 </svg>
               </div>
-              <button
-                type="button"
-                className="gsc-create-btn"
-                onClick={() => {
-                  if (showForm) {
-                    handleCloseModal();
-                  } else {
-                    setEditItem(null);
-                    setForm(initialForm);
-                    setShowForm(true);
-                  }
-                }}
-                title="Create industry"
-                aria-label="Create industry"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+              {canCreate ? (
+                <button
+                  type="button"
+                  className="gsc-create-btn"
+                  onClick={() => {
+                    if (showForm) {
+                      handleCloseModal();
+                    } else {
+                      setEditItem(null);
+                      setForm(initialForm);
+                      setShowForm(true);
+                    }
+                  }}
+                  title="Create industry"
+                  aria-label="Create industry"
                 >
-                  <path d="M12 5v14M5 12h14" />
-                </svg>
-              </button>
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
+                </button>
+              ) : null}
             </div>
           </div>
           {items.length === 0 ? (
@@ -331,15 +354,24 @@ function IndustryPage({ token }) {
                         </td>
                         <td>{item.ordering ?? '-'}</td>
                         <td className="table-actions" onClick={(e) => e.stopPropagation()}>
-                          <TableRowActionMenu
-                            rowId={item.id}
-                            openRowId={openActionRowId}
-                            onToggle={setOpenActionRowId}
-                            actions={[
-                              { label: 'Edit', onClick: () => handleEdit(item) },
-                              { label: 'Delete', onClick: () => handleDelete(item.id), danger: true },
-                            ]}
-                          />
+                          {(() => {
+                            const actions = [];
+                            if (canUpdate) {
+                              actions.push({ label: 'Edit', onClick: () => handleEdit(item) });
+                            }
+                            if (canDelete) {
+                              actions.push({ label: 'Delete', onClick: () => handleDelete(item.id), danger: true });
+                            }
+                            if (actions.length === 0) return null;
+                            return (
+                              <TableRowActionMenu
+                                rowId={item.id}
+                                openRowId={openActionRowId}
+                                onToggle={setOpenActionRowId}
+                                actions={actions}
+                              />
+                            );
+                          })()}
                         </td>
                       </tr>
                     ));

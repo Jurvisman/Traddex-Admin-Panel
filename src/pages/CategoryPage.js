@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Banner, TableRowActionMenu } from '../components';
+import { usePermissions } from '../shared/permissions';
 import {
   createAttributeDefinition,
   createAttributeMapping,
@@ -13,6 +14,7 @@ import {
   updateCategory,
 } from '../services/adminApi';
 import { buildOrderingWarning, findNextAvailableOrdering, findOrderingConflict, parseOrderingInput } from '../utils/ordering';
+import { PRODUCT_MASTER_PERMISSIONS } from '../constants/adminPermissions';
 
 const initialForm = {
   name: '',
@@ -104,6 +106,11 @@ function CategoryPage({ token }) {
   const [selectedExistingFieldId, setSelectedExistingFieldId] = useState('');
   const [categorySearchQuery, setCategorySearchQuery] = useState('');
   const [openActionRowId, setOpenActionRowId] = useState(null);
+  const { hasPermission } = usePermissions();
+  const canCreate = hasPermission(PRODUCT_MASTER_PERMISSIONS.category.create);
+  const canUpdate = hasPermission(PRODUCT_MASTER_PERMISSIONS.category.update);
+  const canDelete = hasPermission(PRODUCT_MASTER_PERMISSIONS.category.delete);
+  const canManageFields = hasPermission('ADMIN_DYNAMIC_FIELDS_UPDATE');
 
   const definitionById = useMemo(() => {
     const map = new Map();
@@ -174,12 +181,15 @@ function CategoryPage({ token }) {
     setIsPageLoading(true);
     setMessage({ type: 'info', text: '' });
     try {
-      const [categories, mainCategoryList] = await Promise.all([
+      const [categoriesResult, mainCategoriesResult] = await Promise.allSettled([
         listCategories(token),
         listMainCategories(token),
       ]);
-      setItems(categories?.data || []);
-      setMainCategories(mainCategoryList?.data || []);
+      if (categoriesResult.status !== 'fulfilled') {
+        throw categoriesResult.reason;
+      }
+      setItems(categoriesResult.value?.data || []);
+      setMainCategories(mainCategoriesResult.status === 'fulfilled' ? mainCategoriesResult.value?.data || [] : []);
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to fetch categories.' });
     } finally {
@@ -248,6 +258,10 @@ function CategoryPage({ token }) {
   };
 
   const handleEdit = (item) => {
+    if (!canUpdate) {
+      setMessage({ type: 'error', text: 'You do not have permission to update categories.' });
+      return;
+    }
     setEditItem(item);
     setForm({
       name: item.name || '',
@@ -270,6 +284,13 @@ function CategoryPage({ token }) {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (editItem ? !canUpdate : !canCreate) {
+      setMessage({
+        type: 'error',
+        text: editItem ? 'You do not have permission to update categories.' : 'You do not have permission to create categories.',
+      });
+      return;
+    }
     if (!form.name.trim() || !form.mainCategoryId) {
       setMessage({ type: 'error', text: 'Name and main category are required.' });
       return;
@@ -309,6 +330,10 @@ function CategoryPage({ token }) {
   };
 
   const handleDelete = async (id) => {
+    if (!canDelete) {
+      setMessage({ type: 'error', text: 'You do not have permission to delete categories.' });
+      return;
+    }
     try {
       setIsPageLoading(true);
       await deleteCategory(token, id);
@@ -340,6 +365,10 @@ function CategoryPage({ token }) {
   };
 
   const openFieldManager = async (category) => {
+    if (!canManageFields) {
+      setFieldMessage({ type: 'error', text: 'You do not have permission to manage reusable fields.' });
+      return;
+    }
     setShowForm(false);
     setSelectedCategory(category);
     setShowFieldManager(true);
@@ -409,6 +438,10 @@ function CategoryPage({ token }) {
 
   const handleFieldSubmit = async (event) => {
     event.preventDefault();
+    if (!canManageFields) {
+      setFieldMessage({ type: 'error', text: 'You do not have permission to manage reusable fields.' });
+      return;
+    }
     if (!selectedCategory?.id) {
       setFieldMessage({ type: 'error', text: 'Select a category first.' });
       return;
@@ -469,6 +502,10 @@ function CategoryPage({ token }) {
   };
 
   const handleAddExistingField = async () => {
+    if (!canManageFields) {
+      setFieldMessage({ type: 'error', text: 'You do not have permission to manage reusable fields.' });
+      return;
+    }
     if (!selectedCategory?.id) {
       setFieldMessage({ type: 'error', text: 'Select a category first.' });
       return;
@@ -509,6 +546,10 @@ function CategoryPage({ token }) {
   };
 
   const handleRemoveField = async (mapping) => {
+    if (!canManageFields) {
+      setFieldMessage({ type: 'error', text: 'You do not have permission to manage reusable fields.' });
+      return;
+    }
     if (!window.confirm('Remove this field from the selected category?')) {
       return;
     }
@@ -895,30 +936,32 @@ function CategoryPage({ token }) {
                   <path d="m21 21-4.35-4.35" />
                 </svg>
               </div>
-              <button
-                type="button"
-                className="gsc-create-btn"
-                onClick={() => {
-                  if (!showForm) {
-                    setEditItem(null);
-                    setForm(initialForm);
-                  }
-                  setShowForm((prev) => !prev);
-                }}
-                title="Create category"
-                aria-label="Create category"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+              {canCreate ? (
+                <button
+                  type="button"
+                  className="gsc-create-btn"
+                  onClick={() => {
+                    if (!showForm) {
+                      setEditItem(null);
+                      setForm(initialForm);
+                    }
+                    setShowForm((prev) => !prev);
+                  }}
+                  title="Create category"
+                  aria-label="Create category"
                 >
-                  <path d="M12 5v14M5 12h14" />
-                </svg>
-              </button>
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
+                </button>
+              ) : null}
             </div>
           </div>
           {items.length === 0 ? (
@@ -941,7 +984,7 @@ function CategoryPage({ token }) {
                       .filter((item) => {
                         const q = categorySearchQuery.trim().toLowerCase();
                         if (!q) return true;
-                        const haystack = `${item.name || ''} ${item.mainCategoryName || ''}`.toLowerCase();
+                        const haystack = `${item.name || ''} ${item.mainCategoryName || item.main_category_name || ''}`.toLowerCase();
                         return haystack.includes(q);
                       })
                       .sort((a, b) => {
@@ -954,23 +997,34 @@ function CategoryPage({ token }) {
                       <tr key={item.id}>
                         <td>{index + 1}</td>
                         <td>{item.name}</td>
-                        <td>{item.mainCategoryName || '-'}</td>
+                        <td>{item.mainCategoryName || item.main_category_name || '-'}</td>
                         <td>
                           <span className={Number(item.active) === 1 ? 'status-active' : 'status-inactive'}>
                             {Number(item.active) === 1 ? 'Active' : 'Inactive'}
                           </span>
                         </td>
                         <td className="table-actions" onClick={(e) => e.stopPropagation()}>
-                          <TableRowActionMenu
-                            rowId={item.id}
-                            openRowId={openActionRowId}
-                            onToggle={setOpenActionRowId}
-                            actions={[
-                              { label: 'Manage Fields', onClick: () => openFieldManager(item) },
-                              { label: 'Edit', onClick: () => handleEdit(item) },
-                              { label: 'Delete', onClick: () => handleDelete(item.id), danger: true },
-                            ]}
-                          />
+                          {(() => {
+                            const actions = [];
+                            if (canManageFields) {
+                              actions.push({ label: 'Manage Fields', onClick: () => openFieldManager(item) });
+                            }
+                            if (canUpdate) {
+                              actions.push({ label: 'Edit', onClick: () => handleEdit(item) });
+                            }
+                            if (canDelete) {
+                              actions.push({ label: 'Delete', onClick: () => handleDelete(item.id), danger: true });
+                            }
+                            if (actions.length === 0) return null;
+                            return (
+                              <TableRowActionMenu
+                                rowId={item.id}
+                                openRowId={openActionRowId}
+                                onToggle={setOpenActionRowId}
+                                actions={actions}
+                              />
+                            );
+                          })()}
                         </td>
                       </tr>
                     ));
@@ -978,7 +1032,7 @@ function CategoryPage({ token }) {
                 </tbody>
               </table>
               <div className="table-record-count">
-                <span>Showing {items.filter((item) => { const q = categorySearchQuery.trim().toLowerCase(); if (!q) return true; return `${item.name || ''} ${item.mainCategoryName || ''}`.toLowerCase().includes(q); }).length} of {items.length} records</span>
+                <span>Showing {items.filter((item) => { const q = categorySearchQuery.trim().toLowerCase(); if (!q) return true; return `${item.name || ''} ${item.mainCategoryName || item.main_category_name || ''}`.toLowerCase().includes(q); }).length} of {items.length} records</span>
               </div>
             </div>
           )}

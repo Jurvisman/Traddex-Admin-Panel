@@ -15,6 +15,7 @@ import {
   updateBusinessProfileStatus,
   updateUser,
 } from '../services/adminApi';
+import { BUSINESS_PERMISSIONS } from '../constants/adminPermissions';
 
 const normalize = (value) => String(value || '').toLowerCase();
 
@@ -278,6 +279,9 @@ function AdminUsersPage({ token, allowedActions }) {
   const canUserRead = !hasActionModel || allowedActionSet.has('ADMIN_USERS_READ');
   const canUserUpdate = !hasActionModel || allowedActionSet.has('ADMIN_USERS_UPDATE');
   const canUserDelete = !hasActionModel || allowedActionSet.has('ADMIN_USERS_DELETE');
+  const canBusinessRead = !hasActionModel || allowedActionSet.has(BUSINESS_PERMISSIONS.read);
+  const canBusinessKycEdit = !hasActionModel || allowedActionSet.has(BUSINESS_PERMISSIONS.kycUpdate);
+  const canBusinessApprove = !hasActionModel || allowedActionSet.has(BUSINESS_PERMISSIONS.approve);
 
   const loadUsers = async () => {
     if (!canUserRead) {
@@ -565,10 +569,10 @@ function AdminUsersPage({ token, allowedActions }) {
     try {
       const response = await fetchUserDetails(token, user.id);
       setViewDetails(response?.data || { user });
-      if (isBusinessUser(user)) {
+      if (isBusinessUser(user) && canBusinessRead) {
         await loadLinkedProducts(user.id);
+        await loadBusinessScore(user.id);
       }
-      await loadBusinessScore(user.id);
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to load user details.' });
     } finally {
@@ -587,6 +591,7 @@ function AdminUsersPage({ token, allowedActions }) {
 
   const loadLinkedProducts = async (userId) => {
     if (!userId) return;
+    if (!canBusinessRead) return;
     setIsLinkedLoading(true);
     try {
       const response = await listProductsByUser(token, userId);
@@ -600,6 +605,7 @@ function AdminUsersPage({ token, allowedActions }) {
 
   const loadBusinessScore = async (userId) => {
     if (!userId) return;
+    if (!canBusinessRead) return;
     setIsBusinessScoreLoading(true);
     setBusinessScoreError('');
     try {
@@ -622,8 +628,10 @@ function AdminUsersPage({ token, allowedActions }) {
     try {
       const response = await fetchUserDetails(token, userId);
       setViewDetails(response?.data || { user: viewDetails?.user });
-      await loadLinkedProducts(userId);
-      await loadBusinessScore(userId);
+      if (isBusinessUser(response?.data?.user || viewDetails?.user) && canBusinessRead) {
+        await loadLinkedProducts(userId);
+        await loadBusinessScore(userId);
+      }
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to refresh user details.' });
     } finally {
@@ -649,7 +657,7 @@ function AdminUsersPage({ token, allowedActions }) {
   }, [isDetailRoute, routeUserId]);
 
   const openBusinessEdit = (profile) => {
-    if (!profile) return;
+    if (!canBusinessKycEdit || !profile) return;
     setEditBusinessProfile(profile);
     setEditBusinessForm(buildBusinessFormState(profile));
   };
@@ -660,8 +668,8 @@ function AdminUsersPage({ token, allowedActions }) {
 
   const handleBusinessSave = async (event) => {
     event.preventDefault();
-    if (!canUserUpdate) {
-      setMessage({ type: 'error', text: 'You do not have permission to update users.' });
+    if (!canBusinessKycEdit) {
+      setMessage({ type: 'error', text: 'You do not have permission to edit business KYC.' });
       return;
     }
     if (!editBusinessProfile?.userId) return;
@@ -672,11 +680,11 @@ function AdminUsersPage({ token, allowedActions }) {
       if (!payload.businessName) {
         throw new Error('Business name is required.');
       }
-      await updateBusinessProfile(token, editBusinessProfile.userId, payload, 'VERIFIED');
+      await updateBusinessProfile(token, editBusinessProfile.userId, payload);
       await loadUsers();
       await refreshViewDetails(editBusinessProfile.userId);
       setEditBusinessProfile(null);
-      setMessage({ type: 'success', text: 'Business profile saved and verified.' });
+      setMessage({ type: 'success', text: 'Business profile updated.' });
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to update business profile.' });
     } finally {
@@ -685,8 +693,8 @@ function AdminUsersPage({ token, allowedActions }) {
   };
 
   const handleBusinessApprove = async () => {
-    if (!canUserUpdate) {
-      setMessage({ type: 'error', text: 'You do not have permission to update users.' });
+    if (!canBusinessApprove) {
+      setMessage({ type: 'error', text: 'You do not have permission to approve businesses.' });
       return;
     }
     if (!viewBusinessProfile?.profileId) return;
@@ -739,16 +747,16 @@ function AdminUsersPage({ token, allowedActions }) {
     { label: 'Subscription Status', value: viewUser?.subscriptionStatus || '-' },
   ];
 
-  const viewTabs = [
-    { key: 'overview', label: 'General Details' },
-    { key: 'score', label: 'Business Score' },
-    {
-      key: 'profiles',
-      label: 'Profiles',
-      visible: Boolean(viewUserProfile || viewBusinessProfile || viewLogisticProfile || viewInsuranceProfile),
-    },
-    { key: 'products', label: 'Linked Products', visible: Boolean(viewUser && isBusinessUser(viewUser)) },
-  ].filter((tab) => tab.visible !== false);
+    const viewTabs = [
+      { key: 'overview', label: 'General Details' },
+      { key: 'score', label: 'Business Score', visible: Boolean(viewUser && isBusinessUser(viewUser) && canBusinessRead) },
+      {
+        key: 'profiles',
+        label: 'Profiles',
+        visible: Boolean(viewUserProfile || (viewBusinessProfile && canBusinessRead) || viewLogisticProfile || viewInsuranceProfile),
+      },
+      { key: 'products', label: 'Linked Products', visible: Boolean(viewUser && isBusinessUser(viewUser) && canBusinessRead) },
+    ].filter((tab) => tab.visible !== false);
   const resolvedViewTab = viewTabs.some((tab) => tab.key === activeViewTab)
     ? activeViewTab
     : viewTabs[0]?.key || 'overview';
@@ -1120,7 +1128,7 @@ function AdminUsersPage({ token, allowedActions }) {
                   </div>
                 ) : null}
 
-                {resolvedViewTab === 'profiles' && viewBusinessProfile ? (
+                {resolvedViewTab === 'profiles' && viewBusinessProfile && canBusinessRead ? (
                   <div className="detail-section">
                     <div className="panel-split detail-section-head">
                       <div className="detail-heading-wrap">
@@ -1133,21 +1141,25 @@ function AdminUsersPage({ token, allowedActions }) {
                         ) : null}
                       </div>
                       <div className="inline-row detail-section-actions">
-                        <button
-                          type="button"
-                          className="ghost-btn small"
-                          onClick={() => openBusinessEdit(viewBusinessProfile)}
-                        >
-                          Edit KYC
-                        </button>
-                        <button
-                          type="button"
-                          className="primary-btn compact"
-                          onClick={handleBusinessApprove}
-                          disabled={isBusinessSaving || businessStatusMeta?.isVerified}
-                        >
-                          {businessStatusMeta?.isVerified ? 'Verified' : isBusinessSaving ? 'Approving...' : 'Approve'}
-                        </button>
+                        {canBusinessKycEdit ? (
+                          <button
+                            type="button"
+                            className="ghost-btn small"
+                            onClick={() => openBusinessEdit(viewBusinessProfile)}
+                          >
+                            Edit KYC
+                          </button>
+                        ) : null}
+                        {canBusinessApprove ? (
+                          <button
+                            type="button"
+                            className="primary-btn compact"
+                            onClick={handleBusinessApprove}
+                            disabled={isBusinessSaving || businessStatusMeta?.isVerified}
+                          >
+                            {businessStatusMeta?.isVerified ? 'Verified' : isBusinessSaving ? 'Approving...' : 'Approve'}
+                          </button>
+                        ) : null}
                       </div>
                     </div>
                     <div className="user-detail-grid">

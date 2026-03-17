@@ -2,13 +2,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { Banner } from '../components';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  fetchUserDetails,
-  fetchUsers,
-  listProductsByUser,
+  fetchBusinessDetails,
+  fetchBusinesses,
+  listProductsByBusinessUser,
   updateBusinessProfile,
   updateBusinessProfileStatus,
-  updateUser,
+  updateBusinessAccount,
 } from '../services/adminApi';
+import { BUSINESS_PERMISSIONS } from '../constants/adminPermissions';
 
 const normalize = (value) => String(value || '').toLowerCase();
 
@@ -221,8 +222,9 @@ function BusinessPage({ token, allowedActions }) {
   }, [allowedActions]);
 
   const hasActionModel = allowedActionSet.size > 0;
-  const canRead = !hasActionModel || allowedActionSet.has('ADMIN_USERS_READ');
-  const canUpdate = !hasActionModel || allowedActionSet.has('ADMIN_USERS_UPDATE');
+  const canRead = !hasActionModel || allowedActionSet.has(BUSINESS_PERMISSIONS.read);
+  const canEditKyc = !hasActionModel || allowedActionSet.has(BUSINESS_PERMISSIONS.kycUpdate);
+  const canApprove = !hasActionModel || allowedActionSet.has(BUSINESS_PERMISSIONS.approve);
 
   const loadBusinesses = async () => {
     if (!canRead) {
@@ -234,7 +236,7 @@ function BusinessPage({ token, allowedActions }) {
     setIsLoading(true);
     setMessage({ type: 'info', text: '' });
     try {
-      const response = await fetchUsers(token);
+      const response = await fetchBusinesses(token);
       const list = Array.isArray(response?.data) ? response.data : [];
       const filtered = list
         .filter((user) => isBusinessUser(user))
@@ -263,8 +265,8 @@ function BusinessPage({ token, allowedActions }) {
     setMessage({ type: 'info', text: '' });
     try {
       const [detailsResponse, productsResponse] = await Promise.all([
-        fetchUserDetails(token, userId),
-        listProductsByUser(token, userId),
+        fetchBusinessDetails(token, userId),
+        listProductsByBusinessUser(token, userId),
       ]);
       setViewDetails(detailsResponse?.data || null);
       setLinkedProductCount(Array.isArray(productsResponse?.data?.products) ? productsResponse.data.products.length : 0);
@@ -320,12 +322,12 @@ function BusinessPage({ token, allowedActions }) {
       return;
     }
     if (!user?.id) return;
-    navigate(`/admin/users/business/${user.id}`);
+    navigate(`/admin/businesses/${user.id}`);
   };
 
   const handleToggleActive = async (user) => {
-    if (!canUpdate) {
-      setMessage({ type: 'error', text: 'You do not have permission to update businesses.' });
+    if (!canApprove) {
+      setMessage({ type: 'error', text: 'You do not have permission to approve or manage businesses.' });
       return;
     }
     if (!user?.id) return;
@@ -340,7 +342,7 @@ function BusinessPage({ token, allowedActions }) {
     setActiveUserId(user.id);
     setMessage({ type: 'info', text: '' });
     try {
-      await updateUser(token, user.id, payload);
+      await updateBusinessAccount(token, user.id, payload);
       await loadBusinesses();
       if ((viewDetails?.user?.id || viewDetails?.user?.user_id) === user.id) {
         await loadBusinessDetails(user.id);
@@ -357,7 +359,7 @@ function BusinessPage({ token, allowedActions }) {
   };
 
   const openBusinessEdit = (profile) => {
-    if (!profile) return;
+    if (!canEditKyc || !profile) return;
     setEditBusinessProfile(profile);
     setEditBusinessForm(buildBusinessFormState(profile));
   };
@@ -368,8 +370,8 @@ function BusinessPage({ token, allowedActions }) {
 
   const handleBusinessSave = async (event) => {
     event.preventDefault();
-    if (!canUpdate) {
-      setMessage({ type: 'error', text: 'You do not have permission to update businesses.' });
+    if (!canEditKyc) {
+      setMessage({ type: 'error', text: 'You do not have permission to edit business KYC.' });
       return;
     }
     if (!editBusinessProfile?.userId) return;
@@ -381,11 +383,11 @@ function BusinessPage({ token, allowedActions }) {
       if (!payload.businessName) {
         throw new Error('Business name is required.');
       }
-      await updateBusinessProfile(token, editBusinessProfile.userId, payload, 'VERIFIED');
+      await updateBusinessProfile(token, editBusinessProfile.userId, payload);
       await loadBusinesses();
       await loadBusinessDetails(editBusinessProfile.userId);
       setEditBusinessProfile(null);
-      setMessage({ type: 'success', text: 'Business profile saved and verified.' });
+      setMessage({ type: 'success', text: 'Business profile updated.' });
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to update business profile.' });
     } finally {
@@ -421,8 +423,8 @@ function BusinessPage({ token, allowedActions }) {
   }, [verificationMeta.isVerified, viewBusinessProfile]);
 
   const handleBusinessApprove = async () => {
-    if (!canUpdate) {
-      setMessage({ type: 'error', text: 'You do not have permission to update businesses.' });
+    if (!canApprove) {
+      setMessage({ type: 'error', text: 'You do not have permission to approve businesses.' });
       return;
     }
     if (!viewBusinessProfile?.profileId) return;
@@ -607,7 +609,7 @@ function BusinessPage({ token, allowedActions }) {
                               <button type="button" className="ghost-btn small" onClick={() => handleView(user)}>
                                 View
                               </button>
-                              {canUpdate ? (
+                              {canApprove ? (
                                 <button
                                   type="button"
                                   className={isActive ? 'ghost-btn small' : 'primary-btn compact'}
@@ -646,18 +648,18 @@ function BusinessPage({ token, allowedActions }) {
                     </span>
                   </div>
                   <div className="inline-row detail-section-actions">
-                    {viewBusinessProfile ? (
+                    {canEditKyc && viewBusinessProfile ? (
                       <button
                         type="button"
                         className="ghost-btn small"
                         onClick={() =>
-                          navigate(`/admin/users/business/${viewBusinessProfile.userId || viewUser?.id || ''}/edit`)
+                          navigate(`/admin/businesses/${viewBusinessProfile.userId || viewUser?.id || ''}/edit`)
                         }
                       >
                         Edit KYC
                       </button>
                     ) : null}
-                    {canUpdate ? (
+                    {canApprove ? (
                       <button
                         type="button"
                         className="primary-btn compact"

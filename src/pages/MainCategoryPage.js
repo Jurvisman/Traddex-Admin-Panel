@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Banner, TableRowActionMenu } from '../components';
+import { usePermissions } from '../shared/permissions';
 import {
   createMainCategory,
   deleteMainCategory,
@@ -8,6 +9,7 @@ import {
   updateMainCategory,
 } from '../services/adminApi';
 import { buildOrderingWarning, findNextAvailableOrdering, findOrderingConflict, parseOrderingInput } from '../utils/ordering';
+import { PRODUCT_MASTER_PERMISSIONS } from '../constants/adminPermissions';
 
 const initialForm = {
   name: '',
@@ -29,17 +31,24 @@ function MainCategoryPage({ token }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [editItem, setEditItem] = useState(null);
   const [openActionRowId, setOpenActionRowId] = useState(null);
+  const { hasPermission } = usePermissions();
+  const canCreate = hasPermission(PRODUCT_MASTER_PERMISSIONS.mainCategory.create);
+  const canUpdate = hasPermission(PRODUCT_MASTER_PERMISSIONS.mainCategory.update);
+  const canDelete = hasPermission(PRODUCT_MASTER_PERMISSIONS.mainCategory.delete);
 
   const loadData = async () => {
     setIsLoading(true);
     setMessage({ type: 'info', text: '' });
     try {
-      const [mainCategories, industryList] = await Promise.all([
+      const [mainCategoriesResult, industriesResult] = await Promise.allSettled([
         listMainCategories(token),
         listIndustries(token),
       ]);
-      setItems(mainCategories?.data || []);
-      const industryData = industryList?.data || [];
+      if (mainCategoriesResult.status !== 'fulfilled') {
+        throw mainCategoriesResult.reason;
+      }
+      setItems(mainCategoriesResult.value?.data || []);
+      const industryData = industriesResult.status === 'fulfilled' ? industriesResult.value?.data || [] : [];
       setIndustries(
         industryData.map((industry) => ({
           ...industry,
@@ -97,6 +106,10 @@ function MainCategoryPage({ token }) {
   };
 
   const handleEdit = (item) => {
+    if (!canUpdate) {
+      setMessage({ type: 'error', text: 'You do not have permission to update main categories.' });
+      return;
+    }
     setEditItem(item);
     setForm({
       name: item.name || '',
@@ -118,6 +131,15 @@ function MainCategoryPage({ token }) {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (editItem ? !canUpdate : !canCreate) {
+      setMessage({
+        type: 'error',
+        text: editItem
+          ? 'You do not have permission to update main categories.'
+          : 'You do not have permission to create main categories.',
+      });
+      return;
+    }
     if (!form.name.trim() || !form.industryId) {
       setMessage({ type: 'error', text: 'Name and industry are required.' });
       return;
@@ -159,6 +181,10 @@ function MainCategoryPage({ token }) {
   };
 
   const handleDelete = async (id) => {
+    if (!canDelete) {
+      setMessage({ type: 'error', text: 'You do not have permission to delete main categories.' });
+      return;
+    }
     try {
       setIsLoading(true);
       await deleteMainCategory(token, id);
@@ -313,30 +339,32 @@ function MainCategoryPage({ token }) {
                   <path d="m21 21-4.35-4.35" />
                 </svg>
               </div>
-              <button
-                type="button"
-                className="gsc-create-btn"
-                onClick={() => {
-                  if (!showForm) {
-                    setEditItem(null);
-                    setForm(initialForm);
-                  }
-                  setShowForm((prev) => !prev);
-                }}
-                title="Create main category"
-                aria-label="Create main category"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+              {canCreate ? (
+                <button
+                  type="button"
+                  className="gsc-create-btn"
+                  onClick={() => {
+                    if (!showForm) {
+                      setEditItem(null);
+                      setForm(initialForm);
+                    }
+                    setShowForm((prev) => !prev);
+                  }}
+                  title="Create main category"
+                  aria-label="Create main category"
                 >
-                  <path d="M12 5v14M5 12h14" />
-                </svg>
-              </button>
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
+                </button>
+              ) : null}
             </div>
           </div>
           {items.length === 0 ? (
@@ -359,7 +387,7 @@ function MainCategoryPage({ token }) {
                       .filter((item) => {
                         const q = searchQuery.trim().toLowerCase();
                         if (!q) return true;
-                        const haystack = `${item.name || ''} ${industryNameById.get(item.industryId) || ''}`.toLowerCase();
+                        const haystack = `${item.name || ''} ${industryNameById.get(item.industryId) || item.industryName || ''}`.toLowerCase();
                         return haystack.includes(q);
                       })
                       .sort((a, b) => {
@@ -372,22 +400,31 @@ function MainCategoryPage({ token }) {
                       <tr key={item.id}>
                         <td>{index + 1}</td>
                         <td>{item.name}</td>
-                        <td>{industryNameById.get(item.industryId) || '-'}</td>
+                        <td>{industryNameById.get(item.industryId) || item.industryName || '-'}</td>
                         <td>
                           <span className={item.active === 1 ? 'status-active' : 'status-inactive'}>
                             {item.active === 1 ? 'Active' : 'Inactive'}
                           </span>
                         </td>
                         <td className="table-actions" onClick={(e) => e.stopPropagation()}>
-                          <TableRowActionMenu
-                            rowId={item.id}
-                            openRowId={openActionRowId}
-                            onToggle={setOpenActionRowId}
-                            actions={[
-                              { label: 'Edit', onClick: () => handleEdit(item) },
-                              { label: 'Delete', onClick: () => handleDelete(item.id), danger: true },
-                            ]}
-                          />
+                          {(() => {
+                            const actions = [];
+                            if (canUpdate) {
+                              actions.push({ label: 'Edit', onClick: () => handleEdit(item) });
+                            }
+                            if (canDelete) {
+                              actions.push({ label: 'Delete', onClick: () => handleDelete(item.id), danger: true });
+                            }
+                            if (actions.length === 0) return null;
+                            return (
+                              <TableRowActionMenu
+                                rowId={item.id}
+                                openRowId={openActionRowId}
+                                onToggle={setOpenActionRowId}
+                                actions={actions}
+                              />
+                            );
+                          })()}
                         </td>
                       </tr>
                     ));
@@ -395,7 +432,7 @@ function MainCategoryPage({ token }) {
                 </tbody>
               </table>
               <div className="table-record-count">
-                <span>Showing {items.filter((item) => { const q = searchQuery.trim().toLowerCase(); if (!q) return true; return `${item.name || ''} ${industryNameById.get(item.industryId) || ''}`.toLowerCase().includes(q); }).length} of {items.length} records</span>
+                <span>Showing {items.filter((item) => { const q = searchQuery.trim().toLowerCase(); if (!q) return true; return `${item.name || ''} ${industryNameById.get(item.industryId) || item.industryName || ''}`.toLowerCase().includes(q); }).length} of {items.length} records</span>
               </div>
             </div>
           )}

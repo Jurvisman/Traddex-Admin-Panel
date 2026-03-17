@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Banner, TableRowActionMenu } from '../components';
+import { usePermissions } from '../shared/permissions';
 import {
   createProductCollection,
   deleteProductCollection,
@@ -10,6 +11,7 @@ import {
   listProducts,
   updateProductCollection,
 } from '../services/adminApi';
+import { PRODUCT_MASTER_PERMISSIONS } from '../constants/adminPermissions';
 
 const ADMIN_API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:8080';
 
@@ -143,6 +145,10 @@ function CollectionPage({ token }) {
   const [editItem, setEditItem] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [openActionRowId, setOpenActionRowId] = useState(null);
+  const { hasPermission } = usePermissions();
+  const canCreate = hasPermission(PRODUCT_MASTER_PERMISSIONS.collection.create);
+  const canUpdate = hasPermission(PRODUCT_MASTER_PERMISSIONS.collection.update);
+  const canDelete = hasPermission(PRODUCT_MASTER_PERMISSIONS.collection.delete);
   const [isSlugDirty, setIsSlugDirty] = useState(false);
   const [productPickerQuery, setProductPickerQuery] = useState('');
   const [isProductOptionsLoading, setIsProductOptionsLoading] = useState(false);
@@ -250,14 +256,25 @@ function CollectionPage({ token }) {
     setIsLoading(true);
     setMessage({ type: 'info', text: '' });
     try {
-      const [collectionResponse, industryResponse, mainCategoryResponse] = await Promise.all([
+      const [collectionsResult, industriesResult, mainCategoriesResult] = await Promise.allSettled([
         listProductCollections(token),
         listIndustries(token),
         listMainCategories(token),
       ]);
-      setItems(Array.isArray(collectionResponse?.data) ? collectionResponse.data : []);
-      setIndustries(Array.isArray(industryResponse?.data) ? industryResponse.data : []);
-      setMainCategories(Array.isArray(mainCategoryResponse?.data) ? mainCategoryResponse.data : []);
+      if (collectionsResult.status !== 'fulfilled') {
+        throw collectionsResult.reason;
+      }
+      setItems(Array.isArray(collectionsResult.value?.data) ? collectionsResult.value.data : []);
+      setIndustries(
+        industriesResult.status === 'fulfilled' && Array.isArray(industriesResult.value?.data)
+          ? industriesResult.value.data
+          : []
+      );
+      setMainCategories(
+        mainCategoriesResult.status === 'fulfilled' && Array.isArray(mainCategoriesResult.value?.data)
+          ? mainCategoriesResult.value.data
+          : []
+      );
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to fetch collections.' });
     } finally {
@@ -323,6 +340,10 @@ function CollectionPage({ token }) {
   };
 
   const openCreateModal = () => {
+    if (!canCreate) {
+      setMessage({ type: 'error', text: 'You do not have permission to create collections.' });
+      return;
+    }
     setEditItem(null);
     setForm(initialForm);
     setIsSlugDirty(false);
@@ -341,6 +362,10 @@ function CollectionPage({ token }) {
   };
 
   const handleEdit = (item) => {
+    if (!canUpdate) {
+      setMessage({ type: 'error', text: 'You do not have permission to update collections.' });
+      return;
+    }
     setEditItem(item);
     setForm({
       title: item.title || '',
@@ -394,6 +419,13 @@ function CollectionPage({ token }) {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (editItem ? !canUpdate : !canCreate) {
+      setMessage({
+        type: 'error',
+        text: editItem ? 'You do not have permission to update collections.' : 'You do not have permission to create collections.',
+      });
+      return;
+    }
     if (!form.title.trim()) {
       setMessage({ type: 'error', text: 'Collection title is required.' });
       return;
@@ -448,6 +480,10 @@ function CollectionPage({ token }) {
   };
 
   const handleDelete = async (id) => {
+    if (!canDelete) {
+      setMessage({ type: 'error', text: 'You do not have permission to delete collections.' });
+      return;
+    }
     if (!window.confirm('Delete this collection?')) {
       return;
     }
@@ -803,24 +839,26 @@ function CollectionPage({ token }) {
                   <path d="m21 21-4.35-4.35" />
                 </svg>
               </div>
-              <button
-                type="button"
-                className="gsc-create-btn"
-                onClick={openCreateModal}
-                title="Create collection"
-                aria-label="Create collection"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+              {canCreate ? (
+                <button
+                  type="button"
+                  className="gsc-create-btn"
+                  onClick={openCreateModal}
+                  title="Create collection"
+                  aria-label="Create collection"
                 >
-                  <path d="M12 5v14M5 12h14" />
-                </svg>
-              </button>
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
+                </button>
+              ) : null}
             </div>
           </div>
 
@@ -867,15 +905,24 @@ function CollectionPage({ token }) {
                         </span>
                       </td>
                       <td className="table-actions" onClick={(e) => e.stopPropagation()}>
-                        <TableRowActionMenu
-                          rowId={item.id}
-                          openRowId={openActionRowId}
-                          onToggle={setOpenActionRowId}
-                          actions={[
-                            { label: 'Edit', onClick: () => handleEdit(item) },
-                            { label: 'Delete', onClick: () => handleDelete(item.id), danger: true },
-                          ]}
-                        />
+                        {(() => {
+                          const actions = [];
+                          if (canUpdate) {
+                            actions.push({ label: 'Edit', onClick: () => handleEdit(item) });
+                          }
+                          if (canDelete) {
+                            actions.push({ label: 'Delete', onClick: () => handleDelete(item.id), danger: true });
+                          }
+                          if (actions.length === 0) return null;
+                          return (
+                            <TableRowActionMenu
+                              rowId={item.id}
+                              openRowId={openActionRowId}
+                              onToggle={setOpenActionRowId}
+                              actions={actions}
+                            />
+                          );
+                        })()}
                       </td>
                     </tr>
                   ))}

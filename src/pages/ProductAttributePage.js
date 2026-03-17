@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Banner, TableRowActionMenu } from '../components';
+import { usePermissions } from '../shared/permissions';
 import {
   createAttributeDefinition,
   createAttributeMapping,
@@ -173,6 +174,7 @@ function ProductAttributePage({ token }) {
   const [subCategoryOptionsByCategory, setSubCategoryOptionsByCategory] = useState({});
   const [showMoreFilters, setShowMoreFilters] = useState(false);
   const [openActionRowId, setOpenActionRowId] = useState(null);
+  const { hasPermission } = usePermissions();
 
   const definitionMap = useMemo(() => {
     const map = new Map();
@@ -1962,22 +1964,31 @@ function ProductAttributePage({ token }) {
                             </span>
                           </td>
                           <td className="table-actions" onClick={(event) => event.stopPropagation()}>
-                            <TableRowActionMenu
-                              rowId={definition.id}
-                              openRowId={openActionRowId}
-                              onToggle={setOpenActionRowId}
-                              actions={[
-                                {
+                            {(() => {
+                              const actions = [];
+                              if (hasPermission('ADMIN_DYNAMIC_FIELDS_UPDATE')) {
+                                actions.push({
                                   label: 'Edit',
                                   onClick: () => handleEditDefinition(definition),
-                                },
-                                {
+                                });
+                              }
+                              if (hasPermission('ADMIN_DYNAMIC_FIELDS_DELETE')) {
+                                actions.push({
                                   label: 'Delete',
                                   onClick: () => handleDeleteDefinition(definition.id),
                                   danger: true,
-                                },
-                              ]}
-                            />
+                                });
+                              }
+                              if (actions.length === 0) return null;
+                              return (
+                                <TableRowActionMenu
+                                  rowId={definition.id}
+                                  openRowId={openActionRowId}
+                                  onToggle={setOpenActionRowId}
+                                  actions={actions}
+                                />
+                              );
+                            })()}
                           </td>
                         </tr>
                       );

@@ -11,19 +11,28 @@ import {
   updateRole,
 } from '../services/adminApi';
 
-const CRUD_COLUMNS = ['CREATE', 'READ', 'UPDATE', 'DELETE'];
+const DEFAULT_ACTION_ORDER = ['CREATE', 'READ', 'VIEW', 'EDIT KYC', 'EDIT', 'UPDATE', 'DELETE', 'APPROVE', 'REQUEST CHANGES', 'REJECT'];
 
 const getRoleId = (role) => role?.id || role?.roles_id || role?.roleId || null;
 const getRoleName = (role) => role?.name || role?.role_name || role?.roleName || '';
 
-const resolveCrudBucket = (code) => {
-  const normalized = String(code || '').toUpperCase();
-  if (normalized.includes('_CREATE')) return 'CREATE';
-  if (normalized.includes('_DELETE') || normalized.includes('_REMOVE')) return 'DELETE';
-  if (normalized.includes('_UPDATE') || normalized.includes('_EDIT') || normalized.includes('_ASSIGN')) return 'UPDATE';
-  if (normalized.includes('_VIEW') || normalized.includes('_LIST') || normalized.includes('_READ')) return 'READ';
-  return null;
+const resolveActionLabel = (action) => {
+  const raw = String(action?.name || action?.code || '').trim();
+  if (!raw) return 'ACTION';
+  return raw.replace(/_/g, ' ').toUpperCase();
 };
+
+const sortActionLabels = (labels) =>
+  [...labels].sort((left, right) => {
+    const leftPriority = DEFAULT_ACTION_ORDER.indexOf(left);
+    const rightPriority = DEFAULT_ACTION_ORDER.indexOf(right);
+    if (leftPriority !== -1 || rightPriority !== -1) {
+      if (leftPriority === -1) return 1;
+      if (rightPriority === -1) return -1;
+      return leftPriority - rightPriority;
+    }
+    return left.localeCompare(right);
+  });
 
 function RolePermissionPage({ token }) {
   const navigate = useNavigate();
@@ -138,19 +147,20 @@ function RolePermissionPage({ token }) {
     catalog.forEach((menu) => {
       const menuName = menu?.name || 'Menu';
       (menu?.submenus || []).forEach((submenu) => {
-        const actionByBucket = { CREATE: [], READ: [], UPDATE: [], DELETE: [] };
+        const actionMap = new Map();
         (submenu?.actions || []).forEach((action) => {
-          const bucket = resolveCrudBucket(action?.code);
           const actionId = action?.actionId || action?.id;
-          if (bucket && actionId) {
-            actionByBucket[bucket].push(Number(actionId));
-          }
+          if (!actionId) return;
+          const label = resolveActionLabel(action);
+          const existing = actionMap.get(label) || [];
+          existing.push(Number(actionId));
+          actionMap.set(label, existing);
         });
         rows.push({
           key: `${menu?.menuId || menuName}-${submenu?.submenuId || submenu?.name}`,
           menuName,
           submenuName: submenu?.name || 'Submenu',
-          actionByBucket,
+          actionIdsByLabel: Object.fromEntries(actionMap),
         });
       });
     });
@@ -161,11 +171,17 @@ function RolePermissionPage({ token }) {
     const groups = new Map();
     matrixRows.forEach((row) => {
       if (!groups.has(row.menuName)) {
-        groups.set(row.menuName, []);
+        groups.set(row.menuName, { rows: [], columns: new Set() });
       }
-      groups.get(row.menuName).push(row);
+      const group = groups.get(row.menuName);
+      group.rows.push(row);
+      Object.keys(row.actionIdsByLabel || {}).forEach((label) => group.columns.add(label));
     });
-    return Array.from(groups.entries()).map(([menuName, rows]) => ({ menuName, rows }));
+    return Array.from(groups.entries()).map(([menuName, group]) => ({
+      menuName,
+      rows: group.rows,
+      columns: sortActionLabels(group.columns),
+    }));
   }, [matrixRows]);
 
   const selectedRole = useMemo(
@@ -181,10 +197,10 @@ function RolePermissionPage({ token }) {
     }
   }, [selectedRole]);
 
-  const isBucketChecked = (actionIds) =>
+  const isActionSetChecked = (actionIds) =>
     Array.isArray(actionIds) && actionIds.length > 0 && actionIds.every((id) => selectedActionIds.has(id));
 
-  const toggleBucket = (actionIds, checked) => {
+  const toggleActionSet = (actionIds, checked) => {
     if (!Array.isArray(actionIds) || actionIds.length === 0) return;
     setSelectedActionIds((prev) => {
       const next = new Set(prev);
@@ -449,7 +465,7 @@ function RolePermissionPage({ token }) {
           <p className="panel-subtitle">
             {isCreateRoute
               ? 'Create a new role and configure permissions.'
-              : 'Manage roles and map CRUD permissions by menu/submenu.'}
+              : 'Manage roles and map action permissions by menu/submenu.'}
           </p>
         </div>
         <div className="users-head-actions">
@@ -569,6 +585,7 @@ function RolePermissionPage({ token }) {
       </section>
 
       <div className="role-permission-groups">
+        {groupedMatrix.length === 0 ? <p className="empty-state">No permission catalog configured.</p> : null}
         {groupedMatrix.map((group) => {
           const isOpen = openMenus.has(group.menuName);
           return (
@@ -579,38 +596,44 @@ function RolePermissionPage({ token }) {
               </button>
               {isOpen && (
                 <div className="role-permission-group-body">
-                  <table className="admin-table users-table role-permission-table">
-                    <thead>
-                      <tr>
-                        <th />
-                        {CRUD_COLUMNS.map((col) => (
-                          <th key={col}>{col}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {group.rows.map((row) => (
-                        <tr key={row.key}>
-                          <td>{row.submenuName}</td>
-                          {CRUD_COLUMNS.map((col) => {
-                            const actionIds = row.actionByBucket[col] || [];
-                            const disabled = actionIds.length === 0 || !selectedRoleId;
-                            const checked = isBucketChecked(actionIds);
-                            return (
-                              <td key={`${row.key}-${col}`}>
-                                <input
-                                  type="checkbox"
-                                  checked={checked}
-                                  disabled={disabled}
-                                  onChange={(e) => toggleBucket(actionIds, e.target.checked)}
-                                />
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  {group.columns.length === 0 ? (
+                    <p className="empty-state">No active actions configured for this menu.</p>
+                  ) : (
+                    <div className="table-shell">
+                      <table className="admin-table users-table role-permission-table">
+                        <thead>
+                          <tr>
+                            <th>Submenu</th>
+                            {group.columns.map((column) => (
+                              <th key={`${group.menuName}-${column}`}>{column}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {group.rows.map((row) => (
+                            <tr key={row.key}>
+                              <td>{row.submenuName}</td>
+                              {group.columns.map((column) => {
+                                const actionIds = row.actionIdsByLabel[column] || [];
+                                const disabled = actionIds.length === 0 || !selectedRoleId;
+                                const checked = isActionSetChecked(actionIds);
+                                return (
+                                  <td key={`${row.key}-${column}`}>
+                                    <input
+                                      type="checkbox"
+                                      checked={checked}
+                                      disabled={disabled}
+                                      onChange={(e) => toggleActionSet(actionIds, e.target.checked)}
+                                    />
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
