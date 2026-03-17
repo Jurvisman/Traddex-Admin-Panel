@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Banner, TableRowActionMenu } from '../components';
 import {
   createSubscriptionPlan,
@@ -55,6 +55,7 @@ const toNumber = (value) => {
 
 function SubscriptionPlanPage({ token }) {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [plans, setPlans] = useState([]);
   const [features, setFeatures] = useState([]);
   const [form, setForm] = useState(initialForm);
@@ -155,6 +156,11 @@ function SubscriptionPlanPage({ token }) {
 
   const startCreateNew = () => {
     navigate('/admin/subscription/plans/new');
+  };
+
+  const startViewPlan = (plan) => {
+    if (!plan?.id) return;
+    navigate(`/admin/subscription/plans/${plan.id}`);
   };
 
   const buildPayload = () => {
@@ -290,6 +296,20 @@ function SubscriptionPlanPage({ token }) {
     });
   }, [plans, searchQuery]);
 
+  useEffect(() => {
+    const editParam = searchParams.get('edit');
+    if (!editParam || !plans.length) return;
+    const editId = Number(editParam);
+    if (Number.isNaN(editId)) return;
+    const plan = plans.find((item) => Number(item.id) === editId);
+    if (!plan) return;
+    handleEdit(plan);
+    const next = new URLSearchParams(searchParams);
+    next.delete('edit');
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plans]);
+
   return (
     <div>
       <div className="panel-head category-list-head">
@@ -368,7 +388,22 @@ function SubscriptionPlanPage({ token }) {
                   {filteredPlans.map((plan, index) => (
                     <tr key={plan.id}>
                       <td className="feature-srno-cell">{index + 1}</td>
-                      <td>{plan.plan_name}</td>
+                      <td>
+                        <span
+                          className="bdt-name-link"
+                          onClick={() => startViewPlan(plan)}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              startViewPlan(plan);
+                            }
+                          }}
+                        >
+                          {plan.plan_name}
+                        </span>
+                      </td>
                       <td>{plan.user_type}</td>
                       <td>{plan.price}</td>
                       <td>{plan.duration_months || plan.duration}</td>
@@ -386,7 +421,7 @@ function SubscriptionPlanPage({ token }) {
                             actions={[
                               {
                                 label: 'Edit',
-                                onClick: () => handleEdit(plan),
+                                onClick: () => navigate(`/admin/subscription/plans/${plan.id}/edit`),
                               },
                               {
                                 label: plan.is_active === 1 ? 'Deactivate' : 'Activate',

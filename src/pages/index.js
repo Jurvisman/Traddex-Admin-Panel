@@ -20,6 +20,7 @@ export { default as SubscriptionFeaturePage } from './SubscriptionFeaturePage';
 export { default as SubscriptionOverviewPage } from './SubscriptionOverviewPage';
 export { default as SubscriptionPlanPage } from './SubscriptionPlanPage';
 export { default as SubscriptionPlanCreatePage } from './SubscriptionPlanCreatePage';
+export { default as SubscriptionPlanViewPage } from './SubscriptionPlanViewPage';
 export { default as SubscriptionAssignPage } from './SubscriptionAssignPage';
 export { default as EmployeePage } from './EmployeePage';
 export { default as RolePermissionPage } from './RolePermissionPage';

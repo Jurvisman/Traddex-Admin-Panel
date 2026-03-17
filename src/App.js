@@ -23,6 +23,7 @@ import {
   SubscriptionOverviewPage,
   SubscriptionPlanPage,
   SubscriptionPlanCreatePage,
+  SubscriptionPlanViewPage,
   AdminUsersPage,
   UserDirectoryPage,
   EmployeePage,
@@ -1166,6 +1167,21 @@ function AppRoutes() {
           }
         />
         <Route
+          path="subscription/plans/:id"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={
+                canAccessPath('/admin/subscription/plans') &&
+                allowedActionCodes.has('ADMIN_SUBSCRIPTION_PLANS_READ')
+              }
+              fallbackPath={routeFallbackPath}
+            >
+              <SubscriptionPlanViewPage token={authToken} />
+            </PermissionGate>
+          }
+        />
+        <Route
           path="subscription/plans/new"
           element={
             <PermissionGate
@@ -1173,6 +1189,21 @@ function AppRoutes() {
               isAllowed={
                 canAccessPath('/admin/subscription/plans') &&
                 allowedActionCodes.has('ADMIN_SUBSCRIPTION_PLANS_CREATE')
+              }
+              fallbackPath={routeFallbackPath}
+            >
+              <SubscriptionPlanCreatePage token={authToken} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="subscription/plans/:id/edit"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={
+                canAccessPath('/admin/subscription/plans') &&
+                allowedActionCodes.has('ADMIN_SUBSCRIPTION_PLANS_UPDATE')
               }
               fallbackPath={routeFallbackPath}
             >

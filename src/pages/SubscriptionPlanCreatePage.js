@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Banner } from '../components';
-import { createSubscriptionPlan, listSubscriptionFeatures } from '../services/adminApi';
+import {
+  createSubscriptionPlan,
+  listSubscriptionFeatures,
+  listSubscriptionPlans,
+  updateSubscriptionPlan,
+} from '../services/adminApi';
 
 const initialForm = {
   plan_name: '',
@@ -49,6 +54,9 @@ const toNumber = (value) => {
 
 function SubscriptionPlanCreatePage({ token }) {
   const navigate = useNavigate();
+  const { id } = useParams();
+  const isEditMode = Boolean(id);
+  const numericId = isEditMode ? Number(id) : null;
   const [features, setFeatures] = useState([]);
   const [form, setForm] = useState(initialForm);
   const [featureRows, setFeatureRows] = useState([createFeatureRow()]);
@@ -72,14 +80,55 @@ function SubscriptionPlanCreatePage({ token }) {
     setFeatures(response?.data?.features || []);
   };
 
+  const hydrateFromPlan = (plan) => {
+    if (!plan) return;
+    setForm({
+      plan_name: plan.plan_name || '',
+      user_type: plan.user_type || 'BUSINESS',
+      business_type: plan.business_type || 'ALL',
+      price: plan.price ?? '',
+      duration_months: plan.duration_months ?? plan.duration ?? '',
+      description: plan.description || '',
+      icon_url: plan.icon_url || '',
+      font_color: plan.font_color || '#0f1230',
+      background_color: plan.background_color || '#ffffff',
+      is_active: plan.is_active !== null && plan.is_active !== undefined ? String(plan.is_active) : '1',
+    });
+    const rows = (plan.features || []).map((feature) =>
+      createFeatureRow({
+        feature_id: feature.feature_id ? String(feature.feature_id) : '',
+        type: feature.type || '',
+        feature_limit: feature.limit ?? '',
+        feature_priority: feature.priority ?? '',
+        is_enabled: feature.is_enabled !== null && feature.is_enabled !== undefined ? String(feature.is_enabled) : '1',
+      })
+    );
+    setFeatureRows(rows.length ? rows : [createFeatureRow()]);
+  };
+
   useEffect(() => {
     if (didInitRef.current) return;
     didInitRef.current = true;
     setIsLoading(true);
     setMessage({ type: 'info', text: '' });
-    loadFeatures()
+    const tasks = [loadFeatures()];
+    if (numericId && !Number.isNaN(numericId)) {
+      tasks.push(listSubscriptionPlans(token));
+    }
+    Promise.all(tasks)
+      .then((responses) => {
+        if (numericId && responses[1]) {
+          const plans = responses[1]?.data?.plans || [];
+          const plan = plans.find((item) => Number(item.id) === numericId);
+          if (!plan) {
+            setMessage({ type: 'error', text: 'Subscription plan not found.' });
+          } else {
+            hydrateFromPlan(plan);
+          }
+        }
+      })
       .catch((error) => {
-        setMessage({ type: 'error', text: error.message || 'Failed to load subscription features.' });
+        setMessage({ type: 'error', text: error.message || 'Failed to load subscription configuration.' });
       })
       .finally(() => setIsLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -177,11 +226,19 @@ function SubscriptionPlanCreatePage({ token }) {
     setIsLoading(true);
     setMessage({ type: 'info', text: '' });
     try {
-      await createSubscriptionPlan(token, payload);
-      setMessage({ type: 'success', text: 'Plan created successfully.' });
+      if (isEditMode && numericId && !Number.isNaN(numericId)) {
+        await updateSubscriptionPlan(token, numericId, payload);
+        setMessage({ type: 'success', text: 'Plan updated successfully.' });
+      } else {
+        await createSubscriptionPlan(token, payload);
+        setMessage({ type: 'success', text: 'Plan created successfully.' });
+      }
       navigate('/admin/subscription/plans', { replace: true });
     } catch (error) {
-      setMessage({ type: 'error', text: error.message || 'Failed to create plan.' });
+      setMessage({
+        type: 'error',
+        text: error.message || (isEditMode ? 'Failed to update plan.' : 'Failed to create plan.'),
+      });
     } finally {
       setIsLoading(false);
     }
@@ -210,8 +267,10 @@ function SubscriptionPlanCreatePage({ token }) {
     <div>
       <div className="panel-head">
         <div>
-          <h2 className="panel-title">Create subscription plan</h2>
-          <p className="panel-subtitle">Define pricing, duration, and included features.</p>
+          <h2 className="panel-title">{isEditMode ? 'Edit subscription plan' : 'Create subscription plan'}</h2>
+          <p className="panel-subtitle">
+            {isEditMode ? 'Update pricing, duration, and included features.' : 'Define pricing, duration, and included features.'}
+          </p>
         </div>
       </div>
       <Banner message={message} />

@@ -2600,6 +2600,247 @@ textarea {
   margin-bottom: 14px;
 }
 
+.subscription-plan-detail-card {
+  width: 100%;
+  margin-top: 12px;
+}
+
+/* Color swatches */
+.plan-color-swatches {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.plan-color-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.plan-color-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+.plan-color-role {
+  font-size: 11px;
+  color: var(--admin-muted, #9ca3af);
+  font-weight: 500;
+}
+
+/* Feature type pills */
+.plan-feature-type-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.plan-feature-type-pill.count {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.plan-feature-type-pill.priority {
+  background: #fdf4ff;
+  color: #9333ea;
+}
+
+.plan-feature-type-pill.access {
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+/* Fix features table column widths */
+.plan-features-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.plan-features-table td,
+.plan-features-table th {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Reusable datatable name link (plans, business, etc.) */
+.bdt-name-link {
+  color: #2563eb;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  font-size: 12px;
+  padding: 2px 6px 2px 0;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+}
+
+.bdt-name-link:hover {
+  text-decoration: underline;
+  color: #1d4ed8;
+}
+
+/* Soften labels in subscription plan view */
+.users-detail-page .user-view-label {
+  color: #9ca3af;
+}
+
+/* Plan view header 3-dot menu */
+.plan-header-actions .table-action-menu {
+  position: relative;
+  display: inline-flex;
+  justify-content: flex-end;
+}
+
+.plan-header-actions .table-action-trigger {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.plan-header-actions .table-action-trigger:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.plan-header-actions .table-action-trigger svg {
+  width: 18px;
+  height: 18px;
+}
+
+.plan-header-actions .table-action-dropdown {
+  min-width: 160px;
+  padding: 4px 0;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+}
+
+.plan-header-actions .table-action-dropdown button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: 0;
+  background: 0;
+  padding: 10px 14px;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.plan-header-actions .table-action-dropdown button + button {
+  border-top: 1px solid #f3f4f6;
+}
+
+.plan-header-actions .table-action-dropdown button:hover:not(:disabled) {
+  background: #f3f4f6;
+}
+
+.plan-header-actions .table-action-dropdown button.danger {
+  color: #b91c1c;
+}
+
+.plan-header-actions .table-action-dropdown button.danger:hover {
+  background: rgba(185, 28, 28, 0.08);
+}
+
+.plan-header-actions .table-action-dropdown .table-action-menu-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.subscription-plan-detail-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 1fr);
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.subscription-plan-detail-main {
+  display: grid;
+  gap: 16px;
+}
+
+.subscription-plan-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.subscription-plan-detail-title {
+  margin: 0 0 4px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.subscription-plan-detail-meta {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.subscription-plan-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.subscription-plan-detail-card {
+  border-radius: 12px;
+  border: 1px solid var(--line-soft);
+  background: var(--panel-soft);
+  padding: 10px 12px;
+}
+
+.subscription-plan-detail-description {
+  border-radius: 12px;
+  border: 1px solid var(--line-soft);
+  background: #f7f5ff;
+  padding: 12px 14px;
+}
+
+.subscription-plan-detail-features {
+  border-radius: 14px;
+  border: 1px solid var(--line-soft);
+  background: var(--panel-soft);
+  padding: 12px 14px 10px;
+}
+
+.subscription-plan-detail-features .panel-subheading {
+  margin-bottom: 8px;
+}
+
 .plan-builder {
   display: grid;
   grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);

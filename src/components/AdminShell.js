@@ -23,7 +23,7 @@ const getAvatarLabel = (value) => {
 const toStageLabel = (segment, fallbackTitle) => {
   const value = String(segment || '').trim();
   if (!value) return fallbackTitle || 'Dashboard';
-  if (/^\d+$/.test(value)) return fallbackTitle || 'Details';
+  if (/^\d+$/.test(value)) return 'Details';
   return value
     .replace(/[-_]+/g, ' ')
     .replace(/\s+/g, ' ')
