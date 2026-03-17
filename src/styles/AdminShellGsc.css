@@ -205,10 +205,10 @@
 
 .admin-shell-gsc .admin-nav-subitem {
   display: flex !important;
-  align-items: center !important;
+  align-items: flex-start !important;
   box-sizing: border-box !important;
   min-height: auto !important;
-  padding: 4px 4px 4px 20px !important;
+  padding: 6px 8px 6px 20px !important;
   margin: 0 !important;
   border-radius: 0 !important;
   font-size: 14px !important;
@@ -220,8 +220,14 @@
 }
 
 .admin-shell-gsc .admin-nav-subitem .admin-nav-label {
+  display: block !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
   font-size: 14px !important;
   font-weight: 500 !important;
+  line-height: 1.3 !important;
+  white-space: normal !important;
+  word-break: break-word !important;
 }
 
 .admin-shell-gsc .admin-nav-subitem:hover {
