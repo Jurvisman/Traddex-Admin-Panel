@@ -3307,6 +3307,11 @@ textarea {
   gap: 12px;
 }
 
+/* Dashboard: add breathing room between stat cards and analytics section */
+.admin-shell-gsc .stat-grid + .dashboard-analytics {
+  margin-top: 16px;
+}
+
 .admin-stat {
   background: #ffffff;
 }

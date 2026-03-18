@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Banner } from '../components';
+import { Banner, TableRowActionMenu } from '../components';
 import { createEmployee, deleteEmployee, fetchEmployees, listRoles, updateEmployee } from '../services/adminApi';
 
 const normalize = (value) => String(value || '').toLowerCase();
@@ -33,6 +33,7 @@ function EmployeePage({ token }) {
   const [form, setForm] = useState(createInitialForm);
   const [message, setMessage] = useState({ type: 'info', text: '' });
   const [showForm, setShowForm] = useState(false);
+  const [openActionRowId, setOpenActionRowId] = useState(null);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -290,8 +291,8 @@ function EmployeePage({ token }) {
         {filteredEmployees.length === 0 ? (
           <p className="empty-state">No employees found.</p>
         ) : (
-          <div className="table-shell">
-            <table className="admin-table users-table">
+          <div className="table-shell business-table-shell">
+            <table className="admin-table users-table business-datatable">
               <thead>
                 <tr>
                   <th>Name</th>
@@ -300,7 +301,7 @@ function EmployeePage({ token }) {
                   <th>Status</th>
                   <th>Scope</th>
                   <th>Created</th>
-                  <th>Actions</th>
+                  <th className="table-actions">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -313,20 +314,30 @@ function EmployeePage({ token }) {
                       <td>{employee?.number || '-'}</td>
                       <td>{employee?.roleName || '-'}</td>
                       <td>
-                        <span className={`status-pill ${isActive ? 'verified' : 'pending'}`}>
+                        <span className={`status-pill ${isActive ? 'approved' : 'rejected'}`}>
                           {isActive ? 'Active' : 'Inactive'}
                         </span>
                       </td>
                       <td>{employee?.accountScope || employee?.account_scope || 'EMPLOYEE'}</td>
                       <td>{formatDate(employee?.createdAt || employee?.created_at)}</td>
-                      <td>
-                        <div className="table-actions">
-                          <button type="button" className="ghost-btn small" onClick={() => handleEdit(employee)}>
-                            Edit
-                          </button>
-                          <button type="button" className="ghost-btn small" onClick={() => handleDelete(employee)}>
-                            Delete
-                          </button>
+                      <td className="table-actions">
+                        <div className="table-action-group">
+                          <TableRowActionMenu
+                            rowId={id}
+                            openRowId={openActionRowId}
+                            onToggle={setOpenActionRowId}
+                            actions={[
+                              {
+                                label: 'Edit',
+                                onClick: () => handleEdit(employee),
+                              },
+                              {
+                                label: 'Delete',
+                                onClick: () => handleDelete(employee),
+                                danger: true,
+                              },
+                            ]}
+                          />
                         </div>
                       </td>
                     </tr>
