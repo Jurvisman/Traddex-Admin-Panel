@@ -5067,6 +5067,7 @@ textarea {
   border: 1px solid rgba(47,47,47,0.08);
   background: #fff;
   padding: 10px;
+  box-shadow: 0 8px 18px rgba(201, 108, 138, 0.06);
 }
 
 .preview-beauty-salon-image {
@@ -5103,48 +5104,137 @@ textarea {
   color: #6b5c57;
 }
 
+.preview-beauty-salons.is-beauty .preview-beauty-salon-card {
+  border-color: rgba(201, 108, 138, 0.14);
+  background: linear-gradient(180deg, #fff9fc 0%, #ffffff 100%);
+}
+
+.preview-beauty-salons.is-beauty .preview-beauty-salon-meta {
+  color: #7f5b6a;
+}
+
+.preview-beauty-salons.is-beauty .preview-beauty-salon-meta span {
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  background: #faf1f6;
+}
+
 .preview-beauty-salons.is-grocery .preview-beauty-salon-card {
   border-color: rgba(46, 107, 31, 0.16);
   background: linear-gradient(180deg, #f5faee 0%, #ffffff 100%);
+  box-shadow: 0 10px 20px rgba(83, 123, 39, 0.08);
+  border-radius: 18px;
+  padding: 11px;
+}
+
+.preview-beauty-salons.is-grocery .preview-beauty-salon-image {
+  height: 92px;
+  border-radius: 14px;
 }
 
 .preview-beauty-salons.is-grocery .preview-beauty-salon-meta {
   color: #5e6d57;
+  justify-content: flex-start;
+  gap: 8px;
 }
 
-.preview-beauty-salon-cta {
-  margin-top: 8px;
-  align-self: flex-start;
-  padding: 5px 10px;
+.preview-beauty-salons.is-grocery .preview-beauty-salon-meta span {
+  height: 22px;
+  padding: 0 8px;
   border-radius: 999px;
-  background: rgba(46, 107, 31, 0.12);
-  color: #2e6b1f;
-  font-size: 10px;
+  display: inline-flex;
+  align-items: center;
+  background: #f5f7ef;
+}
+
+.preview-beauty-salon-actions {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.preview-beauty-salon-action {
+  height: 30px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-size: 9px;
   font-weight: 700;
+}
+
+.preview-beauty-salon-action-call {
+  background: #ffffff;
+  border: 1px solid rgba(46, 107, 31, 0.16);
+  color: #1e2a17;
+}
+
+.preview-beauty-salons.is-beauty .preview-beauty-salon-action-call {
+  border-color: rgba(201, 108, 138, 0.16);
+  background: #fff9fc;
+  color: #5a3b4a;
+}
+
+.preview-beauty-salon-action-whatsapp {
+  background: #1f8f46;
+  color: #ffffff;
+}
+
+.preview-beauty-salon-action-glyph {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.preview-beauty-salon-action-call .preview-beauty-salon-action-glyph {
+  background: #eef4e6;
+  color: #1e2a17;
+}
+
+.preview-beauty-salons.is-beauty .preview-beauty-salon-action-call .preview-beauty-salon-action-glyph {
+  background: #f6e6ee;
+  color: #8a4d67;
+}
+
+.preview-beauty-salon-action-whatsapp .preview-beauty-salon-action-glyph {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
 }
 
 .preview-split-promo-row {
   display: grid;
-  grid-template-columns: 1.45fr 0.95fr;
-  gap: 10px;
+  grid-template-columns: 1.58fr 0.92fr;
+  gap: 12px;
 }
 
 .preview-split-promo-card {
-  min-height: 126px;
+  min-height: 144px;
   border-radius: 22px;
   border: 1px solid rgba(46, 107, 31, 0.14);
-  background: linear-gradient(135deg, #f0f9d8, #fffdf4);
-  padding: 12px;
+  background: linear-gradient(135deg, #eff8d4, #fffdf2);
+  padding: 14px;
   display: flex;
   justify-content: space-between;
+  box-shadow: 0 7px 16px rgba(83, 123, 39, 0.08);
 }
 
 .preview-split-promo-card.is-primary {
   flex-direction: row;
+  align-items: center;
 }
 
 .preview-split-promo-card.is-secondary {
-  background: linear-gradient(135deg, #d8f3aa, #f4fbe5);
+  background: linear-gradient(135deg, #dcf2ae, #f7fce8);
 }
 
 .preview-split-promo-copy {
@@ -5155,7 +5245,8 @@ textarea {
 .preview-split-promo-title {
   font-weight: 800;
   font-size: 14px;
-  line-height: 1.2;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
   color: #1e2a17;
 }
 
@@ -5168,38 +5259,45 @@ textarea {
 
 .preview-split-promo-cta {
   display: inline-flex;
+  align-items: center;
   margin-top: 12px;
-  padding: 8px 13px;
+  padding: 9px 14px;
   border-radius: 999px;
   background: #2e6b1f;
   color: #fff;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
+  box-shadow: 0 5px 12px rgba(46, 107, 31, 0.18);
 }
 
 .preview-split-promo-visual {
-  width: 92px;
+  width: 108px;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+  justify-content: center;
 }
 
 .preview-split-promo-badge {
   align-self: flex-start;
   margin-bottom: 8px;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   color: #2e6b1f;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 999px;
+  padding: 4px 9px;
 }
 
 .preview-split-promo-image {
   width: 100%;
-  height: 76px;
-  border-radius: 16px;
+  height: 78px;
+  border-radius: 18px;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.7);
 }
 
 .preview-split-promo-image img {

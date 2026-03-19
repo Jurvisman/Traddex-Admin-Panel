@@ -1018,7 +1018,9 @@ export const PreviewSection = ({
   }
 
   if (blockType === 'beauty_salon_carousel') {
-    const isGroceryPreset = String(section?.stylePreset || '').trim().toLowerCase() === 'grocery';
+    const normalizedPreset = String(section?.stylePreset || '').trim().toLowerCase();
+    const previewPreset = normalizedPreset === 'grocery' || normalizedPreset === 'electronics' ? normalizedPreset : 'beauty';
+    const isGroceryPreset = previewPreset === 'grocery';
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
         {title ? (
@@ -1027,7 +1029,7 @@ export const PreviewSection = ({
             {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
           </div>
         ) : null}
-        <div className={`preview-beauty-salons ${isGroceryPreset ? 'is-grocery' : ''}`}>
+        <div className={`preview-beauty-salons is-${previewPreset}`}>
           {items.map((item, itemIndex) => (
             <div key={`preview-beauty-salon-${index}-${itemIndex}`} className="preview-beauty-salon-card">
               <div className="preview-beauty-salon-image">
@@ -1039,9 +1041,16 @@ export const PreviewSection = ({
                 <span>{item?.rating || '4.8'}</span>
                 <span>{item?.distance || (isGroceryPreset ? '20-30 min' : '2.4 km')}</span>
               </div>
-              {isGroceryPreset && item?.ctaText ? (
-                <div className="preview-beauty-salon-cta">{item.ctaText}</div>
-              ) : null}
+              <div className="preview-beauty-salon-actions">
+                <div className="preview-beauty-salon-action preview-beauty-salon-action-call">
+                  <span className="preview-beauty-salon-action-glyph">C</span>
+                  <span>Call</span>
+                </div>
+                <div className="preview-beauty-salon-action preview-beauty-salon-action-whatsapp">
+                  <span className="preview-beauty-salon-action-glyph">W</span>
+                  <span>WhatsApp</span>
+                </div>
+              </div>
             </div>
           ))}
         </div>
