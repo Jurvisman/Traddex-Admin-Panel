@@ -9,10 +9,163 @@ import {
   resolveIndustryLabel,
   normalizeMatchValue,
   normalizeCollectionId,
+  resolveMainCategoryIndustryId,
+  resolveMainCategoryName,
+  resolveCategoryMainCategoryId,
   normalizeColumnTopLineStyle,
   parseAspectRatioValue,
   ensureBentoTiles,
 } from './appConfigConstants';
+
+const LEGACY_BENTO_AUTO_BACKGROUNDS = new Set(['#e7f6ff', '#eef7ff', '#a8e0ff']);
+
+const PREVIEW_BENTO_THEMES = {
+  default: {
+    background: '#E7F6FF',
+    surface: 'rgba(255,255,255,0.94)',
+    tile: 'rgba(255,255,255,0.88)',
+    border: 'rgba(153, 203, 238, 0.9)',
+    placeholder: '#CFE9FA',
+    badgeBg: 'rgba(255,255,255,0.96)',
+    badgeText: '#14507B',
+    labelBg: 'rgba(255,255,255,0.92)',
+    labelText: '#16324F',
+    heroLabelBg: 'rgba(18, 41, 66, 0.44)',
+    heroLabelText: '#FFFFFF',
+  },
+  electronics: {
+    background: '#E7F6FF',
+    surface: 'rgba(255,255,255,0.94)',
+    tile: 'rgba(255,255,255,0.88)',
+    border: 'rgba(153, 203, 238, 0.9)',
+    placeholder: '#CFE9FA',
+    badgeBg: 'rgba(255,255,255,0.96)',
+    badgeText: '#14507B',
+    labelBg: 'rgba(255,255,255,0.92)',
+    labelText: '#16324F',
+    heroLabelBg: 'rgba(18, 41, 66, 0.44)',
+    heroLabelText: '#FFFFFF',
+  },
+  beauty: {
+    background: '#F7E2EA',
+    surface: 'rgba(255,251,253,0.95)',
+    tile: 'rgba(255,247,251,0.93)',
+    border: 'rgba(227, 189, 205, 0.92)',
+    placeholder: '#F1D7E2',
+    badgeBg: 'rgba(255,248,251,0.96)',
+    badgeText: '#A04E73',
+    labelBg: 'rgba(255,248,251,0.92)',
+    labelText: '#7F3C5D',
+    heroLabelBg: 'rgba(108, 43, 76, 0.42)',
+    heroLabelText: '#FFFFFF',
+  },
+  grocery: {
+    background: '#E8F4D7',
+    surface: 'rgba(250,255,245,0.96)',
+    tile: 'rgba(245,251,238,0.94)',
+    border: 'rgba(187, 219, 157, 0.96)',
+    placeholder: '#D6E9BE',
+    badgeBg: 'rgba(250,255,245,0.97)',
+    badgeText: '#2E621C',
+    labelBg: 'rgba(250,255,245,0.93)',
+    labelText: '#254D17',
+    heroLabelBg: 'rgba(38, 82, 23, 0.42)',
+    heroLabelText: '#FFFFFF',
+  },
+};
+
+const normalizeBentoThemePreset = (stylePreset, pageThemePreset) => {
+  const explicit = String(stylePreset || '').trim().toLowerCase();
+  if (explicit === 'beauty' || explicit === 'electronics' || explicit === 'grocery') return explicit;
+  const pagePreset = String(pageThemePreset || '').trim().toLowerCase();
+  if (pagePreset === 'beauty' || pagePreset === 'electronics' || pagePreset === 'grocery') return pagePreset;
+  return 'default';
+};
+
+const resolvePreviewBentoTheme = (stylePreset, pageThemePreset, backgroundColor) => {
+  const preset = normalizeBentoThemePreset(stylePreset, pageThemePreset);
+  const base = PREVIEW_BENTO_THEMES[preset] || PREVIEW_BENTO_THEMES.default;
+  const normalizedBackground = String(backgroundColor || '').trim().toLowerCase();
+  const background =
+    normalizedBackground && !LEGACY_BENTO_AUTO_BACKGROUNDS.has(normalizedBackground)
+      ? backgroundColor
+      : base.background;
+  return { ...base, background };
+};
+
+const normalizeBentoTileSourceType = (value) => {
+  const normalized = String(value || '').trim().toUpperCase();
+  if (normalized === 'CATEGORY_FEED' || normalized === 'COLLECTION_FEED') return normalized;
+  return 'MANUAL';
+};
+
+const getPreviewBentoTiles = (section, collections, mainCategories, productCollections) => {
+  const source = section?.tileSource && typeof section.tileSource === 'object' ? section.tileSource : {};
+  const sourceType = normalizeBentoTileSourceType(source?.sourceType || section?.bentoTilesSourceType);
+  const rawLimit = Number(source?.limit ?? section?.bentoTilesLimit ?? 4);
+  const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.max(1, Math.min(4, Math.trunc(rawLimit))) : 4;
+
+  if (sourceType === 'CATEGORY_FEED') {
+    const mainCategoryId = normalizeCollectionId(source?.mainCategoryId || section?.bentoTilesMainCategoryId);
+    if (mainCategoryId) {
+      const categoryItems = (Array.isArray(collections) ? collections : [])
+        .filter(
+          (item) =>
+            normalizeCollectionId(resolveCategoryMainCategoryId(item)) === mainCategoryId
+        )
+        .slice(0, limit)
+        .map((item, index) => ({
+          imageUrl: getPreviewImage(item) || item?.categoryIcon || '',
+          label: item?.name || item?.title || `Category ${index + 1}`,
+        }));
+      if (categoryItems.length) return categoryItems;
+    }
+
+    const industryId = normalizeCollectionId(source?.industryId || section?.bentoTilesIndustryId);
+    if (industryId) {
+      const mainCategoryItems = (Array.isArray(mainCategories) ? mainCategories : [])
+        .filter(
+          (item) =>
+            normalizeCollectionId(resolveMainCategoryIndustryId(item)) === industryId
+        )
+        .slice(0, limit)
+        .map((item, index) => ({
+          imageUrl: getPreviewImage(item) || item?.mainCategoryIcon || '',
+          label: resolveMainCategoryName(item) || `Category ${index + 1}`,
+        }));
+      if (mainCategoryItems.length) return mainCategoryItems;
+    }
+  }
+
+  if (sourceType === 'COLLECTION_FEED') {
+    const selectedRefs = Array.isArray(source?.collectionRefs)
+      ? source.collectionRefs.map((value) => normalizeCollectionId(value)).filter(Boolean)
+      : Array.isArray(section?.bentoTileCollectionRefs)
+        ? section.bentoTileCollectionRefs.map((value) => normalizeCollectionId(value)).filter(Boolean)
+        : [];
+    const collectionMap = new Map();
+    (Array.isArray(productCollections) ? productCollections : []).forEach((item) => {
+      const slug = normalizeCollectionId(item?.slug);
+      const id = normalizeCollectionId(item?.id);
+      if (slug) collectionMap.set(slug, item);
+      if (id) collectionMap.set(id, item);
+    });
+    const selectedCollections = selectedRefs
+      .map((ref, index) => {
+        const item = collectionMap.get(ref);
+        if (!item) return null;
+        return {
+          imageUrl: item?.heroImage || item?.imageUrl || '',
+          label: item?.title || item?.slug || `Collection ${index + 1}`,
+        };
+      })
+      .filter(Boolean)
+      .slice(0, limit);
+    if (selectedCollections.length) return selectedCollections;
+  }
+
+  return ensureBentoTiles(section?.tiles).slice(0, limit);
+};
 
 export const SortableSectionRow = ({ id, className, children }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
@@ -254,7 +407,14 @@ export const HeaderBlockPreview = ({ block, industries }) => {
   return <div className="preview-header-fallback">{resolveBlockLabel(blockType, 'Header Block')}</div>;
 };
 
-export const PreviewSection = ({ section, index, collections }) => {
+export const PreviewSection = ({
+  section,
+  index,
+  collections,
+  mainCategories,
+  productCollections,
+  pageThemePreset = '',
+}) => {
   if (!section) return null;
   const type = section?.type || 'section';
   const blockType = resolveBlockType(section);
@@ -994,36 +1154,53 @@ export const PreviewSection = ({ section, index, collections }) => {
   }
 
   if (blockType === 'campaignBento') {
-    const background = section?.sectionBgColor;
+    const theme = resolvePreviewBentoTheme(stylePreset, pageThemePreset, section?.sectionBgColor);
     const headerImage = section?.headerImage || getPreviewImage(items[0]);
     const hero = section?.hero && typeof section.hero === 'object' ? section.hero : {};
     const heroImage = hero?.imageUrl || getPreviewImage(items[1]);
     const heroBadge = hero?.badgeText || hero?.badge || hero?.priceTag || '';
     const heroLabel = hero?.label || hero?.title || '';
-    const tiles = ensureBentoTiles(section?.tiles);
+    const tiles = getPreviewBentoTiles(section, collections, mainCategories, productCollections);
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
         {title ? <div className="preview-title">{title}</div> : null}
-        <div className="preview-bento" style={{ backgroundColor: background || undefined }}>
+        <div
+          className="preview-bento"
+          style={{
+            backgroundColor: theme.background,
+            '--preview-bento-surface': theme.surface,
+            '--preview-bento-tile': theme.tile,
+            '--preview-bento-border': theme.border,
+            '--preview-bento-placeholder': theme.placeholder,
+            '--preview-bento-label-bg': theme.labelBg,
+            '--preview-bento-label-color': theme.labelText,
+            '--preview-bento-badge-bg': theme.badgeBg,
+            '--preview-bento-badge-color': theme.badgeText,
+            '--preview-bento-hero-label-bg': theme.heroLabelBg,
+            '--preview-bento-hero-label-color': theme.heroLabelText,
+          }}
+        >
           <div className="preview-bento-header">
             {headerImage ? <img src={headerImage} alt="" draggable={false} /> : <div className="preview-bento-placeholder" />}
           </div>
           <div className="preview-bento-grid">
-            <div className="preview-bento-hero">
-              {heroImage ? <img src={heroImage} alt="" draggable={false} /> : <div className="preview-bento-placeholder" />}
-              {heroBadge ? <span className="preview-bento-badge">{heroBadge}</span> : null}
-              {heroLabel ? <span className="preview-bento-hero-label">{heroLabel}</span> : null}
-            </div>
             <div className="preview-bento-tiles">
               {tiles.map((tile, tileIndex) => (
                 <div key={`preview-bento-${index}-${tileIndex}`} className="preview-bento-tile">
                   {tile.imageUrl ? <img src={tile.imageUrl} alt="" draggable={false} /> : <div className="preview-bento-placeholder" />}
                   <span className="preview-bento-label">
-                    {tile.label || `Tile ${tileIndex + 1}`}
+                    {tile.label || `Card ${tileIndex + 1}`}
                   </span>
                 </div>
               ))}
             </div>
+            {heroImage || heroLabel || heroBadge ? (
+              <div className="preview-bento-hero">
+                {heroImage ? <img src={heroImage} alt="" draggable={false} /> : <div className="preview-bento-placeholder" />}
+                {heroBadge ? <span className="preview-bento-badge">{heroBadge}</span> : null}
+                {heroLabel ? <span className="preview-bento-hero-label">{heroLabel}</span> : null}
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

@@ -189,9 +189,31 @@ export const buildSectionFromForm = (base, form) => {
     } else {
       delete next.tiles;
     }
+    const tileSourceType = String(form.bentoTilesSourceType || 'MANUAL').trim().toUpperCase();
+    if (tileSourceType === 'CATEGORY_FEED' || tileSourceType === 'COLLECTION_FEED') {
+      const tileSource = { sourceType: tileSourceType };
+      if (tileSourceType === 'CATEGORY_FEED') {
+        const industryId = normalizeCollectionId(form.bentoTilesIndustryId);
+        const mainCategoryId = normalizeCollectionId(form.bentoTilesMainCategoryId);
+        if (industryId) tileSource.industryId = industryId;
+        if (mainCategoryId) tileSource.mainCategoryId = mainCategoryId;
+      }
+      if (tileSourceType === 'COLLECTION_FEED') {
+        const collectionRefs = Array.isArray(form.bentoTileCollectionRefs)
+          ? form.bentoTileCollectionRefs.map((value) => normalizeCollectionId(value)).filter(Boolean)
+          : [];
+        if (collectionRefs.length) tileSource.collectionRefs = collectionRefs;
+      }
+      const tileLimit = toNumberOrNull(form.bentoTilesLimit);
+      if (tileLimit) tileSource.limit = Math.max(1, Math.min(4, tileLimit));
+      next.tileSource = tileSource;
+    } else {
+      delete next.tileSource;
+    }
   } else {
     delete next.hero;
     delete next.tiles;
+    delete next.tileSource;
     if (!isColumnGridBlock) {
       delete next.headerImage;
     }
@@ -234,7 +256,9 @@ export const buildSectionFromForm = (base, form) => {
     delete next.dataSource;
     delete next.mapping;
   } else {
-    if (sourceType && sourceType !== 'MANUAL') {
+    if (isCampaignBentoBlock) {
+      delete next.dataSource;
+    } else if (sourceType && sourceType !== 'MANUAL') {
       const sourcePayload = { sourceType };
       const sourceIndustryId = normalizeCollectionId(form.sourceIndustryId);
       if (sourceIndustryId) sourcePayload.industryId = sourceIndustryId;
@@ -263,7 +287,7 @@ export const buildSectionFromForm = (base, form) => {
     } else {
       delete next.dataSource;
     }
-    if (sourceType === 'CATEGORY_FEED') {
+    if (!isCampaignBentoBlock && sourceType === 'CATEGORY_FEED') {
       const mappingPayload = {};
       const titleField = String(form.mappingTitleField || '').trim();
       const imageField = String(form.mappingImageField || '').trim();
@@ -411,6 +435,7 @@ export const buildSectionFormFromConfig = (section, fallbackType) => {
   const firstItem = items[0] || {};
   const hero = section?.hero && typeof section.hero === 'object' ? section.hero : {};
   const tiles = ensureBentoTiles(section?.tiles);
+  const tileSource = section?.tileSource && typeof section.tileSource === 'object' ? section.tileSource : {};
   const source = section?.dataSource && typeof section.dataSource === 'object' ? section.dataSource : {};
   const mapping = section?.mapping && typeof section.mapping === 'object' ? section.mapping : {};
   const resolvedType = section?.type === 'campaign' ? 'campaignBento' : section?.type || fallbackType;
@@ -490,6 +515,22 @@ export const buildSectionFormFromConfig = (section, fallbackType) => {
     bentoHeroLink: hero?.deepLink || hero?.targetUrl || '',
     bentoHeroLabel: hero?.label || hero?.title || '',
     bentoHeroBadge: hero?.badge || hero?.badgeText || hero?.priceTag || '',
+    bentoTilesSourceType: tileSource?.sourceType || defaultSectionForm.bentoTilesSourceType,
+    bentoTilesIndustryId:
+      tileSource?.industryId !== undefined && tileSource?.industryId !== null
+        ? String(tileSource.industryId)
+        : defaultSectionForm.bentoTilesIndustryId,
+    bentoTilesMainCategoryId:
+      tileSource?.mainCategoryId !== undefined && tileSource?.mainCategoryId !== null
+        ? String(tileSource.mainCategoryId)
+        : defaultSectionForm.bentoTilesMainCategoryId,
+    bentoTileCollectionRefs: Array.isArray(tileSource?.collectionRefs)
+      ? tileSource.collectionRefs.map((value) => normalizeCollectionId(value)).filter(Boolean)
+      : defaultSectionForm.bentoTileCollectionRefs,
+    bentoTilesLimit:
+      tileSource?.limit !== undefined && tileSource?.limit !== null
+        ? String(tileSource.limit)
+        : defaultSectionForm.bentoTilesLimit,
     bentoTiles: tiles,
     sduiItems: phaseOneBlockTypes.has(resolvedBlockType)
       ? normalizePhaseOneItems(items, resolvedBlockType)

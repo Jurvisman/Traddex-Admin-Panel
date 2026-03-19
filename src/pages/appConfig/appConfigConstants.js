@@ -1083,13 +1083,14 @@ export const screenToolboxItems = [
   {
     key: 'campaignBento',
     label: 'Campaign Bento Block',
-    hint: 'Hero + 4 tiles layout',
+    hint: 'Top banner + 4 quick-link cards + feature banner',
     section: {
       id: 'campaign_bento',
       type: 'campaignBento',
       blockType: 'campaignBento',
       title: 'Skin-safe herbal gulal',
-      sectionBgColor: '#e7f6ff',
+      sectionBgColor: '',
+      stylePreset: '',
       headerImage: '',
       hero: { imageUrl: '', deepLink: '', label: '' },
       tiles: Array.from({ length: 4 }, () => ({ imageUrl: '', deepLink: '', label: '' })),
@@ -1910,8 +1911,19 @@ export const SOURCE_TYPE_OPTIONS = [
   { value: 'HYBRID', label: 'Hybrid (manual + feed)' },
   { value: 'CATEGORY_FEED', label: 'Category feed' },
 ];
+export const BENTO_TILE_SOURCE_OPTIONS = [
+  { value: 'MANUAL', label: 'Manual cards' },
+  { value: 'CATEGORY_FEED', label: 'Category feed' },
+  { value: 'COLLECTION_FEED', label: 'Collection feed' },
+];
 
 export const STYLE_PRESET_OPTIONS = {
+  campaignBento: [
+    { value: '', label: 'Auto / page theme' },
+    { value: 'electronics', label: 'Electronics' },
+    { value: 'beauty', label: 'Beauty' },
+    { value: 'grocery', label: 'Grocery' },
+  ],
   promo_hero_banner: [
     { value: 'electronics', label: 'Electronics' },
     { value: 'beauty', label: 'Beauty' },
@@ -2511,6 +2523,11 @@ export const defaultSectionForm = {
   bentoHeroLink: '',
   bentoHeroLabel: '',
   bentoHeroBadge: '',
+  bentoTilesSourceType: 'MANUAL',
+  bentoTilesIndustryId: '',
+  bentoTilesMainCategoryId: '',
+  bentoTileCollectionRefs: [],
+  bentoTilesLimit: '4',
   bentoTiles: Array.from({ length: 4 }, () => ({ imageUrl: '', deepLink: '', label: '' })),
   sduiItems: [],
   enabled: true,

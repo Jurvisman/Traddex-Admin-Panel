@@ -78,6 +78,7 @@ import {
   COLUMN_GRID_TOP_LINE_STYLES,
   CATEGORY_FEED_SORT_OPTIONS,
   CATEGORY_ICON_FEED_MODE_OPTIONS,
+  BENTO_TILE_SOURCE_OPTIONS,
   SOURCE_TYPE_OPTIONS,
   SHOWCASE_VARIANT_OPTIONS,
   STYLE_PRESET_OPTIONS,
@@ -351,6 +352,23 @@ function AppConfigPage({ token }) {
       return indSlug === slug;
     }) || null;
   }, [selectedPage, industries]);
+
+  const pageThemePreset = useMemo(() => {
+    const pageId = String(selectedPage?.id || '').trim().toLowerCase();
+    if (pageId.startsWith('home_') && pageId !== 'home_main') {
+      const slug = pageId.replace(/^home_/, '');
+      if (slug === 'beauty' || slug === 'electronics' || slug === 'grocery') return slug;
+    }
+    const route = String(selectedPage?.route || '').trim().toLowerCase();
+    if (route.includes('beauty')) return 'beauty';
+    if (route.includes('electronics')) return 'electronics';
+    if (route.includes('grocery')) return 'grocery';
+    const industrySlug = normalizeSlug(pageIndustry?.slug || pageIndustry?.name || '');
+    if (industrySlug === 'beauty' || industrySlug === 'electronics' || industrySlug === 'grocery') {
+      return industrySlug;
+    }
+    return '';
+  }, [pageIndustry, selectedPage]);
 
   const selectedSections = useMemo(() => {
     const sections = selectedPage?.screen?.sections;
@@ -1033,6 +1051,7 @@ function AppConfigPage({ token }) {
     if (pageIndustry) {
       base.sourceType = 'CATEGORY_FEED';
       base.sourceIndustryId = String(resolveIndustryId(pageIndustry) || '');
+      base.bentoTilesIndustryId = String(resolveIndustryId(pageIndustry) || '');
     }
     setSectionForm(base);
     setEditingSectionIndex(null);
@@ -1099,6 +1118,41 @@ function AppConfigPage({ token }) {
       const nextTiles = ensureBentoTiles(prev.bentoTiles);
       nextTiles[index] = { ...nextTiles[index], [field]: value };
       return { ...prev, bentoTiles: nextTiles };
+    });
+  };
+
+  const updateBentoTileSourceType = (value) => {
+    setSectionForm((prev) => {
+      const normalized = String(value || 'MANUAL').trim().toUpperCase();
+      const next = {
+        ...prev,
+        bentoTilesSourceType: normalized,
+      };
+      if (normalized === 'CATEGORY_FEED' && !normalizeCollectionId(prev.bentoTilesIndustryId) && pageIndustry) {
+        next.bentoTilesIndustryId = String(resolveIndustryId(pageIndustry) || '');
+      }
+      if (normalized !== 'COLLECTION_FEED') {
+        next.bentoTileCollectionRefs = [];
+      }
+      if (normalized !== 'CATEGORY_FEED') {
+        next.bentoTilesMainCategoryId = '';
+      }
+      return next;
+    });
+  };
+
+  const toggleBentoCollectionRef = (value) => {
+    const normalized = normalizeCollectionId(value);
+    if (!normalized) return;
+    setSectionForm((prev) => {
+      const current = Array.isArray(prev.bentoTileCollectionRefs) ? prev.bentoTileCollectionRefs : [];
+      const nextRefs = current.includes(normalized)
+        ? current.filter((item) => item !== normalized)
+        : [...current, normalized];
+      return {
+        ...prev,
+        bentoTileCollectionRefs: nextRefs,
+      };
     });
   };
 
@@ -2965,6 +3019,15 @@ function AppConfigPage({ token }) {
     );
   }, [mainCategories, sectionForm.sourceIndustryId]);
 
+  const filteredBentoMainCategoryOptions = useMemo(() => {
+    const industryId = normalizeCollectionId(sectionForm.bentoTilesIndustryId);
+    const items = Array.isArray(mainCategories) ? mainCategories : [];
+    if (!industryId) return items;
+    return items.filter(
+      (item) => normalizeMatchValue(resolveMainCategoryIndustryId(item)) === normalizeMatchValue(industryId)
+    );
+  }, [mainCategories, sectionForm.bentoTilesIndustryId]);
+
   const brandCollectionOptions = useMemo(() => {
     const selectedMainCategoryId = normalizeCollectionId(sectionForm.sourceMainCategoryId);
     let items = Array.isArray(collections) ? [...collections] : [];
@@ -2975,6 +3038,21 @@ function AppConfigPage({ token }) {
     }
     return items.sort((a, b) => Number(a?.ordering ?? 999999) - Number(b?.ordering ?? 999999));
   }, [collections, sectionForm.sourceMainCategoryId]);
+
+  const bentoTileSourceType = useMemo(
+    () => String(sectionForm.bentoTilesSourceType || 'MANUAL').trim().toUpperCase(),
+    [sectionForm.bentoTilesSourceType]
+  );
+
+  const selectedBentoCollectionRefs = useMemo(
+    () =>
+      new Set(
+        (Array.isArray(sectionForm.bentoTileCollectionRefs) ? sectionForm.bentoTileCollectionRefs : [])
+          .map(normalizeCollectionId)
+          .filter(Boolean)
+      ),
+    [sectionForm.bentoTileCollectionRefs]
+  );
 
   const productCollectionOptions = useMemo(
     () =>
@@ -3469,7 +3547,14 @@ function AppConfigPage({ token }) {
                                   openEditSection(entry.index);
                                 }}
                               >
-                                <PreviewSection section={entry.section} index={entry.index} collections={collections} />
+                                <PreviewSection
+                                  section={entry.section}
+                                  index={entry.index}
+                                  collections={collections}
+                                  mainCategories={mainCategories}
+                                  productCollections={productCollections}
+                                  pageThemePreset={pageThemePreset}
+                                />
                               </div>
                             );
                           })}
@@ -3489,7 +3574,14 @@ function AppConfigPage({ token }) {
                                 className={`preview-sortable ${isActive ? 'is-active' : ''}`}
                                 onClick={() => openEditSection(entry.index)}
                               >
-                                <PreviewSection section={entry.section} index={entry.index} collections={collections} />
+                                <PreviewSection
+                                  section={entry.section}
+                                  index={entry.index}
+                                  collections={collections}
+                                  mainCategories={mainCategories}
+                                  productCollections={productCollections}
+                                  pageThemePreset={pageThemePreset}
+                                />
                               </SortablePreviewItem>
                             );
                           })
@@ -3650,7 +3742,7 @@ function AppConfigPage({ token }) {
                           />
                         </label>
                         <label className="field">
-                          <span>Background color</span>
+                          <span>Background color override</span>
                           <div className="inline-row">
                             <input
                               type="text"
@@ -3665,6 +3757,9 @@ function AppConfigPage({ token }) {
                               onChange={(event) => setSectionForm((prev) => ({ ...prev, sectionBgColor: event.target.value }))}
                             />
                           </div>
+                          <p className="field-help">
+                            Leave this blank to let the Bento block automatically use the current page theme.
+                          </p>
                         </label>
                       </>
                     ) : null}
@@ -6387,7 +6482,7 @@ function AppConfigPage({ token }) {
                           </div>
                         </label>
                         <label className="field field-span">
-                          <span>Header banner image URL</span>
+                          <span>Top banner image URL</span>
                           <div className="inline-row">
                             <input
                               type="text"
@@ -6415,7 +6510,7 @@ function AppConfigPage({ token }) {
                           </div>
                         </label>
                         <label className="field field-span">
-                          <span>Main tile image URL</span>
+                          <span>Bottom feature image URL</span>
                           <div className="inline-row">
                             <input
                               type="text"
@@ -6443,82 +6538,198 @@ function AppConfigPage({ token }) {
                           </div>
                         </label>
                         <label className="field field-span">
-                          <span>Main tile deep link</span>
+                          <span>Bottom feature deep link</span>
                           <input
                             type="text"
                             value={sectionForm.bentoHeroLink}
                             onChange={(event) =>
                               setSectionForm((prev) => ({ ...prev, bentoHeroLink: event.target.value }))
                             }
-                            placeholder="app://campaign/gulal"
+                            placeholder="app://collection/fresh-picks"
                           />
                         </label>
                         <label className="field field-span">
-                          <span>Main tile label (optional)</span>
+                          <span>Bottom feature title (optional)</span>
                           <input
                             type="text"
                             value={sectionForm.bentoHeroLabel}
                             onChange={(event) =>
                               setSectionForm((prev) => ({ ...prev, bentoHeroLabel: event.target.value }))
                             }
-                            placeholder="Gulal"
+                            placeholder="World Vegetarian Day"
                           />
                         </label>
                         <label className="field field-span">
-                          <span>Main tile badge (optional)</span>
+                          <span>Bottom feature badge (optional)</span>
                           <input
                             type="text"
                             value={sectionForm.bentoHeroBadge}
                             onChange={(event) =>
                               setSectionForm((prev) => ({ ...prev, bentoHeroBadge: event.target.value }))
                             }
-                            placeholder="₹59"
+                            placeholder="Fresh picks"
                           />
                         </label>
                         <label className="field field-span">
-                          <span>Sub tiles</span>
-                          <div className="bento-tile-grid">
-                            {ensureBentoTiles(sectionForm.bentoTiles).map((tile, idx) => (
-                              <div key={`bento-tile-${idx}`} className="bento-tile-row">
-                                <div className="bento-tile-title">Tile {idx + 1}</div>
-                                <div className="inline-row">
+                          <span>Middle quick-link cards</span>
+                          <p className="field-help">
+                            Best for categories, collections, or promo shortcuts that sit between the two banners.
+                          </p>
+                          <div className="field-grid source-config-grid">
+                            <label className="field">
+                              <span>Cards source</span>
+                              <select
+                                value={sectionForm.bentoTilesSourceType || 'MANUAL'}
+                                onChange={(event) => updateBentoTileSourceType(event.target.value)}
+                              >
+                                {BENTO_TILE_SOURCE_OPTIONS.map((option) => (
+                                  <option key={`bento-tile-source-${option.value}`} value={option.value}>
+                                    {option.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                            <label className="field">
+                              <span>Limit</span>
+                              <input
+                                type="number"
+                                min="1"
+                                max="4"
+                                value={sectionForm.bentoTilesLimit || '4'}
+                                onChange={(event) =>
+                                  setSectionForm((prev) => ({ ...prev, bentoTilesLimit: event.target.value }))
+                                }
+                              />
+                            </label>
+                            {bentoTileSourceType === 'CATEGORY_FEED' ? (
+                              <>
+                                <label className="field">
+                                  <span>Industry</span>
+                                  <select
+                                    value={sectionForm.bentoTilesIndustryId || ''}
+                                    onChange={(event) =>
+                                      setSectionForm((prev) => ({
+                                        ...prev,
+                                        bentoTilesIndustryId: event.target.value,
+                                        bentoTilesMainCategoryId: '',
+                                      }))
+                                    }
+                                  >
+                                    <option value="">Select industry</option>
+                                    {industries.map((item) => {
+                                      const id = resolveIndustryId(item);
+                                      if (!id) return null;
+                                      return (
+                                        <option key={`bento-tile-industry-${id}`} value={id}>
+                                          {resolveIndustryLabel(item)}
+                                        </option>
+                                      );
+                                    })}
+                                  </select>
+                                </label>
+                                <label className="field">
+                                  <span>Main category (optional)</span>
+                                  <select
+                                    value={sectionForm.bentoTilesMainCategoryId || ''}
+                                    onChange={(event) =>
+                                      setSectionForm((prev) => ({
+                                        ...prev,
+                                        bentoTilesMainCategoryId: event.target.value,
+                                      }))
+                                    }
+                                  >
+                                    <option value="">Top main categories</option>
+                                    {filteredBentoMainCategoryOptions.map((item) => {
+                                      const id = resolveMainCategoryId(item);
+                                      if (!id) return null;
+                                      return (
+                                        <option key={`bento-tile-main-category-${id}`} value={id}>
+                                          {resolveMainCategoryName(item)}
+                                        </option>
+                                      );
+                                    })}
+                                  </select>
+                                </label>
+                                <div className="field field-span">
+                                  <p className="field-help">
+                                    Empty main category means Bento shows the top main categories of the selected industry. Selecting one switches the 4 cards to categories inside that main category.
+                                  </p>
+                                </div>
+                              </>
+                            ) : null}
+                            {bentoTileSourceType === 'COLLECTION_FEED' ? (
+                              <div className="field field-span">
+                                <span>Collections</span>
+                                <div className="multi-select-list">
+                                  {productCollectionOptions.length ? (
+                                    productCollectionOptions.map((option) => (
+                                      <label key={`bento-collection-${option.value}`} className="checkbox-row">
+                                        <input
+                                          type="checkbox"
+                                          checked={selectedBentoCollectionRefs.has(option.value)}
+                                          onChange={() => toggleBentoCollectionRef(option.value)}
+                                        />
+                                        {option.label}
+                                      </label>
+                                    ))
+                                  ) : (
+                                    <p className="field-help">No product collections available yet.</p>
+                                  )}
+                                </div>
+                                <p className="field-help">
+                                  Select one or more collections. Bento will use the selected order and current limit for the 4 middle cards.
+                                </p>
+                              </div>
+                            ) : null}
+                          </div>
+                          {bentoTileSourceType === 'MANUAL' ? (
+                            <div className="bento-tile-grid">
+                              {ensureBentoTiles(sectionForm.bentoTiles).map((tile, idx) => (
+                                <div key={`bento-tile-${idx}`} className="bento-tile-row">
+                                  <div className="bento-tile-title">Card {idx + 1}</div>
+                                  <div className="inline-row">
+                                    <input
+                                      type="text"
+                                      value={tile.imageUrl}
+                                      onChange={(event) => updateBentoTile(idx, 'imageUrl', event.target.value)}
+                                      placeholder="Optional card image"
+                                    />
+                                    <button
+                                      type="button"
+                                      className="ghost-btn small"
+                                      onClick={() => handleBentoImageClick({ kind: 'tile', index: idx })}
+                                      disabled={isUploadingBentoImage}
+                                    >
+                                      {isUploadingBentoImage ? 'Uploading...' : 'Upload'}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="ghost-btn small"
+                                      onClick={() => openMediaPicker({ kind: 'tile', index: idx })}
+                                    >
+                                      Library
+                                    </button>
+                                  </div>
                                   <input
                                     type="text"
-                                    value={tile.imageUrl}
-                                    onChange={(event) => updateBentoTile(idx, 'imageUrl', event.target.value)}
-                                    placeholder="Image URL"
+                                    value={tile.deepLink}
+                                    onChange={(event) => updateBentoTile(idx, 'deepLink', event.target.value)}
+                                    placeholder="app://category/123 or app://collection/soft-drinks"
                                   />
-                                  <button
-                                    type="button"
-                                    className="ghost-btn small"
-                                    onClick={() => handleBentoImageClick({ kind: 'tile', index: idx })}
-                                    disabled={isUploadingBentoImage}
-                                  >
-                                    {isUploadingBentoImage ? 'Uploading...' : 'Upload'}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="ghost-btn small"
-                                    onClick={() => openMediaPicker({ kind: 'tile', index: idx })}
-                                  >
-                                    Library
-                                  </button>
+                                  <input
+                                    type="text"
+                                    value={tile.label}
+                                    onChange={(event) => updateBentoTile(idx, 'label', event.target.value)}
+                                    placeholder="Soft drinks"
+                                  />
                                 </div>
-                                <input
-                                  type="text"
-                                  value={tile.deepLink}
-                                  onChange={(event) => updateBentoTile(idx, 'deepLink', event.target.value)}
-                                  placeholder="Deep link"
-                                />
-                                <input
-                                  type="text"
-                                  value={tile.label}
-                                  onChange={(event) => updateBentoTile(idx, 'label', event.target.value)}
-                                  placeholder="Label (optional)"
-                                />
-                              </div>
-                            ))}
-                          </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="field-help">
+                              Manual cards stay saved as fallback, but the selected feed above will drive the live Bento cards on the app.
+                            </p>
+                          )}
                         </label>
                       </>
                     ) : null}
