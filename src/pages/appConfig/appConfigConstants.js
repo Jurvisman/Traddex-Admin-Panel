@@ -53,6 +53,7 @@ export const screenSectionTypeOptions = [
   { value: 'carousel', label: 'Carousel' },
   { value: 'hero_carousel', label: 'Hero carousel (SDUI)' },
   { value: 'promo_hero_banner', label: 'Promo hero banner (SDUI)' },
+  { value: 'split_promo_row', label: 'Split promo row (SDUI)' },
   { value: 'horizontalList', label: 'Horizontal list' },
   { value: 'horizontal_scroll_list', label: 'Horizontal featured list (SDUI)' },
   { value: 'quick_action_row', label: 'Quick action row (SDUI)' },
@@ -80,6 +81,7 @@ export const screenSectionTypeOptions = [
 export const defaultBlockTypeBySectionType = {
   banner: 'heroBanner',
   promo_hero_banner: 'promo_hero_banner',
+  split_promo_row: 'split_promo_row',
   title: 'sectionTitle',
   grid: 'multiItemGrid',
   categoryPreviewGrid: 'categoryPreviewGrid',
@@ -260,6 +262,186 @@ const ELECTRONICS_MEDIA_OVERLAY_SAMPLE = [
     title: 'Creator Desk',
     subtitle: 'Monitors and cameras',
     imageUrl: 'https://images.unsplash.com/photo-1484704849700-f032a568e944?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+];
+
+const GROCERY_HERO_SAMPLE = {
+  badgeText: 'Top Deals',
+  title: 'Fresh groceries, faster delivery',
+  subtitle: 'Fruits, staples, snacks and daily essentials in one place',
+  ctaText: 'Shop now',
+  imageUrl:
+    'https://upload.wikimedia.org/wikipedia/commons/thumb/6/63/Best_organic_produce_Toronto.jpg/960px-Best_organic_produce_Toronto.jpg',
+  deepLink: '',
+  ctaLink: '',
+};
+
+const GROCERY_QUICK_INFO_SAMPLE = [
+  { text: 'Fast delivery', iconName: 'paper-plane-outline', deepLink: '' },
+  { text: 'Best prices', iconName: 'pricetag-outline', deepLink: '' },
+  { text: 'Fresh picks', iconName: 'leaf-outline', deepLink: '' },
+  { text: 'Daily essentials', iconName: 'bag-handle-outline', deepLink: '' },
+];
+
+const GROCERY_SPLIT_PROMOS_SAMPLE = [
+  {
+    title: 'Top Deals',
+    subtitle: 'Fresh | Organic | Daily',
+    ctaText: 'Shop now',
+    imageUrl:
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/Greengrocer_in_a_market.jpg/640px-Greengrocer_in_a_market.jpg',
+    deepLink: '',
+  },
+  {
+    title: 'Snack Time',
+    subtitle: 'Up to 30% OFF',
+    badgeText: 'Snack Time',
+    ctaText: 'Shop now',
+    imageUrl:
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/6/69/Potato-Chips.jpg/500px-Potato-Chips.jpg',
+    deepLink: '',
+  },
+];
+
+const GROCERY_FRESH_SAMPLE = [
+  {
+    title: 'Strawberries',
+    subtitle: '250 g box',
+    price: 'Rs 145',
+    badgeText: 'Fresh',
+    rating: '4.7',
+    imageUrl:
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/2/29/PerfectStrawberry.jpg/500px-PerfectStrawberry.jpg',
+    deepLink: '',
+  },
+  {
+    title: 'Avocado Hass',
+    subtitle: '2 pcs pack',
+    price: 'Rs 89',
+    badgeText: 'New',
+    rating: '4.6',
+    imageUrl:
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/3/32/Avocado_with_cross_section.jpg/500px-Avocado_with_cross_section.jpg',
+    deepLink: '',
+  },
+  {
+    title: 'Farm Eggs',
+    subtitle: '12 pcs pack',
+    price: 'Rs 109',
+    badgeText: 'Popular',
+    rating: '4.8',
+    imageUrl:
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Chicken_eggs_1.jpg/500px-Chicken_eggs_1.jpg',
+    deepLink: '',
+  },
+  {
+    title: 'Cherry Tomato',
+    subtitle: '500 g box',
+    price: 'Rs 69',
+    badgeText: 'Fresh',
+    rating: '4.5',
+    imageUrl:
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/Tomato_je.jpg/500px-Tomato_je.jpg',
+    deepLink: '',
+  },
+];
+
+const GROCERY_PANTRY_SAMPLE = [
+  {
+    title: 'Breakfast Combo',
+    subtitle: 'Bread, butter, jam',
+    price: 'Rs 249',
+    oldPrice: 'Rs 299',
+    saveLabel: 'Save 17%',
+    eta: '25-35 min',
+    imageUrl:
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c7/Korb_mit_Br%C3%B6tchen.JPG/500px-Korb_mit_Br%C3%B6tchen.JPG',
+    deepLink: '',
+  },
+  {
+    title: 'Weekly Staples',
+    subtitle: 'Atta, rice, dal',
+    price: 'Rs 799',
+    oldPrice: 'Rs 899',
+    saveLabel: 'Save 11%',
+    eta: '40-55 min',
+    imageUrl:
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/d/df/Wheat_flour.jpg/500px-Wheat_flour.jpg',
+    deepLink: '',
+  },
+  {
+    title: 'Snack Box',
+    subtitle: 'Chips, cookies, drinks',
+    price: 'Rs 299',
+    oldPrice: 'Rs 359',
+    saveLabel: 'Save 16%',
+    eta: '20-30 min',
+    imageUrl:
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/6/69/Potato-Chips.jpg/500px-Potato-Chips.jpg',
+    deepLink: '',
+  },
+];
+
+const GROCERY_FREQUENT_SAMPLE = [
+  {
+    title: 'Greek Yogurt',
+    subtitle: '400 g cup',
+    price: 'Rs 79',
+    ctaText: 'ADD',
+    imageUrl:
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f8/Yogurt_in_a_bowl.jpg/500px-Yogurt_in_a_bowl.jpg',
+    deepLink: '',
+  },
+  {
+    title: 'Aashirvaad Atta',
+    subtitle: '10 kg pack',
+    price: 'Rs 499',
+    ctaText: 'ADD',
+    imageUrl:
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/d/df/Wheat_flour.jpg/500px-Wheat_flour.jpg',
+    deepLink: '',
+  },
+  {
+    title: 'Amul Milk 1L',
+    subtitle: 'Fresh & chilled',
+    price: 'Rs 56',
+    ctaText: 'ADD',
+    imageUrl:
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Glass_of_Milk_%2833657535532%29.jpg/500px-Glass_of_Milk_%2833657535532%29.jpg',
+    deepLink: '',
+  },
+];
+
+const GROCERY_SHOPS_SAMPLE = [
+  {
+    title: 'FreshMart Grocery',
+    subtitle: 'Veggies | Dairy | Snacks',
+    rating: '4.8',
+    distance: '20-30 min',
+    ctaText: 'Shop now',
+    imageUrl:
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Westside_Market_in_Manhattan%2C_NYC_IMG_5615.JPG/960px-Westside_Market_in_Manhattan%2C_NYC_IMG_5615.JPG',
+    deepLink: '',
+  },
+  {
+    title: 'Daily Basket',
+    subtitle: 'Staples | Household',
+    rating: '4.6',
+    distance: '30-45 min',
+    ctaText: 'Shop now',
+    imageUrl:
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Brockenhurst_Convenience_Store_-_geograph.org.uk_-_4978448.jpg/330px-Brockenhurst_Convenience_Store_-_geograph.org.uk_-_4978448.jpg',
+    deepLink: '',
+  },
+  {
+    title: 'GreenLeaf Organic',
+    subtitle: 'Organic | Fresh picks',
+    rating: '4.7',
+    distance: '35-50 min',
+    ctaText: 'Shop now',
+    imageUrl:
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/6/63/Best_organic_produce_Toronto.jpg/500px-Best_organic_produce_Toronto.jpg',
     deepLink: '',
   },
 ];
@@ -592,6 +774,93 @@ const buildElectronicsDefaultSections = (industryId) => [
   },
 ];
 
+const buildGroceryDefaultSections = (industryId) => [
+  {
+    id: 'grocery_spotlight',
+    type: 'banner',
+    blockType: 'promo_hero_banner',
+    stylePreset: 'grocery',
+    enabled: true,
+    items: [{ ...GROCERY_HERO_SAMPLE }],
+  },
+  {
+    id: 'grocery_quick_info',
+    type: 'horizontalList',
+    blockType: 'chip_scroll',
+    title: 'Why shop grocery',
+    actionText: 'Explore',
+    stylePreset: 'grocery',
+    enabled: true,
+    items: GROCERY_QUICK_INFO_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'grocery_secondary_offer',
+    type: 'split_promo_row',
+    blockType: 'split_promo_row',
+    stylePreset: 'grocery',
+    enabled: true,
+    items: GROCERY_SPLIT_PROMOS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'grocery_categories',
+    type: 'category_showcase',
+    blockType: 'category_showcase',
+    title: 'Shop by category',
+    actionText: 'View all',
+    showcaseVariant: 'circle_icon',
+    stylePreset: 'grocery',
+    enabled: true,
+    dataSource: {
+      sourceType: 'CATEGORY_FEED',
+      industryId: industryId ? String(industryId) : undefined,
+    },
+    items: [],
+  },
+  {
+    id: 'grocery_fresh_arrivals',
+    type: 'horizontalList',
+    blockType: 'product_card_carousel',
+    title: 'Fresh arrivals',
+    actionText: 'View all',
+    stylePreset: 'grocery',
+    cardVariant: 'grocery_fresh',
+    enabled: true,
+    items: GROCERY_FRESH_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'grocery_pantry_essentials',
+    type: 'horizontalList',
+    blockType: 'product_card_carousel',
+    title: 'Pantry essentials',
+    actionText: 'Stock up',
+    stylePreset: 'grocery',
+    cardVariant: 'grocery_pantry',
+    enabled: true,
+    items: GROCERY_PANTRY_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'grocery_frequently_bought',
+    type: 'horizontalList',
+    blockType: 'product_card_carousel',
+    title: 'Frequently bought',
+    actionText: 'View all',
+    stylePreset: 'grocery',
+    cardVariant: 'grocery_compact',
+    enabled: true,
+    items: GROCERY_FREQUENT_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'grocery_shops_near_you',
+    type: 'horizontalList',
+    blockType: 'beauty_salon_carousel',
+    title: 'Shops near you',
+    actionText: 'View all',
+    stylePreset: 'grocery',
+    enabled: true,
+    items: GROCERY_SHOPS_SAMPLE.map((item) => ({ ...item })),
+  },
+];
+
 export const screenToolboxItems = [
   {
     key: 'heroBanner',
@@ -632,6 +901,18 @@ export const screenToolboxItems = [
       blockType: 'promo_hero_banner',
       stylePreset: 'electronics',
       items: [{ ...ELECTRONICS_HERO_SAMPLE }],
+    },
+  },
+  {
+    key: 'splitPromoRow',
+    label: 'Split Promo Row',
+    hint: 'Two promo cards in a side-by-side row',
+    section: {
+      id: 'split_promo_row',
+      type: 'split_promo_row',
+      blockType: 'split_promo_row',
+      stylePreset: 'grocery',
+      items: GROCERY_SPLIT_PROMOS_SAMPLE.map((item) => ({ ...item })),
     },
   },
   {
@@ -895,13 +1176,13 @@ export const screenToolboxItems = [
   },
   {
     key: 'beautySalonCarousel',
-    label: 'Beauty Salon Carousel',
-    hint: 'Horizontal nearby salon cards',
+    label: 'Place Card Carousel',
+    hint: 'Horizontal nearby place/store cards',
     section: {
       id: 'beauty_salons',
       type: 'horizontalList',
       blockType: 'beauty_salon_carousel',
-      title: 'Nearby salons',
+      title: 'Nearby places',
       actionText: 'View all',
       items: BEAUTY_SALON_SAMPLE,
     },
@@ -933,6 +1214,7 @@ export const blockLabels = {
   heroBanner: 'Image Hero Banner',
   hero_carousel: 'Hero Carousel Block',
   promo_hero_banner: 'Promo Hero Banner',
+  split_promo_row: 'Split Promo Row',
   horizontal_scroll_list: 'Featured Cards Block',
   quick_action_row: 'Quick Action Row',
   column_grid: 'Festive Column Grid',
@@ -951,7 +1233,7 @@ export const blockLabels = {
   beauty_product_shelf: 'Product Card Carousel',
   beauty_routine_list: 'Beauty Routine List',
   beauty_tip_chips: 'Beauty Tip Chips',
-  beauty_salon_carousel: 'Beauty Salon Carousel',
+  beauty_salon_carousel: 'Place Card Carousel',
   bestseller_shelf: 'Bestsellers Shelf Block',
   sectionTitle: 'Section Title Block',
   multiItemGrid: 'Multi Item Grid Block',
@@ -968,6 +1250,7 @@ export const resolveBlockLabel = (blockType, fallback) =>
 const LEGACY_BLOCK_TYPE_ALIASES = {
   beauty_quick_actions: 'quick_action_row',
   beauty_hero_banner: 'promo_hero_banner',
+  splitpromorow: 'split_promo_row',
   beauty_trend_carousel: 'media_overlay_carousel',
   beauty_offer_banner: 'promo_banner',
   beauty_product_shelf: 'product_card_carousel',
@@ -1025,6 +1308,7 @@ export const resolveBlockType = (section) => {
   if (section.type === 'banner' && section.bannerVariant === 'text_card') return 'promo_banner';
   if (section.type === 'hero_carousel') return 'hero_carousel';
   if (section.type === 'promo_hero_banner') return 'promo_hero_banner';
+  if (section.type === 'split_promo_row') return 'split_promo_row';
   if (section.type === 'horizontal_scroll_list') return 'horizontal_scroll_list';
   if (section.type === 'quick_action_row') return 'quick_action_row';
   if (section.type === 'column_grid') return 'column_grid';
@@ -1155,6 +1439,7 @@ export const ensureBentoTiles = (tiles, count = 4) => {
 export const phaseOneBlockTypes = new Set([
   'hero_carousel',
   'promo_hero_banner',
+  'split_promo_row',
   'horizontal_scroll_list',
   'quick_action_row',
   'column_grid',
@@ -1251,7 +1536,25 @@ export const getPhaseOneDefaultItem = (blockType, index = 0) => {
       subtitle: '',
       price: '',
       badgeText: '',
+      rating: '',
+      oldPrice: '',
+      saveLabel: '',
+      eta: '',
+      ctaText: '',
       imageUrl: '',
+      deepLink: '',
+    };
+  }
+  if (resolvedBlockType === 'split_promo_row') {
+    return {
+      title: '',
+      subtitle: '',
+      badgeText: '',
+      ctaText: '',
+      accentColor: '',
+      imageUrl: '',
+      destinationType: '',
+      destinationValue: '',
       deepLink: '',
     };
   }
@@ -1283,6 +1586,7 @@ export const getPhaseOneDefaultItem = (blockType, index = 0) => {
       subtitle: '',
       rating: '',
       distance: '',
+      ctaText: '',
       imageUrl: '',
       deepLink: '',
     };
@@ -1417,7 +1721,26 @@ export const normalizePhaseOneItems = (items, blockType) => {
         subtitle: item?.subtitle || '',
         price: item?.price || item?.sellingPrice || '',
         badgeText: item?.badgeText || item?.off || '',
+        rating: item?.rating || '',
+        oldPrice: item?.oldPrice || item?.mrp || '',
+        saveLabel: item?.saveLabel || item?.save || '',
+        eta: item?.eta || item?.deliveryEta || '',
+        ctaText: item?.ctaText || item?.ctaLabel || '',
         imageUrl: item?.imageUrl || item?.imageUri || item?.thumbnailImage || '',
+        deepLink: item?.deepLink || item?.targetUrl || '',
+      };
+    }
+    if (resolvedBlockType === 'split_promo_row') {
+      return {
+        ...base,
+        title: item?.title || item?.name || item?.label || '',
+        subtitle: item?.subtitle || item?.text || '',
+        badgeText: item?.badgeText || item?.badge || '',
+        ctaText: item?.ctaText || item?.ctaLabel || '',
+        accentColor: item?.accentColor || item?.accent || '',
+        imageUrl: item?.imageUrl || item?.imageUri || item?.thumbnailImage || '',
+        destinationType: item?.destinationType ? String(item.destinationType) : '',
+        destinationValue: item?.destinationValue ? String(item.destinationValue) : '',
         deepLink: item?.deepLink || item?.targetUrl || '',
       };
     }
@@ -1456,6 +1779,7 @@ export const normalizePhaseOneItems = (items, blockType) => {
         subtitle: item?.subtitle || item?.area || '',
         rating: item?.rating || '',
         distance: item?.distance || '',
+        ctaText: item?.ctaText || item?.ctaLabel || '',
         imageUrl: item?.imageUrl || item?.imageUri || item?.thumbnailImage || '',
         deepLink: item?.deepLink || item?.targetUrl || '',
       };
@@ -1473,6 +1797,8 @@ export const normalizePhaseOneItems = (items, blockType) => {
       return {
         ...base,
         text: item?.text || item?.title || item?.label || '',
+        iconName: item?.iconName || item?.icon || '',
+        iconUrl: item?.iconUrl || '',
         deepLink: item?.deepLink || '',
       };
     }
@@ -1589,18 +1915,29 @@ export const STYLE_PRESET_OPTIONS = {
   promo_hero_banner: [
     { value: 'electronics', label: 'Electronics' },
     { value: 'beauty', label: 'Beauty' },
+    { value: 'grocery', label: 'Grocery' },
+  ],
+  split_promo_row: [
+    { value: 'grocery', label: 'Grocery' },
   ],
   category_showcase: [
     { value: '', label: 'Default' },
     { value: 'electronics', label: 'Electronics' },
+    { value: 'grocery', label: 'Grocery' },
   ],
   media_overlay_carousel: [
     { value: 'electronics', label: 'Electronics' },
     { value: 'beauty', label: 'Beauty' },
+    { value: 'grocery', label: 'Grocery' },
   ],
   product_card_carousel: [
     { value: 'electronics', label: 'Electronics' },
     { value: 'beauty', label: 'Beauty' },
+    { value: 'grocery', label: 'Grocery' },
+  ],
+  beauty_salon_carousel: [
+    { value: 'beauty', label: 'Beauty' },
+    { value: 'grocery', label: 'Grocery' },
   ],
   info_list: [
     { value: 'launch_rows', label: 'Launch rows' },
@@ -1610,10 +1947,12 @@ export const STYLE_PRESET_OPTIONS = {
   chip_scroll: [
     { value: '', label: 'Default' },
     { value: 'beauty', label: 'Beauty' },
+    { value: 'grocery', label: 'Grocery' },
   ],
   promo_banner: [
     { value: '', label: 'Default' },
     { value: 'beauty', label: 'Beauty' },
+    { value: 'grocery', label: 'Grocery' },
   ],
 };
 
@@ -1621,6 +1960,13 @@ export const PRODUCT_SHELF_VARIANT_OPTIONS = [
   { value: '', label: 'Auto / compact' },
   { value: 'compact', label: 'Compact cards' },
   { value: 'bestseller', label: 'Bestseller / wide cards' },
+];
+
+export const PRODUCT_CARD_VARIANT_OPTIONS = [
+  { value: '', label: 'Default cards' },
+  { value: 'grocery_fresh', label: 'Grocery fresh cards' },
+  { value: 'grocery_pantry', label: 'Grocery pantry cards' },
+  { value: 'grocery_compact', label: 'Grocery compact cards' },
 ];
 
 export const SHOWCASE_VARIANT_OPTIONS = [
@@ -1814,8 +2160,10 @@ export const resolveIndustryRoute = (industry, slug) => {
 export const buildIndustryDefaultSections = (slug, industryName, industryId) => [
   ...(slug === 'beauty' ? buildBeautyDefaultSections(industryId) : []),
   ...(slug === 'electronics' ? buildElectronicsDefaultSections(industryId) : []),
+  ...(slug === 'grocery' ? buildGroceryDefaultSections(industryId) : []),
   ...(slug === 'beauty'
     || slug === 'electronics'
+    || slug === 'grocery'
     ? []
     : [
   {

@@ -82,6 +82,7 @@ import {
   SHOWCASE_VARIANT_OPTIONS,
   STYLE_PRESET_OPTIONS,
   PRODUCT_SHELF_VARIANT_OPTIONS,
+  PRODUCT_CARD_VARIANT_OPTIONS,
   MULTI_ITEM_GRID_FEED_OPTIONS,
   COMMON_LINK_PRESETS,
   resolveMultiItemGridDataSourceRef,
@@ -2851,6 +2852,7 @@ function AppConfigPage({ token }) {
   const isPhaseOneBrandGrid = screenBlockType === 'brand_logo_grid';
   const isPhaseOneProductShelf = screenBlockType === 'product_shelf_horizontal';
   const isPhaseOneHeroCarousel = screenBlockType === 'hero_carousel';
+  const isSplitPromoRow = screenBlockType === 'split_promo_row';
   const isPhaseOneIconList = screenBlockType === 'icon_list';
   const isPhaseOneChipScroll = screenBlockType === 'chip_scroll';
   const isPhaseOneCategoryShowcase = screenBlockType === 'category_showcase';
@@ -2872,6 +2874,15 @@ function AppConfigPage({ token }) {
   const isBeautyMediaOverlay = mediaOverlayPreset === 'beauty';
   const productCardPreset = String(sectionForm.stylePreset || 'electronics').trim().toLowerCase();
   const isBeautyProductCardCarousel = productCardPreset === 'beauty';
+  const isGroceryProductCardCarousel = productCardPreset === 'grocery';
+  const productCardVariant = String(sectionForm.cardVariant || '').trim().toLowerCase();
+  const isGroceryFreshProductCardCarousel = isGroceryProductCardCarousel && productCardVariant === 'grocery_fresh';
+  const isGroceryPantryProductCardCarousel = isGroceryProductCardCarousel && productCardVariant === 'grocery_pantry';
+  const isGroceryCompactProductCardCarousel = isGroceryProductCardCarousel && productCardVariant === 'grocery_compact';
+  const salonCarouselPreset = String(sectionForm.stylePreset || 'beauty').trim().toLowerCase();
+  const isGrocerySalonCarousel = salonCarouselPreset === 'grocery';
+  const chipScrollPreset = String(sectionForm.stylePreset || '').trim().toLowerCase();
+  const isGroceryChipScroll = chipScrollPreset === 'grocery';
   const isProductCardCarouselFeed =
     isProductCardCarousel && Boolean(String(sectionForm.dataSourceRef || '').trim());
   const isPhaseOneDataSourceEligible =
@@ -2887,11 +2898,11 @@ function AppConfigPage({ token }) {
     const shouldLoadProducts =
       (isHeroBanner && sectionNavigationTarget.type === 'PRODUCT') ||
       (
-        ['hero_carousel', 'promo_hero_banner', 'beauty_hero_banner', 'media_overlay_carousel'].includes(screenBlockType) &&
+        ['hero_carousel', 'promo_hero_banner', 'beauty_hero_banner', 'media_overlay_carousel', 'split_promo_row'].includes(screenBlockType) &&
         normalizePhaseOneItems(sectionForm.sduiItems, screenBlockType).some(
           (item) =>
             parseNavigationTarget(
-              screenBlockType === 'hero_carousel' || screenBlockType === 'media_overlay_carousel'
+              screenBlockType === 'hero_carousel' || screenBlockType === 'media_overlay_carousel' || screenBlockType === 'split_promo_row'
                 ? item?.deepLink || ''
                 : item?.ctaLink || item?.deepLink || '',
               item?.destinationType,
@@ -3668,6 +3679,7 @@ function AppConfigPage({ token }) {
                         >
                           <option value="electronics">Electronics</option>
                           <option value="beauty">Beauty</option>
+                          <option value="grocery">Grocery</option>
                         </select>
                       </label>
                     ) : null}
@@ -3699,6 +3711,23 @@ function AppConfigPage({ token }) {
                         >
                           {PRODUCT_SHELF_VARIANT_OPTIONS.map((option) => (
                             <option key={`product-shelf-variant-${option.value || 'auto'}`} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    ) : null}
+                    {isProductCardCarousel ? (
+                      <label className="field">
+                        <span>Card layout</span>
+                        <select
+                          value={sectionForm.cardVariant || ''}
+                          onChange={(event) =>
+                            setSectionForm((prev) => ({ ...prev, cardVariant: event.target.value }))
+                          }
+                        >
+                          {PRODUCT_CARD_VARIANT_OPTIONS.map((option) => (
+                            <option key={`product-card-variant-${option.value || 'default'}`} value={option.value}>
                               {option.label}
                             </option>
                           ))}
@@ -4836,7 +4865,7 @@ function AppConfigPage({ token }) {
                               phaseOneImageWarnings[getWarningKey(idx, 'secondaryImageUrl')];
                             const usesCtaDestination = isBeautyHeroBanner || isPromoHeroBanner;
                             const showHeroDestinationPicker =
-                              isPhaseOneHeroCarousel || isMediaOverlayCarousel || usesCtaDestination;
+                              isPhaseOneHeroCarousel || isMediaOverlayCarousel || isSplitPromoRow || usesCtaDestination;
                             const navigationTarget = parseNavigationTarget(
                               usesCtaDestination ? item.ctaLink || item.deepLink || '' : item.deepLink || '',
                               item.destinationType,
@@ -5063,6 +5092,54 @@ function AppConfigPage({ token }) {
                                   </label>
                                 </>
                               ) : null}
+                              {isSplitPromoRow ? (
+                                <>
+                                  <label className="field">
+                                    <span>Subtitle</span>
+                                    <input
+                                      type="text"
+                                      value={item.subtitle || ''}
+                                      onChange={(event) => updatePhaseOneItem(idx, 'subtitle', event.target.value)}
+                                      placeholder={idx === 0 ? 'Fresh | Organic | Daily' : 'Up to 30% OFF'}
+                                    />
+                                  </label>
+                                  <label className="field">
+                                    <span>{idx === 0 ? 'Eyebrow label (optional)' : 'Badge text'}</span>
+                                    <input
+                                      type="text"
+                                      value={item.badgeText || ''}
+                                      onChange={(event) => updatePhaseOneItem(idx, 'badgeText', event.target.value)}
+                                      placeholder={idx === 0 ? 'Top Deals' : 'Snack Time'}
+                                    />
+                                  </label>
+                                  <label className="field">
+                                    <span>CTA button text</span>
+                                    <input
+                                      type="text"
+                                      value={item.ctaText || ''}
+                                      onChange={(event) => updatePhaseOneItem(idx, 'ctaText', event.target.value)}
+                                      placeholder="Shop now"
+                                    />
+                                  </label>
+                                  <label className="field">
+                                    <span>Accent color (optional)</span>
+                                    <div className="inline-row">
+                                      <input
+                                        type="text"
+                                        value={item.accentColor || ''}
+                                        onChange={(event) => updatePhaseOneItem(idx, 'accentColor', event.target.value)}
+                                        placeholder={idx === 0 ? '#F0F9D8' : '#D8F3AA'}
+                                      />
+                                      <input
+                                        type="color"
+                                        className="color-input"
+                                        value={resolveHexColor(item.accentColor, idx === 0 ? '#F0F9D8' : '#D8F3AA')}
+                                        onChange={(event) => updatePhaseOneItem(idx, 'accentColor', event.target.value)}
+                                      />
+                                    </div>
+                                  </label>
+                                </>
+                              ) : null}
                               {isQuickActionBlock ? (
                                 <>
                                   <label className="field">
@@ -5103,7 +5180,13 @@ function AppConfigPage({ token }) {
                                       type="text"
                                       value={item.subtitle || ''}
                                       onChange={(event) => updatePhaseOneItem(idx, 'subtitle', event.target.value)}
-                                      placeholder={isBeautyProductCardCarousel ? 'Vitamin C 15%' : '12GB RAM, 256GB'}
+                                      placeholder={
+                                        isBeautyProductCardCarousel
+                                          ? 'Vitamin C 15%'
+                                          : isGroceryProductCardCarousel
+                                            ? '250 g box'
+                                            : '12GB RAM, 256GB'
+                                      }
                                     />
                                   </label>
                                   <label className="field">
@@ -5112,17 +5195,82 @@ function AppConfigPage({ token }) {
                                       type="text"
                                       value={item.price || ''}
                                       onChange={(event) => updatePhaseOneItem(idx, 'price', event.target.value)}
-                                      placeholder={isBeautyProductCardCarousel ? 'Rs 1,499' : 'Rs 32,999'}
+                                      placeholder={
+                                        isBeautyProductCardCarousel
+                                          ? 'Rs 1,499'
+                                          : isGroceryProductCardCarousel
+                                            ? 'Rs 145'
+                                            : 'Rs 32,999'
+                                      }
                                     />
                                   </label>
                                   {!isBeautyProductCardCarousel ? (
                                     <label className="field">
-                                      <span>Badge text</span>
+                                      <span>{isGroceryPantryProductCardCarousel ? 'Top label (optional)' : 'Badge text'}</span>
                                       <input
                                         type="text"
                                         value={item.badgeText || ''}
                                         onChange={(event) => updatePhaseOneItem(idx, 'badgeText', event.target.value)}
-                                        placeholder="18% off"
+                                        placeholder={
+                                          isGroceryFreshProductCardCarousel
+                                            ? 'Fresh'
+                                            : isGroceryPantryProductCardCarousel
+                                              ? 'Best value'
+                                              : '18% off'
+                                        }
+                                      />
+                                    </label>
+                                  ) : null}
+                                  {isGroceryFreshProductCardCarousel ? (
+                                    <label className="field">
+                                      <span>Rating</span>
+                                      <input
+                                        type="text"
+                                        value={item.rating || ''}
+                                        onChange={(event) => updatePhaseOneItem(idx, 'rating', event.target.value)}
+                                        placeholder="4.7"
+                                      />
+                                    </label>
+                                  ) : null}
+                                  {isGroceryPantryProductCardCarousel ? (
+                                    <>
+                                      <label className="field">
+                                        <span>Save label</span>
+                                        <input
+                                          type="text"
+                                          value={item.saveLabel || ''}
+                                          onChange={(event) => updatePhaseOneItem(idx, 'saveLabel', event.target.value)}
+                                          placeholder="Save 17%"
+                                        />
+                                      </label>
+                                      <label className="field">
+                                        <span>Old price</span>
+                                        <input
+                                          type="text"
+                                          value={item.oldPrice || ''}
+                                          onChange={(event) => updatePhaseOneItem(idx, 'oldPrice', event.target.value)}
+                                          placeholder="Rs 299"
+                                        />
+                                      </label>
+                                      <label className="field">
+                                        <span>ETA</span>
+                                        <input
+                                          type="text"
+                                          value={item.eta || ''}
+                                          onChange={(event) => updatePhaseOneItem(idx, 'eta', event.target.value)}
+                                          placeholder="25-35 min"
+                                        />
+                                      </label>
+                                    </>
+                                  ) : null}
+                                  {isGroceryCompactProductCardCarousel ? (
+                                    <label className="field">
+                                      <span>CTA text</span>
+                                      <input
+                                        type="text"
+                                        value={item.ctaText || ''}
+                                        onChange={(event) => updatePhaseOneItem(idx, 'ctaText', event.target.value)}
+                                        placeholder="ADD"
                                       />
                                     </label>
                                   ) : null}
@@ -5194,10 +5342,24 @@ function AppConfigPage({ token }) {
                                 </>
                               ) : null}
                               {isPhaseOneChipScroll ? (
-                                <label className="field">
-                                  <span>Chip text</span>
-                                  <input type="text" value={item.text || ''} onChange={(event) => updatePhaseOneItem(idx, 'text', event.target.value)} placeholder="Tip or tag text" />
-                                </label>
+                                <>
+                                  <label className="field">
+                                    <span>Chip text</span>
+                                    <input type="text" value={item.text || ''} onChange={(event) => updatePhaseOneItem(idx, 'text', event.target.value)} placeholder="Tip or tag text" />
+                                  </label>
+                                  {isGroceryChipScroll ? (
+                                    <>
+                                      <label className="field">
+                                        <span>Icon name</span>
+                                        <input type="text" value={item.iconName || ''} onChange={(event) => updatePhaseOneItem(idx, 'iconName', event.target.value)} placeholder="leaf-outline" />
+                                      </label>
+                                      <label className="field">
+                                        <span>Icon URL (optional)</span>
+                                        <input type="text" value={item.iconUrl || ''} onChange={(event) => updatePhaseOneItem(idx, 'iconUrl', event.target.value)} placeholder="https://cdn.example.com/icon.png" />
+                                      </label>
+                                    </>
+                                  ) : null}
+                                </>
                               ) : null}
                               {isBeautyTrendCarousel ? (
                                 <label className="field">
@@ -5230,17 +5392,38 @@ function AppConfigPage({ token }) {
                               {isBeautySalonCarousel ? (
                                 <>
                                   <label className="field">
-                                    <span>Area / subtitle</span>
-                                    <input type="text" value={item.subtitle || ''} onChange={(event) => updatePhaseOneItem(idx, 'subtitle', event.target.value)} placeholder="C G Road, Ahmedabad" />
+                                    <span>Meta / subtitle</span>
+                                    <input
+                                      type="text"
+                                      value={item.subtitle || ''}
+                                      onChange={(event) => updatePhaseOneItem(idx, 'subtitle', event.target.value)}
+                                      placeholder={isGrocerySalonCarousel ? 'Veggies | Dairy | Snacks' : 'C G Road, Ahmedabad'}
+                                    />
                                   </label>
                                   <label className="field">
                                     <span>Rating</span>
                                     <input type="text" value={item.rating || ''} onChange={(event) => updatePhaseOneItem(idx, 'rating', event.target.value)} placeholder="4.8" />
                                   </label>
                                   <label className="field">
-                                    <span>Distance</span>
-                                    <input type="text" value={item.distance || ''} onChange={(event) => updatePhaseOneItem(idx, 'distance', event.target.value)} placeholder="2.4 km" />
+                                    <span>{isGrocerySalonCarousel ? 'ETA / distance' : 'Distance'}</span>
+                                    <input
+                                      type="text"
+                                      value={item.distance || ''}
+                                      onChange={(event) => updatePhaseOneItem(idx, 'distance', event.target.value)}
+                                      placeholder={isGrocerySalonCarousel ? '20-30 min' : '2.4 km'}
+                                    />
                                   </label>
+                                  {isGrocerySalonCarousel ? (
+                                    <label className="field">
+                                      <span>CTA text</span>
+                                      <input
+                                        type="text"
+                                        value={item.ctaText || ''}
+                                        onChange={(event) => updatePhaseOneItem(idx, 'ctaText', event.target.value)}
+                                        placeholder="Shop now"
+                                      />
+                                    </label>
+                                  ) : null}
                                 </>
                               ) : null}
                               {isPhaseOneColumnGrid ? (

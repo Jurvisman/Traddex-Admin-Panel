@@ -4306,6 +4306,33 @@ textarea {
   color: #1f2937;
 }
 
+.preview-showcase-theme-grocery .preview-showcase-circle-item {
+  min-width: 68px;
+  max-width: 76px;
+  gap: 8px;
+}
+
+.preview-showcase-theme-grocery .preview-showcase-circle-image {
+  width: 60px;
+  height: 60px;
+  border-radius: 18px;
+  border: 1px solid rgba(46, 107, 31, 0.14);
+  background: #eef7e8;
+}
+
+.preview-showcase-theme-grocery .preview-showcase-icon-badge {
+  width: 22px;
+  height: 22px;
+  background: #2e6b1f;
+  border-color: #fff;
+}
+
+.preview-showcase-theme-grocery .preview-showcase-circle-label {
+  font-size: 9.5px;
+  font-weight: 800;
+  color: #1e2a17;
+}
+
 .preview-title.preview-title-surface-pill {
   padding: 8px 12px;
   border-radius: 999px;
@@ -4390,6 +4417,18 @@ textarea {
 
 .preview-promo-hero.is-beauty .preview-promo-hero-cta {
   background: #c96c8a;
+}
+
+.preview-promo-hero.is-grocery .preview-promo-hero-overlay {
+  background: linear-gradient(180deg, rgba(30, 42, 23, 0.08), rgba(30, 42, 23, 0.68));
+}
+
+.preview-promo-hero.is-grocery .preview-promo-hero-badge {
+  background: rgba(46, 107, 31, 0.22);
+}
+
+.preview-promo-hero.is-grocery .preview-promo-hero-cta {
+  background: #2e6b1f;
 }
 
 .preview-beauty-hero {
@@ -4557,6 +4596,27 @@ textarea {
   color: #2563eb;
 }
 
+.preview-quick-actions.is-grocery .preview-quick-action-card {
+  border-color: rgba(46, 107, 31, 0.14);
+}
+
+.preview-quick-actions.is-grocery .preview-quick-action-icon {
+  background: rgba(46, 107, 31, 0.12);
+  color: #2e6b1f;
+}
+
+.preview-quick-actions.is-grocery .preview-quick-action-title {
+  color: #1e2a17;
+}
+
+.preview-quick-actions.is-grocery .preview-quick-action-subtitle {
+  color: #5e6d57;
+}
+
+.preview-quick-actions.is-grocery .preview-quick-action-cta {
+  color: #2e6b1f;
+}
+
 .preview-deal-carousel,
 .preview-media-overlay-row {
   display: grid;
@@ -4621,6 +4681,18 @@ textarea {
   font-size: 10px;
   font-weight: 800;
   color: #2563eb;
+}
+
+.preview-deal-carousel.is-grocery .preview-deal-card {
+  border-color: rgba(46, 107, 31, 0.14);
+}
+
+.preview-deal-carousel.is-grocery .preview-deal-card-badge {
+  background: rgba(46, 107, 31, 0.92);
+}
+
+.preview-deal-carousel.is-grocery .preview-deal-card-price {
+  color: #2e6b1f;
 }
 
 .preview-media-overlay-row {
@@ -4859,6 +4931,22 @@ textarea {
   white-space: nowrap;
 }
 
+.preview-grocery-offer {
+  background: linear-gradient(135deg, var(--beauty-offer-base, #D9EDBF), #f7fceb);
+}
+
+.preview-grocery-offer .preview-beauty-offer-title {
+  color: #1e2a17;
+}
+
+.preview-grocery-offer .preview-beauty-offer-subtitle {
+  color: #5e6d57;
+}
+
+.preview-grocery-offer .preview-beauty-offer-cta {
+  color: #1e2a17;
+}
+
 .preview-beauty-products {
   grid-auto-columns: 120px;
 }
@@ -5013,6 +5101,112 @@ textarea {
   justify-content: space-between;
   font-size: 9px;
   color: #6b5c57;
+}
+
+.preview-beauty-salons.is-grocery .preview-beauty-salon-card {
+  border-color: rgba(46, 107, 31, 0.16);
+  background: linear-gradient(180deg, #f5faee 0%, #ffffff 100%);
+}
+
+.preview-beauty-salons.is-grocery .preview-beauty-salon-meta {
+  color: #5e6d57;
+}
+
+.preview-beauty-salon-cta {
+  margin-top: 8px;
+  align-self: flex-start;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(46, 107, 31, 0.12);
+  color: #2e6b1f;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.preview-split-promo-row {
+  display: grid;
+  grid-template-columns: 1.45fr 0.95fr;
+  gap: 10px;
+}
+
+.preview-split-promo-card {
+  min-height: 126px;
+  border-radius: 22px;
+  border: 1px solid rgba(46, 107, 31, 0.14);
+  background: linear-gradient(135deg, #f0f9d8, #fffdf4);
+  padding: 12px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.preview-split-promo-card.is-primary {
+  flex-direction: row;
+}
+
+.preview-split-promo-card.is-secondary {
+  background: linear-gradient(135deg, #d8f3aa, #f4fbe5);
+}
+
+.preview-split-promo-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.preview-split-promo-title {
+  font-weight: 800;
+  font-size: 14px;
+  line-height: 1.2;
+  color: #1e2a17;
+}
+
+.preview-split-promo-subtitle {
+  margin-top: 4px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: #5e6d57;
+}
+
+.preview-split-promo-cta {
+  display: inline-flex;
+  margin-top: 12px;
+  padding: 8px 13px;
+  border-radius: 999px;
+  background: #2e6b1f;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.preview-split-promo-visual {
+  width: 92px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.preview-split-promo-badge {
+  align-self: flex-start;
+  margin-bottom: 8px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #2e6b1f;
+}
+
+.preview-split-promo-image {
+  width: 100%;
+  height: 76px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.preview-split-promo-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .preview-phase-one-brand-wrap {
@@ -12336,6 +12530,12 @@ textarea {
   border-radius: 999px;
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+.preview-chip.is-grocery {
+  color: #1e2a17;
+  background: #eef7e8;
+  border: 1px solid rgba(46, 107, 31, 0.14);
 }
 
 /* --- Preview: column grid overlay text --- */

@@ -151,6 +151,7 @@ export const getPreviewTitle = (item) => item?.title || item?.name || item?.labe
 
 const renderQuickActionPreview = ({ section, index, hidden, title, items, preset = 'electronics' }) => {
   const isBeauty = String(preset || '').trim().toLowerCase() === 'beauty';
+  const isGrocery = String(preset || '').trim().toLowerCase() === 'grocery';
   return (
     <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
       {title ? (
@@ -159,7 +160,7 @@ const renderQuickActionPreview = ({ section, index, hidden, title, items, preset
           {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
         </div>
       ) : null}
-      <div className={`preview-quick-actions ${isBeauty ? 'is-beauty' : 'is-electronics'}`}>
+      <div className={`preview-quick-actions ${isBeauty ? 'is-beauty' : isGrocery ? 'is-grocery' : 'is-electronics'}`}>
         {items.map((item, itemIndex) => (
           <div key={`preview-quick-action-${index}-${itemIndex}`} className="preview-quick-action-card">
             {isBeauty ? (
@@ -291,13 +292,28 @@ export const PreviewSection = ({ section, index, collections }) => {
   };
 
   if (blockType === 'promo_banner') {
-    const isBeautyPreset = String(stylePreset || '').trim().toLowerCase() === 'beauty';
+    const normalizedPreset = String(stylePreset || '').trim().toLowerCase();
+    const isBeautyPreset = normalizedPreset === 'beauty';
+    const isGroceryPreset = normalizedPreset === 'grocery';
     if (isBeautyPreset) {
       return (
         <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
           <div className="preview-beauty-offer" style={{ '--beauty-offer-base': section?.sectionBgColor || '#E9C3B3' }}>
             <div>
               <div className="preview-beauty-offer-title">{section?.title || 'Beauty Friday'}</div>
+              {section?.text ? <div className="preview-beauty-offer-subtitle">{section.text}</div> : null}
+            </div>
+            {section?.actionText ? <span className="preview-beauty-offer-cta">{section.actionText}</span> : null}
+          </div>
+        </div>
+      );
+    }
+    if (isGroceryPreset) {
+      return (
+        <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+          <div className="preview-beauty-offer preview-grocery-offer" style={{ '--beauty-offer-base': section?.sectionBgColor || '#D9EDBF' }}>
+            <div>
+              <div className="preview-beauty-offer-title">{section?.title || 'Snack Time'}</div>
               {section?.text ? <div className="preview-beauty-offer-subtitle">{section.text}</div> : null}
             </div>
             {section?.actionText ? <span className="preview-beauty-offer-cta">{section.actionText}</span> : null}
@@ -546,7 +562,9 @@ export const PreviewSection = ({ section, index, collections }) => {
 
   if (blockType === 'category_showcase') {
     const variant = section?.showcaseVariant || 'circle';
-    const isElectronicsShowcase = String(section?.stylePreset || '').trim().toLowerCase() === 'electronics';
+    const normalizedShowcasePreset = String(section?.stylePreset || '').trim().toLowerCase();
+    const isElectronicsShowcase = normalizedShowcasePreset === 'electronics';
+    const isGroceryShowcase = normalizedShowcasePreset === 'grocery';
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
         {title ? (
@@ -557,7 +575,11 @@ export const PreviewSection = ({ section, index, collections }) => {
         ) : null}
         <div
           className={`preview-showcase-row preview-showcase-${variant} ${
-            isElectronicsShowcase ? 'preview-showcase-theme-electronics' : ''
+            isElectronicsShowcase
+              ? 'preview-showcase-theme-electronics'
+              : isGroceryShowcase
+                ? 'preview-showcase-theme-grocery'
+                : ''
           }`}
         >
           {items.map((item, itemIndex) => {
@@ -595,11 +617,13 @@ export const PreviewSection = ({ section, index, collections }) => {
   if (blockType === 'promo_hero_banner') {
     const hero = items[0] || {};
     const image = getPreviewImage(hero);
-    const isBeautyPreset = String(stylePreset || '').trim().toLowerCase() === 'beauty';
+    const normalizedPreset = String(stylePreset || '').trim().toLowerCase();
+    const isBeautyPreset = normalizedPreset === 'beauty';
+    const isGroceryPreset = normalizedPreset === 'grocery';
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
         <div
-          className={`preview-promo-hero ${isBeautyPreset ? 'is-beauty' : 'is-electronics'} ${
+          className={`preview-promo-hero ${isBeautyPreset ? 'is-beauty' : isGroceryPreset ? 'is-grocery' : 'is-electronics'} ${
             section?.placement === 'header' ? 'is-header-attached' : ''
           }`}
         >
@@ -610,6 +634,34 @@ export const PreviewSection = ({ section, index, collections }) => {
             {hero?.subtitle ? <div className="preview-promo-hero-subtitle">{hero.subtitle}</div> : null}
             {hero?.ctaText ? <span className="preview-promo-hero-cta">{hero.ctaText}</span> : null}
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'split_promo_row') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        <div className="preview-split-promo-row">
+          {items.slice(0, 2).map((item, itemIndex) => (
+            <div
+              key={`preview-split-promo-${index}-${itemIndex}`}
+              className={`preview-split-promo-card ${itemIndex === 0 ? 'is-primary' : 'is-secondary'}`}
+              style={item?.accentColor ? { background: `linear-gradient(135deg, ${item.accentColor}, #f8fce8)` } : undefined}
+            >
+              <div className="preview-split-promo-copy">
+                <div className="preview-split-promo-title">{item?.title || (itemIndex === 0 ? 'Top Deals' : 'Snack Time')}</div>
+                {item?.subtitle ? <div className="preview-split-promo-subtitle">{item.subtitle}</div> : null}
+                {item?.ctaText ? <span className="preview-split-promo-cta">{item.ctaText}</span> : null}
+              </div>
+              <div className="preview-split-promo-visual">
+                {item?.badgeText ? <div className="preview-split-promo-badge">{item.badgeText}</div> : null}
+                <div className="preview-split-promo-image">
+                  {getPreviewImage(item) ? <img src={getPreviewImage(item)} alt="" /> : <div className="preview-image-placeholder" />}
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -634,7 +686,9 @@ export const PreviewSection = ({ section, index, collections }) => {
   }
 
   if (blockType === 'product_card_carousel') {
-    const isBeautyPreset = String(stylePreset || '').trim().toLowerCase() === 'beauty';
+    const normalizedPreset = String(stylePreset || '').trim().toLowerCase();
+    const isBeautyPreset = normalizedPreset === 'beauty';
+    const isGroceryPreset = normalizedPreset === 'grocery';
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
         {title ? (
@@ -661,7 +715,7 @@ export const PreviewSection = ({ section, index, collections }) => {
             ))}
           </div>
         ) : (
-          <div className="preview-deal-carousel">
+          <div className={`preview-deal-carousel ${isGroceryPreset ? 'is-grocery' : ''}`}>
             {items.map((item, itemIndex) => (
               <div key={`preview-product-card-${index}-${itemIndex}`} className="preview-deal-card">
                 <div className="preview-deal-card-image">
@@ -804,26 +858,30 @@ export const PreviewSection = ({ section, index, collections }) => {
   }
 
   if (blockType === 'beauty_salon_carousel') {
+    const isGroceryPreset = String(section?.stylePreset || '').trim().toLowerCase() === 'grocery';
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
         {title ? (
-          <div className="preview-title preview-title-with-action">
+          <div className={`preview-title preview-title-with-action ${isGroceryPreset ? '' : ''}`}>
             <span>{title}</span>
             {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
           </div>
         ) : null}
-        <div className="preview-beauty-salons">
+        <div className={`preview-beauty-salons ${isGroceryPreset ? 'is-grocery' : ''}`}>
           {items.map((item, itemIndex) => (
             <div key={`preview-beauty-salon-${index}-${itemIndex}`} className="preview-beauty-salon-card">
               <div className="preview-beauty-salon-image">
                 {getPreviewImage(item) ? <img src={getPreviewImage(item)} alt="" /> : <div className="preview-image-placeholder" />}
               </div>
-              <div className="preview-beauty-salon-title">{item?.title || `Salon ${itemIndex + 1}`}</div>
+              <div className="preview-beauty-salon-title">{item?.title || `${isGroceryPreset ? 'Store' : 'Salon'} ${itemIndex + 1}`}</div>
               {item?.subtitle ? <div className="preview-beauty-salon-subtitle">{item.subtitle}</div> : null}
               <div className="preview-beauty-salon-meta">
                 <span>{item?.rating || '4.8'}</span>
-                <span>{item?.distance || '2.4 km'}</span>
+                <span>{item?.distance || (isGroceryPreset ? '20-30 min' : '2.4 km')}</span>
               </div>
+              {isGroceryPreset && item?.ctaText ? (
+                <div className="preview-beauty-salon-cta">{item.ctaText}</div>
+              ) : null}
             </div>
           ))}
         </div>
@@ -1053,7 +1111,9 @@ export const PreviewSection = ({ section, index, collections }) => {
   }
 
   if (blockType === 'chip_scroll') {
-    const isBeautyChips = String(stylePreset || '').trim().toLowerCase() === 'beauty';
+    const normalizedPreset = String(stylePreset || '').trim().toLowerCase();
+    const isBeautyChips = normalizedPreset === 'beauty';
+    const isGroceryChips = normalizedPreset === 'grocery';
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
         {title ? (
@@ -1071,9 +1131,12 @@ export const PreviewSection = ({ section, index, collections }) => {
             ))}
           </div>
         ) : (
-          <div className="preview-chip-scroll">
+          <div className={`preview-chip-scroll ${isGroceryChips ? 'is-grocery' : ''}`}>
             {items.map((item, itemIndex) => (
-              <span key={`preview-chip-${index}-${itemIndex}`} className="preview-chip">
+              <span
+                key={`preview-chip-${index}-${itemIndex}`}
+                className={`preview-chip ${isGroceryChips ? 'is-grocery' : ''}`}
+              >
                 {item.text || item.title || `Chip ${itemIndex + 1}`}
               </span>
             ))}
