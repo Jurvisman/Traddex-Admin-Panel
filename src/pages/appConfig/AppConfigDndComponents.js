@@ -884,7 +884,23 @@ export const PreviewSection = ({
                 </div>
                 <div className="preview-deal-card-title">{item?.title || `Product ${itemIndex + 1}`}</div>
                 {item?.subtitle ? <div className="preview-deal-card-subtitle">{item.subtitle}</div> : null}
-                {item?.price ? <div className="preview-deal-card-price">{item.price}</div> : null}
+                {item?.businessName ? <div className="preview-deal-card-business">{item.businessName}</div> : null}
+                {isGroceryPreset && item?.rating ? (
+                  <div className="preview-deal-card-meta">
+                    <span className="preview-deal-card-rating">★ {item.rating}</span>
+                  </div>
+                ) : null}
+                {isGroceryPreset ? (
+                  <div className="preview-deal-card-footer">
+                    {item?.price ? <div className="preview-deal-card-price">{item.price}</div> : null}
+                    <div className="preview-deal-card-cta">
+                      <span className="preview-deal-card-cta-plus">+</span>
+                      <span>{item?.ctaText || item?.ctaLabel || 'ADD'}</span>
+                    </div>
+                  </div>
+                ) : item?.price ? (
+                  <div className="preview-deal-card-price">{item.price}</div>
+                ) : null}
               </div>
             ))}
           </div>

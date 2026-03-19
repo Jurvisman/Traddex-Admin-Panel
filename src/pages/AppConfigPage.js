@@ -5285,6 +5285,19 @@ function AppConfigPage({ token }) {
                                     />
                                   </label>
                                   <label className="field">
+                                    <span>Business / store</span>
+                                    <input
+                                      type="text"
+                                      value={item.businessName || ''}
+                                      onChange={(event) => updatePhaseOneItem(idx, 'businessName', event.target.value)}
+                                      placeholder={
+                                        isGroceryProductCardCarousel
+                                          ? 'Ramji Kirana Store'
+                                          : 'Business name'
+                                      }
+                                    />
+                                  </label>
+                                  <label className="field">
                                     <span>Price label</span>
                                     <input
                                       type="text"

@@ -4635,15 +4635,18 @@ textarea {
   border: 1px solid rgba(15, 23, 42, 0.1);
   background: #fff;
   padding: 10px;
+  display: flex;
+  flex-direction: column;
+  min-height: 182px;
 }
 
 .preview-deal-card-image {
   position: relative;
-  height: 82px;
-  border-radius: 12px;
+  height: 88px;
+  border-radius: 14px;
   overflow: hidden;
   background: #e5e7eb;
-  margin-bottom: 9px;
+  margin-bottom: 10px;
 }
 
 .preview-deal-card-image img {
@@ -4667,6 +4670,7 @@ textarea {
 .preview-deal-card-title {
   font-size: 11px;
   font-weight: 800;
+  line-height: 15px;
   color: #1f2937;
 }
 
@@ -4674,25 +4678,131 @@ textarea {
   margin-top: 3px;
   font-size: 9px;
   color: #6b7280;
+  min-height: 12px;
+}
+
+.preview-deal-card-business {
+  margin-top: 4px;
+  font-size: 8px;
+  line-height: 11px;
+  color: #6b7280;
+  min-height: 11px;
+}
+
+.preview-deal-card-meta {
+  margin-top: 6px;
+  min-height: 18px;
+  display: flex;
+  align-items: center;
+}
+
+.preview-deal-card-rating {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  color: #1f2937;
+  font-size: 9px;
+  font-weight: 700;
 }
 
 .preview-deal-card-price {
-  margin-top: 7px;
   font-size: 10px;
   font-weight: 800;
   color: #2563eb;
 }
 
+.preview-deal-card-footer {
+  margin-top: auto;
+  padding-top: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.preview-deal-card-cta {
+  min-width: 42px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(46, 107, 31, 0.16);
+  background: rgba(255, 255, 255, 0.92);
+  font-size: 9px;
+  font-weight: 800;
+  color: #2e6b1f;
+}
+
+.preview-deal-card-cta-plus {
+  font-size: 11px;
+  line-height: 1;
+}
+
 .preview-deal-carousel.is-grocery .preview-deal-card {
   border-color: rgba(46, 107, 31, 0.14);
+  background: linear-gradient(180deg, #fbfef3 0%, #ffffff 62%);
+  box-shadow: 0 8px 18px rgba(83, 123, 39, 0.08);
 }
 
 .preview-deal-carousel.is-grocery .preview-deal-card-badge {
   background: rgba(46, 107, 31, 0.92);
 }
 
+.preview-deal-carousel.is-grocery .preview-deal-card-image {
+  height: 88px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  padding: 8px;
+}
+
+.preview-deal-carousel.is-grocery .preview-deal-card-image img {
+  object-fit: contain;
+}
+
+.preview-deal-carousel.is-grocery .preview-deal-card-title {
+  font-size: 12px;
+  line-height: 16px;
+  color: #1e2a17;
+}
+
+.preview-deal-carousel.is-grocery .preview-deal-card-subtitle {
+  margin-top: 4px;
+  font-size: 9px;
+  color: #5e6d57;
+}
+
+.preview-deal-carousel.is-grocery .preview-deal-card-business {
+  color: #738066;
+}
+
+.preview-deal-carousel.is-grocery .preview-deal-card-rating {
+  background: rgba(255, 255, 255, 0.96);
+}
+
 .preview-deal-carousel.is-grocery .preview-deal-card-price {
-  color: #2e6b1f;
+  margin-top: 0;
+  color: #1e2a17;
+  font-size: 11px;
+}
+
+.preview-deal-carousel.is-grocery .preview-deal-card-footer {
+  border-top-color: rgba(46, 107, 31, 0.12);
+}
+
+.preview-deal-carousel.is-grocery .preview-deal-card-cta {
+  border-color: rgba(46, 107, 31, 0.98);
+  background: #2e6b1f;
+  color: #ffffff;
+}
+
+.preview-deal-carousel.is-grocery .preview-deal-card-cta-plus {
+  margin-right: 2px;
 }
 
 .preview-media-overlay-row {

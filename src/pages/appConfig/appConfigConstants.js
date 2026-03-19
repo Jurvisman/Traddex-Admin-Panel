@@ -308,6 +308,7 @@ const GROCERY_FRESH_SAMPLE = [
   {
     title: 'Strawberries',
     subtitle: '250 g box',
+    businessName: 'FreshMart Grocery',
     price: 'Rs 145',
     badgeText: 'Fresh',
     rating: '4.7',
@@ -318,6 +319,7 @@ const GROCERY_FRESH_SAMPLE = [
   {
     title: 'Avocado Hass',
     subtitle: '2 pcs pack',
+    businessName: 'Green Basket',
     price: 'Rs 89',
     badgeText: 'New',
     rating: '4.6',
@@ -328,6 +330,7 @@ const GROCERY_FRESH_SAMPLE = [
   {
     title: 'Farm Eggs',
     subtitle: '12 pcs pack',
+    businessName: 'Daily Essentials',
     price: 'Rs 109',
     badgeText: 'Popular',
     rating: '4.8',
@@ -338,6 +341,7 @@ const GROCERY_FRESH_SAMPLE = [
   {
     title: 'Cherry Tomato',
     subtitle: '500 g box',
+    businessName: 'Veggie Hub',
     price: 'Rs 69',
     badgeText: 'Fresh',
     rating: '4.5',
@@ -351,6 +355,7 @@ const GROCERY_PANTRY_SAMPLE = [
   {
     title: 'Breakfast Combo',
     subtitle: 'Bread, butter, jam',
+    businessName: 'Daily Basket',
     price: 'Rs 249',
     oldPrice: 'Rs 299',
     saveLabel: 'Save 17%',
@@ -362,6 +367,7 @@ const GROCERY_PANTRY_SAMPLE = [
   {
     title: 'Weekly Staples',
     subtitle: 'Atta, rice, dal',
+    businessName: 'Smart Grocers',
     price: 'Rs 799',
     oldPrice: 'Rs 899',
     saveLabel: 'Save 11%',
@@ -373,6 +379,7 @@ const GROCERY_PANTRY_SAMPLE = [
   {
     title: 'Snack Box',
     subtitle: 'Chips, cookies, drinks',
+    businessName: 'Snacc Stop',
     price: 'Rs 299',
     oldPrice: 'Rs 359',
     saveLabel: 'Save 16%',
@@ -387,6 +394,7 @@ const GROCERY_FREQUENT_SAMPLE = [
   {
     title: 'Greek Yogurt',
     subtitle: '400 g cup',
+    businessName: 'FreshMart Grocery',
     price: 'Rs 79',
     ctaText: 'ADD',
     imageUrl:
@@ -396,6 +404,7 @@ const GROCERY_FREQUENT_SAMPLE = [
   {
     title: 'Aashirvaad Atta',
     subtitle: '10 kg pack',
+    businessName: 'Daily Basket',
     price: 'Rs 499',
     ctaText: 'ADD',
     imageUrl:
@@ -405,6 +414,7 @@ const GROCERY_FREQUENT_SAMPLE = [
   {
     title: 'Amul Milk 1L',
     subtitle: 'Fresh & chilled',
+    businessName: 'Green Basket',
     price: 'Rs 56',
     ctaText: 'ADD',
     imageUrl:
@@ -1535,6 +1545,7 @@ export const getPhaseOneDefaultItem = (blockType, index = 0) => {
     return {
       title: '',
       subtitle: '',
+      businessName: '',
       price: '',
       badgeText: '',
       rating: '',
@@ -1720,6 +1731,8 @@ export const normalizePhaseOneItems = (items, blockType) => {
         ...base,
         title: item?.title || item?.name || item?.label || '',
         subtitle: item?.subtitle || '',
+        businessName:
+          item?.businessName || item?.storeName || item?.shopName || item?.sellerName || item?.companyName || '',
         price: item?.price || item?.sellingPrice || '',
         badgeText: item?.badgeText || item?.off || '',
         rating: item?.rating || '',
