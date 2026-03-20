@@ -2497,6 +2497,15 @@ textarea {
   grid-column: 1 / -1;
 }
 
+.block-settings-group {
+  grid-column: 1 / -1;
+  padding-top: 4px;
+}
+
+.block-settings-group .panel-subheading {
+  margin: 0 0 4px;
+}
+
 .table-shell {
   overflow-x: auto;
 }

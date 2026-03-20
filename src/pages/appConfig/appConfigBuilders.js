@@ -258,12 +258,26 @@ export const buildSectionFromForm = (base, form) => {
     const feedMode = String(form.productFeedMode || 'FREQUENTLY_BOUGHT').trim().toUpperCase();
     const productLimitRaw = toNumberOrNull(form.productLimit);
     const productLimit = productLimitRaw ? Math.max(1, Math.min(60, productLimitRaw)) : 9;
+    const sourceIndustryId = normalizeCollectionId(form.sourceIndustryId);
+    const sourceMainCategoryId = normalizeCollectionId(form.sourceMainCategoryId);
+    const sourceCategoryIds = Array.isArray(form.sourceCategoryIds)
+      ? form.sourceCategoryIds.map((value) => normalizeCollectionId(value)).filter(Boolean)
+      : [];
     next.productFeedMode = feedMode;
     next.dataSourceRef = resolveMultiItemGridDataSourceRef(feedMode);
     next.itemsPath = '$.products';
     next.columns = 3;
     next.productLimit = productLimit;
-    delete next.dataSource;
+    next.dataSource = {
+      sourceType: 'PRODUCT_FEED',
+      ...(sourceIndustryId ? { industryId: sourceIndustryId } : {}),
+      ...(sourceMainCategoryId ? { mainCategoryId: sourceMainCategoryId } : {}),
+      ...(sourceCategoryIds.length ? { categoryIds: sourceCategoryIds } : {}),
+      filters: {
+        hasImageOnly: form.sourceHasImageOnly !== false,
+        inStockOnly: form.sourceInStockOnly === true,
+      },
+    };
     delete next.mapping;
   } else {
     if (isCampaignBentoBlock) {

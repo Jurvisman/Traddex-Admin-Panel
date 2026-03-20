@@ -623,9 +623,10 @@ function AppConfigPage({ token }) {
 
   useEffect(() => {
     const resolvedBlockType = sectionForm.blockType || sectionForm.type || '';
-    if (!phaseOneBlockTypes.has(resolvedBlockType)) return;
     const isProductFeedBlock =
-      resolvedBlockType === 'product_card_carousel' && Boolean(String(sectionForm.dataSourceRef || '').trim());
+      (resolvedBlockType === 'product_card_carousel' || resolvedBlockType === 'multiItemGrid') &&
+      Boolean(String(sectionForm.dataSourceRef || '').trim());
+    if (!phaseOneBlockTypes.has(resolvedBlockType) && !isProductFeedBlock) return;
     if ((sectionForm.sourceType || 'MANUAL') !== 'CATEGORY_FEED' && !isProductFeedBlock) {
       setSourceCategories([]);
       return;
@@ -3237,6 +3238,69 @@ function AppConfigPage({ token }) {
       (item) => normalizeMatchValue(resolveMainCategoryIndustryId(item)) === normalizeMatchValue(industryId)
     );
   }, [mainCategories, sectionForm.sourceIndustryId]);
+
+  const pageIndustryId = useMemo(
+    () => normalizeCollectionId(resolveIndustryId(pageIndustry)),
+    [pageIndustry]
+  );
+
+  const multiItemGridScopeOptions = useMemo(() => {
+    const options = [];
+    if (pageIndustryId) {
+      options.push({ value: 'PAGE_INDUSTRY', label: 'Current page industry' });
+    }
+    options.push({ value: 'SPECIFIC_INDUSTRY', label: 'Specific industry' });
+    options.push({ value: 'ALL', label: 'All industries' });
+    return options;
+  }, [pageIndustryId]);
+
+  const resolvedMultiItemGridScope = useMemo(() => {
+    const selectedIndustryId = normalizeCollectionId(sectionForm.sourceIndustryId);
+    if (!selectedIndustryId) return 'ALL';
+    if (pageIndustryId && normalizeMatchValue(selectedIndustryId) === normalizeMatchValue(pageIndustryId)) {
+      return 'PAGE_INDUSTRY';
+    }
+    return 'SPECIFIC_INDUSTRY';
+  }, [pageIndustryId, sectionForm.sourceIndustryId]);
+
+  const handleMultiItemGridScopeChange = (nextScope) => {
+    setSectionForm((prev) => {
+      const currentIndustryId = normalizeCollectionId(prev.sourceIndustryId);
+      const isUsingPageIndustry =
+        pageIndustryId &&
+        normalizeMatchValue(currentIndustryId) === normalizeMatchValue(pageIndustryId);
+
+      if (nextScope === 'ALL') {
+        return {
+          ...prev,
+          sourceIndustryId: '',
+          sourceMainCategoryId: '',
+          sourceCategoryIds: [],
+        };
+      }
+
+      if (nextScope === 'PAGE_INDUSTRY' && pageIndustryId) {
+        const shouldResetTaxonomy = !isUsingPageIndustry;
+        return {
+          ...prev,
+          sourceIndustryId: pageIndustryId,
+          sourceMainCategoryId: shouldResetTaxonomy ? '' : prev.sourceMainCategoryId,
+          sourceCategoryIds: shouldResetTaxonomy ? [] : prev.sourceCategoryIds,
+        };
+      }
+
+      if (nextScope === 'SPECIFIC_INDUSTRY' && isUsingPageIndustry) {
+        return {
+          ...prev,
+          sourceIndustryId: '',
+          sourceMainCategoryId: '',
+          sourceCategoryIds: [],
+        };
+      }
+
+      return prev;
+    });
+  };
 
   const resolvedCategoryFeedMode = resolveDefaultCategoryFeedMode(screenBlockType, sectionForm.sourceFeedMode);
 
@@ -6530,8 +6594,12 @@ function AppConfigPage({ token }) {
                       <>
                         {!isCategoryPreviewGrid ? (
                           <>
-                            <label className="field field-span">
-                              <span>Product feed</span>
+                            <div className="block-settings-group">
+                              <h4 className="panel-subheading">Catalog Setup</h4>
+                              <p className="field-help">Choose what this product grid should show.</p>
+                            </div>
+                            <label className="field">
+                              <span>What to show</span>
                               <select
                                 value={sectionForm.productFeedMode || 'FREQUENTLY_BOUGHT'}
                                 onChange={(event) =>
@@ -6550,11 +6618,179 @@ function AppConfigPage({ token }) {
                                 ))}
                               </select>
                               <p className="field-help">
-                                This block displays products only. The feed selected in the dropdown will be rendered in the app.
+                                Select the live product feed that should power this block.
                               </p>
                             </label>
                             <label className="field">
-                              <span>Initial visible products</span>
+                              <span>Scope</span>
+                              <select
+                                value={resolvedMultiItemGridScope}
+                                onChange={(event) => handleMultiItemGridScopeChange(event.target.value)}
+                              >
+                                {multiItemGridScopeOptions.map((option) => (
+                                  <option key={option.value} value={option.value}>
+                                    {option.label}
+                                  </option>
+                                ))}
+                              </select>
+                              <p className="field-help">
+                                {resolvedMultiItemGridScope === 'PAGE_INDUSTRY' && pageIndustryId
+                                  ? `This block will stay linked to ${resolveIndustryLabel(pageIndustry)} by default.`
+                                  : resolvedMultiItemGridScope === 'SPECIFIC_INDUSTRY'
+                                    ? 'Pick one industry, then optionally narrow it further by category.'
+                                    : 'Shows products from every industry without category-level narrowing.'}
+                              </p>
+                            </label>
+                            {resolvedMultiItemGridScope === 'PAGE_INDUSTRY' && pageIndustryId ? (
+                              <label className="field">
+                                <span>Industry</span>
+                                <input type="text" value={resolveIndustryLabel(pageIndustry)} disabled />
+                              </label>
+                            ) : null}
+                            {resolvedMultiItemGridScope === 'SPECIFIC_INDUSTRY' ? (
+                              <label className="field">
+                                <span>Industry</span>
+                                <select
+                                  value={sectionForm.sourceIndustryId || ''}
+                                  onChange={(event) =>
+                                    setSectionForm((prev) => ({
+                                      ...prev,
+                                      sourceIndustryId: event.target.value,
+                                      sourceMainCategoryId: '',
+                                      sourceCategoryIds: [],
+                                    }))
+                                  }
+                                >
+                                  <option value="">Select industry</option>
+                                  {industries.map((item) => {
+                                    const id = resolveIndustryId(item);
+                                    if (!id) return null;
+                                    return (
+                                      <option key={id} value={id}>
+                                        {resolveIndustryLabel(item)}
+                                      </option>
+                                    );
+                                  })}
+                                </select>
+                              </label>
+                            ) : null}
+                            {normalizeCollectionId(sectionForm.sourceIndustryId) ? (
+                              <>
+                                <label className="field">
+                                  <span>Main category</span>
+                                  <select
+                                    value={sectionForm.sourceMainCategoryId || ''}
+                                    onChange={(event) =>
+                                      setSectionForm((prev) => ({
+                                        ...prev,
+                                        sourceMainCategoryId: event.target.value,
+                                        sourceCategoryIds: [],
+                                      }))
+                                    }
+                                  >
+                                    <option value="">All main categories</option>
+                                    {filteredMainCategoryOptions.map((item) => {
+                                      const id = resolveMainCategoryId(item);
+                                      if (!id) return null;
+                                      return (
+                                        <option key={id} value={id}>
+                                          {resolveMainCategoryName(item)}
+                                        </option>
+                                      );
+                                    })}
+                                  </select>
+                                  <p className="field-help">
+                                    Leave this open if you want the feed to use the whole selected industry.
+                                  </p>
+                                </label>
+                                <label className="field field-span">
+                                  <span>Categories (optional)</span>
+                                  {sectionForm.sourceMainCategoryId ? (
+                                    isLoadingSourceCategories ? (
+                                      <p className="field-help">Loading categories...</p>
+                                    ) : sourceCategories.length ? (
+                                      <div className="checkbox-grid">
+                                        {sourceCategories.map((item) => {
+                                          const id = resolveCategoryId(item);
+                                          if (!id) return null;
+                                          const checked = Array.isArray(sectionForm.sourceCategoryIds)
+                                            ? sectionForm.sourceCategoryIds.includes(id)
+                                            : false;
+                                          return (
+                                            <label key={id} className="checkbox-row">
+                                              <input
+                                                type="checkbox"
+                                                checked={checked}
+                                                onChange={() =>
+                                                  setSectionForm((prev) => {
+                                                    const current = Array.isArray(prev.sourceCategoryIds)
+                                                      ? prev.sourceCategoryIds
+                                                      : [];
+                                                    return {
+                                                      ...prev,
+                                                      sourceCategoryIds: current.includes(id)
+                                                        ? current.filter((value) => value !== id)
+                                                        : [...current, id],
+                                                    };
+                                                  })
+                                                }
+                                              />
+                                              {resolveCategoryName(item)}
+                                            </label>
+                                          );
+                                        })}
+                                      </div>
+                                    ) : (
+                                      <p className="field-help">No categories found for selected main category.</p>
+                                    )
+                                  ) : (
+                                    <p className="field-help">
+                                      Select a main category first if you want tighter category-level filtering.
+                                    </p>
+                                  )}
+                                </label>
+                              </>
+                            ) : resolvedMultiItemGridScope === 'SPECIFIC_INDUSTRY' ? (
+                              <div className="field field-span">
+                                <span>Category narrowing</span>
+                                <p className="field-help">Choose an industry first to unlock main category and category filters.</p>
+                              </div>
+                            ) : null}
+                            <div className="block-settings-group">
+                              <h4 className="panel-subheading">Display</h4>
+                              <p className="field-help">Fine-tune how strict the feed should be and how many products appear first.</p>
+                            </div>
+                            <div className="field">
+                              <span>Filters</span>
+                              <label className="checkbox-row">
+                                <input
+                                  type="checkbox"
+                                  checked={sectionForm.sourceHasImageOnly !== false}
+                                  onChange={(event) =>
+                                    setSectionForm((prev) => ({
+                                      ...prev,
+                                      sourceHasImageOnly: event.target.checked,
+                                    }))
+                                  }
+                                />
+                                With image only
+                              </label>
+                              <label className="checkbox-row">
+                                <input
+                                  type="checkbox"
+                                  checked={sectionForm.sourceInStockOnly === true}
+                                  onChange={(event) =>
+                                    setSectionForm((prev) => ({
+                                      ...prev,
+                                      sourceInStockOnly: event.target.checked,
+                                    }))
+                                  }
+                                />
+                                In stock only
+                              </label>
+                            </div>
+                            <label className="field">
+                              <span>Products to show</span>
                               <input
                                 type="number"
                                 min="1"
@@ -6567,7 +6803,9 @@ function AppConfigPage({ token }) {
                                   }))
                                 }
                               />
-                              <p className="field-help">The grid always renders in 3 columns. This value controls how many products are shown initially.</p>
+                              <p className="field-help">
+                                This grid stays fixed at 3 columns. Use this to control the initial product count.
+                              </p>
                             </label>
                           </>
                         ) : (

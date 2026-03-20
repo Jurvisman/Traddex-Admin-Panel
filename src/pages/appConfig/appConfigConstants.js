@@ -57,7 +57,7 @@ export const screenSectionTypeOptions = [
   { value: 'horizontalList', label: 'Horizontal list' },
   { value: 'horizontal_scroll_list', label: 'Horizontal featured list (SDUI)' },
   { value: 'quick_action_row', label: 'Quick action row (SDUI)' },
-  { value: 'grid', label: 'Grid' },
+  { value: 'grid', label: 'Product grid' },
   { value: 'column_grid', label: 'Column grid (SDUI)' },
   { value: 'category_icon_grid', label: 'Category icon grid (SDUI)' },
   { value: 'brand_logo_grid', label: 'Brand logo grid (SDUI)' },
@@ -1062,8 +1062,8 @@ export const screenToolboxItems = [
   },
   {
     key: 'multiItemGrid',
-    label: 'Multi Item Grid Block',
-    hint: 'Product feed grid',
+    label: 'Product Grid Block',
+    hint: 'Live product grid with smart filters',
     section: {
       id: 'multi_item_grid',
       type: 'grid',
@@ -1247,7 +1247,7 @@ export const blockLabels = {
   beauty_salon_carousel: 'Place Card Carousel',
   bestseller_shelf: 'Bestsellers Shelf Block',
   sectionTitle: 'Section Title Block',
-  multiItemGrid: 'Multi Item Grid Block',
+  multiItemGrid: 'Product Grid Block',
   categoryPreviewGrid: 'Category Preview Grid',
   campaignBento: 'Campaign Bento Block',
   icon_list: 'Icon List Block',
