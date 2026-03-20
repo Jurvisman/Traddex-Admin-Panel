@@ -5101,6 +5101,29 @@ textarea {
   color: #c96c8a;
 }
 
+.preview-beauty-product-footer {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.preview-beauty-product-cta {
+  min-width: 46px;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(201, 108, 138, 0.18);
+  background: rgba(233, 195, 179, 0.24);
+  color: #c96c8a;
+  font-size: 9px;
+  font-weight: 800;
+}
+
 .preview-beauty-routine {
   display: flex;
   flex-direction: column;

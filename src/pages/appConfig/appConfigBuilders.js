@@ -90,6 +90,8 @@ export const buildSectionFromForm = (base, form) => {
   }
   if (isPlaceCardCarouselBlock) {
     setOrDelete('actionMode', form.placeCardActionMode?.trim().toUpperCase() || 'CALL_WHATSAPP');
+  } else if (isProductCardCarouselBlock) {
+    setOrDelete('actionMode', form.productCardActionMode?.trim().toUpperCase() || 'AUTO');
   } else {
     delete next.actionMode;
   }
@@ -621,6 +623,10 @@ export const buildSectionFormFromConfig = (section, fallbackType) => {
       resolvedBlockType === 'beauty_salon_carousel'
         ? section?.actionMode || defaultSectionForm.placeCardActionMode
         : defaultSectionForm.placeCardActionMode,
+    productCardActionMode:
+      resolvedBlockType === 'product_card_carousel'
+        ? section?.actionMode || defaultSectionForm.productCardActionMode
+        : defaultSectionForm.productCardActionMode,
     mappingTitleField: mapping?.titleField || defaultSectionForm.mappingTitleField,
     mappingImageField: mapping?.imageField || defaultSectionForm.mappingImageField,
     mappingSecondaryImageField: mapping?.secondaryImageField || '',

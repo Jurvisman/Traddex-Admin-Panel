@@ -1553,6 +1553,9 @@ export const getPhaseOneDefaultItem = (blockType, index = 0) => {
       saveLabel: '',
       eta: '',
       ctaText: '',
+      contactNumber: '',
+      whatsappNumber: '',
+      inquiryLink: '',
       imageUrl: '',
       deepLink: '',
     };
@@ -1744,6 +1747,9 @@ export const normalizePhaseOneItems = (items, blockType) => {
         saveLabel: item?.saveLabel || item?.save || '',
         eta: item?.eta || item?.deliveryEta || '',
         ctaText: item?.ctaText || item?.ctaLabel || '',
+        contactNumber: item?.contactNumber || item?.phoneNumber || item?.mobileNumber || '',
+        whatsappNumber: item?.whatsappNumber || item?.whatsapp || '',
+        inquiryLink: item?.inquiryLink || item?.ctaLink || '',
         imageUrl: item?.imageUrl || item?.imageUri || item?.thumbnailImage || '',
         deepLink: item?.deepLink || item?.targetUrl || '',
       };
@@ -1938,6 +1944,16 @@ export const PLACE_CARD_ACTION_MODE_OPTIONS = [
   { value: 'CALL_WHATSAPP', label: 'Call + WhatsApp' },
   { value: 'CALL_INQUIRY', label: 'Call + Inquiry' },
   { value: 'WHATSAPP_INQUIRY', label: 'WhatsApp + Inquiry' },
+];
+
+export const PRODUCT_CARD_ACTION_MODE_OPTIONS = [
+  { value: 'AUTO', label: 'Auto by preset' },
+  { value: 'ADD', label: 'Add button' },
+  { value: 'VIEW', label: 'View button' },
+  { value: 'WHATSAPP', label: 'WhatsApp button' },
+  { value: 'CALL', label: 'Call button' },
+  { value: 'INQUIRY', label: 'Inquiry button' },
+  { value: 'NONE', label: 'Hide button' },
 ];
 
 export const isMainCategoryDrivenCategoryBlock = (blockType) => {
@@ -2606,6 +2622,7 @@ export const defaultSectionForm = {
   sourceHasImageOnly: true,
   sourceInStockOnly: false,
   placeCardActionMode: 'CALL_WHATSAPP',
+  productCardActionMode: 'AUTO',
   mappingTitleField: 'name',
   mappingImageField: 'imageUrl',
   mappingSecondaryImageField: '',

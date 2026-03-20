@@ -849,6 +849,22 @@ export const PreviewSection = ({
     const normalizedPreset = String(stylePreset || '').trim().toLowerCase();
     const isBeautyPreset = normalizedPreset === 'beauty';
     const isGroceryPreset = normalizedPreset === 'grocery';
+    const previewActionMode = String(section?.actionMode || 'AUTO').trim().toUpperCase();
+    const resolvePreviewCtaLabel = (item) => {
+      if (item?.ctaText) return item.ctaText;
+      if (previewActionMode === 'CALL') return 'Call';
+      if (previewActionMode === 'WHATSAPP') return 'WhatsApp';
+      if (previewActionMode === 'INQUIRY') return 'Inquiry';
+      if (previewActionMode === 'VIEW') return 'View';
+      if (previewActionMode === 'NONE') return '';
+      if (previewActionMode === 'AUTO') return isGroceryPreset ? 'ADD' : 'View';
+      return previewActionMode === 'ADD' ? 'ADD' : 'View';
+    };
+    const showActionButton = previewActionMode !== 'NONE';
+    const showAddPlus = (label) => {
+      const normalizedLabel = String(label || '').trim().toUpperCase();
+      return normalizedLabel === 'ADD';
+    };
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
         {title ? (
@@ -870,7 +886,14 @@ export const PreviewSection = ({
                 </div>
                 <div className="preview-beauty-product-title">{item?.title || `Product ${itemIndex + 1}`}</div>
                 {item?.subtitle ? <div className="preview-beauty-product-subtitle">{item.subtitle}</div> : null}
-                {item?.price ? <div className="preview-beauty-product-price">{item.price}</div> : null}
+                {item?.price || showActionButton ? (
+                  <div className="preview-beauty-product-footer">
+                    {item?.price ? <div className="preview-beauty-product-price">{item.price}</div> : <span />}
+                    {showActionButton ? (
+                      <div className="preview-beauty-product-cta">{resolvePreviewCtaLabel(item)}</div>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
             ))}
           </div>
@@ -893,13 +916,37 @@ export const PreviewSection = ({
                 {isGroceryPreset ? (
                   <div className="preview-deal-card-footer">
                     {item?.price ? <div className="preview-deal-card-price">{item.price}</div> : null}
-                    <div className="preview-deal-card-cta">
-                      <span className="preview-deal-card-cta-plus">+</span>
-                      <span>{item?.ctaText || item?.ctaLabel || 'ADD'}</span>
-                    </div>
+                    {showActionButton ? (
+                      <div className="preview-deal-card-cta">
+                        {showAddPlus(resolvePreviewCtaLabel(item)) ? (
+                          <span className="preview-deal-card-cta-plus">+</span>
+                        ) : null}
+                        <span>{resolvePreviewCtaLabel(item)}</span>
+                      </div>
+                    ) : null}
                   </div>
                 ) : item?.price ? (
-                  <div className="preview-deal-card-price">{item.price}</div>
+                  <div className="preview-deal-card-footer">
+                    <div className="preview-deal-card-price">{item.price}</div>
+                    {showActionButton ? (
+                      <div className="preview-deal-card-cta">
+                        {showAddPlus(resolvePreviewCtaLabel(item)) ? (
+                          <span className="preview-deal-card-cta-plus">+</span>
+                        ) : null}
+                        <span>{resolvePreviewCtaLabel(item)}</span>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : showActionButton ? (
+                  <div className="preview-deal-card-footer">
+                    <span />
+                    <div className="preview-deal-card-cta">
+                      {showAddPlus(resolvePreviewCtaLabel(item)) ? (
+                        <span className="preview-deal-card-cta-plus">+</span>
+                      ) : null}
+                      <span>{resolvePreviewCtaLabel(item)}</span>
+                    </div>
+                  </div>
                 ) : null}
               </div>
             ))}

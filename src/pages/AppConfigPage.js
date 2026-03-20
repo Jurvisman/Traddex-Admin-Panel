@@ -82,6 +82,7 @@ import {
   CATEGORY_ICON_FEED_MODE_OPTIONS,
   PLACE_CARD_SOURCE_OPTIONS,
   PLACE_CARD_ACTION_MODE_OPTIONS,
+  PRODUCT_CARD_ACTION_MODE_OPTIONS,
   isMainCategoryDrivenCategoryBlock,
   resolveDefaultCategoryFeedMode,
   BENTO_TILE_SOURCE_OPTIONS,
@@ -3147,6 +3148,7 @@ function AppConfigPage({ token }) {
   const isBeautyProductCardCarousel = productCardPreset === 'beauty';
   const isGroceryProductCardCarousel = productCardPreset === 'grocery';
   const productCardVariant = String(sectionForm.cardVariant || '').trim().toLowerCase();
+  const resolvedProductCardActionMode = String(sectionForm.productCardActionMode || 'AUTO').trim().toUpperCase();
   const isGroceryFreshProductCardCarousel = isGroceryProductCardCarousel && productCardVariant === 'grocery_fresh';
   const isGroceryPantryProductCardCarousel = isGroceryProductCardCarousel && productCardVariant === 'grocery_pantry';
   const isGroceryCompactProductCardCarousel = isGroceryProductCardCarousel && productCardVariant === 'grocery_compact';
@@ -4100,21 +4102,38 @@ function AppConfigPage({ token }) {
                       </label>
                     ) : null}
                     {isProductCardCarousel ? (
-                      <label className="field">
-                        <span>Card layout</span>
-                        <select
-                          value={sectionForm.cardVariant || ''}
-                          onChange={(event) =>
-                            setSectionForm((prev) => ({ ...prev, cardVariant: event.target.value }))
-                          }
-                        >
-                          {PRODUCT_CARD_VARIANT_OPTIONS.map((option) => (
-                            <option key={`product-card-variant-${option.value || 'default'}`} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
+                      <>
+                        <label className="field">
+                          <span>Card layout</span>
+                          <select
+                            value={sectionForm.cardVariant || ''}
+                            onChange={(event) =>
+                              setSectionForm((prev) => ({ ...prev, cardVariant: event.target.value }))
+                            }
+                          >
+                            {PRODUCT_CARD_VARIANT_OPTIONS.map((option) => (
+                              <option key={`product-card-variant-${option.value || 'default'}`} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="field">
+                          <span>Action button</span>
+                          <select
+                            value={sectionForm.productCardActionMode || 'AUTO'}
+                            onChange={(event) =>
+                              setSectionForm((prev) => ({ ...prev, productCardActionMode: event.target.value }))
+                            }
+                          >
+                            {PRODUCT_CARD_ACTION_MODE_OPTIONS.map((option) => (
+                              <option key={`product-card-action-${option.value}`} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      </>
                     ) : null}
                     {isSectionTitleBlock ? (
                       <label className="field field-span">
@@ -5773,19 +5792,61 @@ function AppConfigPage({ token }) {
                                           type="text"
                                           value={item.eta || ''}
                                           onChange={(event) => updatePhaseOneItem(idx, 'eta', event.target.value)}
-                                          placeholder="25-35 min"
-                                        />
-                                      </label>
+                                        placeholder="25-35 min"
+                                      />
+                                    </label>
                                     </>
                                   ) : null}
-                                  {isGroceryCompactProductCardCarousel ? (
+                                  <label className="field">
+                                    <span>Button text (optional)</span>
+                                    <input
+                                      type="text"
+                                      value={item.ctaText || ''}
+                                      onChange={(event) => updatePhaseOneItem(idx, 'ctaText', event.target.value)}
+                                      placeholder={
+                                        resolvedProductCardActionMode === 'CALL'
+                                          ? 'Call'
+                                          : resolvedProductCardActionMode === 'WHATSAPP'
+                                            ? 'WhatsApp'
+                                            : resolvedProductCardActionMode === 'INQUIRY'
+                                              ? 'Inquiry'
+                                              : resolvedProductCardActionMode === 'VIEW'
+                                                ? 'View'
+                                                : 'ADD'
+                                      }
+                                    />
+                                  </label>
+                                  {(resolvedProductCardActionMode === 'CALL' ||
+                                    resolvedProductCardActionMode === 'WHATSAPP') ? (
                                     <label className="field">
-                                      <span>CTA text</span>
+                                      <span>Contact number</span>
                                       <input
                                         type="text"
-                                        value={item.ctaText || ''}
-                                        onChange={(event) => updatePhaseOneItem(idx, 'ctaText', event.target.value)}
-                                        placeholder="ADD"
+                                        value={item.contactNumber || ''}
+                                        onChange={(event) => updatePhaseOneItem(idx, 'contactNumber', event.target.value)}
+                                        placeholder="+91 98765 43210"
+                                      />
+                                    </label>
+                                  ) : null}
+                                  {resolvedProductCardActionMode === 'WHATSAPP' ? (
+                                    <label className="field">
+                                      <span>WhatsApp number (optional)</span>
+                                      <input
+                                        type="text"
+                                        value={item.whatsappNumber || ''}
+                                        onChange={(event) => updatePhaseOneItem(idx, 'whatsappNumber', event.target.value)}
+                                        placeholder="+91 98765 43210"
+                                      />
+                                    </label>
+                                  ) : null}
+                                  {resolvedProductCardActionMode === 'INQUIRY' ? (
+                                    <label className="field">
+                                      <span>Inquiry link (optional)</span>
+                                      <input
+                                        type="text"
+                                        value={item.inquiryLink || ''}
+                                        onChange={(event) => updatePhaseOneItem(idx, 'inquiryLink', event.target.value)}
+                                        placeholder="app://product/123 or https://..."
                                       />
                                     </label>
                                   ) : null}
