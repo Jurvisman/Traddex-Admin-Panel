@@ -1037,6 +1037,22 @@ export const PreviewSection = ({
     const normalizedPreset = String(section?.stylePreset || '').trim().toLowerCase();
     const previewPreset = normalizedPreset === 'grocery' || normalizedPreset === 'electronics' ? normalizedPreset : 'beauty';
     const isGroceryPreset = previewPreset === 'grocery';
+    const actionMode = String(section?.actionMode || 'CALL_WHATSAPP').trim().toUpperCase();
+    const actionSet =
+      actionMode === 'CALL_INQUIRY'
+        ? [
+            { glyph: 'C', label: 'Call', modifier: 'call' },
+            { glyph: 'I', label: 'Inquiry', modifier: 'inquiry' },
+          ]
+        : actionMode === 'WHATSAPP_INQUIRY'
+          ? [
+              { glyph: 'W', label: 'WhatsApp', modifier: 'whatsapp' },
+              { glyph: 'I', label: 'Inquiry', modifier: 'inquiry' },
+            ]
+          : [
+              { glyph: 'C', label: 'Call', modifier: 'call' },
+              { glyph: 'W', label: 'WhatsApp', modifier: 'whatsapp' },
+            ];
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
         {title ? (
@@ -1058,14 +1074,15 @@ export const PreviewSection = ({
                 <span>{item?.distance || (isGroceryPreset ? '20-30 min' : '2.4 km')}</span>
               </div>
               <div className="preview-beauty-salon-actions">
-                <div className="preview-beauty-salon-action preview-beauty-salon-action-call">
-                  <span className="preview-beauty-salon-action-glyph">C</span>
-                  <span>Call</span>
-                </div>
-                <div className="preview-beauty-salon-action preview-beauty-salon-action-whatsapp">
-                  <span className="preview-beauty-salon-action-glyph">W</span>
-                  <span>WhatsApp</span>
-                </div>
+                {actionSet.map((action) => (
+                  <div
+                    key={`${action.modifier}-${itemIndex}`}
+                    className={`preview-beauty-salon-action preview-beauty-salon-action-${action.modifier}`}
+                  >
+                    <span className="preview-beauty-salon-action-glyph">{action.glyph}</span>
+                    <span>{action.label}</span>
+                  </div>
+                ))}
               </div>
             </div>
           ))}

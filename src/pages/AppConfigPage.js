@@ -18,6 +18,8 @@ import {
   getHomeCategoryPreview,
   listAppConfigVersions,
   listCategories,
+  fetchBusinesses,
+  fetchBusinessDetails,
   listIndustries,
   listMainCategories,
   listProductCollections,
@@ -78,6 +80,10 @@ import {
   COLUMN_GRID_TOP_LINE_STYLES,
   CATEGORY_FEED_SORT_OPTIONS,
   CATEGORY_ICON_FEED_MODE_OPTIONS,
+  PLACE_CARD_SOURCE_OPTIONS,
+  PLACE_CARD_ACTION_MODE_OPTIONS,
+  isMainCategoryDrivenCategoryBlock,
+  resolveDefaultCategoryFeedMode,
   BENTO_TILE_SOURCE_OPTIONS,
   SOURCE_TYPE_OPTIONS,
   SHOWCASE_VARIANT_OPTIONS,
@@ -254,6 +260,34 @@ const formatDestinationCollectionLabel = (collection) => {
   return `${title}${slug}`;
 };
 
+const formatBusinessSelectionLabel = (business) => {
+  const title =
+    business?.businessName ||
+    business?.name ||
+    `Business ${business?.id || business?.userId || ''}`;
+  const type = business?.businessType ? ` · ${business.businessType}` : '';
+  const location = [business?.cityCode, business?.stateCode].filter(Boolean).join(', ');
+  const suffix = location ? ` · ${location}` : '';
+  return `${title}${type}${suffix}`;
+};
+
+const getBusinessSelectionSearchText = (business) =>
+  [
+    business?.id,
+    business?.userId,
+    business?.businessName,
+    business?.name,
+    business?.businessType,
+    business?.cityCode,
+    business?.stateCode,
+    business?.countryCode,
+    business?.number,
+    business?.phone,
+    business?.mobile,
+  ]
+    .map((value) => String(value || '').toLowerCase())
+    .join(' ');
+
 function AppConfigPage({ token }) {
   const [draftText, setDraftText] = useState('');
   const [version, setVersion] = useState('');
@@ -299,6 +333,10 @@ function AppConfigPage({ token }) {
   const [isLoadingProductCollections, setIsLoadingProductCollections] = useState(false);
   const [destinationProducts, setDestinationProducts] = useState([]);
   const [isLoadingDestinationProducts, setIsLoadingDestinationProducts] = useState(false);
+  const [businessDirectory, setBusinessDirectory] = useState([]);
+  const [isLoadingBusinessDirectory, setIsLoadingBusinessDirectory] = useState(false);
+  const [placeCardBusinessQuery, setPlaceCardBusinessQuery] = useState('');
+  const [placeCardBusinessPick, setPlaceCardBusinessPick] = useState('');
   const [heroDestinationQueries, setHeroDestinationQueries] = useState({});
   const [sectionDestinationQuery, setSectionDestinationQuery] = useState('');
   const [mainCategories, setMainCategories] = useState([]);
@@ -624,7 +662,13 @@ function AppConfigPage({ token }) {
 
   useEffect(() => {
     const resolvedBlockType = sectionForm.blockType || sectionForm.type || '';
-    if (resolvedBlockType !== 'column_grid') return;
+    if (
+      resolvedBlockType !== 'column_grid' &&
+      resolvedBlockType !== 'category_icon_grid' &&
+      resolvedBlockType !== 'category_showcase'
+    ) {
+      return;
+    }
     if (!sourceAutoRefresh || isResolvingSource) return;
     const fingerprint = buildCategoryFeedFingerprint(sectionForm, resolvedBlockType);
     if (!fingerprint || fingerprint === lastAppliedSourceFingerprint) return;
@@ -758,6 +802,71 @@ function AppConfigPage({ token }) {
     }
   };
 
+  const loadBusinessDirectory = async (force = false) => {
+    if (!force && Array.isArray(businessDirectory) && businessDirectory.length > 0) {
+      return;
+    }
+    setIsLoadingBusinessDirectory(true);
+    try {
+      const response = await fetchBusinesses(token);
+      const items = response?.data || response || [];
+      const sorted = Array.isArray(items)
+        ? [...items].sort((a, b) =>
+            String(a?.businessName || a?.name || '').localeCompare(String(b?.businessName || b?.name || ''))
+          )
+        : [];
+      setBusinessDirectory(sorted);
+    } catch (error) {
+      setBusinessDirectory([]);
+    } finally {
+      setIsLoadingBusinessDirectory(false);
+    }
+  };
+
+  const mapBusinessDetailsToPlaceCardItem = useCallback((detailsResponse, fallbackBusiness) => {
+    const payload = detailsResponse?.data || detailsResponse || {};
+    const profile = payload?.businessProfile || payload?.profile || payload || {};
+    const userId = String(
+      profile?.userId ||
+      fallbackBusiness?.id ||
+      fallbackBusiness?.userId ||
+      ''
+    ).trim();
+    const businessName =
+      profile?.businessName ||
+      fallbackBusiness?.businessName ||
+      fallbackBusiness?.name ||
+      'Business';
+    const businessType = profile?.businessType || fallbackBusiness?.businessType || '';
+    const location =
+      profile?.cityName ||
+      profile?.cityCode ||
+      profile?.formattedAddress ||
+      profile?.address ||
+      fallbackBusiness?.cityCode ||
+      '';
+    const subtitle = [businessType, location].filter(Boolean).join(' · ');
+    return {
+      businessUserId: userId,
+      title: businessName,
+      subtitle,
+      rating: '',
+      distance: '',
+      ctaText: '',
+      imageUrl: profile?.logo || fallbackBusiness?.logo || '',
+      contactNumber:
+        profile?.contactNumber ||
+        profile?.phoneNumber ||
+        fallbackBusiness?.number ||
+        fallbackBusiness?.phone ||
+        fallbackBusiness?.mobile ||
+        '',
+      whatsappNumber: profile?.whatsappNumber || '',
+      inquiryLink: '',
+      deepLink: '',
+    };
+  }, []);
+
   const loadMainCategories = async () => {
     try {
       const response = await listMainCategories(token);
@@ -846,6 +955,7 @@ function AppConfigPage({ token }) {
     loadIndustries();
     loadCollections();
     loadProductCollections();
+    loadBusinessDirectory();
     loadMainCategories();
     loadHeaderPresets();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -978,7 +1088,14 @@ function AppConfigPage({ token }) {
   };
 
   const handleRefresh = async () => {
-    await Promise.all([loadDraft(), loadVersions(), loadIndustries(), loadCollections(), loadMainCategories()]);
+    await Promise.all([
+      loadDraft(),
+      loadVersions(),
+      loadIndustries(),
+      loadCollections(),
+      loadBusinessDirectory(true),
+      loadMainCategories(),
+    ]);
   };
 
   const handleCreateBaseConfig = () => {
@@ -1436,10 +1553,45 @@ function AppConfigPage({ token }) {
     setHeroDestinationQueries((prev) => ({ ...prev, [index]: value }));
   };
 
+  const addSelectedPlaceBusiness = async (userId) => {
+    const normalizedUserId = normalizeCollectionId(userId);
+    if (!normalizedUserId) return;
+    const alreadySelected = Array.isArray(sectionForm.sourceBusinessUserIds)
+      ? sectionForm.sourceBusinessUserIds.some(
+          (value) => normalizeCollectionId(value) === normalizedUserId
+        )
+      : false;
+    if (alreadySelected) return;
+    const fallbackBusiness = (Array.isArray(businessDirectory) ? businessDirectory : []).find(
+      (entry) => normalizeCollectionId(entry?.id || entry?.userId) === normalizedUserId
+    );
+    try {
+      const details = await fetchBusinessDetails(token, normalizedUserId);
+      const nextItem = mapBusinessDetailsToPlaceCardItem(details, fallbackBusiness);
+      setSectionForm((prev) => {
+        const nextItems = normalizePhaseOneItems(prev.sduiItems, 'beauty_salon_carousel');
+        return {
+          ...prev,
+          sourceType: 'BUSINESS_SELECTION',
+          sourceBusinessUserIds: [...selectedPlaceBusinessIds, normalizedUserId],
+          sduiItems: [...nextItems, nextItem],
+        };
+      });
+      setMessage({ type: 'success', text: `Added ${nextItem.title || 'business'} to place cards.` });
+      setPlaceCardBusinessQuery('');
+      setPlaceCardBusinessPick('');
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to load business details.' });
+    }
+  };
+
   const addPhaseOneItem = () => {
     setSectionForm((prev) => {
       const blockType = prev.blockType || prev.type || '';
       const nextItems = normalizePhaseOneItems(prev.sduiItems, blockType);
+      if (blockType === 'split_promo_row' && nextItems.length >= 2) {
+        return prev;
+      }
       const nextDefault = getPhaseOneDefaultItem(blockType, nextItems.length);
       return { ...prev, sduiItems: [...nextItems, nextDefault] };
     });
@@ -1450,9 +1602,26 @@ function AppConfigPage({ token }) {
     setSectionForm((prev) => {
       const blockType = prev.blockType || prev.type || '';
       const nextItems = normalizePhaseOneItems(prev.sduiItems, blockType).filter((_, itemIndex) => itemIndex !== index);
+      const nextSelectedBusinessIds =
+        blockType === 'beauty_salon_carousel' && String(prev.sourceType || 'MANUAL').toUpperCase() === 'BUSINESS_SELECTION'
+          ? nextItems
+              .map((item) => normalizeCollectionId(item?.businessUserId))
+              .filter(Boolean)
+          : prev.sourceBusinessUserIds;
+      const normalizedItems =
+        blockType === 'split_promo_row'
+          ? [
+              ...nextItems,
+              ...Array.from(
+                { length: Math.max(0, 2 - nextItems.length) },
+                (_, missingIndex) => getPhaseOneDefaultItem(blockType, nextItems.length + missingIndex)
+              ),
+            ].slice(0, 2)
+          : nextItems;
       return {
         ...prev,
-        sduiItems: nextItems.length ? nextItems : [getPhaseOneDefaultItem(blockType, 0)],
+        sourceBusinessUserIds: nextSelectedBusinessIds,
+        sduiItems: normalizedItems.length ? normalizedItems : [getPhaseOneDefaultItem(blockType, 0)],
       };
     });
     setPhaseOneImageWarnings({});
@@ -1462,6 +1631,13 @@ function AppConfigPage({ token }) {
     setSectionForm((prev) => {
       const blockType = prev.blockType || prev.type || '';
       const nextItems = normalizePhaseOneItems(prev.sduiItems, blockType);
+      if (blockType === 'split_promo_row' && nextItems.length >= 2) return prev;
+      if (
+        blockType === 'beauty_salon_carousel' &&
+        String(prev.sourceType || 'MANUAL').toUpperCase() === 'BUSINESS_SELECTION'
+      ) {
+        return prev;
+      }
       const current = nextItems[index];
       if (!current) return prev;
       const clone = { ...current, id: '' };
@@ -1510,9 +1686,23 @@ function AppConfigPage({ token }) {
     const safeTemplate = template && typeof template === 'string' ? template : 'app://category/{id}';
     return safeTemplate
       .replaceAll('{id}', String(payload?.id ?? ''))
-      .replaceAll('{categoryId}', String(payload?.id ?? ''))
+      .replaceAll('{mainCategoryId}', String(payload?.mainCategoryId ?? payload?.id ?? ''))
+      .replaceAll('{categoryId}', String(payload?.categoryId ?? payload?.id ?? ''))
       .replaceAll('{name}', encodeURIComponent(String(payload?.name ?? '')))
       .replaceAll('{slug}', encodeURIComponent(String(payload?.slug ?? payload?.name ?? '')));
+  };
+
+  const appendQueryParamsToDeepLink = (link, params) => {
+    if (!link) return '';
+    const [base, queryString = ''] = String(link).split('?', 2);
+    const query = new URLSearchParams(queryString);
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && String(value).trim()) {
+        query.set(key, String(value).trim());
+      }
+    });
+    const serialized = query.toString();
+    return serialized ? `${base}?${serialized}` : base;
   };
 
   const sortCategoryFeed = (list, sortBy) => {
@@ -1608,7 +1798,7 @@ function AppConfigPage({ token }) {
         ? new Set(sectionForm.sourceCategoryIds.map((id) => normalizeCollectionId(id)).filter(Boolean))
         : new Set();
       const industryId = normalizeCollectionId(sectionForm.sourceIndustryId);
-      const feedMode = String(sectionForm.sourceFeedMode || 'TOP_SELLING').toUpperCase();
+      const feedMode = resolveDefaultCategoryFeedMode(resolvedBlockType, sectionForm.sourceFeedMode);
       const rankingWindowDays = Math.max(1, Math.min(365, Number(sectionForm.sourceRankingWindowDays || 30)));
 
       let resolvedMainCategoryId = normalizeCollectionId(sectionForm.sourceMainCategoryId);
@@ -1637,7 +1827,7 @@ function AppConfigPage({ token }) {
           allCategories = industryCategoryGroups.flat();
         } else {
           if (!resolvedMainCategoryId) {
-            resolvedMainCategoryId = resolveMainCategoryId(industryMainCategories[0]);
+            throw new Error('Select main category first.');
           }
           allCategories = await resolveSourceCategoriesForForm(resolvedMainCategoryId);
         }
@@ -1684,7 +1874,8 @@ function AppConfigPage({ token }) {
         filtered = sortCategoryFeed(filtered, sectionForm.sourceSortBy);
       }
 
-      const limit = Math.max(1, Math.min(20, Number(sectionForm.sourceLimit || 8)));
+      const maxLimit = resolvedBlockType === 'category_icon_grid' ? 8 : 20;
+      const limit = Math.max(1, Math.min(maxLimit, Number(sectionForm.sourceLimit || 8)));
       const picked = filtered.slice(0, limit);
       if (!picked.length) {
         throw new Error('No categories matched current source filters.');
@@ -1700,16 +1891,29 @@ function AppConfigPage({ token }) {
           (titleField === 'name' ? resolveCategoryName(item) : item?.[titleField]) || resolveCategoryName(item);
         const image = (imageField && item?.[imageField]) || resolveCategoryImage(item);
         const categoryId = resolveCategoryId(item);
+        const resolvedItemMainCategoryId =
+          normalizeCollectionId(
+            resolvedMainCategoryId || item?.mainCategoryId || item?.main_category_id
+          ) || categoryId;
         return {
           id: categoryId,
           collectionId: categoryId,
           title: resolvedBlockType === 'horizontal_scroll_list' ? '' : String(title || ''),
           imageUrl: image || '',
-          deepLink: resolveDeepLinkFromTemplate(deepLinkTemplate, {
-            id: categoryId,
-            name: resolveCategoryName(item),
-            slug: item?.path || resolveCategoryName(item),
-          }),
+          deepLink: appendQueryParamsToDeepLink(
+            resolveDeepLinkFromTemplate(deepLinkTemplate, {
+              id: resolvedItemMainCategoryId,
+              mainCategoryId: resolvedItemMainCategoryId,
+              categoryId,
+              name: resolveCategoryName(item),
+              slug: item?.path || resolveCategoryName(item),
+            }),
+            {
+              industryId: normalizeCollectionId(industryId),
+              mainCategoryId: normalizeCollectionId(resolvedItemMainCategoryId),
+              categoryId,
+            }
+          ),
           subtitle: '',
           badgeText: '',
         };
@@ -1728,6 +1932,10 @@ function AppConfigPage({ token }) {
         );
         nextItems = picked.map((item) => {
           const categoryId = resolveCategoryId(item);
+          const resolvedItemMainCategoryId =
+            normalizeCollectionId(
+              resolvedMainCategoryId || item?.mainCategoryId || item?.main_category_id
+            ) || categoryId;
           const preview = byId.get(categoryId);
           const previewItems = Array.isArray(preview?.items) ? preview.items : [];
           const first = previewItems[0] || null;
@@ -1744,11 +1952,20 @@ function AppConfigPage({ token }) {
             title: String(title || ''),
             imageUrl: first?.imageUrl || mappedPrimaryImage,
             secondaryImageUrl: second?.imageUrl || mappedSecondaryImage,
-            deepLink: resolveDeepLinkFromTemplate(deepLinkTemplate, {
-              id: categoryId,
+            deepLink: appendQueryParamsToDeepLink(
+            resolveDeepLinkFromTemplate(deepLinkTemplate, {
+              id: resolvedItemMainCategoryId,
+              mainCategoryId: resolvedItemMainCategoryId,
+              categoryId,
               name: resolveCategoryName(item),
-              slug: item?.path || resolveCategoryName(item),
-            }),
+                slug: item?.path || resolveCategoryName(item),
+              }),
+            {
+              industryId: normalizeCollectionId(industryId),
+              mainCategoryId: normalizeCollectionId(resolvedItemMainCategoryId),
+              categoryId,
+            }
+          ),
           };
         });
       }
@@ -1768,7 +1985,7 @@ function AppConfigPage({ token }) {
         sourceMainCategoryId: normalizeCollectionId(resolvedMainCategoryId),
         sourceLimit: String(limit),
         title:
-          resolvedBlockType === 'category_icon_grid'
+          isMainCategoryDrivenCategoryBlock(resolvedBlockType)
             ? resolveMainCategoryName(selectedMainCategory) ||
               (selectedIndustry ? `${resolveIndustryLabel(selectedIndustry)} top categories` : prev.title)
             : prev.title,
@@ -3019,6 +3236,76 @@ function AppConfigPage({ token }) {
     );
   }, [mainCategories, sectionForm.sourceIndustryId]);
 
+  const resolvedCategoryFeedMode = resolveDefaultCategoryFeedMode(screenBlockType, sectionForm.sourceFeedMode);
+
+  const resolveSelectedMainCategoryLabel = (mainCategoryId) => {
+    const normalizedId = normalizeCollectionId(mainCategoryId);
+    if (!normalizedId) return '';
+    const pool = filteredMainCategoryOptions.length ? filteredMainCategoryOptions : mainCategories;
+    const matched = pool.find((item) => resolveMainCategoryId(item) === normalizedId);
+    return matched ? resolveMainCategoryName(matched) : '';
+  };
+
+  const handleCategoryBlockIndustryChange = (nextIndustryId) => {
+    setSectionForm((prev) => {
+      const resolvedBlockType = prev.blockType || prev.type || '';
+      return {
+        ...prev,
+        sourceType: 'CATEGORY_FEED',
+        sourceIndustryId: nextIndustryId,
+        sourceFeedMode: resolveDefaultCategoryFeedMode(resolvedBlockType, prev.sourceFeedMode),
+        sourceMainCategoryId: '',
+        sourceCategoryIds: [],
+      };
+    });
+  };
+
+  const handleCategoryBlockMainCategoryChange = (nextMainCategoryId) => {
+    setSectionForm((prev) => {
+      const resolvedBlockType = prev.blockType || prev.type || '';
+      const isMainCategoryDriven = isMainCategoryDrivenCategoryBlock(resolvedBlockType);
+      const nextTitle = resolveSelectedMainCategoryLabel(nextMainCategoryId);
+      const currentLimit = Number(prev.sourceLimit || 8);
+      const safeLimit = Number.isFinite(currentLimit)
+        ? Math.max(1, Math.min(resolvedBlockType === 'category_icon_grid' ? 8 : 20, Math.trunc(currentLimit)))
+        : 8;
+      return {
+        ...prev,
+        sourceType: isMainCategoryDriven ? 'CATEGORY_FEED' : prev.sourceType,
+        sourceFeedMode: isMainCategoryDriven
+          ? 'MAIN_CATEGORY'
+          : resolveDefaultCategoryFeedMode(resolvedBlockType, prev.sourceFeedMode),
+        sourceMainCategoryId: nextMainCategoryId,
+        sourceCategoryIds: [],
+        sourceLimit: String(safeLimit),
+        title: isMainCategoryDriven && nextTitle ? nextTitle : prev.title,
+      };
+    });
+  };
+
+  const selectedPlaceBusinessIds = useMemo(
+    () =>
+      Array.isArray(sectionForm.sourceBusinessUserIds)
+        ? sectionForm.sourceBusinessUserIds
+            .map((value) => normalizeCollectionId(value))
+            .filter(Boolean)
+        : [],
+    [sectionForm.sourceBusinessUserIds]
+  );
+
+  const filteredPlaceBusinessOptions = useMemo(() => {
+    const query = normalizeSearchText(placeCardBusinessQuery);
+    const selectedSet = new Set(selectedPlaceBusinessIds);
+    return (Array.isArray(businessDirectory) ? businessDirectory : [])
+      .filter((business) => {
+        const businessId = normalizeCollectionId(business?.id || business?.userId);
+        if (!businessId || selectedSet.has(businessId)) return false;
+        if (!query) return true;
+        return getBusinessSelectionSearchText(business).includes(query);
+      })
+      .slice(0, 80);
+  }, [businessDirectory, placeCardBusinessQuery, selectedPlaceBusinessIds]);
+
   const filteredBentoMainCategoryOptions = useMemo(() => {
     const industryId = normalizeCollectionId(sectionForm.bentoTilesIndustryId);
     const items = Array.isArray(mainCategories) ? mainCategories : [];
@@ -4107,15 +4394,7 @@ function AppConfigPage({ token }) {
                                   <span>Industry</span>
                                   <select
                                     value={sectionForm.sourceIndustryId || ''}
-                                    onChange={(event) =>
-                                      setSectionForm((prev) => ({
-                                        ...prev,
-                                        sourceType: 'CATEGORY_FEED',
-                                        sourceIndustryId: event.target.value,
-                                        sourceMainCategoryId: '',
-                                        sourceCategoryIds: [],
-                                      }))
-                                    }
+                                    onChange={(event) => handleCategoryBlockIndustryChange(event.target.value)}
                                   >
                                     <option value="">Select industry</option>
                                     {industries.map((item) => {
@@ -4130,9 +4409,9 @@ function AppConfigPage({ token }) {
                                   </select>
                                 </label>
                                 <label className="field">
-                                  <span>Feed mode</span>
+                                  <span>Category source</span>
                                   <select
-                                    value={sectionForm.sourceFeedMode || 'TOP_SELLING'}
+                                    value={resolvedCategoryFeedMode}
                                     onChange={(event) =>
                                       setSectionForm((prev) => ({
                                         ...prev,
@@ -4170,20 +4449,12 @@ function AppConfigPage({ token }) {
                                         ))}
                                       </select>
                                     </label>
-                                    <label className="field">
-                                      <span>Industry</span>
-                                      <select
-                                        value={sectionForm.sourceIndustryId || ''}
-                                        onChange={(event) =>
-                                          setSectionForm((prev) => ({
-                                            ...prev,
-                                            sourceType: 'CATEGORY_FEED',
-                                            sourceIndustryId: event.target.value,
-                                            sourceMainCategoryId: '',
-                                            sourceCategoryIds: [],
-                                          }))
-                                        }
-                                      >
+                                <label className="field">
+                                  <span>Industry</span>
+                                  <select
+                                    value={sectionForm.sourceIndustryId || ''}
+                                    onChange={(event) => handleCategoryBlockIndustryChange(event.target.value)}
+                                  >
                                         <option value="">Select industry</option>
                                         {industries.map((item) => {
                                           const id = resolveIndustryId(item);
@@ -4329,19 +4600,21 @@ function AppConfigPage({ token }) {
                                 <label className="field">
                                   <span>
                                         {(isPhaseOneCategoryIconGrid || isPhaseOneCategoryShowcase) &&
-                                    String(sectionForm.sourceFeedMode || 'TOP_SELLING').toUpperCase() === 'TOP_SELLING'
+                                    resolvedCategoryFeedMode === 'TOP_SELLING'
                                       ? 'Main category (optional)'
                                       : 'Main category'}
                                   </span>
                                   <select
                                     value={sectionForm.sourceMainCategoryId || ''}
                                     onChange={(event) =>
-                                      setSectionForm((prev) => ({
-                                        ...prev,
-                                            sourceType: (isPhaseOneCategoryIconGrid || isPhaseOneCategoryShowcase) ? 'CATEGORY_FEED' : prev.sourceType,
-                                        sourceMainCategoryId: event.target.value,
-                                        sourceCategoryIds: [],
-                                      }))
+                                      (isPhaseOneCategoryIconGrid || isPhaseOneCategoryShowcase)
+                                        ? handleCategoryBlockMainCategoryChange(event.target.value)
+                                        : setSectionForm((prev) => ({
+                                            ...prev,
+                                            sourceType: prev.sourceType,
+                                            sourceMainCategoryId: event.target.value,
+                                            sourceCategoryIds: [],
+                                          }))
                                     }
                                   >
                                     <option value="">Select main category</option>
@@ -4355,13 +4628,19 @@ function AppConfigPage({ token }) {
                                       );
                                     })}
                                   </select>
+                                  {isPhaseOneCategoryIconGrid || isPhaseOneCategoryShowcase ? (
+                                    <p className="field-help">
+                                      Select a main category to auto-fill this block title and load up to{' '}
+                                      {isPhaseOneCategoryIconGrid ? '8' : sectionForm.sourceLimit || '8'} child categories.
+                                    </p>
+                                  ) : null}
                                 </label>
                                 <label className="field">
                                   <span>Limit</span>
                                   <input
                                     type="number"
                                     min="1"
-                                    max="20"
+                                    max={isPhaseOneCategoryIconGrid ? '8' : '20'}
                                     value={sectionForm.sourceLimit || '8'}
                                     onChange={(event) =>
                                       setSectionForm((prev) => ({
@@ -4421,10 +4700,13 @@ function AppConfigPage({ token }) {
                                   </label>
                                 </div>
                                     {((!isPhaseOneCategoryIconGrid && !isPhaseOneCategoryShowcase) ||
-                                  String(sectionForm.sourceFeedMode || 'TOP_SELLING').toUpperCase() ===
-                                    'MAIN_CATEGORY') ? (
+                                  resolvedCategoryFeedMode === 'MAIN_CATEGORY') ? (
                                   <label className="field field-span">
-                                    <span>Pick categories (optional)</span>
+                                    <span>
+                                      {(isPhaseOneCategoryIconGrid || isPhaseOneCategoryShowcase)
+                                        ? 'Refine categories (optional)'
+                                        : 'Pick categories (optional)'}
+                                    </span>
                                     {isLoadingSourceCategories ? (
                                       <p className="field-help">Loading categories...</p>
                                     ) : sourceCategories.length ? (
@@ -4896,6 +5178,114 @@ function AppConfigPage({ token }) {
                             ) : null}
                           </>
                         ) : null}
+                        {isBeautySalonCarousel ? (
+                          <>
+                            <div className="field field-span source-config-card">
+                              <div className="field-grid source-config-grid">
+                                <label className="field">
+                                  <span>Cards source</span>
+                                  <select
+                                    value={String(sectionForm.sourceType || 'MANUAL').toUpperCase()}
+                                    onChange={(event) =>
+                                      setSectionForm((prev) => ({
+                                        ...prev,
+                                        sourceType: event.target.value,
+                                        sourceBusinessUserIds:
+                                          event.target.value === 'BUSINESS_SELECTION'
+                                            ? prev.sourceBusinessUserIds
+                                            : [],
+                                      }))
+                                    }
+                                  >
+                                    {PLACE_CARD_SOURCE_OPTIONS.map((option) => (
+                                      <option key={option.value} value={option.value}>
+                                        {option.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </label>
+                                <label className="field">
+                                  <span>Action buttons</span>
+                                  <select
+                                    value={sectionForm.placeCardActionMode || 'CALL_WHATSAPP'}
+                                    onChange={(event) =>
+                                      setSectionForm((prev) => ({
+                                        ...prev,
+                                        placeCardActionMode: event.target.value,
+                                      }))
+                                    }
+                                  >
+                                    {PLACE_CARD_ACTION_MODE_OPTIONS.map((option) => (
+                                      <option key={option.value} value={option.value}>
+                                        {option.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </label>
+                                {String(sectionForm.sourceType || 'MANUAL').toUpperCase() === 'BUSINESS_SELECTION' ? (
+                                  <>
+                                    <label className="field">
+                                      <span>Search businesses</span>
+                                      <input
+                                        type="search"
+                                        value={placeCardBusinessQuery}
+                                        onChange={(event) => setPlaceCardBusinessQuery(event.target.value)}
+                                        placeholder="Search by business name, id, type, city"
+                                      />
+                                    </label>
+                                    <label className="field">
+                                      <span>Add business</span>
+                                      <select
+                                        value={placeCardBusinessPick}
+                                        onChange={(event) => {
+                                          const nextValue = event.target.value;
+                                          setPlaceCardBusinessPick(nextValue);
+                                          if (nextValue) {
+                                            addSelectedPlaceBusiness(nextValue);
+                                          }
+                                        }}
+                                      >
+                                        <option value="">
+                                          {isLoadingBusinessDirectory ? 'Loading businesses...' : 'Select business'}
+                                        </option>
+                                        {filteredPlaceBusinessOptions.map((business) => {
+                                          const businessId = normalizeCollectionId(
+                                            business?.id || business?.userId
+                                          );
+                                          if (!businessId) return null;
+                                          return (
+                                            <option key={`place-card-business-${businessId}`} value={businessId}>
+                                              {formatBusinessSelectionLabel(business)}
+                                            </option>
+                                          );
+                                        })}
+                                      </select>
+                                    </label>
+                                    <div className="field field-span">
+                                      <p className="field-help">
+                                        Selected businesses pull logo, business name, type, contact number and WhatsApp
+                                        into the cards. You can still edit the card fields below for overrides.
+                                      </p>
+                                      {selectedPlaceBusinessIds.length ? (
+                                        <p className="field-help">
+                                          Selected: {selectedPlaceBusinessIds.length} business
+                                          {selectedPlaceBusinessIds.length === 1 ? '' : 'es'}
+                                        </p>
+                                      ) : null}
+                                    </div>
+                                  </>
+                                ) : (
+                                  <div className="field field-span">
+                                    <p className="field-help">
+                                      Manual mode is best for fully curated nearby-shop cards. Switch to selected
+                                      businesses when you want the card data to come from real business profiles.
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </>
+                        ) : null}
                         <label className="field field-span">
                           <span>Block items</span>
                           <div className="inline-row">
@@ -4905,7 +5295,9 @@ function AppConfigPage({ token }) {
                             !isBeautyHeroBanner &&
                             !isProductCardCarouselFeed &&
                             !isPhaseOneDataSourceFeed &&
-                            !isPromoBanner ? (
+                            !isPromoBanner &&
+                            !(isSplitPromoRow && normalizePhaseOneItems(sectionForm.sduiItems, screenBlockType).length >= 2) &&
+                            !(isBeautySalonCarousel && String(sectionForm.sourceType || 'MANUAL').toUpperCase() === 'BUSINESS_SELECTION') ? (
                               <button type="button" className="ghost-btn small" onClick={addPhaseOneItem}>
                                 + Add item
                               </button>
@@ -4981,6 +5373,9 @@ function AppConfigPage({ token }) {
                             const isBrandHeroItem = isPhaseOneBrandGrid && itemKind === 'hero';
                             const isBrandCtaItem = isPhaseOneBrandGrid && itemKind === 'cta';
                             const isBrandTileItem = isPhaseOneBrandGrid && itemKind !== 'hero' && itemKind !== 'cta';
+                            const isBusinessSelectionPlaceCard =
+                              isBeautySalonCarousel &&
+                              String(sectionForm.sourceType || 'MANUAL').toUpperCase() === 'BUSINESS_SELECTION';
                             const showItemActions =
                               !isPhaseOneBrandGrid &&
                               !isPhaseOneCategoryIconGrid &&
@@ -4990,6 +5385,10 @@ function AppConfigPage({ token }) {
                               !isProductCardCarouselFeed &&
                               !isPhaseOneDataSourceFeed &&
                               !isPromoBanner;
+                            const allowDuplicateItem =
+                              showItemActions &&
+                              !isBusinessSelectionPlaceCard &&
+                              !(isSplitPromoRow && allItems.length >= 2);
                             return (
                               <div
                                 key={`phase-one-item-${idx}`}
@@ -5002,6 +5401,13 @@ function AppConfigPage({ token }) {
                                       ? 'Top banner'
                                       : isBrandCtaItem
                                         ? 'Bottom banner'
+                                        : isSplitPromoRow
+                                          ? idx === 0
+                                            ? 'Left card'
+                                            : 'Right card'
+                                          : isBeautySalonCarousel &&
+                                            String(sectionForm.sourceType || 'MANUAL').toUpperCase() === 'BUSINESS_SELECTION'
+                                            ? item?.title || `Business ${idx + 1}`
                                         : `Item ${idx + 1}`}
                                   </div>
                                   {showItemActions ? (
@@ -5028,6 +5434,7 @@ function AppConfigPage({ token }) {
                                         type="button"
                                         className="ghost-btn small"
                                         onClick={() => duplicatePhaseOneItem(idx)}
+                                        disabled={!allowDuplicateItem}
                                       >
                                         Duplicate
                                       </button>
@@ -5529,6 +5936,35 @@ function AppConfigPage({ token }) {
                                         value={item.ctaText || ''}
                                         onChange={(event) => updatePhaseOneItem(idx, 'ctaText', event.target.value)}
                                         placeholder="Shop now"
+                                      />
+                                    </label>
+                                  ) : null}
+                                  <label className="field">
+                                    <span>Contact number</span>
+                                    <input
+                                      type="text"
+                                      value={item.contactNumber || ''}
+                                      onChange={(event) => updatePhaseOneItem(idx, 'contactNumber', event.target.value)}
+                                      placeholder="+91 98765 43210"
+                                    />
+                                  </label>
+                                  <label className="field">
+                                    <span>WhatsApp number</span>
+                                    <input
+                                      type="text"
+                                      value={item.whatsappNumber || ''}
+                                      onChange={(event) => updatePhaseOneItem(idx, 'whatsappNumber', event.target.value)}
+                                      placeholder="+91 98765 43210"
+                                    />
+                                  </label>
+                                  {String(sectionForm.placeCardActionMode || 'CALL_WHATSAPP').includes('INQUIRY') ? (
+                                    <label className="field">
+                                      <span>Inquiry link (optional)</span>
+                                      <input
+                                        type="text"
+                                        value={item.inquiryLink || ''}
+                                        onChange={(event) => updatePhaseOneItem(idx, 'inquiryLink', event.target.value)}
+                                        placeholder="app://collection/store-offers or /InquiryCreate"
                                       />
                                     </label>
                                   ) : null}

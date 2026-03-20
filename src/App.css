@@ -5295,6 +5295,18 @@ textarea {
   color: #ffffff;
 }
 
+.preview-beauty-salon-action-inquiry {
+  background: #fffdf3;
+  border: 1px solid rgba(46, 107, 31, 0.14);
+  color: #2e6b1f;
+}
+
+.preview-beauty-salons.is-beauty .preview-beauty-salon-action-inquiry {
+  border-color: rgba(201, 108, 138, 0.16);
+  background: #fff9fc;
+  color: #8a4d67;
+}
+
 .preview-beauty-salon-action-glyph {
   width: 14px;
   height: 14px;
@@ -5319,6 +5331,16 @@ textarea {
 .preview-beauty-salon-action-whatsapp .preview-beauty-salon-action-glyph {
   background: rgba(255, 255, 255, 0.18);
   color: #ffffff;
+}
+
+.preview-beauty-salon-action-inquiry .preview-beauty-salon-action-glyph {
+  background: rgba(46, 107, 31, 0.1);
+  color: #2e6b1f;
+}
+
+.preview-beauty-salons.is-beauty .preview-beauty-salon-action-inquiry .preview-beauty-salon-action-glyph {
+  background: rgba(201, 108, 138, 0.12);
+  color: #8a4d67;
 }
 
 .preview-split-promo-row {

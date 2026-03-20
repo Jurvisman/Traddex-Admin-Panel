@@ -7,6 +7,7 @@ import {
   toNumberOrNull,
   resolveMultiItemGridDataSourceRef,
   resolveMultiItemGridFeedMode,
+  resolveDefaultCategoryFeedMode,
   parseCsvList,
   fromLocalInputValue,
   toLocalInputValue,
@@ -60,6 +61,8 @@ export const buildSectionFromForm = (base, form) => {
   const isColumnGridBlock = resolvedBlockType === 'column_grid';
   const isCampaignBentoBlock = resolvedBlockType === 'campaignBento';
   const isProductCardCarouselBlock = resolvedBlockType === 'product_card_carousel';
+  const isCategoryIconGridBlock = resolvedBlockType === 'category_icon_grid';
+  const isPlaceCardCarouselBlock = resolvedBlockType === 'beauty_salon_carousel';
   const stylePresetOptions = STYLE_PRESET_OPTIONS[resolvedBlockType] || [];
   const setOrDelete = (key, value) => {
     if (value === undefined || value === null || String(value).trim() === '') {
@@ -84,6 +87,11 @@ export const buildSectionFromForm = (base, form) => {
     setOrDelete('stylePreset', form.stylePreset?.trim() || stylePresetOptions[0]?.value || '');
   } else {
     delete next.stylePreset;
+  }
+  if (isPlaceCardCarouselBlock) {
+    setOrDelete('actionMode', form.placeCardActionMode?.trim().toUpperCase() || 'CALL_WHATSAPP');
+  } else {
+    delete next.actionMode;
   }
   setOrDelete('cardVariant', form.cardVariant?.trim());
   setOrDelete(
@@ -260,28 +268,37 @@ export const buildSectionFromForm = (base, form) => {
       delete next.dataSource;
     } else if (sourceType && sourceType !== 'MANUAL') {
       const sourcePayload = { sourceType };
-      const sourceIndustryId = normalizeCollectionId(form.sourceIndustryId);
-      if (sourceIndustryId) sourcePayload.industryId = sourceIndustryId;
-      if (sourceType === 'CATEGORY_FEED' && form.sourceFeedMode) {
-        sourcePayload.mode = String(form.sourceFeedMode).trim().toUpperCase();
-      }
-      const mainCategoryId = normalizeCollectionId(form.sourceMainCategoryId);
-      if (mainCategoryId) sourcePayload.mainCategoryId = mainCategoryId;
-      const sourceCategoryIds = Array.isArray(form.sourceCategoryIds)
-        ? form.sourceCategoryIds.map((value) => normalizeCollectionId(value)).filter(Boolean)
-        : [];
-      if (sourceCategoryIds.length) sourcePayload.categoryIds = sourceCategoryIds;
-      const sourceLimit = toNumberOrNull(form.sourceLimit);
-      if (sourceLimit) sourcePayload.limit = Math.max(1, Math.min(20, sourceLimit));
-      if (sourceType === 'CATEGORY_FEED') {
-        const rankingWindowDays = toNumberOrNull(form.sourceRankingWindowDays);
-        if (rankingWindowDays) sourcePayload.rankingWindowDays = Math.max(1, Math.min(365, rankingWindowDays));
-        if (form.sourceSortBy) sourcePayload.sortBy = String(form.sourceSortBy).trim().toUpperCase();
-        if (form.sourceLevel) sourcePayload.level = String(form.sourceLevel).trim().toUpperCase();
-        sourcePayload.filters = {
-          activeOnly: form.sourceActiveOnly !== false,
-          hasImageOnly: form.sourceHasImageOnly !== false,
-        };
+      if (isPlaceCardCarouselBlock && sourceType === 'BUSINESS_SELECTION') {
+        const businessUserIds = Array.isArray(form.sourceBusinessUserIds)
+          ? form.sourceBusinessUserIds.map((value) => normalizeCollectionId(value)).filter(Boolean)
+          : [];
+        if (businessUserIds.length) sourcePayload.businessUserIds = businessUserIds;
+      } else {
+        const sourceIndustryId = normalizeCollectionId(form.sourceIndustryId);
+        if (sourceIndustryId) sourcePayload.industryId = sourceIndustryId;
+        if (sourceType === 'CATEGORY_FEED') {
+          sourcePayload.mode = resolveDefaultCategoryFeedMode(resolvedBlockType, form.sourceFeedMode);
+        }
+        const mainCategoryId = normalizeCollectionId(form.sourceMainCategoryId);
+        if (mainCategoryId) sourcePayload.mainCategoryId = mainCategoryId;
+        const sourceCategoryIds = Array.isArray(form.sourceCategoryIds)
+          ? form.sourceCategoryIds.map((value) => normalizeCollectionId(value)).filter(Boolean)
+          : [];
+        if (sourceCategoryIds.length) sourcePayload.categoryIds = sourceCategoryIds;
+        const sourceLimit = toNumberOrNull(form.sourceLimit);
+        if (sourceLimit) {
+          sourcePayload.limit = Math.max(1, Math.min(isCategoryIconGridBlock ? 8 : 20, sourceLimit));
+        }
+        if (sourceType === 'CATEGORY_FEED') {
+          const rankingWindowDays = toNumberOrNull(form.sourceRankingWindowDays);
+          if (rankingWindowDays) sourcePayload.rankingWindowDays = Math.max(1, Math.min(365, rankingWindowDays));
+          if (form.sourceSortBy) sourcePayload.sortBy = String(form.sourceSortBy).trim().toUpperCase();
+          if (form.sourceLevel) sourcePayload.level = String(form.sourceLevel).trim().toUpperCase();
+          sourcePayload.filters = {
+            activeOnly: form.sourceActiveOnly !== false,
+            hasImageOnly: form.sourceHasImageOnly !== false,
+          };
+        }
       }
       next.dataSource = sourcePayload;
     } else {
@@ -566,7 +583,17 @@ export const buildSectionFormFromConfig = (section, fallbackType) => {
           : section?.sourceType) ||
       'MANUAL',
     sourceIndustryId: source?.industryId ? String(source.industryId) : (section?.sourceIndustryId ? String(section.sourceIndustryId) : ''),
-    sourceFeedMode: source?.mode || section?.sourceFeedMode || defaultSectionForm.sourceFeedMode,
+    sourceBusinessUserIds: Array.isArray(source?.businessUserIds)
+      ? source.businessUserIds.map((value) => normalizeCollectionId(value)).filter(Boolean)
+      : Array.isArray(section?.items)
+        ? section.items
+            .map((item) => normalizeCollectionId(item?.businessUserId || item?.userId || item?.profileId))
+            .filter(Boolean)
+        : defaultSectionForm.sourceBusinessUserIds,
+    sourceFeedMode: resolveDefaultCategoryFeedMode(
+      resolvedBlockType,
+      source?.mode || section?.sourceFeedMode || defaultSectionForm.sourceFeedMode
+    ),
     productFeedMode: resolveMultiItemGridFeedMode(
       section?.dataSourceRef,
       section?.productFeedMode || defaultSectionForm.productFeedMode
@@ -590,6 +617,10 @@ export const buildSectionFormFromConfig = (section, fallbackType) => {
     sourceActiveOnly: source?.filters?.activeOnly !== false,
     sourceHasImageOnly: source?.filters?.hasImageOnly !== false,
     sourceInStockOnly: source?.filters?.inStockOnly === true,
+    placeCardActionMode:
+      resolvedBlockType === 'beauty_salon_carousel'
+        ? section?.actionMode || defaultSectionForm.placeCardActionMode
+        : defaultSectionForm.placeCardActionMode,
     mappingTitleField: mapping?.titleField || defaultSectionForm.mappingTitleField,
     mappingImageField: mapping?.imageField || defaultSectionForm.mappingImageField,
     mappingSecondaryImageField: mapping?.secondaryImageField || '',

@@ -1012,13 +1012,13 @@ export const screenToolboxItems = [
       id: 'category_icon_grid',
       type: 'grid',
       blockType: 'category_icon_grid',
-      title: 'Grocery & Kitchen',
-      items: [
-        { title: 'Vegetables & Fruits', imageUrl: '', deepLink: '' },
-        { title: 'Atta, Rice & Dal', imageUrl: '', deepLink: '' },
-        { title: 'Oil, Ghee & Masala', imageUrl: '', deepLink: '' },
-        { title: 'Dairy, Bread & Eggs', imageUrl: '', deepLink: '' },
-      ],
+      title: '',
+      dataSource: {
+        sourceType: 'CATEGORY_FEED',
+        mode: 'MAIN_CATEGORY',
+        limit: 8,
+      },
+      items: [],
     },
   },
   {
@@ -1206,11 +1206,11 @@ export const screenToolboxItems = [
       id: 'category_showcase',
       type: 'category_showcase',
       blockType: 'category_showcase',
-      title: 'Shop categories',
+      title: '',
       actionText: 'View all',
       actionLink: '',
       showcaseVariant: 'circle',
-      dataSource: { sourceType: 'CATEGORY_FEED' },
+      dataSource: { sourceType: 'CATEGORY_FEED', mode: 'MAIN_CATEGORY', limit: 8 },
       sduiItems: [],
     },
   },
@@ -1600,6 +1600,10 @@ export const getPhaseOneDefaultItem = (blockType, index = 0) => {
       distance: '',
       ctaText: '',
       imageUrl: '',
+      businessUserId: '',
+      contactNumber: '',
+      whatsappNumber: '',
+      inquiryLink: '',
       deepLink: '',
     };
   }
@@ -1795,6 +1799,13 @@ export const normalizePhaseOneItems = (items, blockType) => {
         distance: item?.distance || '',
         ctaText: item?.ctaText || item?.ctaLabel || '',
         imageUrl: item?.imageUrl || item?.imageUri || item?.thumbnailImage || '',
+        businessUserId:
+          item?.businessUserId || item?.userId || item?.profileId || '',
+        contactNumber:
+          item?.contactNumber || item?.phoneNumber || item?.phone || item?.mobile || '',
+        whatsappNumber:
+          item?.whatsappNumber || item?.whatsappPhone || item?.whatsapp || '',
+        inquiryLink: item?.inquiryLink || '',
         deepLink: item?.deepLink || item?.targetUrl || '',
       };
     }
@@ -1915,9 +1926,31 @@ export const CATEGORY_FEED_SORT_OPTIONS = [
   { value: 'LATEST', label: 'Latest' },
 ];
 export const CATEGORY_ICON_FEED_MODE_OPTIONS = [
-  { value: 'TOP_SELLING', label: 'Top selling categories' },
   { value: 'MAIN_CATEGORY', label: 'Selected main category categories' },
 ];
+
+export const PLACE_CARD_SOURCE_OPTIONS = [
+  { value: 'MANUAL', label: 'Manual cards' },
+  { value: 'BUSINESS_SELECTION', label: 'Selected businesses' },
+];
+
+export const PLACE_CARD_ACTION_MODE_OPTIONS = [
+  { value: 'CALL_WHATSAPP', label: 'Call + WhatsApp' },
+  { value: 'CALL_INQUIRY', label: 'Call + Inquiry' },
+  { value: 'WHATSAPP_INQUIRY', label: 'WhatsApp + Inquiry' },
+];
+
+export const isMainCategoryDrivenCategoryBlock = (blockType) => {
+  const normalized = String(blockType || '').trim();
+  return normalized === 'category_icon_grid' || normalized === 'category_showcase';
+};
+
+export const resolveDefaultCategoryFeedMode = (blockType, value = '') => {
+  if (isMainCategoryDrivenCategoryBlock(blockType)) return 'MAIN_CATEGORY';
+  const normalized = String(value || '').trim().toUpperCase();
+  if (normalized) return normalized;
+  return 'TOP_SELLING';
+};
 export const SOURCE_TYPE_OPTIONS = [
   { value: 'MANUAL', label: 'Manual' },
   { value: 'DATA_SOURCE', label: 'Data source feed' },
@@ -2056,7 +2089,7 @@ export const buildCategoryFeedFingerprint = (form, blockTypeOverride) => {
     blockType,
     sourceType,
     sourceIndustryId: normalizeCollectionId(form?.sourceIndustryId),
-    sourceFeedMode: String(form?.sourceFeedMode || 'TOP_SELLING').trim().toUpperCase(),
+    sourceFeedMode: resolveDefaultCategoryFeedMode(blockType, form?.sourceFeedMode),
     sourceMainCategoryId: normalizeCollectionId(form?.sourceMainCategoryId),
     sourceCategoryIds: Array.isArray(form?.sourceCategoryIds)
       ? form.sourceCategoryIds.map((value) => normalizeCollectionId(value)).filter(Boolean).sort()
@@ -2558,6 +2591,7 @@ export const defaultSectionForm = {
   targetIndustries: '',
   targetSubscriptionStatuses: '',
   sourceType: 'MANUAL',
+  sourceBusinessUserIds: [],
   sourceIndustryId: '',
   sourceFeedMode: 'TOP_SELLING',
   productFeedMode: 'FREQUENTLY_BOUGHT',
@@ -2571,6 +2605,7 @@ export const defaultSectionForm = {
   sourceActiveOnly: true,
   sourceHasImageOnly: true,
   sourceInStockOnly: false,
+  placeCardActionMode: 'CALL_WHATSAPP',
   mappingTitleField: 'name',
   mappingImageField: 'imageUrl',
   mappingSecondaryImageField: '',
