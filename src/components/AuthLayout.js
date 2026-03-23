@@ -1,16 +1,20 @@
 function AuthLayout({ children }) {
   return (
     <div className="auth-viewport minimal-bg">
-      <div className="glow blur-1" aria-hidden />
-      <div className="glow blur-2" aria-hidden />
-      <div className="auth-center">
-        <section className="card-compact">
-          <div className="brand-block">
-            <h1 className="brand-title">Traddex</h1>
-            <p className="tagline">One platform for every trade.</p>
+      <div className="login-layout">
+        <aside className="login-illustration-pane">
+          <div className="login-illustration-content">
+            <div className="login-logo-block">
+              <span className="login-logo-main">Traddex</span>
+              <p className="login-logo-subtitle">Admin Universe</p>
+            </div>
           </div>
-          {children}
-        </section>
+        </aside>
+        <main className="login-form-pane">
+          <div className="login-form-shell">
+            {children}
+          </div>
+        </main>
       </div>
     </div>
   );

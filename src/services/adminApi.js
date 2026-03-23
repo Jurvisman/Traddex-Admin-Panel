@@ -40,13 +40,34 @@ const request = async (path, { method = 'GET', body, token } = {}) => {
 };
 
 export const fetchUsers = (token) => request('/users/all', { token });
+export const createUserAccount = (token, payload) =>
+  request('/users/register', { method: 'POST', body: payload, token });
+export const fetchEmployees = (token) => request('/admin/employees', { token });
 export const updateUser = (token, id, payload) => request(`/users/${id}`, { method: 'PUT', body: payload, token });
 export const blockUser = (token, id) => request(`/users/${id}/block`, { method: 'POST', token });
 export const deleteUser = (token, id) => request(`/users/${id}/delete`, { method: 'POST', token });
 export const deleteUsersBulk = (token, userIds) =>
   request('/users/delete-bulk', { method: 'POST', body: { user_ids: userIds }, token });
+export const createEmployee = (token, payload) =>
+  request('/admin/employees', { method: 'POST', body: payload, token });
+export const updateEmployee = (token, id, payload) =>
+  request(`/admin/employees/${id}`, { method: 'PUT', body: payload, token });
+export const deleteEmployee = (token, id) => request(`/admin/employees/${id}`, { method: 'DELETE', token });
+export const listRoles = (token) => request('/roles', { token });
+export const createRole = (token, payload) => request('/roles', { method: 'POST', body: payload, token });
+export const updateRole = (token, id, payload) => request(`/roles/${id}`, { method: 'PUT', body: payload, token });
+export const deleteRole = (token, id) => request(`/roles/${id}`, { method: 'DELETE', token });
+export const fetchPermissionCatalog = (token) => request('/admin/rbac/catalog', { token });
+export const fetchRolePermissions = (token, roleId) => request(`/admin/rbac/roles/${roleId}/permissions`, { token });
+export const saveRolePermissions = (token, roleId, actionIds) =>
+  request(`/admin/rbac/roles/${roleId}/permissions`, { method: 'PUT', body: { actionIds }, token });
+export const fetchMyPermissions = (token) => request('/admin/permissions', { token });
 export const fetchUserDetails = (token, id) => request(`/users/${id}/details`, { token });
+export const fetchBusinessDetails = (token, id) => request(`/admin/businesses/${id}/details`, { token });
 export const logoutUser = (token, id) => request(`/users/${id}/logout`, { method: 'POST', token });
+export const fetchBusinesses = (token) => request('/admin/businesses', { token });
+export const updateBusinessAccount = (token, id, payload) =>
+  request(`/admin/businesses/${id}`, { method: 'PUT', body: payload, token });
 export const updateBusinessProfile = (token, userId, payload, status) => {
   const query = status ? `?status=${encodeURIComponent(status)}` : '';
   return request(`/admin/profile/${userId}/business${query}`, { method: 'PUT', body: payload, token });
@@ -56,11 +77,19 @@ export const updateBusinessProfileStatus = (token, profileId, status) =>
 
 export const listIndustries = (token) => request('/industries', { token });
 export const createIndustry = (token, payload) => request('/industries', { method: 'POST', body: payload, token });
+export const updateIndustry = (token, id, payload) =>
+  request(`/industries/${id}`, { method: 'PUT', body: payload, token });
+export const updateIndustryOrder = (token, id, position) =>
+  request(`/industries/${id}/order`, { method: 'POST', body: { position }, token });
 export const deleteIndustry = (token, id) => request(`/industries/${id}`, { method: 'DELETE', token });
 
 export const listMainCategories = (token) => request('/main-categories', { token });
 export const createMainCategory = (token, payload) =>
   request('/main-categories', { method: 'POST', body: payload, token });
+export const updateMainCategory = (token, id, payload) =>
+  request(`/main-categories/${id}`, { method: 'PUT', body: payload, token });
+export const updateMainCategoryOrder = (token, id, position, industryId) =>
+  request(`/main-categories/${id}/order`, { method: 'POST', body: { position, industryId }, token });
 export const deleteMainCategory = (token, id) => request(`/main-categories/${id}`, { method: 'DELETE', token });
 
 export const listCategories = (token, mainCategoryId) => {
@@ -68,7 +97,22 @@ export const listCategories = (token, mainCategoryId) => {
   return request(`/categories${query}`, { token });
 };
 export const createCategory = (token, payload) => request('/categories', { method: 'POST', body: payload, token });
+export const updateCategory = (token, id, payload) =>
+  request(`/categories/${id}`, { method: 'PUT', body: payload, token });
+export const updateCategoryOrder = (token, id, position, mainCategoryId) =>
+  request(`/categories/${id}/order`, { method: 'POST', body: { position, mainCategoryId }, token });
 export const deleteCategory = (token, id) => request(`/categories/${id}`, { method: 'DELETE', token });
+
+export const listProductCollections = (token, active) => {
+  const query = active === true || active === false ? `?active=${active}` : '';
+  return request(`/collections${query}`, { token });
+};
+export const createProductCollection = (token, payload) =>
+  request('/collections', { method: 'POST', body: payload, token });
+export const updateProductCollection = (token, id, payload) =>
+  request(`/collections/${id}`, { method: 'PUT', body: payload, token });
+export const deleteProductCollection = (token, id) =>
+  request(`/collections/${id}`, { method: 'DELETE', token });
 
 export const listSubCategories = (token, categoryId) => {
   const query = categoryId ? `?categoryId=${categoryId}` : '';
@@ -76,10 +120,15 @@ export const listSubCategories = (token, categoryId) => {
 };
 export const createSubCategory = (token, payload) =>
   request('/sub-categories', { method: 'POST', body: payload, token });
+export const updateSubCategory = (token, id, payload) =>
+  request(`/sub-categories/${id}`, { method: 'PUT', body: payload, token });
+export const updateSubCategoryOrder = (token, id, position, categoryId) =>
+  request(`/sub-categories/${id}/order`, { method: 'POST', body: { position, categoryId }, token });
 export const deleteSubCategory = (token, id) => request(`/sub-categories/${id}`, { method: 'DELETE', token });
 
 export const listProducts = (token) => request('/admin/product/getall', { token });
 export const listProductsByUser = (token, userId) => request(`/admin/product/by-user?userId=${userId}`, { token });
+export const listProductsByBusinessUser = (token, userId) => request(`/admin/businesses/${userId}/products`, { token });
 export const createProduct = (token, payload) =>
   request('/admin/product/create', { method: 'POST', body: payload, token });
 export const getProduct = (token, id) => request(`/admin/product/${id}`, { token });
@@ -101,6 +150,8 @@ export const updateAttributeDefinition = (token, id, payload) =>
   request(`/admin/product-attribute/${id}/update`, { method: 'PUT', body: payload, token });
 export const deleteAttributeDefinition = (token, id) =>
   request(`/admin/product-attribute/${id}`, { method: 'DELETE', token });
+export const purgeAllAttributeDefinitions = (token) =>
+  request('/admin/product-attribute/purge-all', { method: 'DELETE', token });
 
 export const listAttributeMappings = (token, filters = {}) => {
   const params = new URLSearchParams();
@@ -146,7 +197,22 @@ export const publishAppConfig = (token) => request('/admin/app-config/publish', 
 export const listAppConfigVersions = (token) => request('/admin/app-config/versions', { token });
 export const rollbackAppConfig = (token, payload) =>
   request('/admin/app-config/rollback', { method: 'POST', body: payload, token });
+export const getAppConfigPresets = (token) => request('/admin/app-config/presets', { token });
 export const getPublishedAppConfig = () => request('/app-config');
+export const getHomeCategoryPreview = (token, { ids = [], limit = 2, rankingWindowDays } = {}) => {
+  const cleanIds = Array.isArray(ids)
+    ? ids
+        .map((id) => String(id || '').trim())
+        .filter(Boolean)
+    : [];
+  const params = new URLSearchParams();
+  params.set('ids', cleanIds.join(','));
+  params.set('limit', String(limit || 2));
+  if (rankingWindowDays !== undefined && rankingWindowDays !== null && rankingWindowDays !== '') {
+    params.set('rankingWindowDays', String(rankingWindowDays));
+  }
+  return request(`/home/category-preview?${params.toString()}`, { token });
+};
 
 export const uploadBannerImages = async (token, files) => {
   const headers = {};
