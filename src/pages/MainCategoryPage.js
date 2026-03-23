@@ -1,6 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Banner } from '../components';
-import { createMainCategory, deleteMainCategory, listIndustries, listMainCategories } from '../services/adminApi';
+import { Banner, TableRowActionMenu } from '../components';
+import { usePermissions } from '../shared/permissions';
+import {
+  createMainCategory,
+  deleteMainCategory,
+  listIndustries,
+  listMainCategories,
+  updateMainCategory,
+} from '../services/adminApi';
+import { buildOrderingWarning, findNextAvailableOrdering, findOrderingConflict, parseOrderingInput } from '../utils/ordering';
+import { PRODUCT_MASTER_PERMISSIONS } from '../constants/adminPermissions';
 
 const initialForm = {
   name: '',
@@ -19,17 +28,27 @@ function MainCategoryPage({ token }) {
   const [message, setMessage] = useState({ type: 'info', text: '' });
   const [isLoading, setIsLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [editItem, setEditItem] = useState(null);
+  const [openActionRowId, setOpenActionRowId] = useState(null);
+  const { hasPermission } = usePermissions();
+  const canCreate = hasPermission(PRODUCT_MASTER_PERMISSIONS.mainCategory.create);
+  const canUpdate = hasPermission(PRODUCT_MASTER_PERMISSIONS.mainCategory.update);
+  const canDelete = hasPermission(PRODUCT_MASTER_PERMISSIONS.mainCategory.delete);
 
   const loadData = async () => {
     setIsLoading(true);
     setMessage({ type: 'info', text: '' });
     try {
-      const [mainCategories, industryList] = await Promise.all([
+      const [mainCategoriesResult, industriesResult] = await Promise.allSettled([
         listMainCategories(token),
         listIndustries(token),
       ]);
-      setItems(mainCategories?.data || []);
-      const industryData = industryList?.data || [];
+      if (mainCategoriesResult.status !== 'fulfilled') {
+        throw mainCategoriesResult.reason;
+      }
+      setItems(mainCategoriesResult.value?.data || []);
+      const industryData = industriesResult.status === 'fulfilled' ? industriesResult.value?.data || [] : [];
       setIndustries(
         industryData.map((industry) => ({
           ...industry,
@@ -49,9 +68,6 @@ function MainCategoryPage({ token }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const activeCount = items.filter((item) => Number(item.active) === 1).length;
-  const inactiveCount = Math.max(0, items.length - activeCount);
-
   const industryNameById = useMemo(() => {
     const lookup = new Map();
     industries.forEach((industry) => {
@@ -63,39 +79,112 @@ function MainCategoryPage({ token }) {
     return lookup;
   }, [industries]);
 
+  const requestedOrdering = parseOrderingInput(form.ordering);
+  const orderingConflict = useMemo(
+    () =>
+      findOrderingConflict({
+        items,
+        requestedOrder: requestedOrdering,
+        currentItemId: editItem?.id,
+        matchesScope: (item) => String(item.industryId ?? '') === String(form.industryId ?? ''),
+      }),
+    [editItem?.id, form.industryId, items, requestedOrdering]
+  );
+  const suggestedOrdering = useMemo(
+    () =>
+      findNextAvailableOrdering({
+        items,
+        currentItemId: editItem?.id,
+        matchesScope: (item) => String(item.industryId ?? '') === String(form.industryId ?? ''),
+      }),
+    [editItem?.id, form.industryId, items]
+  );
+  const orderingWarning = buildOrderingWarning(requestedOrdering, orderingConflict, suggestedOrdering);
+
   const handleChange = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
+  const handleEdit = (item) => {
+    if (!canUpdate) {
+      setMessage({ type: 'error', text: 'You do not have permission to update main categories.' });
+      return;
+    }
+    setEditItem(item);
+    setForm({
+      name: item.name || '',
+      industryId: String(item.industryId ?? ''),
+      mainCategoryIcon: item.mainCategoryIcon || '',
+      imageUrl: item.imageUrl || '',
+      ordering: item.ordering != null ? String(item.ordering) : '',
+      path: item.path || '',
+      active: item.active === 1 ? '1' : '0',
+    });
+    setShowForm(true);
+  };
+
+  const closeModal = () => {
+    setShowForm(false);
+    setEditItem(null);
+    setForm(initialForm);
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (editItem ? !canUpdate : !canCreate) {
+      setMessage({
+        type: 'error',
+        text: editItem
+          ? 'You do not have permission to update main categories.'
+          : 'You do not have permission to create main categories.',
+      });
+      return;
+    }
     if (!form.name.trim() || !form.industryId) {
       setMessage({ type: 'error', text: 'Name and industry are required.' });
       return;
     }
+    if (Number.isNaN(requestedOrdering)) {
+      setMessage({ type: 'error', text: 'Ordering must be a whole number greater than 0.' });
+      return;
+    }
+    const payload = {
+      name: form.name.trim(),
+      industryId: Number(form.industryId),
+      mainCategoryIcon: form.mainCategoryIcon || null,
+      imageUrl: form.imageUrl || null,
+      ordering: requestedOrdering,
+      path: form.path || null,
+      active: Number(form.active),
+    };
     try {
       setIsLoading(true);
-      await createMainCategory(token, {
-        name: form.name.trim(),
-        industryId: Number(form.industryId),
-        mainCategoryIcon: form.mainCategoryIcon || null,
-        imageUrl: form.imageUrl || null,
-        ordering: form.ordering ? Number(form.ordering) : null,
-        path: form.path || null,
-        active: Number(form.active),
-      });
+      if (editItem) {
+        await updateMainCategory(token, editItem.id, payload);
+        setEditItem(null);
+        setMessage({ type: 'success', text: 'Main category updated.' });
+      } else {
+        await createMainCategory(token, payload);
+        setMessage({ type: 'success', text: 'Main category created.' });
+      }
       setForm(initialForm);
       setShowForm(false);
       await loadData();
-      setMessage({ type: 'success', text: 'Main category created.' });
     } catch (error) {
-      setMessage({ type: 'error', text: error.message || 'Failed to create main category.' });
+      setMessage({
+        type: 'error',
+        text: error.message || (editItem ? 'Failed to update main category.' : 'Failed to create main category.'),
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleDelete = async (id) => {
+    if (!canDelete) {
+      setMessage({ type: 'error', text: 'You do not have permission to delete main categories.' });
+      return;
+    }
     try {
       setIsLoading(true);
       await deleteMainCategory(token, id);
@@ -110,48 +199,17 @@ function MainCategoryPage({ token }) {
 
   return (
     <div>
-      <div className="panel-head">
-        <div>
-          <h2 className="panel-title">Main Category</h2>
-          <p className="panel-subtitle">Organize categories under industries.</p>
-        </div>
-        <button type="button" className="ghost-btn" onClick={loadData} disabled={isLoading}>
-          Refresh
-        </button>
-      </div>
       <Banner message={message} />
-      <div className="stat-grid">
-        <div className="stat-card admin-stat" style={{ '--stat-accent': '#8B5CF6' }}>
-          <p className="stat-label">Main categories</p>
-          <p className="stat-value">{items.length}</p>
-          <p className="stat-sub">Total list</p>
-        </div>
-        <div className="stat-card admin-stat" style={{ '--stat-accent': '#16A34A' }}>
-          <p className="stat-label">Active</p>
-          <p className="stat-value">{activeCount}</p>
-          <p className="stat-sub">Visible to users</p>
-        </div>
-        <div className="stat-card admin-stat" style={{ '--stat-accent': '#F97316' }}>
-          <p className="stat-label">Industries</p>
-          <p className="stat-value">{industries.length}</p>
-          <p className="stat-sub">With main categories</p>
-        </div>
-        <div className="stat-card admin-stat" style={{ '--stat-accent': '#EF4444' }}>
-          <p className="stat-label">Inactive</p>
-          <p className="stat-value">{inactiveCount}</p>
-          <p className="stat-sub">Hidden</p>
-        </div>
-      </div>
       {showForm ? (
-        <div className="admin-modal-backdrop" onClick={() => setShowForm(false)}>
+        <div className="admin-modal-backdrop" onClick={closeModal}>
           <form
-            className="admin-modal"
+            className="admin-modal main-category-create-modal"
             onSubmit={handleSubmit}
             onClick={(event) => event.stopPropagation()}
           >
             <div className="panel-split">
-              <h3 className="panel-subheading">Create main category</h3>
-              <button type="button" className="ghost-btn small" onClick={() => setShowForm(false)}>
+              <h3 className="panel-subheading">{editItem ? 'Edit main category' : 'Create main category'}</h3>
+              <button type="button" className="ghost-btn small" onClick={closeModal}>
                 Close
               </button>
             </div>
@@ -188,7 +246,10 @@ function MainCategoryPage({ token }) {
                   value={form.ordering}
                   onChange={(event) => handleChange('ordering', event.target.value)}
                   placeholder="1"
+                  min="1"
+                  step="1"
                 />
+                {orderingWarning ? <span className="field-help field-warning">{orderingWarning}</span> : null}
               </label>
               <label className="field">
                 <span>Path</span>
@@ -226,22 +287,85 @@ function MainCategoryPage({ token }) {
               </label>
             </div>
             <button type="submit" className="primary-btn full" disabled={isLoading}>
-              {isLoading ? 'Saving...' : 'Save main category'}
+              {isLoading ? 'Saving...' : editItem ? 'Update main category' : 'Save main category'}
             </button>
           </form>
         </div>
       ) : null}
       <div className="panel-grid">
-        <div className="panel card">
+        <div className="panel card users-table-card">
           <div className="panel-split">
-            <h3 className="panel-subheading">Main category list</h3>
-            <button
-              type="button"
-              className="primary-btn compact"
-              onClick={() => setShowForm((prev) => !prev)}
-            >
-              {showForm ? 'Close' : 'Create'}
-            </button>
+            <div className="category-list-head-left">
+              <h3 className="panel-subheading">Main category list</h3>
+              <div className="gsc-datatable-toolbar-left">
+                <button type="button" className="gsc-toolbar-btn" title="Filter">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M4 6h16M4 12h10M4 18h6" />
+                  </svg>
+                  Filter
+                </button>
+                <button type="button" className="gsc-toolbar-btn" title="Columns">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="3" width="7" height="18" rx="1" />
+                    <rect x="14" y="3" width="7" height="18" rx="1" />
+                  </svg>
+                  Columns
+                </button>
+                <button type="button" className="gsc-toolbar-btn" title="Import/Export">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                  </svg>
+                  Import/Export
+                </button>
+              </div>
+            </div>
+            <div className="gsc-datatable-toolbar-right">
+              <div className="gsc-toolbar-search">
+                <input
+                  type="search"
+                  placeholder="Search"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  aria-label="Search main categories"
+                />
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  style={{ width: 18, height: 18, color: '#6b7280', flexShrink: 0 }}
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.35-4.35" />
+                </svg>
+              </div>
+              {canCreate ? (
+                <button
+                  type="button"
+                  className="gsc-create-btn"
+                  onClick={() => {
+                    if (!showForm) {
+                      setEditItem(null);
+                      setForm(initialForm);
+                    }
+                    setShowForm((prev) => !prev);
+                  }}
+                  title="Create main category"
+                  aria-label="Create main category"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
+                </button>
+              ) : null}
+            </div>
           </div>
           {items.length === 0 ? (
             <p className="empty-state">No main categories yet.</p>
@@ -250,27 +374,66 @@ function MainCategoryPage({ token }) {
               <table className="admin-table">
                 <thead>
                   <tr>
+                    <th>Sr. No.</th>
                     <th>Name</th>
                     <th>Industry</th>
-                    <th>Active</th>
-                    <th />
+                    <th>Status</th>
+                    <th className="table-actions">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map((item) => (
-                    <tr key={item.id}>
-                      <td>{item.name}</td>
-                      <td>{industryNameById.get(item.industryId) || '-'}</td>
-                      <td>{item.active === 1 ? 'Yes' : 'No'}</td>
-                      <td className="table-actions">
-                        <button type="button" className="ghost-btn small" onClick={() => handleDelete(item.id)}>
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {(() => {
+                    const filtered = items
+                      .filter((item) => {
+                        const q = searchQuery.trim().toLowerCase();
+                        if (!q) return true;
+                        const haystack = `${item.name || ''} ${industryNameById.get(item.industryId) || item.industryName || ''}`.toLowerCase();
+                        return haystack.includes(q);
+                      })
+                      .sort((a, b) => {
+                        const orderA = a.ordering != null ? Number(a.ordering) : Infinity;
+                        const orderB = b.ordering != null ? Number(b.ordering) : Infinity;
+                        if (orderA !== orderB) return orderA - orderB;
+                        return (a.id ?? 0) - (b.id ?? 0);
+                      });
+                    return filtered.map((item, index) => (
+                      <tr key={item.id}>
+                        <td>{index + 1}</td>
+                        <td>{item.name}</td>
+                        <td>{industryNameById.get(item.industryId) || item.industryName || '-'}</td>
+                        <td>
+                          <span className={item.active === 1 ? 'status-active' : 'status-inactive'}>
+                            {item.active === 1 ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
+                        <td className="table-actions" onClick={(e) => e.stopPropagation()}>
+                          {(() => {
+                            const actions = [];
+                            if (canUpdate) {
+                              actions.push({ label: 'Edit', onClick: () => handleEdit(item) });
+                            }
+                            if (canDelete) {
+                              actions.push({ label: 'Delete', onClick: () => handleDelete(item.id), danger: true });
+                            }
+                            if (actions.length === 0) return null;
+                            return (
+                              <TableRowActionMenu
+                                rowId={item.id}
+                                openRowId={openActionRowId}
+                                onToggle={setOpenActionRowId}
+                                actions={actions}
+                              />
+                            );
+                          })()}
+                        </td>
+                      </tr>
+                    ));
+                  })()}
                 </tbody>
               </table>
+              <div className="table-record-count">
+                <span>Showing {items.filter((item) => { const q = searchQuery.trim().toLowerCase(); if (!q) return true; return `${item.name || ''} ${industryNameById.get(item.industryId) || item.industryName || ''}`.toLowerCase().includes(q); }).length} of {items.length} records</span>
+              </div>
             </div>
           )}
         </div>

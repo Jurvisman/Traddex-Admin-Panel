@@ -123,15 +123,12 @@ function SubscriptionOverviewPage({ token }) {
   }, [planSummaries]);
 
   return (
-    <div className="subscription-overview">
+      <div className="subscription-overview">
       <div className="panel-head">
         <div>
           <h2 className="panel-title">Subscriptions</h2>
           <p className="panel-subtitle">Manage subscription plans and view analytics.</p>
         </div>
-        <button type="button" className="ghost-btn" onClick={loadAll} disabled={isLoading}>
-          {isLoading ? 'Refreshing...' : 'Refresh'}
-        </button>
       </div>
 
       <Banner message={message} />

@@ -50,13 +50,20 @@ function LoginPage({ initialPhone = '', onOtpSent }) {
 
   return (
     <AuthLayout>
-      <Banner message={message} />
-      <LoginForm
-        form={form}
-        onFieldChange={handleFieldChange}
-        onSubmit={handleSendOtp}
-        isSending={isSending}
-      />
+      <div className="login-panel">
+        <header className="login-panel-header">
+          <h1 className="login-panel-title">Login</h1>
+          <p className="login-panel-subtitle">Sign in to access the Traddex admin panel.</p>
+        </header>
+
+        <Banner message={message} />
+        <LoginForm
+          form={form}
+          onFieldChange={handleFieldChange}
+          onSubmit={handleSendOtp}
+          isSending={isSending}
+        />
+      </div>
     </AuthLayout>
   );
 }

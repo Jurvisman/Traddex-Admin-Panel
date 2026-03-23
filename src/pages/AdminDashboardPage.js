@@ -233,9 +233,6 @@ function AdminDashboardPage({ token }) {
           <h2 className="panel-title">Overview</h2>
           <p className="panel-subtitle">Quick counts across Traddex users and businesses.</p>
         </div>
-        <button type="button" className="ghost-btn" onClick={loadStats} disabled={isLoading}>
-          {isLoading ? 'Refreshing...' : 'Refresh'}
-        </button>
       </div>
       <Banner message={message} />
       <div className="stat-grid">
