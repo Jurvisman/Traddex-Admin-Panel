@@ -6009,6 +6009,118 @@ textarea {
   padding: 10px;
 }
 
+/* ── Block Properties: Prop Form Layout ─────────────────────────────────── */
+.prop-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.prop-form > .field-grid {
+  margin: 0;
+}
+.prop-form .modal-actions {
+  padding: 2px 0;
+}
+.prop-group-body > .field-grid {
+  margin: 0;
+}
+
+/* ── Block Properties: Section Dividers ─────────────────────────────────── */
+.prop-section-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 0 2px;
+}
+.prop-section-divider span {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  white-space: nowrap;
+  color: #7c5ccc;
+}
+.prop-section-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e8e3f9;
+}
+
+/* ── Block Properties: Collapsible Prop Groups ──────────────────────────── */
+.prop-group {
+  border: 1px solid #e8e3f9;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #ffffff;
+}
+.prop-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 12px;
+  background: #f5f2ff;
+  cursor: pointer;
+  user-select: none;
+  border-bottom: 1px solid #e8e3f9;
+  transition: background 0.15s;
+}
+.prop-group-header:hover {
+  background: #ede8ff;
+}
+.prop-group.is-collapsed .prop-group-header {
+  border-bottom: none;
+}
+.prop-group-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.prop-group-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #5b2bcf;
+}
+.prop-group-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #ede8ff;
+  color: #5b2bcf;
+  border: 1px solid #d6ccf7;
+}
+.prop-group-badge.live {
+  background: #dcfce7;
+  color: #15803d;
+  border-color: #bbf7d0;
+}
+.prop-group-toggle {
+  font-size: 11px;
+  color: #9ca3af;
+  line-height: 1;
+  transition: transform 0.2s;
+}
+.prop-group.is-collapsed .prop-group-toggle {
+  transform: rotate(-90deg);
+}
+.prop-group-body {
+  padding: 12px;
+}
+.prop-group.is-collapsed .prop-group-body {
+  display: none;
+}
+.prop-group-body .source-config-grid {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  margin-top: 0;
+}
+
 .source-advanced-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

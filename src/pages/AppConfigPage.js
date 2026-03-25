@@ -307,6 +307,8 @@ function AppConfigPage({ token }) {
   const [activePanel, setActivePanel] = useState(null);
   const [showEditor, setShowEditor] = useState(false);
   const [showAdvancedFields, setShowAdvancedFields] = useState(false);
+  const [collapsedGroups, setCollapsedGroups] = useState({});
+  const togglePropGroup = (key) => setCollapsedGroups((prev) => ({ ...prev, [key]: !prev[key] }));
   const [isUploadingBanner, setIsUploadingBanner] = useState(false);
   const [isUploadingHeaderImage, setIsUploadingHeaderImage] = useState(false);
   const [isUploadingHeroBanner, setIsUploadingHeroBanner] = useState(false);
@@ -3983,7 +3985,17 @@ function AppConfigPage({ token }) {
                   </div>
                 </div>
                 {activePanel === 'screen' ? (
-                  <form className="field-grid" onSubmit={handleSectionSubmit}>
+                  <form className="prop-form" onSubmit={handleSectionSubmit}>
+                    {/* ── General ──────────────────────────────────────── */}
+                    <div className={`prop-group${collapsedGroups.general ? ' is-collapsed' : ''}`}>
+                      <div className="prop-group-header" onClick={() => togglePropGroup('general')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && togglePropGroup('general')}>
+                        <div className="prop-group-left">
+                          <span className="prop-group-title">General</span>
+                        </div>
+                        <span className="prop-group-toggle">▾</span>
+                      </div>
+                      <div className="prop-group-body">
+                        <div className="field-grid">
                     <label className="field field-span">
                       <span>Block type</span>
                       <input type="text" value={isEditingFixed ? 'Fixed' : screenBlockLabel} disabled />
@@ -4150,6 +4162,20 @@ function AppConfigPage({ token }) {
                         </select>
                       </label>
                     ) : null}
+                        </div>
+                      </div>
+                    </div>
+                    {/* ── Appearance ───────────────────────────────────── */}
+                    {(supportsStylePreset || isPhaseOneProductShelf || isProductCardCarousel || isSectionTitleBlock) ? (
+                      <div className={`prop-group${collapsedGroups.appearance ? ' is-collapsed' : ''}`}>
+                        <div className="prop-group-header" onClick={() => togglePropGroup('appearance')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && togglePropGroup('appearance')}>
+                          <div className="prop-group-left">
+                            <span className="prop-group-title">Appearance</span>
+                          </div>
+                          <span className="prop-group-toggle">▾</span>
+                        </div>
+                        <div className="prop-group-body">
+                          <div className="field-grid">
                     {supportsStylePreset ? (
                       <label className="field">
                         <span>Style preset</span>
@@ -4229,8 +4255,21 @@ function AppConfigPage({ token }) {
                         />
                       </label>
                     ) : null}
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
+                    {/* ── Content ──────────────────────────────────────── */}
                     {isHeroBanner ? (
-                      <>
+                      <div className={`prop-group${collapsedGroups.content ? ' is-collapsed' : ''}`}>
+                        <div className="prop-group-header" onClick={() => togglePropGroup('content')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && togglePropGroup('content')}>
+                          <div className="prop-group-left">
+                            <span className="prop-group-title">Content</span>
+                          </div>
+                          <span className="prop-group-toggle">▾</span>
+                        </div>
+                        <div className="prop-group-body">
+                          <div className="field-grid">
                         <label className="field field-span">
                           <span>Image URL</span>
                           <div className="inline-row">
@@ -4431,10 +4470,21 @@ function AppConfigPage({ token }) {
                             onChange={(event) => setSectionForm((prev) => ({ ...prev, scheduleEnd: event.target.value }))}
                           />
                         </label>
-                      </>
+                          </div>
+                        </div>
+                      </div>
                     ) : null}
+                    {/* ── Data Source ───────────────────────────────────── */}
                     {isPhaseOneBlock ? (
-                      <>
+                      <div className={`prop-group${collapsedGroups.dataSource ? ' is-collapsed' : ''}`}>
+                        <div className="prop-group-header" onClick={() => togglePropGroup('dataSource')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && togglePropGroup('dataSource')}>
+                          <div className="prop-group-left">
+                            <span className="prop-group-title">Data Source</span>
+                          </div>
+                          <span className="prop-group-toggle">▾</span>
+                        </div>
+                        <div className="prop-group-body">
+                          <div className="field-grid">
                         <label className="field field-span">
                           <span>Data source</span>
                           <div className="field-grid source-config-grid">
@@ -5280,8 +5330,28 @@ function AppConfigPage({ token }) {
                             ) : null}
                           </>
                         ) : null}
-                        {isTabbedProductShelf ? (
-                          <div className="field field-span source-config-card">
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
+                    {isTabbedProductShelf ? (
+                      <div className={`prop-group${collapsedGroups.tabbedSource ? ' is-collapsed' : ''}`}>
+                            <div
+                              className="prop-group-header"
+                              onClick={() => togglePropGroup('tabbedSource')}
+                              role="button"
+                              tabIndex={0}
+                              onKeyDown={(e) => e.key === 'Enter' && togglePropGroup('tabbedSource')}
+                            >
+                              <div className="prop-group-left">
+                                <span className="prop-group-title">Data Source</span>
+                                <span className={`prop-group-badge${(sectionForm.blockDataSourceType || 'MANUAL') === 'PRODUCT_FEED' ? ' live' : ''}`}>
+                                  {(sectionForm.blockDataSourceType || 'MANUAL') === 'PRODUCT_FEED' ? 'Live Feed' : 'Manual'}
+                                </span>
+                              </div>
+                              <span className="prop-group-toggle">▾</span>
+                            </div>
+                            <div className="prop-group-body">
                             <div className="field-grid source-config-grid">
                               <label className="field">
                                 <span>Product source</span>
@@ -5370,10 +5440,27 @@ function AppConfigPage({ token }) {
                                 </div>
                               )}
                             </div>
+                            </div>
                           </div>
                         ) : null}
                         {isShopCardCarousel ? (
-                          <div className="field field-span source-config-card">
+                      <div className={`prop-group${collapsedGroups.shopSource ? ' is-collapsed' : ''}`}>
+                            <div
+                              className="prop-group-header"
+                              onClick={() => togglePropGroup('shopSource')}
+                              role="button"
+                              tabIndex={0}
+                              onKeyDown={(e) => e.key === 'Enter' && togglePropGroup('shopSource')}
+                            >
+                              <div className="prop-group-left">
+                                <span className="prop-group-title">Data Source</span>
+                                <span className={`prop-group-badge${(sectionForm.blockDataSourceType || 'SHOP_FEED') !== 'MANUAL' ? ' live' : ''}`}>
+                                  {(sectionForm.blockDataSourceType || 'SHOP_FEED') !== 'MANUAL' ? 'Live Feed' : 'Manual'}
+                                </span>
+                              </div>
+                              <span className="prop-group-toggle">▾</span>
+                            </div>
+                            <div className="prop-group-body">
                             <div className="field-grid source-config-grid">
                               <label className="field">
                                 <span>Shops source</span>
@@ -5415,11 +5502,18 @@ function AppConfigPage({ token }) {
                                 </p>
                               </div>
                             </div>
+                            </div>
                           </div>
                         ) : null}
                         {isBeautySalonCarousel ? (
-                          <>
-                            <div className="field field-span source-config-card">
+                          <div className={`prop-group${collapsedGroups.beautySource ? ' is-collapsed' : ''}`}>
+                            <div className="prop-group-header" onClick={() => togglePropGroup('beautySource')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && togglePropGroup('beautySource')}>
+                              <div className="prop-group-left">
+                                <span className="prop-group-title">Data Source</span>
+                              </div>
+                              <span className="prop-group-toggle">▾</span>
+                            </div>
+                            <div className="prop-group-body">
                               <div className="field-grid source-config-grid">
                                 <label className="field">
                                   <span>Cards source</span>
@@ -5523,8 +5617,18 @@ function AppConfigPage({ token }) {
                                 )}
                               </div>
                             </div>
-                          </>
+                          </div>
                         ) : null}
+                    {/* ── Items ────────────────────────────────────────── */}
+                    <div className={`prop-group${collapsedGroups.items ? ' is-collapsed' : ''}`}>
+                      <div className="prop-group-header" onClick={() => togglePropGroup('items')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && togglePropGroup('items')}>
+                        <div className="prop-group-left">
+                          <span className="prop-group-title">Items</span>
+                        </div>
+                        <span className="prop-group-toggle">▾</span>
+                      </div>
+                      <div className="prop-group-body">
+                        <div className="field-grid">
                         <label className="field field-span">
                           <span>Block items</span>
                           <div className="inline-row">
@@ -6778,8 +6882,6 @@ function AppConfigPage({ token }) {
                             </p>
                           </>
                               ) : null}
-                      </>
-                    ) : null}
                     {isMultiItemGrid ? (
                       <>
                         {!isCategoryPreviewGrid ? (
@@ -7705,19 +7807,20 @@ function AppConfigPage({ token }) {
                         </label>
                       </>
                     ) : null}
-                    {!isEditingFixed && !isPhaseOneBlock ? (
-                      <div className="field field-span">
-                        <button
-                          type="button"
-                          className="ghost-btn small"
-                          onClick={() => setShowAdvancedFields((prev) => !prev)}
-                        >
-                          {showAdvancedFields ? 'Hide advanced fields' : 'Show advanced fields'}
-                        </button>
+                        </div>
                       </div>
-                    ) : null}
-                    {showAdvancedFields && !isEditingFixed && !isPhaseOneBlock ? (
-                      <>
+                    </div>
+                    {/* ── Advanced ──────────────────────────────────────── */}
+                    {(!isEditingFixed && !isPhaseOneBlock) ? (
+                      <div className={`prop-group${collapsedGroups.advanced ? ' is-collapsed' : ''}`}>
+                        <div className="prop-group-header" onClick={() => togglePropGroup('advanced')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && togglePropGroup('advanced')}>
+                          <div className="prop-group-left">
+                            <span className="prop-group-title">Advanced</span>
+                          </div>
+                          <span className="prop-group-toggle">▾</span>
+                        </div>
+                        <div className="prop-group-body">
+                          <div className="field-grid">
                         <label className="field">
                           <span>Items path</span>
                           <input
@@ -7819,9 +7922,11 @@ function AppConfigPage({ token }) {
                             placeholder="ACTIVE, TRIAL"
                           />
                         </label>
-                      </>
+                          </div>
+                        </div>
+                      </div>
                     ) : null}
-                    <div className="field field-span modal-actions">
+                    <div className="modal-actions">
                       <button type="button" className="ghost-btn" onClick={closeEditor}>
                         Close
                       </button>
