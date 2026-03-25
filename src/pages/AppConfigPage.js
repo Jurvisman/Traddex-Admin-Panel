@@ -1827,12 +1827,24 @@ function AppConfigPage({ token }) {
             })
           );
           allCategories = industryCategoryGroups.flat();
-        } else {
-          if (!resolvedMainCategoryId) {
-            throw new Error('Select main category first.');
-          }
+        } else if (resolvedMainCategoryId) {
           allCategories = await resolveSourceCategoriesForForm(resolvedMainCategoryId);
+        } else {
+          // No main category — use all industry main categories directly.
+          // This is the correct mode for showing Men, Women, Kids, etc. on the fashion page.
+          allCategories = industryMainCategories;
         }
+      } else if (!resolvedMainCategoryId && industryId) {
+        // No main category selected — show all main categories of the industry directly.
+        // This is the correct mode for category_showcase / media_overlay_carousel blocks
+        // that are configured to display all industry main categories (e.g. Fashion page).
+        const industryMainCategories = mainCategories.filter(
+          (item) => normalizeMatchValue(resolveMainCategoryIndustryId(item)) === normalizeMatchValue(industryId)
+        );
+        if (!industryMainCategories.length) {
+          throw new Error('No main categories found for selected industry. Make sure the industry is correct.');
+        }
+        allCategories = industryMainCategories;
       } else {
         allCategories = await resolveSourceCategoriesForForm(resolvedMainCategoryId);
       }
@@ -4128,6 +4140,7 @@ function AppConfigPage({ token }) {
                           <option value="electronics">Electronics</option>
                           <option value="beauty">Beauty</option>
                           <option value="grocery">Grocery</option>
+                          <option value="fashion">Fashion</option>
                         </select>
                       </label>
                     ) : null}
@@ -4826,7 +4839,7 @@ function AppConfigPage({ token }) {
                                         })}
                                       </div>
                                     ) : (
-                                      <p className="field-help">Select main category to load categories.</p>
+                                      <p className="field-help">Select a main category to filter by its sub-categories. Leave empty to use all main categories of the selected industry.</p>
                                     )}
                                   </label>
                                 ) : null}
