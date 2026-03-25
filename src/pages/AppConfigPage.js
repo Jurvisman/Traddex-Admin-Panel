@@ -87,6 +87,10 @@ import {
   resolveDefaultCategoryFeedMode,
   BENTO_TILE_SOURCE_OPTIONS,
   SOURCE_TYPE_OPTIONS,
+  TABBED_SHELF_SOURCE_OPTIONS,
+  SHOP_BLOCK_SOURCE_OPTIONS,
+  PRODUCT_FEED_MODE_OPTIONS,
+  TAB_FIELD_OPTIONS,
   SHOWCASE_VARIANT_OPTIONS,
   STYLE_PRESET_OPTIONS,
   PRODUCT_SHELF_VARIANT_OPTIONS,
@@ -3153,6 +3157,8 @@ function AppConfigPage({ token }) {
   const isBeautyRoutineList = screenBlockType === 'beauty_routine_list';
   const isBeautyTipChips = screenBlockType === 'beauty_tip_chips';
   const isBeautySalonCarousel = screenBlockType === 'beauty_salon_carousel';
+  const isTabbedProductShelf = screenBlockType === 'tabbed_product_shelf';
+  const isShopCardCarousel = screenBlockType === 'shop_card_carousel';
   const infoListPreset = String(sectionForm.stylePreset || 'launch_rows').trim().toLowerCase();
   const isLaunchInfoList = infoListPreset === 'launch_rows';
   const mediaOverlayPreset = String(sectionForm.stylePreset || 'electronics').trim().toLowerCase();
@@ -5274,6 +5280,143 @@ function AppConfigPage({ token }) {
                             ) : null}
                           </>
                         ) : null}
+                        {isTabbedProductShelf ? (
+                          <div className="field field-span source-config-card">
+                            <div className="field-grid source-config-grid">
+                              <label className="field">
+                                <span>Product source</span>
+                                <select
+                                  value={sectionForm.blockDataSourceType || 'MANUAL'}
+                                  onChange={(event) =>
+                                    setSectionForm((prev) => ({
+                                      ...prev,
+                                      blockDataSourceType: event.target.value,
+                                    }))
+                                  }
+                                >
+                                  {TABBED_SHELF_SOURCE_OPTIONS.map((option) => (
+                                    <option key={option.value} value={option.value}>
+                                      {option.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </label>
+                              {(sectionForm.blockDataSourceType || 'MANUAL') === 'PRODUCT_FEED' ? (
+                                <>
+                                  <label className="field">
+                                    <span>Feed mode</span>
+                                    <select
+                                      value={sectionForm.blockFeedMode || 'BESTSELLER'}
+                                      onChange={(event) =>
+                                        setSectionForm((prev) => ({
+                                          ...prev,
+                                          blockFeedMode: event.target.value,
+                                        }))
+                                      }
+                                    >
+                                      {PRODUCT_FEED_MODE_OPTIONS.map((option) => (
+                                        <option key={option.value} value={option.value}>
+                                          {option.label}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </label>
+                                  <label className="field">
+                                    <span>Group tabs by</span>
+                                    <select
+                                      value={sectionForm.blockTabField || 'mainCategoryName'}
+                                      onChange={(event) =>
+                                        setSectionForm((prev) => ({
+                                          ...prev,
+                                          blockTabField: event.target.value,
+                                        }))
+                                      }
+                                    >
+                                      {TAB_FIELD_OPTIONS.map((option) => (
+                                        <option key={option.value} value={option.value}>
+                                          {option.label}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </label>
+                                  <label className="field">
+                                    <span>Max products</span>
+                                    <input
+                                      type="number"
+                                      min="1"
+                                      max="60"
+                                      value={sectionForm.blockLimit || '10'}
+                                      onChange={(event) =>
+                                        setSectionForm((prev) => ({
+                                          ...prev,
+                                          blockLimit: event.target.value,
+                                        }))
+                                      }
+                                    />
+                                  </label>
+                                  <div className="field field-span">
+                                    <p className="field-help">
+                                      Products are fetched live and grouped into tabs by the selected field. The page's industry
+                                      is used automatically — no explicit industryId needed. Manual items below serve as a loading fallback.
+                                    </p>
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="field field-span">
+                                  <p className="field-help">
+                                    Manual mode renders the items added below. Switch to Product Feed to load live products
+                                    automatically grouped into tabs by category.
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ) : null}
+                        {isShopCardCarousel ? (
+                          <div className="field field-span source-config-card">
+                            <div className="field-grid source-config-grid">
+                              <label className="field">
+                                <span>Shops source</span>
+                                <select
+                                  value={sectionForm.blockDataSourceType || 'SHOP_FEED'}
+                                  onChange={(event) =>
+                                    setSectionForm((prev) => ({
+                                      ...prev,
+                                      blockDataSourceType: event.target.value,
+                                    }))
+                                  }
+                                >
+                                  {SHOP_BLOCK_SOURCE_OPTIONS.map((option) => (
+                                    <option key={option.value} value={option.value}>
+                                      {option.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </label>
+                              <label className="field">
+                                <span>Max shops</span>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max="60"
+                                  value={sectionForm.blockLimit || '10'}
+                                  onChange={(event) =>
+                                    setSectionForm((prev) => ({
+                                      ...prev,
+                                      blockLimit: event.target.value,
+                                    }))
+                                  }
+                                />
+                              </label>
+                              <div className="field field-span">
+                                <p className="field-help">
+                                  Shop Feed fetches nearby businesses by location automatically. The page's industry is
+                                  used as a scope — no explicit industryId needed. Manual items are used as a fallback while loading.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ) : null}
                         {isBeautySalonCarousel ? (
                           <>
                             <div className="field field-span source-config-card">
@@ -5392,6 +5535,8 @@ function AppConfigPage({ token }) {
                             !isProductCardCarouselFeed &&
                             !isPhaseOneDataSourceFeed &&
                             !isPromoBanner &&
+                            !(isTabbedProductShelf && (sectionForm.blockDataSourceType || 'MANUAL') === 'PRODUCT_FEED') &&
+                            !(isShopCardCarousel && (sectionForm.blockDataSourceType || 'SHOP_FEED') === 'SHOP_FEED') &&
                             !(isSplitPromoRow && normalizePhaseOneItems(sectionForm.sduiItems, screenBlockType).length >= 2) &&
                             !(isBeautySalonCarousel && String(sectionForm.sourceType || 'MANUAL').toUpperCase() === 'BUSINESS_SELECTION') ? (
                               <button type="button" className="ghost-btn small" onClick={addPhaseOneItem}>
@@ -5429,6 +5574,14 @@ function AppConfigPage({ token }) {
                                       ? 'Set title, subtitle, CTA text, icon, and deep link for each action.'
                                     : isPromoBanner
                                       ? 'This banner uses the section title, text and CTA fields above.'
+                                    : isTabbedProductShelf && (sectionForm.blockDataSourceType || 'MANUAL') === 'PRODUCT_FEED'
+                                      ? 'Products are fetched live from the selected feed and grouped into tabs automatically.'
+                                    : isTabbedProductShelf
+                                      ? 'Set title, tab label, image, price, and deep link for each product card.'
+                                    : isShopCardCarousel && (sectionForm.blockDataSourceType || 'SHOP_FEED') === 'SHOP_FEED'
+                                      ? 'Shops are fetched live by location. Add fallback items shown while loading.'
+                                    : isShopCardCarousel
+                                      ? 'Set name, image, rating, distance, and deep link for each shop card.'
                                   : 'Set image + text + deep link for each card.'}
                             </span>
                           </div>
@@ -6106,6 +6259,30 @@ function AppConfigPage({ token }) {
                                       />
                                     </label>
                                   ) : null}
+                                </>
+                              ) : null}
+                              {isShopCardCarousel ? (
+                                <>
+                                  <label className="field">
+                                    <span>Rating</span>
+                                    <input type="text" value={item.rating || ''} onChange={(event) => updatePhaseOneItem(idx, 'rating', event.target.value)} placeholder="4.8" />
+                                  </label>
+                                  <label className="field">
+                                    <span>Distance</span>
+                                    <input type="text" value={item.distance || ''} onChange={(event) => updatePhaseOneItem(idx, 'distance', event.target.value)} placeholder="2.4 km" />
+                                  </label>
+                                </>
+                              ) : null}
+                              {isTabbedProductShelf ? (
+                                <>
+                                  <label className="field">
+                                    <span>Tab label</span>
+                                    <input type="text" value={item.tab || ''} onChange={(event) => updatePhaseOneItem(idx, 'tab', event.target.value)} placeholder="Men" />
+                                  </label>
+                                  <label className="field">
+                                    <span>Price</span>
+                                    <input type="text" value={item.price || ''} onChange={(event) => updatePhaseOneItem(idx, 'price', event.target.value)} placeholder="₹499" />
+                                  </label>
                                 </>
                               ) : null}
                               {isPhaseOneColumnGrid ? (

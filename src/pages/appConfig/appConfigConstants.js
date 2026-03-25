@@ -76,6 +76,8 @@ export const screenSectionTypeOptions = [
   { value: 'icon_list', label: 'Icon list' },
   { value: 'chip_scroll', label: 'Chip scroll' },
   { value: 'category_showcase', label: 'Category Showcase' },
+  { value: 'tabbed_product_shelf', label: 'Tabbed Product Shelf (SDUI)' },
+  { value: 'shop_card_carousel', label: 'Shop card carousel (SDUI)' },
 ];
 
 export const defaultBlockTypeBySectionType = {
@@ -1592,17 +1594,19 @@ export const screenToolboxItems = [
       title: 'Trending This Week',
       enabled: true,
       items: [],
+      dataSource: { sourceType: 'MANUAL' },
     },
   },
   {
     key: 'shopsNearYou',
     label: 'Shops Near You',
-    hint: 'Location-based nearby shop cards with Call / WhatsApp / View actions',
+    hint: 'Location-based nearby shop cards fetched live by location (SHOP_FEED)',
     section: {
-      id: 'shops_near_you',
-      blockType: 'shops_near_you',
+      id: 'shop_card_carousel',
+      blockType: 'shop_card_carousel',
       title: 'Shops Near You',
       enabled: true,
+      dataSource: { sourceType: 'SHOP_FEED' },
     },
   },
   {
@@ -1662,6 +1666,7 @@ export const blockLabels = {
   category_showcase: 'Category Showcase Block',
   tabbed_product_shelf: 'Tabbed Product Shelf',
   shops_near_you: 'Shops Near You',
+  shop_card_carousel: 'Shop Card Carousel',
 };
 
 export const resolveBlockLabel = (blockType, fallback) =>
@@ -1678,6 +1683,9 @@ const LEGACY_BLOCK_TYPE_ALIASES = {
   beauty_routine_list: 'info_list',
   beauty_tip_chips: 'chip_scroll',
   bestseller_shelf: 'product_shelf_horizontal',
+  shops_near_you: 'shop_card_carousel',
+  shop_carousel: 'shop_card_carousel',
+  shopsnearby: 'shop_card_carousel',
 };
 
 export const resolveLegacyBlockTypeAlias = (value) => {
@@ -1882,6 +1890,7 @@ export const phaseOneBlockTypes = new Set([
   'beauty_tip_chips',
   'beauty_salon_carousel',
   'tabbed_product_shelf',
+  'shop_card_carousel',
 ]);
 
 export const getPhaseOneDefaultItem = (blockType, index = 0) => {
@@ -2050,6 +2059,15 @@ export const getPhaseOneDefaultItem = (blockType, index = 0) => {
       tab: '',
       imageUrl: '',
       price: '',
+      deepLink: '',
+    };
+  }
+  if (resolvedBlockType === 'shop_card_carousel') {
+    return {
+      title: '',
+      imageUrl: '',
+      rating: '',
+      distance: '',
       deepLink: '',
     };
   }
@@ -2234,6 +2252,26 @@ export const normalizePhaseOneItems = (items, blockType) => {
         deepLink: item?.deepLink || item?.targetUrl || '',
       };
     }
+    if (resolvedBlockType === 'shop_card_carousel') {
+      return {
+        ...base,
+        title: item?.title || item?.name || item?.businessName || item?.label || '',
+        imageUrl: item?.imageUrl || item?.imageUri || item?.logo || item?.thumbnailImage || '',
+        rating: item?.rating !== undefined && item?.rating !== null ? String(item.rating) : '',
+        distance: item?.distance || item?.distanceLabel || '',
+        deepLink: item?.deepLink || item?.targetUrl || '',
+      };
+    }
+    if (resolvedBlockType === 'tabbed_product_shelf') {
+      return {
+        ...base,
+        title: item?.title || item?.name || item?.productName || item?.label || '',
+        tab: item?.tab || '',
+        imageUrl: item?.imageUrl || item?.imageUri || item?.thumbnailImage || '',
+        price: item?.price !== undefined && item?.price !== null ? String(item.price) : '',
+        deepLink: item?.deepLink || item?.targetUrl || '',
+      };
+    }
     if (resolvedBlockType === 'icon_list') {
       return {
         ...base,
@@ -2397,6 +2435,30 @@ export const BENTO_TILE_SOURCE_OPTIONS = [
   { value: 'CATEGORY_FEED', label: 'Category feed' },
   { value: 'COLLECTION_FEED', label: 'Collection feed' },
 ];
+export const TABBED_SHELF_SOURCE_OPTIONS = [
+  { value: 'MANUAL', label: 'Manual (CMS items)' },
+  { value: 'PRODUCT_FEED', label: 'Product Feed (live data)' },
+];
+export const SHOP_BLOCK_SOURCE_OPTIONS = [
+  { value: 'SHOP_FEED', label: 'Shop Feed (nearby shops, auto)' },
+  { value: 'MANUAL', label: 'Manual (CMS items only)' },
+];
+export const PRODUCT_FEED_MODE_OPTIONS = [
+  { value: 'BESTSELLER', label: 'Bestsellers' },
+  { value: 'TRENDING', label: 'Trending' },
+  { value: 'RECOMMENDED', label: 'Recommended' },
+  { value: 'FREQUENTLY_BOUGHT', label: 'Frequently Bought' },
+  { value: 'TOP_SELLING', label: 'Top Selling' },
+  { value: 'MOST_RATED', label: 'Most Rated' },
+  { value: 'LOWEST_PRICE', label: 'Lowest Price' },
+  { value: 'TODAY_DEAL', label: "Today's Deals" },
+];
+export const TAB_FIELD_OPTIONS = [
+  { value: 'mainCategoryName', label: 'Main Category Name' },
+  { value: 'mainCategoryId', label: 'Main Category ID' },
+  { value: 'tags', label: 'First Tag' },
+  { value: 'tab', label: 'Manual tab label (CMS field)' },
+];
 
 export const STYLE_PRESET_OPTIONS = {
   campaignBento: [
@@ -2450,6 +2512,10 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'fashion', label: 'Fashion' },
   ],
   tabbed_product_shelf: [
+    { value: '', label: 'Default' },
+    { value: 'fashion', label: 'Fashion' },
+  ],
+  shop_card_carousel: [
     { value: '', label: 'Default' },
     { value: 'fashion', label: 'Fashion' },
   ],
@@ -3071,6 +3137,10 @@ export const defaultSectionForm = {
   mappingImageField: 'imageUrl',
   mappingSecondaryImageField: '',
   mappingDeepLinkTemplate: 'app://category/{id}',
+  blockDataSourceType: 'MANUAL',
+  blockFeedMode: 'BESTSELLER',
+  blockTabField: 'mainCategoryName',
+  blockLimit: '10',
 };
 
 export const defaultHeaderForm = {

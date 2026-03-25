@@ -19,6 +19,11 @@ import {
   STYLE_PRESET_OPTIONS,
 } from './appConfigConstants';
 
+const toSafeLimit = (value, min, max, fallback) => {
+  const n = toNumberOrNull(value);
+  return n && Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : fallback;
+};
+
 export const buildUniqueSectionId = (baseId, sections) => {
   if (!sections.some((section) => section?.id === baseId)) return baseId;
   let index = 2;
@@ -63,6 +68,8 @@ export const buildSectionFromForm = (base, form) => {
   const isProductCardCarouselBlock = resolvedBlockType === 'product_card_carousel';
   const isCategoryIconGridBlock = resolvedBlockType === 'category_icon_grid';
   const isPlaceCardCarouselBlock = resolvedBlockType === 'beauty_salon_carousel';
+  const isTabbedProductShelfBlock = resolvedBlockType === 'tabbed_product_shelf';
+  const isShopCardCarouselBlock = resolvedBlockType === 'shop_card_carousel';
   const stylePresetOptions = STYLE_PRESET_OPTIONS[resolvedBlockType] || [];
   const setOrDelete = (key, value) => {
     if (value === undefined || value === null || String(value).trim() === '') {
@@ -377,6 +384,25 @@ export const buildSectionFromForm = (base, form) => {
       delete next.itemsPath;
     }
   }
+  if (isTabbedProductShelfBlock) {
+    const dsType = String(form.blockDataSourceType || 'MANUAL').trim().toUpperCase();
+    if (dsType === 'PRODUCT_FEED') {
+      const feedMode = String(form.blockFeedMode || 'BESTSELLER').trim().toUpperCase();
+      const tabField = String(form.blockTabField || 'mainCategoryName').trim();
+      const limit = toSafeLimit(form.blockLimit, 1, 60, 10);
+      next.dataSource = { sourceType: 'PRODUCT_FEED', feedMode, tabField, limit };
+    } else {
+      delete next.dataSource;
+    }
+  }
+  if (isShopCardCarouselBlock) {
+    const dsType = String(form.blockDataSourceType || 'SHOP_FEED').trim().toUpperCase();
+    const limit = toSafeLimit(form.blockLimit, 1, 60, 10);
+    next.dataSource = {
+      sourceType: dsType === 'MANUAL' ? 'MANUAL' : 'SHOP_FEED',
+      ...(limit !== 10 ? { limit } : {}),
+    };
+  }
   if (isLegacyMultiItemGrid) {
     next.columns = 3;
   } else {
@@ -645,5 +671,24 @@ export const buildSectionFormFromConfig = (section, fallbackType) => {
     mappingImageField: mapping?.imageField || defaultSectionForm.mappingImageField,
     mappingSecondaryImageField: mapping?.secondaryImageField || '',
     mappingDeepLinkTemplate: mapping?.deepLinkTemplate || defaultSectionForm.mappingDeepLinkTemplate,
+    blockDataSourceType:
+      resolvedBlockType === 'tabbed_product_shelf'
+        ? String(source?.sourceType || 'MANUAL').trim().toUpperCase()
+        : resolvedBlockType === 'shop_card_carousel'
+          ? String(source?.sourceType || 'SHOP_FEED').trim().toUpperCase()
+          : defaultSectionForm.blockDataSourceType,
+    blockFeedMode:
+      resolvedBlockType === 'tabbed_product_shelf'
+        ? String(source?.feedMode || 'BESTSELLER').trim().toUpperCase()
+        : defaultSectionForm.blockFeedMode,
+    blockTabField:
+      resolvedBlockType === 'tabbed_product_shelf'
+        ? String(source?.tabField || 'mainCategoryName').trim()
+        : defaultSectionForm.blockTabField,
+    blockLimit:
+      (resolvedBlockType === 'tabbed_product_shelf' || resolvedBlockType === 'shop_card_carousel') &&
+      source?.limit !== undefined && source?.limit !== null
+        ? String(source.limit)
+        : defaultSectionForm.blockLimit,
   };
 };
