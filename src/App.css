@@ -4181,6 +4181,14 @@ textarea {
   color: #272f3f;
 }
 
+.preview-icon-grid-theme-fashion .preview-phase-one-category-image {
+  background: #f6e8d8;
+}
+
+.preview-icon-grid-theme-fashion .preview-phase-one-category-label {
+  color: #412b18;
+}
+
 /* --- Category Showcase preview --- */
 .preview-showcase-row {
   display: flex;
@@ -4440,6 +4448,19 @@ textarea {
   background: #2e6b1f;
 }
 
+.preview-promo-hero.is-fashion .preview-promo-hero-overlay {
+  background: linear-gradient(180deg, rgba(65, 43, 24, 0.10), rgba(65, 43, 24, 0.72));
+}
+
+.preview-promo-hero.is-fashion .preview-promo-hero-badge {
+  background: rgba(78, 56, 35, 0.22);
+  border-color: rgba(78, 56, 35, 0.4);
+}
+
+.preview-promo-hero.is-fashion .preview-promo-hero-cta {
+  background: #4e3823;
+}
+
 .preview-beauty-hero {
   position: relative;
   min-height: 156px;
@@ -4624,6 +4645,35 @@ textarea {
 
 .preview-quick-actions.is-grocery .preview-quick-action-cta {
   color: #2e6b1f;
+}
+
+.preview-quick-actions.is-fashion .preview-quick-action-card {
+  border-color: rgba(78, 56, 35, 0.16);
+}
+
+.preview-quick-actions.is-fashion .preview-quick-action-icon {
+  background: rgba(78, 56, 35, 0.10);
+  color: #4e3823;
+}
+
+.preview-quick-actions.is-fashion .preview-quick-action-title {
+  color: #412b18;
+}
+
+.preview-quick-actions.is-fashion .preview-quick-action-subtitle {
+  color: rgba(65, 43, 24, 0.6);
+}
+
+.preview-quick-actions.is-fashion .preview-quick-action-cta {
+  color: #4e3823;
+}
+
+.preview-quick-action-section-is-fashion .preview-title {
+  color: #412b18;
+}
+
+.preview-quick-action-section-is-fashion .preview-action-link {
+  color: #4e3823;
 }
 
 .preview-deal-carousel,
@@ -4877,6 +4927,11 @@ textarea {
   background: #f8fafc;
 }
 
+.preview-info-list.is-fashion .preview-info-list-item {
+  border-color: rgba(78, 56, 35, 0.16);
+  background: #ffffff;
+}
+
 .preview-info-list-icon {
   width: 34px;
   height: 34px;
@@ -4926,6 +4981,23 @@ textarea {
   font-size: 16px;
   color: #94a3b8;
   flex-shrink: 0;
+}
+
+.preview-info-list.is-fashion .preview-info-list-icon {
+  background: rgba(78, 56, 35, 0.08);
+  color: #4e3823;
+}
+
+.preview-info-list.is-fashion .preview-info-list-title {
+  color: #412b18;
+}
+
+.preview-info-list.is-fashion .preview-info-list-subtitle {
+  color: rgba(65, 43, 24, 0.68);
+}
+
+.preview-info-list.is-fashion .preview-info-list-chevron {
+  color: #8b735d;
 }
 
 .preview-beauty-action-card {
@@ -5290,6 +5362,41 @@ textarea {
   display: inline-flex;
   align-items: center;
   background: #f5f7ef;
+}
+
+.preview-beauty-salons.is-fashion .preview-beauty-salon-card {
+  border-color: rgba(78, 56, 35, 0.16);
+  background: linear-gradient(180deg, #fdf6ef 0%, #ffffff 100%);
+  box-shadow: 0 10px 18px rgba(78, 56, 35, 0.08);
+  border-radius: 20px;
+}
+
+.preview-beauty-salons.is-fashion .preview-beauty-salon-image {
+  height: 94px;
+  border-radius: 16px;
+}
+
+.preview-beauty-salons.is-fashion .preview-beauty-salon-title {
+  color: #412b18;
+}
+
+.preview-beauty-salons.is-fashion .preview-beauty-salon-subtitle {
+  color: rgba(65, 43, 24, 0.68);
+}
+
+.preview-beauty-salons.is-fashion .preview-beauty-salon-meta {
+  color: rgba(65, 43, 24, 0.68);
+}
+
+.preview-beauty-salons.is-fashion .preview-beauty-salon-action-call {
+  border-color: rgba(78, 56, 35, 0.16);
+  background: #ffffff;
+  color: #412b18;
+}
+
+.preview-beauty-salons.is-fashion .preview-beauty-salon-action-call .preview-beauty-salon-action-glyph {
+  background: #f6e8d8;
+  color: #4e3823;
 }
 
 .preview-beauty-salon-actions {

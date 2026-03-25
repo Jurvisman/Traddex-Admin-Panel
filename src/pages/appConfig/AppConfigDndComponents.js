@@ -303,17 +303,20 @@ export const getPreviewSecondaryImage = (item) => item?.secondaryImageUrl || '';
 export const getPreviewTitle = (item) => item?.title || item?.name || item?.label || 'Item';
 
 const renderQuickActionPreview = ({ section, index, hidden, title, items, preset = 'electronics' }) => {
-  const isBeauty = String(preset || '').trim().toLowerCase() === 'beauty';
-  const isGrocery = String(preset || '').trim().toLowerCase() === 'grocery';
+  const normalizedPresetKey = String(preset || '').trim().toLowerCase();
+  const isBeauty = normalizedPresetKey === 'beauty';
+  const isGrocery = normalizedPresetKey === 'grocery';
+  const isFashion = normalizedPresetKey === 'fashion';
+  const quickActionThemeClass = isFashion ? 'is-fashion' : isBeauty ? 'is-beauty' : isGrocery ? 'is-grocery' : 'is-electronics';
   return (
-    <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+    <div key={`preview-${index}`} className={`preview-section preview-quick-action-section-${quickActionThemeClass} ${hidden ? 'is-hidden' : ''}`}>
       {title ? (
         <div className="preview-title preview-title-with-action">
           <span>{title}</span>
           {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
         </div>
       ) : null}
-      <div className={`preview-quick-actions ${isBeauty ? 'is-beauty' : isGrocery ? 'is-grocery' : 'is-electronics'}`}>
+      <div className={`preview-quick-actions ${quickActionThemeClass}`}>
         {items.map((item, itemIndex) => (
           <div key={`preview-quick-action-${index}-${itemIndex}`} className="preview-quick-action-card">
             {isBeauty ? (
@@ -694,6 +697,7 @@ export const PreviewSection = ({
   }
 
   if (blockType === 'category_icon_grid') {
+    const normalizedIconGridPreset = String(stylePreset || '').trim().toLowerCase();
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
         {title ? (
@@ -702,7 +706,7 @@ export const PreviewSection = ({
             {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
           </div>
         ) : null}
-        <div className="preview-phase-one-category-grid">
+        <div className={`preview-phase-one-category-grid preview-icon-grid-theme-${normalizedIconGridPreset || 'default'}`}>
           {items.map((item, itemIndex) => {
             const image = getPreviewImage(item);
             const label = getPreviewTitle(item);
@@ -780,10 +784,11 @@ export const PreviewSection = ({
     const normalizedPreset = String(stylePreset || '').trim().toLowerCase();
     const isBeautyPreset = normalizedPreset === 'beauty';
     const isGroceryPreset = normalizedPreset === 'grocery';
+    const isFashionPreset = normalizedPreset === 'fashion';
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
         <div
-          className={`preview-promo-hero ${isBeautyPreset ? 'is-beauty' : isGroceryPreset ? 'is-grocery' : 'is-electronics'} ${
+          className={`preview-promo-hero ${isFashionPreset ? 'is-fashion' : isBeautyPreset ? 'is-beauty' : isGroceryPreset ? 'is-grocery' : 'is-electronics'} ${
             section?.placement === 'header' ? 'is-header-attached' : ''
           }`}
         >
@@ -1082,7 +1087,10 @@ export const PreviewSection = ({
 
   if (blockType === 'beauty_salon_carousel') {
     const normalizedPreset = String(section?.stylePreset || '').trim().toLowerCase();
-    const previewPreset = normalizedPreset === 'grocery' || normalizedPreset === 'electronics' ? normalizedPreset : 'beauty';
+    const previewPreset =
+      normalizedPreset === 'grocery' || normalizedPreset === 'electronics' || normalizedPreset === 'fashion'
+        ? normalizedPreset
+        : 'beauty';
     const isGroceryPreset = previewPreset === 'grocery';
     const actionMode = String(section?.actionMode || 'CALL_WHATSAPP').trim().toUpperCase();
     const actionSet =
@@ -1300,12 +1308,13 @@ export const PreviewSection = ({
     const infoPreset = String(stylePreset || '').trim().toLowerCase();
     const isLaunchRows = infoPreset === 'launch_rows';
     const isBeautyRoutine = infoPreset === 'beauty_routine';
+    const isFashionRows = infoPreset === 'fashion';
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
         {title ? (
           <div
             className={`preview-title preview-title-with-action ${
-              isBeautyRoutine ? '' : 'preview-title-surface-pill'
+              isBeautyRoutine || isFashionRows ? '' : 'preview-title-surface-pill'
             }`}
           >
             <span>{title}</span>
@@ -1326,7 +1335,7 @@ export const PreviewSection = ({
             ))}
           </div>
         ) : (
-          <div className={`preview-info-list ${isLaunchRows ? 'is-launch-rows' : 'is-support-rows'}`}>
+          <div className={`preview-info-list ${isLaunchRows ? 'is-launch-rows' : isFashionRows ? 'is-fashion' : 'is-support-rows'}`}>
             {items.map((item, itemIndex) => (
               <div key={`preview-info-list-${index}-${itemIndex}`} className="preview-info-list-item">
                 <div className="preview-info-list-icon">
