@@ -194,6 +194,280 @@ const ELECTRONICS_QUICK_ACTIONS_SAMPLE = [
   },
 ];
 
+const FASHION_QUICK_ACTIONS_SAMPLE = [
+  {
+    title: 'New Arrivals',
+    subtitle: 'Fresh styles this week',
+    ctaText: 'Explore',
+    iconName: 'sparkles-outline',
+    deepLink: '',
+  },
+  {
+    title: 'Trending Now',
+    subtitle: 'Top picks for you',
+    ctaText: 'Shop',
+    iconName: 'trending-up-outline',
+    deepLink: '',
+  },
+  {
+    title: 'Sale',
+    subtitle: 'Up to 60% off',
+    ctaText: 'View deals',
+    iconName: 'pricetag-outline',
+    deepLink: '',
+  },
+];
+
+const FASHION_HERO_SAMPLE = {
+  badgeText: 'Spring Edit',
+  title: 'Fresh fashion drops for every buyer',
+  subtitle: 'Trend-led fits, premium labels, and curated looks across wholesale and retail.',
+  ctaText: 'Explore now',
+  imageUrl: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1400&q=80',
+  deepLink: 'app://category/fashion',
+  ctaLink: 'app://category/fashion',
+};
+
+const FASHION_STYLE_SHOWCASE_SAMPLE = [
+  {
+    title: 'Street Layers',
+    imageUrl: 'https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Office Edit',
+    imageUrl: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Festive Glow',
+    imageUrl: 'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Weekend Denim',
+    imageUrl: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+];
+
+const FASHION_TABBED_PRODUCT_SAMPLE = [
+  {
+    id: 'fashion-men-1',
+    tab: 'Men',
+    title: 'Oversized denim jacket',
+    sellingPrice: '1899',
+    currency: 'Rs ',
+    imageUrl: 'https://images.unsplash.com/photo-1516257984-b1b4d707412e?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    id: 'fashion-men-2',
+    tab: 'Men',
+    title: 'Smart casual coord set',
+    sellingPrice: '2290',
+    currency: 'Rs ',
+    imageUrl: 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    id: 'fashion-women-1',
+    tab: 'Women',
+    title: 'Satin drape dress',
+    sellingPrice: '2499',
+    currency: 'Rs ',
+    imageUrl: 'https://images.unsplash.com/photo-1492707892479-7bc8d5a4ee93?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    id: 'fashion-women-2',
+    tab: 'Women',
+    title: 'Pastel blazer set',
+    sellingPrice: '2799',
+    currency: 'Rs ',
+    imageUrl: 'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    id: 'fashion-girls-1',
+    tab: 'Girls',
+    title: 'Pleated day dress',
+    sellingPrice: '1599',
+    currency: 'Rs ',
+    imageUrl: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    id: 'fashion-girls-2',
+    tab: 'Girls',
+    title: 'Statement party co-ord',
+    sellingPrice: '1999',
+    currency: 'Rs ',
+    imageUrl: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+];
+
+const FASHION_BRAND_GRID_SAMPLE = [
+  {
+    id: 'fashion-brand-hero',
+    kind: 'hero',
+    title: 'Seasonal spotlight',
+    imageUrl: 'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=1200&q=80',
+    deepLink: '',
+  },
+  {
+    id: 'fashion-brand-1',
+    kind: 'tile',
+    title: 'Urban Lane',
+    imageUrl: 'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=700&q=80',
+    imageShellBg: '#FFF8F0',
+    deepLink: '',
+  },
+  {
+    id: 'fashion-brand-2',
+    kind: 'tile',
+    title: 'Thread House',
+    imageUrl: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=700&q=80',
+    imageShellBg: '#FFF8F0',
+    deepLink: '',
+  },
+  {
+    id: 'fashion-brand-3',
+    kind: 'tile',
+    title: 'Muse Edit',
+    imageUrl: 'https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=700&q=80',
+    imageShellBg: '#FFF8F0',
+    deepLink: '',
+  },
+  {
+    id: 'fashion-brand-4',
+    kind: 'tile',
+    title: 'Denim District',
+    imageUrl: 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=700&q=80',
+    imageShellBg: '#FFF8F0',
+    deepLink: '',
+  },
+  {
+    id: 'fashion-brand-cta',
+    kind: 'cta',
+    title: 'Designer capsules',
+    imageUrl: 'https://images.unsplash.com/photo-1492707892479-7bc8d5a4ee93?auto=format&fit=crop&w=1200&q=80',
+    deepLink: '',
+  },
+];
+
+const FASHION_NEW_ARRIVALS_SAMPLE = [
+  {
+    id: 'fashion-arrival-1',
+    title: 'Tailored co-ord set',
+    imageUrl: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=800&q=80',
+    priceLine: 'Rs 2,499',
+    moqLine: 'MOQ 12',
+    sellerLine: 'Mode House · Ahmedabad',
+    deliveryLabel: 'Dispatch in 24 hrs',
+    stockLabel: 'Ready stock',
+    stockDot: '#22C55E',
+    deepLink: '',
+  },
+  {
+    id: 'fashion-arrival-2',
+    title: 'Embroidered kurta set',
+    imageUrl: 'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=800&q=80',
+    priceLine: 'Rs 1,899',
+    moqLine: 'MOQ 8',
+    sellerLine: 'Aarya Apparel · Surat',
+    deliveryLabel: 'Dispatch in 48 hrs',
+    stockLabel: 'Fast moving',
+    stockDot: '#F59E0B',
+    deepLink: '',
+  },
+  {
+    id: 'fashion-arrival-3',
+    title: 'Textured resort shirt',
+    imageUrl: 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=800&q=80',
+    priceLine: 'Rs 1,590',
+    moqLine: 'MOQ 10',
+    sellerLine: 'Urban Rack · Mumbai',
+    deliveryLabel: 'Dispatch in 24 hrs',
+    stockLabel: 'In stock',
+    stockDot: '#22C55E',
+    deepLink: '',
+  },
+  {
+    id: 'fashion-arrival-4',
+    title: 'Soft tote collection',
+    imageUrl: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80',
+    priceLine: 'Rs 1,299',
+    moqLine: 'MOQ 20',
+    sellerLine: 'Carry Craft · Delhi',
+    deliveryLabel: 'Dispatch in 72 hrs',
+    stockLabel: 'Fresh drop',
+    stockDot: '#6366F1',
+    deepLink: '',
+  },
+];
+
+const FASHION_WHY_BUY_SAMPLE = [
+  {
+    title: 'Verified sellers',
+    subtitle: 'Curated businesses with catalog quality checks.',
+    iconName: 'shield-checkmark-outline',
+    deepLink: '',
+  },
+  {
+    title: 'Fast sampling',
+    subtitle: 'Shortlist and confirm fits before large orders.',
+    iconName: 'flash-outline',
+    deepLink: '',
+  },
+  {
+    title: 'Low MOQ access',
+    subtitle: 'Test trendy styles without overcommitting inventory.',
+    iconName: 'cube-outline',
+    deepLink: '',
+  },
+  {
+    title: 'Assisted sourcing',
+    subtitle: 'Move from moodboard to seller shortlist faster.',
+    iconName: 'sparkles-outline',
+    deepLink: '',
+  },
+];
+
+const FASHION_SHOPS_SAMPLE = [
+  {
+    title: 'Raj Fashion Studio',
+    subtitle: 'C G Road, Ahmedabad',
+    rating: '4.8',
+    distance: '2.1 km',
+    imageUrl: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=900&q=80',
+    contactNumber: '+917990011223',
+    whatsappNumber: '+917990011223',
+    deepLink: '',
+  },
+  {
+    title: 'Asha Ethnic House',
+    subtitle: 'Prahlad Nagar, Ahmedabad',
+    rating: '4.7',
+    distance: '3.4 km',
+    imageUrl: 'https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=900&q=80',
+    contactNumber: '+917990011224',
+    whatsappNumber: '+917990011224',
+    deepLink: '',
+  },
+  {
+    title: 'Urban Wardrobe Co.',
+    subtitle: 'Satellite, Ahmedabad',
+    rating: '4.9',
+    distance: '4.2 km',
+    imageUrl: 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=900&q=80',
+    contactNumber: '+917990011225',
+    whatsappNumber: '+917990011225',
+    deepLink: '',
+  },
+];
+
 const ELECTRONICS_HERO_SAMPLE = {
   badgeText: 'Electronics Week',
   title: 'Upgrade your tech stack',
@@ -871,6 +1145,102 @@ const buildGroceryDefaultSections = (industryId) => [
   },
 ];
 
+const buildFashionDefaultSections = (industryId) => [
+  {
+    id: 'fashion_spotlight',
+    type: 'banner',
+    blockType: 'promo_hero_banner',
+    stylePreset: 'fashion',
+    enabled: true,
+    items: [{ ...FASHION_HERO_SAMPLE }],
+  },
+  {
+    id: 'fashion_quick_actions',
+    type: 'horizontalList',
+    blockType: 'quick_action_row',
+    title: 'Offers',
+    actionText: 'View all',
+    quickActionPreset: 'fashion',
+    enabled: true,
+    items: FASHION_QUICK_ACTIONS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'fashion_categories',
+    type: 'category_showcase',
+    blockType: 'category_showcase',
+    title: 'Shop categories',
+    actionText: 'View all',
+    showcaseVariant: 'circle_icon',
+    stylePreset: 'fashion',
+    enabled: true,
+    dataSource: {
+      sourceType: 'CATEGORY_FEED',
+      industryId: industryId ? String(industryId) : undefined,
+    },
+    items: [],
+  },
+  {
+    id: 'fashion_style_edit',
+    type: 'horizontalList',
+    blockType: 'category_showcase',
+    title: 'Shop by style',
+    actionText: 'Explore',
+    showcaseVariant: 'card',
+    stylePreset: 'fashion',
+    enabled: true,
+    items: FASHION_STYLE_SHOWCASE_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'fashion_trending',
+    type: 'horizontalList',
+    blockType: 'tabbed_product_shelf',
+    title: 'Trending this week',
+    stylePreset: 'fashion',
+    enabled: true,
+    items: FASHION_TABBED_PRODUCT_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'fashion_new_arrivals',
+    type: 'horizontalList',
+    blockType: 'product_shelf_horizontal',
+    title: 'New arrivals',
+    actionText: 'View all',
+    stylePreset: 'fashion',
+    enabled: true,
+    items: FASHION_NEW_ARRIVALS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'fashion_brand_stores',
+    type: 'horizontalList',
+    blockType: 'brand_logo_grid',
+    title: 'Top brands near you',
+    stylePreset: 'fashion',
+    enabled: true,
+    items: FASHION_BRAND_GRID_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'fashion_why_buy',
+    type: 'list',
+    blockType: 'info_list',
+    title: 'Why buy from us',
+    actionText: 'See all',
+    stylePreset: 'fashion',
+    enabled: true,
+    items: FASHION_WHY_BUY_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'fashion_shops_near_you',
+    type: 'horizontalList',
+    blockType: 'beauty_salon_carousel',
+    title: 'Shops near you',
+    actionText: 'View all',
+    actionMode: 'CALL_WHATSAPP',
+    stylePreset: 'fashion',
+    enabled: true,
+    items: FASHION_SHOPS_SAMPLE.map((item) => ({ ...item })),
+  },
+];
+
 export const screenToolboxItems = [
   {
     key: 'heroBanner',
@@ -1186,6 +1556,20 @@ export const screenToolboxItems = [
     },
   },
   {
+    key: 'fashionQuickActionRow',
+    label: 'Fashion Quick Action Row',
+    hint: 'Quick action cards styled for fashion (warm brown palette)',
+    section: {
+      id: 'fashion_quick_actions',
+      type: 'horizontalList',
+      blockType: 'quick_action_row',
+      title: 'Offers',
+      actionText: 'View all',
+      quickActionPreset: 'fashion',
+      items: FASHION_QUICK_ACTIONS_SAMPLE,
+    },
+  },
+  {
     key: 'beautySalonCarousel',
     label: 'Place Card Carousel',
     hint: 'Horizontal nearby place/store cards',
@@ -1196,6 +1580,29 @@ export const screenToolboxItems = [
       title: 'Nearby places',
       actionText: 'View all',
       items: BEAUTY_SALON_SAMPLE,
+    },
+  },
+  {
+    key: 'tabbedProductShelf',
+    label: 'Tabbed Product Shelf',
+    hint: 'Horizontal product cards with tab filters (e.g. Men / Women / Girls)',
+    section: {
+      id: 'tabbed_product_shelf',
+      blockType: 'tabbed_product_shelf',
+      title: 'Trending This Week',
+      enabled: true,
+      items: [],
+    },
+  },
+  {
+    key: 'shopsNearYou',
+    label: 'Shops Near You',
+    hint: 'Location-based nearby shop cards with Call / WhatsApp / View actions',
+    section: {
+      id: 'shops_near_you',
+      blockType: 'shops_near_you',
+      title: 'Shops Near You',
+      enabled: true,
     },
   },
   {
@@ -1253,6 +1660,8 @@ export const blockLabels = {
   icon_list: 'Icon List Block',
   chip_scroll: 'Chip Scroll Block',
   category_showcase: 'Category Showcase Block',
+  tabbed_product_shelf: 'Tabbed Product Shelf',
+  shops_near_you: 'Shops Near You',
 };
 
 export const resolveBlockLabel = (blockType, fallback) =>
@@ -1472,6 +1881,7 @@ export const phaseOneBlockTypes = new Set([
   'beauty_routine_list',
   'beauty_tip_chips',
   'beauty_salon_carousel',
+  'tabbed_product_shelf',
 ]);
 
 export const getPhaseOneDefaultItem = (blockType, index = 0) => {
@@ -1633,6 +2043,15 @@ export const getPhaseOneDefaultItem = (blockType, index = 0) => {
   }
   if (resolvedBlockType === 'chip_scroll') {
     return { text: '', deepLink: '' };
+  }
+  if (resolvedBlockType === 'tabbed_product_shelf') {
+    return {
+      title: '',
+      tab: '',
+      imageUrl: '',
+      price: '',
+      deepLink: '',
+    };
   }
   if (resolvedBlockType === 'category_showcase') {
     return { title: '', imageUrl: '', iconUrl: '', deepLink: '' };
@@ -1985,11 +2404,13 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'electronics', label: 'Electronics' },
     { value: 'beauty', label: 'Beauty' },
     { value: 'grocery', label: 'Grocery' },
+    { value: 'fashion', label: 'Fashion' },
   ],
   promo_hero_banner: [
     { value: 'electronics', label: 'Electronics' },
     { value: 'beauty', label: 'Beauty' },
     { value: 'grocery', label: 'Grocery' },
+    { value: 'fashion', label: 'Fashion' },
   ],
   split_promo_row: [
     { value: 'grocery', label: 'Grocery' },
@@ -1998,6 +2419,7 @@ export const STYLE_PRESET_OPTIONS = {
     { value: '', label: 'Default' },
     { value: 'electronics', label: 'Electronics' },
     { value: 'grocery', label: 'Grocery' },
+    { value: 'fashion', label: 'Fashion' },
   ],
   media_overlay_carousel: [
     { value: 'electronics', label: 'Electronics' },
@@ -2008,20 +2430,40 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'electronics', label: 'Electronics' },
     { value: 'beauty', label: 'Beauty' },
     { value: 'grocery', label: 'Grocery' },
+    { value: 'fashion', label: 'Fashion' },
   ],
   beauty_salon_carousel: [
     { value: 'beauty', label: 'Beauty' },
     { value: 'grocery', label: 'Grocery' },
+    { value: 'fashion', label: 'Fashion' },
   ],
   info_list: [
     { value: 'launch_rows', label: 'Launch rows' },
     { value: 'support_rows', label: 'Support rows' },
     { value: 'beauty_routine', label: 'Beauty routine' },
+    { value: 'fashion', label: 'Fashion' },
   ],
   chip_scroll: [
     { value: '', label: 'Default' },
     { value: 'beauty', label: 'Beauty' },
     { value: 'grocery', label: 'Grocery' },
+    { value: 'fashion', label: 'Fashion' },
+  ],
+  tabbed_product_shelf: [
+    { value: '', label: 'Default' },
+    { value: 'fashion', label: 'Fashion' },
+  ],
+  category_icon_grid: [
+    { value: '', label: 'Default' },
+    { value: 'fashion', label: 'Fashion' },
+  ],
+  brand_logo_grid: [
+    { value: '', label: 'Default (Blue)' },
+    { value: 'fashion', label: 'Fashion' },
+  ],
+  product_shelf_horizontal: [
+    { value: '', label: 'Default' },
+    { value: 'fashion', label: 'Fashion' },
   ],
   promo_banner: [
     { value: '', label: 'Default' },
@@ -2235,9 +2677,11 @@ export const buildIndustryDefaultSections = (slug, industryName, industryId) => 
   ...(slug === 'beauty' ? buildBeautyDefaultSections(industryId) : []),
   ...(slug === 'electronics' ? buildElectronicsDefaultSections(industryId) : []),
   ...(slug === 'grocery' ? buildGroceryDefaultSections(industryId) : []),
+  ...(slug === 'fashion' ? buildFashionDefaultSections(industryId) : []),
   ...(slug === 'beauty'
     || slug === 'electronics'
     || slug === 'grocery'
+    || slug === 'fashion'
     ? []
     : [
   {
