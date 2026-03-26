@@ -1243,6 +1243,204 @@ const buildFashionDefaultSections = (industryId) => [
   },
 ];
 
+const buildAutomobileDefaultSections = (industryId) => {
+  const scopedIndustryId = industryId ? String(industryId) : undefined;
+  const automobileShelfItems = [
+    {
+      title: 'All-season radial tyre',
+      price: '2,850',
+      mrp: '3,240',
+      rating: '4.8',
+      tag: 'Workshop pick',
+      moqLine: 'MOQ 4',
+      summaryLine: 'Same-day dispatch | In stock | TorqueHub Ahmedabad',
+      imageUrl: '',
+      deepLink: '',
+    },
+    {
+      title: 'Synthetic engine oil 5W-30',
+      price: '1,199',
+      mrp: '1,420',
+      rating: '4.7',
+      tag: 'Fast moving',
+      moqLine: 'MOQ 12',
+      summaryLine: 'Delivery in 2 hrs | In stock | Lubex Trade',
+      imageUrl: '',
+      deepLink: '',
+    },
+    {
+      title: 'LED headlight upgrade kit',
+      price: '2,099',
+      mrp: '2,499',
+      rating: '4.6',
+      tag: 'Retail favourite',
+      moqLine: 'MOQ 2',
+      summaryLine: 'Ready to ship | In stock | Lumina Parts',
+      imageUrl: '',
+      deepLink: '',
+    },
+  ];
+
+  return [
+    {
+      id: 'automobile_b2b2c_fixed',
+      type: 'fixed',
+      blockType: 'automobile_b2b2c_fixed',
+      title: 'B2B & B2C Marketplace',
+      enabled: true,
+    },
+    {
+      id: 'automobile_fitment_fixed',
+      type: 'fixed',
+      blockType: 'automobile_fitment_fixed',
+      title: 'Shop by vehicle',
+      enabled: true,
+    },
+    {
+      id: 'automobile_categories',
+      type: 'category_showcase',
+      blockType: 'category_showcase',
+      title: 'Shop by category',
+      actionText: 'View all',
+      showcaseVariant: 'circle',
+      stylePreset: 'automobile',
+      enabled: true,
+      dataSource: {
+        sourceType: 'CATEGORY_FEED',
+        industryId: scopedIndustryId,
+      },
+      items: [],
+    },
+    {
+      id: 'automobile_trending',
+      type: 'horizontalList',
+      blockType: 'tabbed_product_shelf',
+      title: 'Trending this week',
+      actionText: 'View all',
+      stylePreset: 'automobile',
+      enabled: true,
+      items: [],
+      dataSource: {
+        sourceType: 'PRODUCT_FEED',
+        feedMode: 'TRENDING',
+        industryId: scopedIndustryId,
+        tabField: 'mainCategoryName',
+        limit: 8,
+      },
+    },
+    {
+      id: 'automobile_sellers_near_you',
+      type: 'horizontalList',
+      blockType: 'shop_card_carousel',
+      title: 'Sellers near you',
+      actionText: 'View all',
+      actionMode: 'CALL_WHATSAPP',
+      stylePreset: 'automobile',
+      enabled: true,
+      items: [],
+      dataSource: {
+        sourceType: 'SHOP_FEED',
+        industryId: scopedIndustryId,
+        limit: 8,
+      },
+    },
+    {
+      id: 'automobile_recommended',
+      type: 'horizontalList',
+      blockType: 'product_shelf_horizontal',
+      title: 'Recommended for workshops',
+      actionText: 'View all',
+      stylePreset: 'automobile',
+      enabled: true,
+      items: automobileShelfItems.map((item) => ({ ...item })),
+    },
+    {
+      id: 'automobile_top_brands',
+      type: 'horizontalList',
+      blockType: 'brand_logo_grid',
+      title: 'Top brands',
+      stylePreset: 'automobile',
+      enabled: true,
+      items: [
+        { title: 'TorquePro', subtitle: 'Tyres & workshop kits', imageUrl: '', imageShellBg: '#F3F4F6', deepLink: '' },
+        { title: 'RoadMate', subtitle: 'Lighting and touring gear', imageUrl: '', imageShellBg: '#FFF7ED', deepLink: '' },
+        { title: 'VoltEdge', subtitle: 'Batteries and chargers', imageUrl: '', imageShellBg: '#ECFDF5', deepLink: '' },
+      ],
+    },
+    {
+      id: 'automobile_deals',
+      type: 'horizontalList',
+      blockType: 'product_card_carousel',
+      title: 'Deals of the day',
+      actionText: 'View all',
+      stylePreset: 'automobile',
+      enabled: true,
+      items: [
+        { title: 'Brake pad combo', subtitle: 'Bulk slab pricing', price: 'From 899', deepLink: '' },
+        { title: 'Bike care essentials', subtitle: 'Retail counter pack', price: 'From 499', deepLink: '' },
+        { title: 'Wiper + washer bundle', subtitle: 'Fast moving SKU', price: 'From 299', deepLink: '' },
+      ],
+    },
+    {
+      id: 'automobile_promises',
+      type: 'horizontalList',
+      blockType: 'chip_scroll',
+      title: 'Why buy automobile',
+      actionText: 'Explore',
+      stylePreset: 'automobile',
+      enabled: true,
+      items: [
+        { text: 'Same-day dispatch' },
+        { text: 'GST invoice' },
+        { text: 'Bulk quote support' },
+        { text: 'Fitment guidance' },
+      ],
+    },
+    {
+      id: 'automobile_services',
+      type: 'horizontalList',
+      blockType: 'shop_card_carousel',
+      title: 'Services near you',
+      actionText: 'View all',
+      actionMode: 'CALL_WHATSAPP',
+      cardVariant: 'compact',
+      stylePreset: 'automobile',
+      enabled: true,
+      items: [
+        { title: 'Tyre fitment', subtitle: 'SG Highway', rating: '4.8', distance: '2.3 km', imageUrl: '', deepLink: '' },
+        { title: 'Battery service', subtitle: 'Prahlad Nagar', rating: '4.6', distance: '3.1 km', imageUrl: '', deepLink: '' },
+        { title: 'Detailing studio', subtitle: 'Satellite', rating: '4.7', distance: '4.4 km', imageUrl: '', deepLink: '' },
+      ],
+    },
+    {
+      id: 'automobile_bulk_deals',
+      type: 'banner',
+      blockType: 'promo_banner',
+      title: 'Bulk workshop deals',
+      text: 'Tyres, oils and fast-moving SKUs with trade-first pricing.',
+      actionText: 'Request quote',
+      stylePreset: 'automobile',
+      sectionBgColor: '#0F172A',
+      enabled: true,
+      items: [
+        { text: 'Bulk pricing from 25 units' },
+        { text: 'Dedicated account manager' },
+        { text: 'Fast dispatch across city hubs' },
+      ],
+    },
+    {
+      id: 'automobile_recently_viewed',
+      type: 'horizontalList',
+      blockType: 'product_shelf_horizontal',
+      title: 'Recently viewed',
+      actionText: 'View all',
+      stylePreset: 'automobile',
+      enabled: true,
+      items: automobileShelfItems.map((item) => ({ ...item })),
+    },
+  ];
+};
+
 export const screenToolboxItems = [
   // ── Banners & Heroes ────────────────────────────────────────────────────
   {
@@ -1300,6 +1498,30 @@ export const screenToolboxItems = [
       actionLink: '',
       stylePreset: '',
       sectionBgColor: '#fce7f3',
+    },
+  },
+  {
+    key: 'automobileMarketplaceFixed',
+    label: 'Automobile B2B/B2C',
+    hint: 'Hardcoded automobile marketplace section placeholder for CMS ordering',
+    section: {
+      id: 'automobile_b2b2c_fixed',
+      type: 'fixed',
+      blockType: 'automobile_b2b2c_fixed',
+      title: 'B2B & B2C Marketplace',
+      enabled: true,
+    },
+  },
+  {
+    key: 'automobileFitmentFixed',
+    label: 'Automobile Fitment',
+    hint: 'Hardcoded vehicle fitment placeholder for CMS ordering',
+    section: {
+      id: 'automobile_fitment_fixed',
+      type: 'fixed',
+      blockType: 'automobile_fitment_fixed',
+      title: 'Shop by vehicle',
+      enabled: true,
     },
   },
   {
@@ -1506,6 +1728,24 @@ export const screenToolboxItems = [
     },
   },
   {
+    key: 'brandLogoCarousel',
+    label: 'Brand Logo Carousel',
+    hint: 'Horizontal scrolling brand cards with logo + name + tagline (Automobile style)',
+    section: {
+      id: 'brand_logo_carousel',
+      type: 'horizontalList',
+      blockType: 'brand_logo_grid',
+      title: 'Top Brands',
+      stylePreset: 'automobile',
+      enabled: true,
+      items: [
+        { title: 'Brand Name', subtitle: 'Tagline here', imageUrl: '', imageShellBg: '#F3F4F6', deepLink: '' },
+        { title: 'Brand Name', subtitle: 'Tagline here', imageUrl: '', imageShellBg: '#FFF3E0', deepLink: '' },
+        { title: 'Brand Name', subtitle: 'Tagline here', imageUrl: '', imageShellBg: '#E8F5E9', deepLink: '' },
+      ],
+    },
+  },
+  {
     key: 'mediaOverlayCarousel',
     label: 'Media Overlay Cards',
     hint: 'Horizontal image cards with title/subtitle text overlay',
@@ -1652,6 +1892,8 @@ export const blockLabels = {
   beauty_tip_chips: 'Beauty Tip Chips',
   beauty_salon_carousel: 'Place Card Carousel',
   bestseller_shelf: 'Bestsellers Shelf Block',
+  automobile_b2b2c_fixed: 'Automobile B2B/B2C Section',
+  automobile_fitment_fixed: 'Automobile Fitment Section',
   sectionTitle: 'Section Title Block',
   multiItemGrid: 'Product Grid Block',
   categoryPreviewGrid: 'Category Preview Grid',
@@ -2477,6 +2719,7 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'electronics', label: 'Electronics' },
     { value: 'grocery', label: 'Grocery' },
     { value: 'fashion', label: 'Fashion' },
+    { value: 'automobile', label: 'Automobile' },
   ],
   media_overlay_carousel: [
     { value: 'electronics', label: 'Electronics' },
@@ -2488,6 +2731,7 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'beauty', label: 'Beauty' },
     { value: 'grocery', label: 'Grocery' },
     { value: 'fashion', label: 'Fashion' },
+    { value: 'automobile', label: 'Automobile (text-only deal cards)' },
   ],
   beauty_salon_carousel: [
     { value: 'beauty', label: 'Beauty' },
@@ -2505,10 +2749,12 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'beauty', label: 'Beauty' },
     { value: 'grocery', label: 'Grocery' },
     { value: 'fashion', label: 'Fashion' },
+    { value: 'automobile', label: 'Automobile' },
   ],
   tabbed_product_shelf: [
     { value: '', label: 'Default' },
     { value: 'fashion', label: 'Fashion' },
+    { value: 'automobile', label: 'Automobile (icon cards + Retail/Wholesale tabs)' },
   ],
   shop_card_carousel: [
     { value: '', label: 'Default (full card)' },
@@ -2516,23 +2762,27 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'grocery', label: 'Grocery (compact card)' },
     { value: 'fashion', label: 'Fashion (full card)' },
     { value: 'electronics', label: 'Electronics (full card)' },
+    { value: 'automobile', label: 'Automobile (full card)' },
   ],
   category_icon_grid: [
     { value: '', label: 'Default' },
     { value: 'fashion', label: 'Fashion' },
   ],
   brand_logo_grid: [
-    { value: '', label: 'Default (Blue)' },
+    { value: '', label: 'Default (Blue grid)' },
     { value: 'fashion', label: 'Fashion' },
+    { value: 'automobile', label: 'Automobile (horizontal carousel)' },
   ],
   product_shelf_horizontal: [
     { value: '', label: 'Default' },
     { value: 'fashion', label: 'Fashion' },
+    { value: 'automobile', label: 'Automobile' },
   ],
   promo_banner: [
     { value: '', label: 'Default' },
     { value: 'beauty', label: 'Beauty' },
     { value: 'grocery', label: 'Grocery' },
+    { value: 'automobile', label: 'Automobile (dark gradient + bullets)' },
   ],
 };
 
@@ -2742,10 +2992,12 @@ export const buildIndustryDefaultSections = (slug, industryName, industryId) => 
   ...(slug === 'electronics' ? buildElectronicsDefaultSections(industryId) : []),
   ...(slug === 'grocery' ? buildGroceryDefaultSections(industryId) : []),
   ...(slug === 'fashion' ? buildFashionDefaultSections(industryId) : []),
+  ...(slug === 'automobile' ? buildAutomobileDefaultSections(industryId) : []),
   ...(slug === 'beauty'
     || slug === 'electronics'
     || slug === 'grocery'
     || slug === 'fashion'
+    || slug === 'automobile'
     ? []
     : [
   {
