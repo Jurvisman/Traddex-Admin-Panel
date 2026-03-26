@@ -4489,27 +4489,70 @@ function AppConfigPage({ token }) {
                           <span>Data source</span>
                           <div className="field-grid source-config-grid">
                             {isPhaseOneProductShelf ? (
-                              <label className="field field-span">
-                                <span>Product feed</span>
-                                <select
-                                  value={sectionForm.dataSourceRef || ''}
-                                  onChange={(event) =>
-                                    setSectionForm((prev) => ({
-                                      ...prev,
-                                      dataSourceRef: event.target.value,
-                                    }))
-                                  }
-                                >
-                                  <option value="">Manual (no API)</option>
-                                  <option value="todaydealproducts">Today&apos;s deals</option>
-                                  <option value="home_top_selling_products">Top selling products</option>
-                                  <option value="home_most_rated_products">Most rated products</option>
-                                  <option value="home_recommended_products">Recommended products</option>
-                                </select>
-                                <p className="field-help">
-                                  Products are loaded from the selected feed. In manual mode you can edit the item list below.
-                                </p>
-                              </label>
+                              <>
+                                <label className="field field-span">
+                                  <span>Product feed</span>
+                                  <select
+                                    value={sectionForm.dataSourceRef || ''}
+                                    onChange={(event) =>
+                                      setSectionForm((prev) => {
+                                        const nextSourceRef = event.target.value;
+                                        const pageIndustryId = String(resolveIndustryId(pageIndustry) || '');
+                                        return {
+                                          ...prev,
+                                          dataSourceRef: nextSourceRef,
+                                          itemsPath: nextSourceRef ? (prev.itemsPath || '$.products') : '',
+                                          sourceIndustryId:
+                                            nextSourceRef && !prev.sourceIndustryId
+                                              ? pageIndustryId
+                                              : prev.sourceIndustryId,
+                                          sourceMainCategoryId: nextSourceRef ? prev.sourceMainCategoryId : '',
+                                          sourceCategoryIds: nextSourceRef ? prev.sourceCategoryIds : [],
+                                        };
+                                      })
+                                    }
+                                  >
+                                    <option value="">Manual (no API)</option>
+                                    <option value="todaydealproducts">Today&apos;s deals</option>
+                                    <option value="home_top_selling_products">Top selling products</option>
+                                    <option value="home_most_rated_products">Most rated products</option>
+                                    <option value="home_recommended_products">Recommended products</option>
+                                  </select>
+                                  <p className="field-help">
+                                    Products are loaded from the selected feed. In manual mode you can edit the item list below.
+                                  </p>
+                                </label>
+                                {sectionForm.dataSourceRef ? (
+                                  <label className="field">
+                                    <span>Industry</span>
+                                    <select
+                                      value={sectionForm.sourceIndustryId || ''}
+                                      onChange={(event) =>
+                                        setSectionForm((prev) => ({
+                                          ...prev,
+                                          sourceIndustryId: event.target.value,
+                                          sourceMainCategoryId: '',
+                                          sourceCategoryIds: [],
+                                        }))
+                                      }
+                                    >
+                                      <option value="">All industries</option>
+                                      {industries.map((item) => {
+                                        const id = resolveIndustryId(item);
+                                        if (!id) return null;
+                                        return (
+                                          <option key={id} value={id}>
+                                            {resolveIndustryLabel(item)}
+                                          </option>
+                                        );
+                                      })}
+                                    </select>
+                                    <p className="field-help">
+                                      Select an industry to scope live products. Leave blank to keep the feed global.
+                                    </p>
+                                  </label>
+                                ) : null}
+                              </>
                             ) : (
                               <>
                                 {!isPhaseOneCategoryIconGrid && !isPhaseOneBrandGrid && !isPhaseOneCategoryShowcase ? (
@@ -5357,12 +5400,19 @@ function AppConfigPage({ token }) {
                                 <span>Product source</span>
                                 <select
                                   value={sectionForm.blockDataSourceType || 'MANUAL'}
-                                  onChange={(event) =>
+                                  onChange={(event) => {
+                                    const nextMode = event.target.value;
                                     setSectionForm((prev) => ({
                                       ...prev,
-                                      blockDataSourceType: event.target.value,
-                                    }))
-                                  }
+                                      blockDataSourceType: nextMode,
+                                      ...(nextMode === 'PRODUCT_FEED'
+                                        ? {
+                                            sourceIndustryId:
+                                              prev.sourceIndustryId || String(resolveIndustryId(pageIndustry) || ''),
+                                          }
+                                        : {}),
+                                    }));
+                                  }}
                                 >
                                   {TABBED_SHELF_SOURCE_OPTIONS.map((option) => (
                                     <option key={option.value} value={option.value}>
@@ -5423,6 +5473,105 @@ function AppConfigPage({ token }) {
                                         }))
                                       }
                                     />
+                                  </label>
+                                  <label className="field">
+                                    <span>Industry</span>
+                                    <select
+                                      value={sectionForm.sourceIndustryId || ''}
+                                      onChange={(event) =>
+                                        setSectionForm((prev) => ({
+                                          ...prev,
+                                          blockDataSourceType: 'PRODUCT_FEED',
+                                          sourceIndustryId: event.target.value,
+                                          sourceMainCategoryId: '',
+                                          sourceCategoryIds: [],
+                                        }))
+                                      }
+                                    >
+                                      <option value="">All industries</option>
+                                      {industries.map((item) => {
+                                        const id = resolveIndustryId(item);
+                                        if (!id) return null;
+                                        return (
+                                          <option key={id} value={id}>
+                                            {resolveIndustryLabel(item)}
+                                          </option>
+                                        );
+                                      })}
+                                    </select>
+                                  </label>
+                                  <label className="field">
+                                    <span>Main category</span>
+                                    <select
+                                      value={sectionForm.sourceMainCategoryId || ''}
+                                      onChange={(event) =>
+                                        setSectionForm((prev) => ({
+                                          ...prev,
+                                          blockDataSourceType: 'PRODUCT_FEED',
+                                          sourceMainCategoryId: event.target.value,
+                                          sourceCategoryIds: [],
+                                        }))
+                                      }
+                                    >
+                                      <option value="">All main categories</option>
+                                      {filteredMainCategoryOptions.map((item) => {
+                                        const id = resolveMainCategoryId(item);
+                                        if (!id) return null;
+                                        return (
+                                          <option key={id} value={id}>
+                                            {resolveMainCategoryName(item)}
+                                          </option>
+                                        );
+                                      })}
+                                    </select>
+                                  </label>
+                                  <label className="field field-span">
+                                    <span>Categories (optional)</span>
+                                    {isLoadingSourceCategories ? (
+                                      <p className="field-help">Loading categories...</p>
+                                    ) : sourceCategories.length ? (
+                                      <div className="checkbox-grid">
+                                        {sourceCategories.map((item) => {
+                                          const id = resolveCategoryId(item);
+                                          if (!id) return null;
+                                          const checked = Array.isArray(sectionForm.sourceCategoryIds)
+                                            ? sectionForm.sourceCategoryIds.includes(id)
+                                            : false;
+                                          return (
+                                            <label key={id} className="checkbox-row">
+                                              <input
+                                                type="checkbox"
+                                                checked={checked}
+                                                onChange={() =>
+                                                  setSectionForm((prev) => {
+                                                    const current = Array.isArray(prev.sourceCategoryIds)
+                                                      ? prev.sourceCategoryIds
+                                                      : [];
+                                                    const next = new Set(current);
+                                                    if (next.has(id)) {
+                                                      next.delete(id);
+                                                    } else {
+                                                      next.add(id);
+                                                    }
+                                                    return {
+                                                      ...prev,
+                                                      blockDataSourceType: 'PRODUCT_FEED',
+                                                      sourceCategoryIds: Array.from(next),
+                                                    };
+                                                  })
+                                                }
+                                              />
+                                              {resolveCategoryName(item)} <span className="muted">({id})</span>
+                                            </label>
+                                          );
+                                        })}
+                                      </div>
+                                    ) : (
+                                      <p className="field-help">Select main category to load categories.</p>
+                                    )}
+                                    <p className="field-help">
+                                      Leave categories empty to pull from the full industry or main-category feed.
+                                    </p>
                                   </label>
                                   <div className="field field-span">
                                     <p className="field-help">

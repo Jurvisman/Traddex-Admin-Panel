@@ -2710,6 +2710,7 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'beauty', label: 'Beauty' },
     { value: 'grocery', label: 'Grocery' },
     { value: 'fashion', label: 'Fashion' },
+    { value: 'automobile', label: 'Automobile' },
   ],
   split_promo_row: [
     { value: 'grocery', label: 'Grocery' },

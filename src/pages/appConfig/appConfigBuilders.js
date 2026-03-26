@@ -65,6 +65,7 @@ export const buildSectionFromForm = (base, form) => {
   const resolvedBlockType = form.blockType?.trim() || form.type?.trim() || '';
   const isColumnGridBlock = resolvedBlockType === 'column_grid';
   const isCampaignBentoBlock = resolvedBlockType === 'campaignBento';
+  const isPhaseOneProductShelfBlock = resolvedBlockType === 'product_shelf_horizontal';
   const isProductCardCarouselBlock = resolvedBlockType === 'product_card_carousel';
   const isCategoryIconGridBlock = resolvedBlockType === 'category_icon_grid';
   const isPlaceCardCarouselBlock = resolvedBlockType === 'beauty_salon_carousel';
@@ -384,13 +385,45 @@ export const buildSectionFromForm = (base, form) => {
       delete next.itemsPath;
     }
   }
+  if (isPhaseOneProductShelfBlock) {
+    const hasFeedSource = Boolean(String(form.dataSourceRef || '').trim());
+    if (hasFeedSource) {
+      const sourceIndustryId = normalizeCollectionId(form.sourceIndustryId);
+      const sourceMainCategoryId = normalizeCollectionId(form.sourceMainCategoryId);
+      const sourceCategoryIds = Array.isArray(form.sourceCategoryIds)
+        ? form.sourceCategoryIds.map((value) => normalizeCollectionId(value)).filter(Boolean)
+        : [];
+      next.itemsPath = String(form.itemsPath || '').trim() || '$.products';
+      next.dataSource = {
+        sourceType: 'PRODUCT_FEED',
+        ...(sourceIndustryId ? { industryId: sourceIndustryId } : {}),
+        ...(sourceMainCategoryId ? { mainCategoryId: sourceMainCategoryId } : {}),
+        ...(sourceCategoryIds.length ? { categoryIds: sourceCategoryIds } : {}),
+      };
+    } else {
+      delete next.dataSource;
+    }
+  }
   if (isTabbedProductShelfBlock) {
     const dsType = String(form.blockDataSourceType || 'MANUAL').trim().toUpperCase();
     if (dsType === 'PRODUCT_FEED') {
       const feedMode = String(form.blockFeedMode || 'BESTSELLER').trim().toUpperCase();
       const tabField = String(form.blockTabField || 'mainCategoryName').trim();
       const limit = toSafeLimit(form.blockLimit, 1, 60, 10);
-      next.dataSource = { sourceType: 'PRODUCT_FEED', feedMode, tabField, limit };
+      const sourceIndustryId = normalizeCollectionId(form.sourceIndustryId);
+      const sourceMainCategoryId = normalizeCollectionId(form.sourceMainCategoryId);
+      const sourceCategoryIds = Array.isArray(form.sourceCategoryIds)
+        ? form.sourceCategoryIds.map((value) => normalizeCollectionId(value)).filter(Boolean)
+        : [];
+      next.dataSource = {
+        sourceType: 'PRODUCT_FEED',
+        feedMode,
+        tabField,
+        limit,
+        ...(sourceIndustryId ? { industryId: sourceIndustryId } : {}),
+        ...(sourceMainCategoryId ? { mainCategoryId: sourceMainCategoryId } : {}),
+        ...(sourceCategoryIds.length ? { categoryIds: sourceCategoryIds } : {}),
+      };
     } else {
       delete next.dataSource;
     }
