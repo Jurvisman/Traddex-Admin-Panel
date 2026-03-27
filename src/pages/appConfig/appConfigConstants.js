@@ -1301,6 +1301,165 @@ const SPORTS_RECOVERY_SAMPLE = [
   { title: 'Stretch band', subtitle: 'Flexibility kit', iconName: 'bandage-outline', deepLink: '' },
 ];
 
+const TRAVEL_HERO_SAMPLE = {
+  badgeText: 'Ocean Escape',
+  title: 'Sail into summer',
+  subtitle: 'Curated coastal stays, flights, and local guides',
+  ctaText: 'Plan a trip',
+  imageUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1400&q=80',
+  deepLink: '',
+};
+
+const TRAVEL_CATEGORY_SAMPLE = [
+  {
+    title: 'Flights',
+    iconName: 'airplane-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1473186578172-c141e6798cf4?auto=format&fit=crop&w=600&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Stays',
+    iconName: 'home-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1501117716987-c8e1ecb2100f?auto=format&fit=crop&w=600&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Packages',
+    iconName: 'briefcase-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=600&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Experiences',
+    iconName: 'map-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=600&q=80',
+    deepLink: '',
+  },
+];
+
+const TRAVEL_DESTINATIONS_SAMPLE = [
+  {
+    title: 'Goa',
+    subtitle: '3N from Rs 8,999',
+    imageUrl: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Bali',
+    subtitle: '5N from Rs 29,900',
+    imageUrl: 'https://images.unsplash.com/photo-1505739773434-c02c1a7d26ed?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Maldives',
+    subtitle: '4N from Rs 54,500',
+    imageUrl: 'https://images.unsplash.com/photo-1500375592092-40eb2168fd21?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+];
+
+const TRAVEL_FLIGHT_DEALS_SAMPLE = [
+  {
+    route: 'Mumbai to Goa',
+    date: 'Tue, 18 Jun',
+    price: 'Rs 3,999',
+    airline: 'Indigo',
+    type: 'Non-stop',
+    deepLink: '',
+  },
+  {
+    route: 'Delhi to Bengaluru',
+    date: 'Fri, 21 Jun',
+    price: 'Rs 4,650',
+    airline: 'Vistara',
+    type: 'Non-stop',
+    deepLink: '',
+  },
+  {
+    route: 'Ahmedabad to Jaipur',
+    date: 'Sat, 29 Jun',
+    price: 'Rs 3,250',
+    airline: 'Air India',
+    type: '1 stop',
+    deepLink: '',
+  },
+];
+
+const TRAVEL_STAYS_SAMPLE = [
+  {
+    title: 'Sunset Bay Resort',
+    subtitle: 'Goa',
+    price: 'Rs 3,800 / night',
+    rating: '4.7',
+    imageUrl: 'https://images.unsplash.com/photo-1501117716987-c8e1ecb2100f?auto=format&fit=crop&w=800&q=80',
+    badgeText: 'Popular',
+    deepLink: '',
+  },
+  {
+    title: 'Coastline Suites',
+    subtitle: 'Kochi',
+    price: 'Rs 2,950 / night',
+    rating: '4.6',
+    imageUrl: 'https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=800&q=80',
+    badgeText: 'Weekend',
+    deepLink: '',
+  },
+  {
+    title: 'Bluewave Villas',
+    subtitle: 'Bali',
+    price: 'Rs 6,500 / night',
+    rating: '4.9',
+    imageUrl: 'https://images.unsplash.com/photo-1445019980597-93fa8acb246c?auto=format&fit=crop&w=800&q=80',
+    badgeText: 'Luxury',
+    deepLink: '',
+  },
+];
+
+const TRAVEL_ITINERARIES_SAMPLE = [
+  {
+    title: 'Coastal Drive',
+    subtitle: '4 days | Beaches, seafood trail, sunsets',
+    iconName: 'map-outline',
+    deepLink: '',
+  },
+  {
+    title: 'Island Hopper',
+    subtitle: '5 days | Snorkeling, stays, island tours',
+    iconName: 'boat-outline',
+    deepLink: '',
+  },
+  {
+    title: 'Heritage Streets',
+    subtitle: '3 days | Markets, cafes, cultural spots',
+    iconName: 'business-outline',
+    deepLink: '',
+  },
+];
+
+const TRAVEL_TIPS_SAMPLE = [
+  { text: 'Smart packing', iconName: 'briefcase-outline', deepLink: '' },
+  { text: 'Budget hacks', iconName: 'cash-outline', deepLink: '' },
+  { text: 'Local food', iconName: 'restaurant-outline', deepLink: '' },
+  { text: 'Safety tips', iconName: 'shield-checkmark-outline', deepLink: '' },
+];
+
+const TRAVEL_BOOKINGS_SAMPLE = [
+  {
+    title: 'Goa Weekend Escape',
+    meta: 'Hotel + flight',
+    date: 'Jun 21 - Jun 24',
+    status: 'Confirmed',
+    deepLink: '',
+  },
+  {
+    title: 'Bengaluru Work Trip',
+    meta: 'Flight only',
+    date: 'Jul 05 - Jul 07',
+    status: 'Pending',
+    deepLink: '',
+  },
+];
+
 const buildDecorDefaultSections = () => [
   {
     id: 'decor_hero',
@@ -1542,6 +1701,90 @@ const buildSportsDefaultSections = (industryId) => [
     stylePreset: 'sports',
     enabled: true,
     items: SPORTS_RECOVERY_SAMPLE.map((item) => ({ ...item })),
+  },
+];
+
+const buildTravelDefaultSections = (industryId) => [
+  {
+    id: 'travel_hero',
+    type: 'banner',
+    blockType: 'promo_hero_banner',
+    stylePreset: 'travel',
+    enabled: true,
+    items: [{ ...TRAVEL_HERO_SAMPLE }],
+  },
+  {
+    id: 'travel_categories',
+    type: 'category_showcase',
+    blockType: 'category_showcase',
+    title: 'Travel categories',
+    actionText: 'View all',
+    showcaseVariant: 'card',
+    stylePreset: 'travel',
+    enabled: true,
+    dataSource: {
+      sourceType: 'CATEGORY_FEED',
+      industryId: industryId ? String(industryId) : undefined,
+    },
+    items: TRAVEL_CATEGORY_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'travel_top_destinations',
+    type: 'horizontalList',
+    blockType: 'media_overlay_carousel',
+    title: 'Top destinations',
+    actionText: 'View all',
+    stylePreset: 'travel',
+    enabled: true,
+    items: TRAVEL_DESTINATIONS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'travel_flight_deals_fixed',
+    type: 'fixed',
+    blockType: 'travel_flight_deals_fixed',
+    title: 'Flight deals',
+    actionText: 'See all',
+    enabled: true,
+    items: TRAVEL_FLIGHT_DEALS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'travel_hotel_stays',
+    type: 'horizontalList',
+    blockType: 'product_shelf_horizontal',
+    title: 'Hotel stays',
+    actionText: 'Explore',
+    stylePreset: 'travel',
+    enabled: true,
+    items: TRAVEL_STAYS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'travel_itineraries',
+    type: 'list',
+    blockType: 'info_list',
+    title: 'Itineraries',
+    actionText: 'Plan',
+    stylePreset: 'travel',
+    enabled: true,
+    items: TRAVEL_ITINERARIES_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'travel_tips',
+    type: 'horizontalList',
+    blockType: 'chip_scroll',
+    title: 'Travel tips',
+    actionText: 'View all',
+    stylePreset: 'travel',
+    enabled: true,
+    items: TRAVEL_TIPS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'travel_bookings_fixed',
+    type: 'fixed',
+    blockType: 'travel_bookings_fixed',
+    title: 'Your bookings',
+    actionText: 'Manage',
+    enabled: true,
+    items: TRAVEL_BOOKINGS_SAMPLE.map((item) => ({ ...item })),
   },
 ];
 
@@ -2195,6 +2438,34 @@ export const screenToolboxItems = [
     },
   },
   {
+    key: 'travelFlightDealsFixed',
+    label: 'Travel Flight Deals',
+    hint: 'Hardcoded travel flight deals placeholder for CMS ordering',
+    section: {
+      id: 'travel_flight_deals_fixed',
+      type: 'fixed',
+      blockType: 'travel_flight_deals_fixed',
+      title: 'Flight deals',
+      actionText: 'See all',
+      enabled: true,
+      items: TRAVEL_FLIGHT_DEALS_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
+    key: 'travelBookingsFixed',
+    label: 'Travel Bookings',
+    hint: 'Hardcoded travel bookings placeholder for CMS ordering',
+    section: {
+      id: 'travel_bookings_fixed',
+      type: 'fixed',
+      blockType: 'travel_bookings_fixed',
+      title: 'Your bookings',
+      actionText: 'Manage',
+      enabled: true,
+      items: TRAVEL_BOOKINGS_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
     key: 'splitPromoRow',
     label: 'Split Promo Row',
     hint: 'Two side-by-side promo cards in one row',
@@ -2568,6 +2839,8 @@ export const blockLabels = {
   automobile_b2b2c_fixed: 'Automobile B2B/B2C Section',
   automobile_fitment_fixed: 'Automobile Fitment Section',
   sports_live_matches_fixed: 'Sports Live Matches Section',
+  travel_flight_deals_fixed: 'Travel Flight Deals Section',
+  travel_bookings_fixed: 'Travel Bookings Section',
   sectionTitle: 'Section Title Block',
   multiItemGrid: 'Product Grid Block',
   categoryPreviewGrid: 'Category Preview Grid',
@@ -3389,6 +3662,7 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'decor', label: 'Decor' },
     { value: 'kids', label: 'Kids' },
     { value: 'sports', label: 'Sports' },
+    { value: 'travel', label: 'Travel' },
   ],
   split_promo_row: [
     { value: 'grocery', label: 'Grocery' },
@@ -3402,6 +3676,7 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'decor', label: 'Decor' },
     { value: 'kids', label: 'Kids' },
     { value: 'sports', label: 'Sports' },
+    { value: 'travel', label: 'Travel' },
   ],
   media_overlay_carousel: [
     { value: 'electronics', label: 'Electronics' },
@@ -3410,6 +3685,7 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'decor', label: 'Decor' },
     { value: 'kids', label: 'Kids' },
     { value: 'sports', label: 'Sports' },
+    { value: 'travel', label: 'Travel' },
   ],
   product_card_carousel: [
     { value: 'electronics', label: 'Electronics' },
@@ -3430,6 +3706,7 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'fashion', label: 'Fashion' },
     { value: 'kids', label: 'Kids' },
     { value: 'sports', label: 'Sports' },
+    { value: 'travel', label: 'Travel' },
   ],
   chip_scroll: [
     { value: '', label: 'Default' },
@@ -3437,6 +3714,7 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'grocery', label: 'Grocery' },
     { value: 'fashion', label: 'Fashion' },
     { value: 'automobile', label: 'Automobile' },
+    { value: 'travel', label: 'Travel' },
   ],
   tabbed_product_shelf: [
     { value: '', label: 'Default' },
@@ -3469,6 +3747,7 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'decor', label: 'Decor' },
     { value: 'kids', label: 'Kids' },
     { value: 'sports', label: 'Sports' },
+    { value: 'travel', label: 'Travel' },
   ],
   promo_banner: [
     { value: '', label: 'Default' },
@@ -3689,6 +3968,7 @@ export const buildIndustryDefaultSections = (slug, industryName, industryId) => 
   ...(slug === 'decor' ? buildDecorDefaultSections(industryId) : []),
   ...(slug === 'kids' ? buildKidsDefaultSections(industryId) : []),
   ...(slug === 'sports' ? buildSportsDefaultSections(industryId) : []),
+  ...(slug === 'travel' ? buildTravelDefaultSections(industryId) : []),
   ...(slug === 'beauty' ? buildBeautyDefaultSections(industryId) : []),
   ...(slug === 'electronics' ? buildElectronicsDefaultSections(industryId) : []),
   ...(slug === 'grocery' ? buildGroceryDefaultSections(industryId) : []),
@@ -3697,6 +3977,7 @@ export const buildIndustryDefaultSections = (slug, industryName, industryId) => 
   ...(slug === 'decor'
     || slug === 'kids'
     || slug === 'sports'
+    || slug === 'travel'
     || slug === 'beauty'
     || slug === 'electronics'
     || slug === 'grocery'

@@ -4378,6 +4378,72 @@ textarea {
   color: #e5e7eb;
 }
 
+.preview-showcase-theme-travel .preview-showcase-circle-image {
+  background: #ffffff;
+  border: 1px solid rgba(20, 83, 116, 0.12);
+}
+
+.preview-showcase-theme-travel .preview-showcase-icon-badge {
+  background: #2e8bc0;
+  border-color: #fff;
+}
+
+.preview-showcase-theme-travel .preview-showcase-circle-label {
+  color: #1f2937;
+}
+
+.preview-showcase-theme-travel .preview-showcase-card-item {
+  min-width: 120px;
+}
+
+.preview-showcase-theme-travel .preview-showcase-card-image {
+  border-radius: 18px;
+  border: 1px solid rgba(20, 83, 116, 0.12);
+}
+
+.preview-showcase-card-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(20, 83, 116, 0.10), rgba(20, 83, 116, 0.74));
+}
+
+.preview-showcase-theme-travel .preview-showcase-card-badge {
+  top: 10px;
+  left: 10px;
+  transform: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.18);
+  border: none;
+  padding: 6px;
+}
+
+.preview-showcase-card-badge-icon {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.preview-showcase-theme-travel .preview-showcase-card-label {
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  text-align: left;
+  font-size: 10px;
+  font-weight: 800;
+}
+
 .preview-title.preview-title-surface-pill {
   padding: 8px 12px;
   border-radius: 999px;
@@ -4417,6 +4483,19 @@ textarea {
 
 .preview-title.preview-title-theme-sports .preview-action-link {
   color: #d4f000;
+}
+
+.preview-title.preview-title-theme-travel {
+  color: #1f2937;
+}
+
+.preview-title.preview-title-theme-travel.preview-title-surface-pill {
+  background: #ffffff;
+  border-color: rgba(20, 83, 116, 0.12);
+}
+
+.preview-title.preview-title-theme-travel .preview-action-link {
+  color: #145374;
 }
 
 .preview-promo-hero {
@@ -4561,6 +4640,19 @@ textarea {
 .preview-promo-hero.is-sports .preview-promo-hero-cta {
   background: #d4f000;
   color: #0b0e12;
+}
+
+.preview-promo-hero.is-travel .preview-promo-hero-overlay {
+  background: linear-gradient(180deg, rgba(20, 83, 116, 0.08), rgba(20, 83, 116, 0.78));
+}
+
+.preview-promo-hero.is-travel .preview-promo-hero-badge {
+  background: rgba(244, 230, 212, 0.24);
+  border-color: rgba(244, 230, 212, 0.42);
+}
+
+.preview-promo-hero.is-travel .preview-promo-hero-cta {
+  background: #2e8bc0;
 }
 
 .preview-beauty-hero {
@@ -5149,6 +5241,20 @@ textarea {
   border-color: rgba(212, 240, 0, 0.34);
 }
 
+.preview-media-overlay-card.is-travel {
+  background: #dceaf3;
+  border: 1px solid rgba(20, 83, 116, 0.12);
+}
+
+.preview-media-overlay-gradient.is-travel {
+  background: linear-gradient(180deg, rgba(20, 83, 116, 0.08), rgba(20, 83, 116, 0.78));
+}
+
+.preview-media-overlay-card.is-travel .preview-media-overlay-badge {
+  background: rgba(244, 230, 212, 0.24);
+  border-color: rgba(244, 230, 212, 0.42);
+}
+
 .preview-media-overlay-card.is-decor .preview-media-overlay-badge {
   background: rgba(255, 255, 255, 0.16);
   border-color: rgba(255, 255, 255, 0.34);
@@ -5289,6 +5395,28 @@ textarea {
 
 .preview-info-list.is-sports .preview-info-list-chevron {
   color: #9ca3af;
+}
+
+.preview-info-list.is-travel .preview-info-list-item {
+  border-color: rgba(20, 83, 116, 0.12);
+  background: #ffffff;
+}
+
+.preview-info-list.is-travel .preview-info-list-icon {
+  background: rgba(46, 139, 192, 0.12);
+  color: #2e8bc0;
+}
+
+.preview-info-list.is-travel .preview-info-list-title {
+  color: #1f2937;
+}
+
+.preview-info-list.is-travel .preview-info-list-subtitle {
+  color: #6b7280;
+}
+
+.preview-info-list.is-travel .preview-info-list-chevron {
+  color: #7b93a8;
 }
 
 .preview-beauty-action-card {
@@ -6094,6 +6222,28 @@ textarea {
   color: #d4f000;
 }
 
+.preview-shelf-row.is-travel .preview-shelf-card {
+  border-color: rgba(20, 83, 116, 0.12);
+  background: #ffffff;
+}
+
+.preview-shelf-row.is-travel .preview-shelf-image {
+  background: #eaf2f8;
+}
+
+.preview-shelf-row.is-travel .preview-shelf-title {
+  color: #1f2937;
+}
+
+.preview-shelf-row.is-travel .preview-shelf-subtitle,
+.preview-shelf-row.is-travel .preview-shelf-rating {
+  color: #6b7280;
+}
+
+.preview-shelf-row.is-travel .preview-shelf-price {
+  color: #2e8bc0;
+}
+
 .preview-shop-card-row {
   display: grid;
   grid-auto-flow: column;
@@ -6255,6 +6405,123 @@ textarea {
 
 .preview-sports-match-status.is-live {
   background: rgba(239, 68, 68, 0.16);
+}
+
+.preview-travel-flight-list,
+.preview-travel-booking-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.preview-travel-flight-card,
+.preview-travel-booking-card {
+  border-radius: 16px;
+  border: 1px solid rgba(20, 83, 116, 0.12);
+  background: #ffffff;
+  padding: 12px;
+}
+
+.preview-travel-flight-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.preview-travel-flight-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  background: rgba(46, 139, 192, 0.12);
+  color: #2e8bc0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.preview-travel-flight-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.preview-travel-flight-route {
+  font-size: 10px;
+  font-weight: 800;
+  color: #1f2937;
+}
+
+.preview-travel-flight-meta {
+  margin-top: 4px;
+  font-size: 8px;
+  color: #6b7280;
+}
+
+.preview-travel-flight-footer {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.preview-travel-flight-airline {
+  font-size: 9px;
+  font-weight: 700;
+  color: #145374;
+}
+
+.preview-travel-flight-price {
+  font-size: 10px;
+  font-weight: 800;
+  color: #2e8bc0;
+}
+
+.preview-travel-booking-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.preview-travel-booking-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.preview-travel-booking-title {
+  font-size: 10px;
+  font-weight: 800;
+  color: #1f2937;
+}
+
+.preview-travel-booking-meta {
+  margin-top: 4px;
+  font-size: 8px;
+  color: #6b7280;
+}
+
+.preview-travel-booking-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 8px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.preview-travel-booking-status.is-confirmed {
+  background: rgba(34, 197, 94, 0.16);
+  color: #16a34a;
+}
+
+.preview-travel-booking-status.is-pending {
+  background: rgba(245, 158, 11, 0.18);
+  color: #d97706;
 }
 
 .preview-grid {
@@ -13740,6 +14007,12 @@ textarea {
   color: #1e2a17;
   background: #eef7e8;
   border: 1px solid rgba(46, 107, 31, 0.14);
+}
+
+.preview-chip.is-travel {
+  color: #145374;
+  background: #ffffff;
+  border: 1px solid rgba(20, 83, 116, 0.12);
 }
 
 /* --- Preview: column grid overlay text --- */

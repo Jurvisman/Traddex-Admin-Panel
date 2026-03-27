@@ -311,6 +311,7 @@ const resolvePreviewThemeKey = (preset, fallback = 'default') => {
   if (normalized === 'decor') return 'decor';
   if (normalized === 'kids') return 'kids';
   if (normalized === 'sports') return 'sports';
+  if (normalized === 'travel') return 'travel';
   if (normalized === 'electronics') return 'electronics';
   if (normalized === 'automobile') return 'automobile';
   return normalized || fallback;
@@ -765,6 +766,7 @@ export const PreviewSection = ({
     const isGroceryShowcase = normalizedShowcasePreset === 'grocery';
     const isKidsShowcase = normalizedShowcasePreset === 'kids';
     const isSportsShowcase = normalizedShowcasePreset === 'sports';
+    const isTravelShowcase = normalizedShowcasePreset === 'travel';
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
         {title ? (
@@ -783,6 +785,8 @@ export const PreviewSection = ({
                   ? 'preview-showcase-theme-kids'
                   : isSportsShowcase
                     ? 'preview-showcase-theme-sports'
+                    : isTravelShowcase
+                      ? 'preview-showcase-theme-travel'
                 : ''
           }`}
         >
@@ -790,12 +794,21 @@ export const PreviewSection = ({
             const image = getPreviewImage(item);
             const label = getPreviewTitle(item);
             const icon = item?.iconUrl || item?.mainCategoryIcon || '';
+            const iconGlyph = String(item?.iconName || item?.icon || label || 'T')
+              .trim()
+              .charAt(0)
+              .toUpperCase();
             if (variant === 'card') {
               return (
                 <div key={`preview-showcase-card-${index}-${itemIndex}`} className="preview-showcase-card-item">
                   <div className="preview-showcase-card-image">
                     {image ? <img src={image} alt="" /> : <div className="preview-image-placeholder" />}
-                    {icon ? <img src={icon} alt="" className="preview-showcase-card-badge" /> : null}
+                    {isTravelShowcase ? <div className="preview-showcase-card-overlay" /> : null}
+                    {icon ? (
+                      <img src={icon} alt="" className="preview-showcase-card-badge" />
+                    ) : isTravelShowcase ? (
+                      <span className="preview-showcase-card-badge-icon">{iconGlyph}</span>
+                    ) : null}
                     <div className="preview-showcase-card-label">{label}</div>
                   </div>
                 </div>
@@ -828,12 +841,15 @@ export const PreviewSection = ({
     const isDecorPreset = normalizedPreset === 'decor';
     const isKidsPreset = normalizedPreset === 'kids';
     const isSportsPreset = normalizedPreset === 'sports';
+    const isTravelPreset = normalizedPreset === 'travel';
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
         <div
           className={`preview-promo-hero ${
             isSportsPreset
               ? 'is-sports'
+              : isTravelPreset
+                ? 'is-travel'
               : isKidsPreset
                 ? 'is-kids'
                 : isDecorPreset
@@ -1312,6 +1328,73 @@ export const PreviewSection = ({
     );
   }
 
+  if (blockType === 'travel_flight_deals_fixed') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className={buildPreviewTitleClass({ themeKey: 'travel', surface: true })}>
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-travel-flight-list">
+          {items.map((item, itemIndex) => (
+            <div key={`preview-travel-flight-${index}-${itemIndex}`} className="preview-travel-flight-card">
+              <div className="preview-travel-flight-header">
+                <div className="preview-travel-flight-icon">Air</div>
+                <div className="preview-travel-flight-copy">
+                  <div className="preview-travel-flight-route">{item?.route || item?.title || 'Route'}</div>
+                  <div className="preview-travel-flight-meta">
+                    {item?.date || item?.subtitle || 'Date'}
+                    {(item?.date || item?.subtitle) && (item?.type || item?.badgeText) ? ' | ' : ''}
+                    {item?.type || item?.badgeText || ''}
+                  </div>
+                </div>
+              </div>
+              <div className="preview-travel-flight-footer">
+                <div className="preview-travel-flight-airline">{item?.airline || item?.label || 'Airline'}</div>
+                <div className="preview-travel-flight-price">{item?.price || item?.priceLine || 'Rs 3,999'}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'travel_bookings_fixed') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className={buildPreviewTitleClass({ themeKey: 'travel', surface: true })}>
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-travel-booking-list">
+          {items.map((item, itemIndex) => {
+            const status = String(item?.status || item?.badgeText || 'Pending').trim().toLowerCase();
+            return (
+              <div key={`preview-travel-booking-${index}-${itemIndex}`} className="preview-travel-booking-card">
+                <div className="preview-travel-booking-copy">
+                  <div className="preview-travel-booking-title">{item?.title || `Booking ${itemIndex + 1}`}</div>
+                  <div className="preview-travel-booking-meta">
+                    {item?.meta || item?.subtitle || 'Hotel + flight'}
+                    {(item?.meta || item?.subtitle) && (item?.date || item?.text) ? ' | ' : ''}
+                    {item?.date || item?.text || ''}
+                  </div>
+                </div>
+                <span className={`preview-travel-booking-status ${status === 'confirmed' ? 'is-confirmed' : 'is-pending'}`}>
+                  {item?.status || item?.badgeText || 'Pending'}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
   if (blockType === 'brand_logo_grid') {
     const normalizedPreset = resolvePreviewThemeKey(stylePreset);
     if (normalizedPreset === 'kids') {
@@ -1496,6 +1579,7 @@ export const PreviewSection = ({
     const isFashionRows = infoPreset === 'fashion';
     const isKidsRows = infoPreset === 'kids';
     const isSportsRows = infoPreset === 'sports';
+    const isTravelRows = infoPreset === 'travel';
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
         {title ? (
@@ -1518,7 +1602,7 @@ export const PreviewSection = ({
             ))}
           </div>
         ) : (
-          <div className={`preview-info-list ${isLaunchRows ? 'is-launch-rows' : isFashionRows ? 'is-fashion' : isKidsRows ? 'is-kids' : isSportsRows ? 'is-sports' : 'is-support-rows'}`}>
+          <div className={`preview-info-list ${isLaunchRows ? 'is-launch-rows' : isFashionRows ? 'is-fashion' : isKidsRows ? 'is-kids' : isSportsRows ? 'is-sports' : isTravelRows ? 'is-travel' : 'is-support-rows'}`}>
             {items.map((item, itemIndex) => (
               <div key={`preview-info-list-${index}-${itemIndex}`} className="preview-info-list-item">
                 <div className="preview-info-list-icon">
@@ -1569,13 +1653,14 @@ export const PreviewSection = ({
   }
 
   if (blockType === 'chip_scroll') {
-    const normalizedPreset = String(stylePreset || '').trim().toLowerCase();
+    const normalizedPreset = resolvePreviewThemeKey(stylePreset);
     const isBeautyChips = normalizedPreset === 'beauty';
     const isGroceryChips = normalizedPreset === 'grocery';
+    const isTravelChips = normalizedPreset === 'travel';
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
         {title ? (
-          <div className="preview-title preview-title-with-action">
+          <div className={buildPreviewTitleClass({ themeKey: normalizedPreset, surface: !isBeautyChips })}>
             <span>{title}</span>
             {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
           </div>
@@ -1589,11 +1674,11 @@ export const PreviewSection = ({
             ))}
           </div>
         ) : (
-          <div className={`preview-chip-scroll ${isGroceryChips ? 'is-grocery' : ''}`}>
+          <div className={`preview-chip-scroll ${isGroceryChips ? 'is-grocery' : isTravelChips ? 'is-travel' : ''}`}>
             {items.map((item, itemIndex) => (
               <span
                 key={`preview-chip-${index}-${itemIndex}`}
-                className={`preview-chip ${isGroceryChips ? 'is-grocery' : ''}`}
+                className={`preview-chip ${isGroceryChips ? 'is-grocery' : isTravelChips ? 'is-travel' : ''}`}
               >
                 {item.text || item.title || `Chip ${itemIndex + 1}`}
               </span>
