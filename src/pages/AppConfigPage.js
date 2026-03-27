@@ -404,7 +404,7 @@ function AppConfigPage({ token }) {
     const pageId = String(selectedPage?.id || '').trim().toLowerCase();
     if (pageId.startsWith('home_') && pageId !== 'home_main') {
       const slug = pageId.replace(/^home_/, '');
-      if (slug === 'beauty' || slug === 'electronics' || slug === 'grocery' || slug === 'fashion' || slug === 'automobile' || slug === 'decor') return slug;
+      if (slug === 'beauty' || slug === 'electronics' || slug === 'grocery' || slug === 'fashion' || slug === 'automobile' || slug === 'decor' || slug === 'kids') return slug;
     }
     const route = String(selectedPage?.route || '').trim().toLowerCase();
     if (route.includes('beauty')) return 'beauty';
@@ -413,8 +413,9 @@ function AppConfigPage({ token }) {
     if (route.includes('fashion')) return 'fashion';
     if (route.includes('automobile')) return 'automobile';
     if (route.includes('decor')) return 'decor';
+    if (route.includes('kids')) return 'kids';
     const industrySlug = normalizeSlug(pageIndustry?.slug || pageIndustry?.name || '');
-    if (industrySlug === 'beauty' || industrySlug === 'electronics' || industrySlug === 'grocery' || industrySlug === 'fashion' || industrySlug === 'automobile' || industrySlug === 'decor') {
+    if (industrySlug === 'beauty' || industrySlug === 'electronics' || industrySlug === 'grocery' || industrySlug === 'fashion' || industrySlug === 'automobile' || industrySlug === 'decor' || industrySlug === 'kids') {
       return industrySlug;
     }
     return '';
@@ -4217,6 +4218,7 @@ function AppConfigPage({ token }) {
                           <option value="grocery">Grocery</option>
                           <option value="fashion">Fashion</option>
                           <option value="decor">Decor</option>
+                          <option value="kids">Kids</option>
                         </select>
                       </label>
                     ) : null}

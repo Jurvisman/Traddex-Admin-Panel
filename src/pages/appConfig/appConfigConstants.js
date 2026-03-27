@@ -1017,6 +1017,154 @@ const DECOR_BESTSELLERS_SAMPLE = [
   },
 ];
 
+const KIDS_HERO_SAMPLE = {
+  badgeText: 'Kids Fest',
+  title: 'Bright play, safe picks',
+  subtitle: 'Toys, books, and essentials for every age',
+  ctaText: 'Shop kids',
+  imageUrl: 'https://images.unsplash.com/photo-1516627145497-ae6968895b74?auto=format&fit=crop&w=1400&q=80',
+  ctaLink: '',
+};
+
+const KIDS_QUICK_ACTIONS_SAMPLE = [
+  {
+    title: 'Gift finder',
+    subtitle: 'Age-based ideas',
+    iconName: 'gift-outline',
+    ctaText: 'Explore',
+    deepLink: '',
+  },
+  {
+    title: 'Wishlist',
+    subtitle: 'Save favorites',
+    iconName: 'heart-outline',
+    ctaText: 'View list',
+    deepLink: '',
+  },
+  {
+    title: 'Track order',
+    subtitle: 'Live delivery',
+    iconName: 'locate-outline',
+    ctaText: 'Track',
+    deepLink: '',
+  },
+];
+
+const KIDS_CATEGORY_SAMPLE = [
+  {
+    title: '0-2 yrs',
+    imageUrl: 'https://images.unsplash.com/photo-1516627145497-ae6968895b74?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+  {
+    title: '3-5 yrs',
+    imageUrl: 'https://images.unsplash.com/photo-1504151932400-72d4384f04b3?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+  {
+    title: '6-8 yrs',
+    imageUrl: 'https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+  {
+    title: '9-12 yrs',
+    imageUrl: 'https://images.unsplash.com/photo-1521412644187-c49fa049e84d?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+];
+
+const KIDS_TRENDING_SAMPLE = [
+  {
+    title: 'Sky Builder Blocks',
+    subtitle: 'STEM 120 pcs',
+    priceLine: 'Rs 1,299',
+    imageUrl: 'https://images.unsplash.com/photo-1587654780291-39c9404d746b?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Racer Track Set',
+    subtitle: 'Glow loop tracks',
+    priceLine: 'Rs 1,650',
+    imageUrl: 'https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Mini Kitchen Play',
+    subtitle: 'Chef starter kit',
+    priceLine: 'Rs 2,450',
+    imageUrl: 'https://images.unsplash.com/photo-1601758123927-1961cfcbe4f1?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Space Rover',
+    subtitle: 'Remote control',
+    priceLine: 'Rs 1,999',
+    imageUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+];
+
+const KIDS_LEARNING_SAMPLE = [
+  {
+    title: 'Science Lab Kit',
+    subtitle: '25 experiments',
+    imageUrl: 'https://images.unsplash.com/photo-1535909339361-9b2ef0bca90f?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Coding Starter',
+    subtitle: 'Build and program',
+    imageUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Art Studio Box',
+    subtitle: 'Paint and craft',
+    imageUrl: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0ea?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+];
+
+const KIDS_BRANDS_SAMPLE = [
+  { title: 'LEGO', subtitle: 'Building blocks', imageUrl: 'https://logo.clearbit.com/lego.com?size=128', deepLink: '' },
+  { title: 'Disney', subtitle: 'Stories and magic', imageUrl: 'https://logo.clearbit.com/disney.com?size=128', deepLink: '' },
+  { title: 'Fisher-Price', subtitle: 'Baby essentials', imageUrl: 'https://logo.clearbit.com/fisher-price.com?size=128', deepLink: '' },
+  { title: 'Hot Wheels', subtitle: 'Speed toys', imageUrl: 'https://logo.clearbit.com/hotwheels.com?size=128', deepLink: '' },
+  { title: 'Hasbro', subtitle: 'Games and play', imageUrl: 'https://logo.clearbit.com/hasbro.com?size=128', deepLink: '' },
+  { title: 'Crayola', subtitle: 'Art supplies', imageUrl: 'https://logo.clearbit.com/crayola.com?size=128', deepLink: '' },
+];
+
+const KIDS_OUTFIT_SAMPLE = [
+  {
+    title: 'Sunny Day Set',
+    subtitle: 'Cotton essentials',
+    priceLine: 'Rs 899',
+    imageUrl: 'https://images.unsplash.com/photo-1519238263530-99bdd11df2ea?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Playground Hoodie',
+    subtitle: 'Soft fleece',
+    priceLine: 'Rs 1,099',
+    imageUrl: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Rainy Day Gear',
+    subtitle: 'Waterproof set',
+    priceLine: 'Rs 1,499',
+    imageUrl: 'https://images.unsplash.com/photo-1503341455253-b2e723bb3dbb?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+];
+
+const KIDS_PARENT_TIPS_SAMPLE = [
+  { title: 'Screen time planner', subtitle: 'Healthy daily routines', iconName: 'time-outline', deepLink: '' },
+  { title: 'Nutrition checklist', subtitle: 'Balanced snack ideas', iconName: 'nutrition-outline', deepLink: '' },
+  { title: 'Safety essentials', subtitle: 'Home and outdoor tips', iconName: 'shield-checkmark-outline', deepLink: '' },
+  { title: 'Activity ideas', subtitle: 'Weekend plans and crafts', iconName: 'sunny-outline', deepLink: '' },
+];
+
 const buildDecorDefaultSections = () => [
   {
     id: 'decor_hero',
@@ -1089,6 +1237,87 @@ const buildDecorDefaultSections = () => [
     actionText: 'Start a design brief',
     enabled: true,
     items: [],
+  },
+];
+
+const buildKidsDefaultSections = () => [
+  {
+    id: 'kids_hero',
+    type: 'banner',
+    blockType: 'promo_hero_banner',
+    stylePreset: 'kids',
+    enabled: true,
+    items: [{ ...KIDS_HERO_SAMPLE }],
+  },
+  {
+    id: 'kids_quick_actions',
+    type: 'horizontalList',
+    blockType: 'quick_action_row',
+    title: 'Quick actions',
+    actionText: 'View all',
+    quickActionPreset: 'kids',
+    enabled: true,
+    items: KIDS_QUICK_ACTIONS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'kids_categories',
+    type: 'category_showcase',
+    blockType: 'category_showcase',
+    title: 'Shop categories',
+    actionText: 'Browse',
+    showcaseVariant: 'circle_icon',
+    stylePreset: 'kids',
+    enabled: true,
+    items: KIDS_CATEGORY_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'kids_trending_toys',
+    type: 'horizontalList',
+    blockType: 'product_shelf_horizontal',
+    title: 'Trending toys',
+    actionText: 'View all',
+    stylePreset: 'kids',
+    enabled: true,
+    items: KIDS_TRENDING_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'kids_learning',
+    type: 'horizontalList',
+    blockType: 'media_overlay_carousel',
+    title: 'Learning and creativity',
+    actionText: 'Explore',
+    stylePreset: 'kids',
+    enabled: true,
+    items: KIDS_LEARNING_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'kids_brands',
+    type: 'horizontalList',
+    blockType: 'brand_logo_grid',
+    title: 'Top brands',
+    stylePreset: 'kids',
+    enabled: true,
+    items: KIDS_BRANDS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'kids_outfit_picks',
+    type: 'horizontalList',
+    blockType: 'product_shelf_horizontal',
+    title: 'Outfit picks',
+    actionText: 'View all',
+    stylePreset: 'kids',
+    enabled: true,
+    items: KIDS_OUTFIT_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'kids_parent_corner',
+    type: 'list',
+    blockType: 'info_list',
+    title: 'Parent corner',
+    actionText: 'See all',
+    stylePreset: 'kids',
+    enabled: true,
+    items: KIDS_PARENT_TIPS_SAMPLE.map((item) => ({ ...item })),
   },
 ];
 
@@ -2919,6 +3148,7 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'fashion', label: 'Fashion' },
     { value: 'automobile', label: 'Automobile' },
     { value: 'decor', label: 'Decor' },
+    { value: 'kids', label: 'Kids' },
   ],
   split_promo_row: [
     { value: 'grocery', label: 'Grocery' },
@@ -2930,12 +3160,14 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'fashion', label: 'Fashion' },
     { value: 'automobile', label: 'Automobile' },
     { value: 'decor', label: 'Decor' },
+    { value: 'kids', label: 'Kids' },
   ],
   media_overlay_carousel: [
     { value: 'electronics', label: 'Electronics' },
     { value: 'beauty', label: 'Beauty' },
     { value: 'grocery', label: 'Grocery' },
     { value: 'decor', label: 'Decor' },
+    { value: 'kids', label: 'Kids' },
   ],
   product_card_carousel: [
     { value: 'electronics', label: 'Electronics' },
@@ -2954,6 +3186,7 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'support_rows', label: 'Support rows' },
     { value: 'beauty_routine', label: 'Beauty routine' },
     { value: 'fashion', label: 'Fashion' },
+    { value: 'kids', label: 'Kids' },
   ],
   chip_scroll: [
     { value: '', label: 'Default' },
@@ -2983,12 +3216,14 @@ export const STYLE_PRESET_OPTIONS = {
     { value: '', label: 'Default (Blue grid)' },
     { value: 'fashion', label: 'Fashion' },
     { value: 'automobile', label: 'Automobile (horizontal carousel)' },
+    { value: 'kids', label: 'Kids' },
   ],
   product_shelf_horizontal: [
     { value: '', label: 'Default' },
     { value: 'fashion', label: 'Fashion' },
     { value: 'automobile', label: 'Automobile' },
     { value: 'decor', label: 'Decor' },
+    { value: 'kids', label: 'Kids' },
   ],
   promo_banner: [
     { value: '', label: 'Default' },
@@ -3207,12 +3442,14 @@ export const resolveIndustryRoute = (industry, slug) => {
 
 export const buildIndustryDefaultSections = (slug, industryName, industryId) => [
   ...(slug === 'decor' ? buildDecorDefaultSections(industryId) : []),
+  ...(slug === 'kids' ? buildKidsDefaultSections(industryId) : []),
   ...(slug === 'beauty' ? buildBeautyDefaultSections(industryId) : []),
   ...(slug === 'electronics' ? buildElectronicsDefaultSections(industryId) : []),
   ...(slug === 'grocery' ? buildGroceryDefaultSections(industryId) : []),
   ...(slug === 'fashion' ? buildFashionDefaultSections(industryId) : []),
   ...(slug === 'automobile' ? buildAutomobileDefaultSections(industryId) : []),
   ...(slug === 'decor'
+    || slug === 'kids'
     || slug === 'beauty'
     || slug === 'electronics'
     || slug === 'grocery'
