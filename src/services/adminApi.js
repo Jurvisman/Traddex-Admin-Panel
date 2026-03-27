@@ -236,6 +236,17 @@ export const getHomeCategoryPreview = (token, { ids = [], limit = 2, rankingWind
   return request(`/home/category-preview?${params.toString()}`, { token });
 };
 
+export const getBrandFeedPreview = (filters = {}) => {
+  const params = new URLSearchParams();
+  if (filters.industryId) params.set('industryId', String(filters.industryId));
+  if (filters.mainCategoryId) params.set('mainCategoryId', String(filters.mainCategoryId));
+  if (filters.limit !== undefined && filters.limit !== null && filters.limit !== '') {
+    params.set('limit', String(filters.limit));
+  }
+  const query = params.toString() ? `?${params.toString()}` : '';
+  return request(`/brand/getall${query}`);
+};
+
 export const uploadBannerImages = async (token, files) => {
   const headers = {};
   if (token) {

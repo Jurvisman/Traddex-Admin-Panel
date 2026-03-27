@@ -15,6 +15,7 @@ import {
   getAppConfigDraft,
   getPublishedAppConfig,
   getAppConfigPresets,
+  getBrandFeedPreview,
   getHomeCategoryPreview,
   listAppConfigVersions,
   listCategories,
@@ -1684,6 +1685,13 @@ function AppConfigPage({ token }) {
     category?.thumbnailImage ||
     '';
 
+  const resolveBrandSubtitle = (brand) =>
+    brand?.description ||
+    brand?.countryOfOrigin ||
+    String(brand?.website || '')
+      .replace(/^https?:\/\//i, '')
+      .replace(/^www\./i, '');
+
   const isCategoryActive = (category) => {
     if (category?.active === undefined || category?.active === null) return true;
     if (typeof category.active === 'boolean') return category.active;
@@ -2090,6 +2098,50 @@ function AppConfigPage({ token }) {
       setMessage({ type: 'success', text: 'Brand layout collections loaded from API.' });
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to resolve brand layout collections.' });
+    } finally {
+      setIsResolvingSource(false);
+    }
+  };
+
+  const handleApplyBrandFeed = async () => {
+    const resolvedBlockType = sectionForm.blockType || sectionForm.type || '';
+    if (resolvedBlockType !== 'brand_logo_grid') {
+      setMessage({ type: 'error', text: 'Brand feed is only supported for Brand Showcase.' });
+      return;
+    }
+
+    setIsResolvingSource(true);
+    setMessage(emptyMessage);
+    try {
+      const response = await getBrandFeedPreview({
+        industryId: normalizeCollectionId(sectionForm.sourceIndustryId),
+        mainCategoryId: normalizeCollectionId(sectionForm.sourceMainCategoryId),
+        limit: Number(sectionForm.sourceLimit || 8),
+      });
+      const brands = Array.isArray(response?.data?.brands) ? response.data.brands : [];
+      if (!brands.length) {
+        throw new Error('No approved brands found for the selected filters.');
+      }
+
+      const palette = ['#F3F4F6', '#FFF7ED', '#F0FDF4', '#FEF3C7', '#F5F3FF', '#FCE7F3'];
+      const nextItems = brands.slice(0, 12).map((brand, index) => ({
+        id: normalizeCollectionId(brand?.id),
+        title: String(brand?.brandName || '').trim(),
+        subtitle: resolveBrandSubtitle(brand),
+        imageUrl: brand?.logoUrl || '',
+        imageShellBg: palette[index % palette.length],
+        deepLink: '',
+      }));
+
+      setSectionForm((prev) => ({
+        ...prev,
+        sourceType: 'BRAND_FEED',
+        stylePreset: prev.stylePreset || 'automobile',
+        sduiItems: nextItems,
+      }));
+      setMessage({ type: 'success', text: 'Brand showcase preview loaded from the selected industry.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to resolve brand showcase feed.' });
     } finally {
       setIsResolvingSource(false);
     }
@@ -3141,6 +3193,7 @@ function AppConfigPage({ token }) {
   const isPhaseOneColumnGrid = screenBlockType === 'column_grid';
   const isPhaseOneCategoryIconGrid = screenBlockType === 'category_icon_grid';
   const isPhaseOneBrandGrid = screenBlockType === 'brand_logo_grid';
+  const isBrandFeedEligible = isPhaseOneBrandGrid;
   const isPhaseOneProductShelf = screenBlockType === 'product_shelf_horizontal';
   const isPhaseOneHeroCarousel = screenBlockType === 'hero_carousel';
   const isSplitPromoRow = screenBlockType === 'split_promo_row';
@@ -4572,6 +4625,7 @@ function AppConfigPage({ token }) {
                                       key={opt.value}
                                       value={opt.value}
                                           disabled={
+                                            (opt.value === 'BRAND_FEED' && !isBrandFeedEligible) ||
                                             (opt.value === 'CATEGORY_FEED' && !isCategoryFeedEligible) ||
                                             (opt.value === 'DATA_SOURCE' && !isPhaseOneDataSourceEligible) ||
                                             (opt.value === 'HYBRID' && !isPhaseOneHybridEligible)
@@ -4665,30 +4719,126 @@ function AppConfigPage({ token }) {
                                   </>
                                 ) : null}
                             {isPhaseOneBrandGrid ? (
-                              <label className="field">
-                                <span>Main category filter</span>
-                                <select
-                                  value={sectionForm.sourceMainCategoryId || ''}
-                                  onChange={(event) =>
-                                    setSectionForm((prev) => ({
-                                      ...prev,
-                                      sourceType: 'BRAND_COLLECTIONS',
-                                      sourceMainCategoryId: event.target.value,
-                                    }))
-                                  }
-                                >
-                                  <option value="">All main categories</option>
-                                  {mainCategories.map((item) => {
-                                    const id = resolveMainCategoryId(item);
-                                    if (!id) return null;
-                                    return (
-                                      <option key={id} value={id}>
-                                        {resolveMainCategoryName(item)}
-                                      </option>
-                                    );
-                                  })}
-                                </select>
-                              </label>
+                              <>
+                                <label className="field">
+                                  <span>Source type</span>
+                                  <select
+                                    value={phaseOneSourceType === 'BRAND_FEED' ? 'BRAND_FEED' : 'MANUAL'}
+                                    onChange={(event) =>
+                                      setSectionForm((prev) => ({
+                                        ...prev,
+                                        sourceType: event.target.value,
+                                        sourceIndustryId:
+                                          event.target.value === 'BRAND_FEED'
+                                            ? prev.sourceIndustryId || String(resolveIndustryId(pageIndustry) || '')
+                                            : prev.sourceIndustryId,
+                                      }))
+                                    }
+                                  >
+                                    <option value="MANUAL">Manual</option>
+                                    <option value="BRAND_FEED">Brand feed</option>
+                                  </select>
+                                  <p className="field-help">
+                                    Brand feed will pull approved brands from Brand Master using the selected industry.
+                                  </p>
+                                </label>
+                                {phaseOneSourceType === 'BRAND_FEED' ? (
+                                  <>
+                                    <label className="field">
+                                      <span>Industry</span>
+                                      <select
+                                        value={sectionForm.sourceIndustryId || ''}
+                                        onChange={(event) =>
+                                          setSectionForm((prev) => ({
+                                            ...prev,
+                                            sourceType: 'BRAND_FEED',
+                                            sourceIndustryId: event.target.value,
+                                            sourceMainCategoryId: '',
+                                          }))
+                                        }
+                                      >
+                                        <option value="">
+                                          {pageIndustry ? `Use page industry (${resolveIndustryLabel(pageIndustry)})` : 'All industries'}
+                                        </option>
+                                        {industries.map((item) => {
+                                          const id = resolveIndustryId(item);
+                                          if (!id) return null;
+                                          return (
+                                            <option key={id} value={id}>
+                                              {resolveIndustryLabel(item)}
+                                            </option>
+                                          );
+                                        })}
+                                      </select>
+                                    </label>
+                                    <label className="field">
+                                      <span>Main category (optional)</span>
+                                      <select
+                                        value={sectionForm.sourceMainCategoryId || ''}
+                                        onChange={(event) =>
+                                          setSectionForm((prev) => ({
+                                            ...prev,
+                                            sourceType: 'BRAND_FEED',
+                                            sourceMainCategoryId: event.target.value,
+                                          }))
+                                        }
+                                      >
+                                        <option value="">All main categories</option>
+                                        {(sectionForm.sourceIndustryId ? filteredMainCategoryOptions : mainCategories).map((item) => {
+                                          const id = resolveMainCategoryId(item);
+                                          if (!id) return null;
+                                          return (
+                                            <option key={id} value={id}>
+                                              {resolveMainCategoryName(item)}
+                                            </option>
+                                          );
+                                        })}
+                                      </select>
+                                    </label>
+                                    <label className="field">
+                                      <span>Brand limit</span>
+                                      <input
+                                        type="number"
+                                        min="1"
+                                        max="12"
+                                        value={sectionForm.sourceLimit || '8'}
+                                        onChange={(event) =>
+                                          setSectionForm((prev) => ({
+                                            ...prev,
+                                            sourceType: 'BRAND_FEED',
+                                            sourceLimit: event.target.value,
+                                          }))
+                                        }
+                                      />
+                                    </label>
+                                  </>
+                                ) : (
+                                  <label className="field">
+                                    <span>Main category filter</span>
+                                    <select
+                                      value={sectionForm.sourceMainCategoryId || ''}
+                                      onChange={(event) =>
+                                        setSectionForm((prev) => ({
+                                          ...prev,
+                                          sourceType: 'BRAND_COLLECTIONS',
+                                          sourceMainCategoryId: event.target.value,
+                                        }))
+                                      }
+                                    >
+                                      <option value="">All main categories</option>
+                                      {mainCategories.map((item) => {
+                                        const id = resolveMainCategoryId(item);
+                                        if (!id) return null;
+                                        return (
+                                          <option key={id} value={id}>
+                                            {resolveMainCategoryName(item)}
+                                          </option>
+                                        );
+                                      })}
+                                    </select>
+                                  </label>
+                                )}
+                              </>
                             ) : null}
                                 {showPhaseOneDataSourceConfig ? (
                                   <>
@@ -5124,13 +5274,19 @@ function AppConfigPage({ token }) {
                                     <button
                                       type="button"
                                       className="ghost-btn small"
-                                      onClick={handleApplyBrandCollections}
+                                      onClick={phaseOneSourceType === 'BRAND_FEED' ? handleApplyBrandFeed : handleApplyBrandCollections}
                                       disabled={isResolvingSource}
                                     >
-                                      {isResolvingSource ? 'Loading...' : 'Load selected collections'}
+                                      {isResolvingSource
+                                        ? 'Loading...'
+                                        : phaseOneSourceType === 'BRAND_FEED'
+                                          ? 'Load brand feed'
+                                          : 'Load selected collections'}
                                     </button>
                                     <span className="field-help">
-                                          The middle 4 tiles will auto-populate from the category preview API.
+                                      {phaseOneSourceType === 'BRAND_FEED'
+                                        ? 'Preview cards will load from Brand Master using the selected industry filters.'
+                                        : 'The middle 4 tiles will auto-populate from the category preview API.'}
                                     </span>
                                   </div>
                                 </div>
