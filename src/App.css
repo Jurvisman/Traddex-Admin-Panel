@@ -4868,12 +4868,22 @@ textarea {
   grid-auto-columns: 122px;
 }
 
+.preview-media-overlay-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .preview-media-overlay-card {
   position: relative;
   height: 118px;
   border-radius: 18px;
   overflow: hidden;
   background: #dbe4ef;
+}
+
+.preview-media-overlay-card.is-stacked {
+  width: 100%;
 }
 
 .preview-media-overlay-card img {
@@ -4899,6 +4909,17 @@ textarea {
   font-size: 11px;
   font-weight: 800;
   color: #fff;
+}
+
+.preview-media-overlay-badge {
+  display: inline-flex;
+  margin-bottom: 6px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  font-size: 8px;
+  font-weight: 700;
 }
 
 .preview-media-overlay-subtitle {

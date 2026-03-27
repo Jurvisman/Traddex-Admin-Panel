@@ -306,7 +306,7 @@ const renderQuickActionPreview = ({ section, index, hidden, title, items, preset
   const normalizedPresetKey = String(preset || '').trim().toLowerCase();
   const isBeauty = normalizedPresetKey === 'beauty';
   const isGrocery = normalizedPresetKey === 'grocery';
-  const isFashion = normalizedPresetKey === 'fashion';
+  const isFashion = normalizedPresetKey === 'fashion' || normalizedPresetKey === 'decor';
   const quickActionThemeClass = isFashion ? 'is-fashion' : isBeauty ? 'is-beauty' : isGrocery ? 'is-grocery' : 'is-electronics';
   return (
     <div key={`preview-${index}`} className={`preview-section preview-quick-action-section-${quickActionThemeClass} ${hidden ? 'is-hidden' : ''}`}>
@@ -458,6 +458,7 @@ export const PreviewSection = ({
     const normalizedPreset = String(stylePreset || '').trim().toLowerCase();
     const isBeautyPreset = normalizedPreset === 'beauty';
     const isGroceryPreset = normalizedPreset === 'grocery';
+    const isDecorPreset = normalizedPreset === 'decor';
     if (isBeautyPreset) {
       return (
         <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
@@ -480,6 +481,17 @@ export const PreviewSection = ({
               {section?.text ? <div className="preview-beauty-offer-subtitle">{section.text}</div> : null}
             </div>
             {section?.actionText ? <span className="preview-beauty-offer-cta">{section.actionText}</span> : null}
+          </div>
+        </div>
+      );
+    }
+    if (isDecorPreset) {
+      return (
+        <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+          <div className="preview-promo-text-card" style={{ backgroundColor: section?.sectionBgColor || '#EFE7DC', borderColor: 'rgba(75,61,52,0.12)' }}>
+            <div className="preview-promo-text-title" style={{ color: '#4B3D34' }}>{title || 'Need a full room refresh?'}</div>
+            {section?.text ? <div className="preview-promo-text-subtitle" style={{ color: '#7D6B61' }}>{section.text}</div> : null}
+            {section?.actionText ? <span className="preview-promo-text-cta" style={{ color: '#C46A4A' }}>{section.actionText}</span> : null}
           </div>
         </div>
       );
@@ -784,7 +796,7 @@ export const PreviewSection = ({
     const normalizedPreset = String(stylePreset || '').trim().toLowerCase();
     const isBeautyPreset = normalizedPreset === 'beauty';
     const isGroceryPreset = normalizedPreset === 'grocery';
-    const isFashionPreset = normalizedPreset === 'fashion';
+    const isFashionPreset = normalizedPreset === 'fashion' || normalizedPreset === 'decor';
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
         <div
@@ -963,6 +975,7 @@ export const PreviewSection = ({
 
   if (blockType === 'media_overlay_carousel') {
     const isBeautyPreset = String(stylePreset || '').trim().toLowerCase() === 'beauty';
+    const isStacked = String(section?.cardVariant || '').trim().toLowerCase() === 'stacked';
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
         {title ? (
@@ -983,6 +996,20 @@ export const PreviewSection = ({
                 <div className="preview-beauty-trend-overlay">
                   <div className="preview-beauty-trend-title">{item?.title || `Trend ${itemIndex + 1}`}</div>
                   {item?.subtitle ? <div className="preview-beauty-trend-subtitle">{item.subtitle}</div> : null}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : isStacked ? (
+          <div className="preview-media-overlay-stack">
+            {items.map((item, itemIndex) => (
+              <div key={`preview-media-overlay-${index}-${itemIndex}`} className="preview-media-overlay-card is-stacked">
+                {getPreviewImage(item) ? <img src={getPreviewImage(item)} alt="" /> : <div className="preview-image-placeholder" />}
+                <div className="preview-media-overlay-gradient" />
+                <div className="preview-media-overlay-copy">
+                  {item?.badgeText ? <div className="preview-media-overlay-badge">{item.badgeText}</div> : null}
+                  <div className="preview-media-overlay-title">{item?.title || `Card ${itemIndex + 1}`}</div>
+                  {item?.subtitle ? <div className="preview-media-overlay-subtitle">{item.subtitle}</div> : null}
                 </div>
               </div>
             ))}

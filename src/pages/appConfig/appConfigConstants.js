@@ -889,6 +889,209 @@ const BEAUTY_SALON_SAMPLE = [
   },
 ];
 
+const DECOR_HERO_SAMPLE = {
+  badgeText: 'Seasonal Edit',
+  title: 'Terracotta Calm',
+  subtitle: 'Warm beige, artisan textures, soft lighting',
+  ctaText: 'Explore collection',
+  imageUrl: 'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?auto=format&fit=crop&w=1400&q=80',
+  ctaLink: '',
+};
+
+const DECOR_QUICK_ACTIONS_SAMPLE = [
+  {
+    title: 'Styling help',
+    subtitle: 'Free 15 min consult',
+    iconName: 'chatbubble-ellipses-outline',
+    deepLink: '',
+  },
+  {
+    title: 'Material kit',
+    subtitle: 'Curated swatches',
+    iconName: 'color-palette-outline',
+    deepLink: '',
+  },
+  {
+    title: 'Room planner',
+    subtitle: 'Scale in AR',
+    iconName: 'cube-outline',
+    deepLink: '',
+  },
+];
+
+const DECOR_ROOM_SAMPLE = [
+  {
+    title: 'Living',
+    imageUrl: 'https://images.unsplash.com/photo-1501045661006-fcebe0257c3f?auto=format&fit=crop&w=300&h=300&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Bedroom',
+    imageUrl: 'https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=300&h=300&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Kitchen',
+    imageUrl: 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=300&h=300&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Outdoor',
+    imageUrl: 'https://images.unsplash.com/photo-1501004318641-b39e6451bec6?auto=format&fit=crop&w=300&h=300&q=80',
+    deepLink: '',
+  },
+];
+
+const DECOR_TRENDING_CATEGORIES_SAMPLE = [
+  {
+    title: 'Lighting',
+    subtitle: 'Warm glow',
+    imageUrl: 'https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=480&h=360&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Wall Art',
+    subtitle: 'Gallery sets',
+    imageUrl: 'https://images.unsplash.com/photo-1505691723518-36a5ac3be353?auto=format&fit=crop&w=480&h=360&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Rugs',
+    subtitle: 'Handwoven',
+    imageUrl: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=480&h=360&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Tableware',
+    subtitle: 'Stoneware',
+    imageUrl: 'https://images.unsplash.com/photo-1502005097973-6a7082348e28?auto=format&fit=crop&w=480&h=360&q=80',
+    deepLink: '',
+  },
+];
+
+const DECOR_COLLECTIONS_SAMPLE = [
+  {
+    badgeText: 'New',
+    title: 'Artisan Pottery',
+    subtitle: 'Earthy ceramics, hand glazed',
+    imageUrl: 'https://images.unsplash.com/photo-1475855581690-80accde3ae2b?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    badgeText: 'Bestseller',
+    title: 'Linen Textures',
+    subtitle: 'Soft throws and neutral layers',
+    imageUrl: 'https://images.unsplash.com/photo-1505691723518-36a5ac3be353?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+];
+
+const DECOR_BESTSELLERS_SAMPLE = [
+  {
+    title: 'Ceramic Table Lamp',
+    priceLine: 'Rs 2,499',
+    rating: '4.9',
+    imageUrl: 'https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=480&h=480&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Terracotta Vase',
+    priceLine: 'Rs 1,250',
+    rating: '4.8',
+    imageUrl: 'https://images.unsplash.com/photo-1502005097973-6a7082348e28?auto=format&fit=crop&w=480&h=480&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Woven Throw',
+    priceLine: 'Rs 1,899',
+    rating: '4.7',
+    imageUrl: 'https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=480&h=480&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Ceramic Planter',
+    priceLine: 'Rs 999',
+    rating: '4.6',
+    imageUrl: 'https://images.unsplash.com/photo-1501004318641-b39e6451bec6?auto=format&fit=crop&w=480&h=480&q=80',
+    deepLink: '',
+  },
+];
+
+const buildDecorDefaultSections = () => [
+  {
+    id: 'decor_hero',
+    type: 'banner',
+    blockType: 'promo_hero_banner',
+    stylePreset: 'decor',
+    enabled: true,
+    items: [{ ...DECOR_HERO_SAMPLE }],
+  },
+  {
+    id: 'decor_quick_actions',
+    type: 'horizontalList',
+    blockType: 'quick_action_row',
+    title: 'Quick actions',
+    actionText: 'See all',
+    quickActionPreset: 'decor',
+    enabled: true,
+    items: DECOR_QUICK_ACTIONS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'decor_shop_by_room',
+    type: 'category_showcase',
+    blockType: 'category_showcase',
+    title: 'Shop by room',
+    actionText: 'Browse',
+    showcaseVariant: 'card',
+    stylePreset: 'decor',
+    enabled: true,
+    items: DECOR_ROOM_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'decor_trending_categories',
+    type: 'category_showcase',
+    blockType: 'category_showcase',
+    title: 'Trending categories',
+    actionText: 'View all',
+    showcaseVariant: 'circle_icon',
+    stylePreset: 'decor',
+    enabled: true,
+    items: DECOR_TRENDING_CATEGORIES_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'decor_curated_collections',
+    type: 'horizontalList',
+    blockType: 'media_overlay_carousel',
+    title: 'Curated collections',
+    actionText: 'View all',
+    stylePreset: 'decor',
+    cardVariant: 'stacked',
+    enabled: true,
+    items: DECOR_COLLECTIONS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'decor_bestsellers',
+    type: 'horizontalList',
+    blockType: 'product_shelf_horizontal',
+    title: 'Bestsellers',
+    actionText: 'View all',
+    stylePreset: 'decor',
+    enabled: true,
+    items: DECOR_BESTSELLERS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'decor_design_brief',
+    type: 'banner',
+    blockType: 'promo_banner',
+    stylePreset: 'decor',
+    title: 'Need a full room refresh?',
+    text: 'Get a personalized mood board with matching decor.',
+    actionText: 'Start a design brief',
+    enabled: true,
+    items: [],
+  },
+];
+
 const buildBeautyDefaultSections = (industryId) => [
   {
     id: 'beauty_spotlight',
@@ -2715,6 +2918,7 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'grocery', label: 'Grocery' },
     { value: 'fashion', label: 'Fashion' },
     { value: 'automobile', label: 'Automobile' },
+    { value: 'decor', label: 'Decor' },
   ],
   split_promo_row: [
     { value: 'grocery', label: 'Grocery' },
@@ -2725,11 +2929,13 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'grocery', label: 'Grocery' },
     { value: 'fashion', label: 'Fashion' },
     { value: 'automobile', label: 'Automobile' },
+    { value: 'decor', label: 'Decor' },
   ],
   media_overlay_carousel: [
     { value: 'electronics', label: 'Electronics' },
     { value: 'beauty', label: 'Beauty' },
     { value: 'grocery', label: 'Grocery' },
+    { value: 'decor', label: 'Decor' },
   ],
   product_card_carousel: [
     { value: 'electronics', label: 'Electronics' },
@@ -2782,12 +2988,14 @@ export const STYLE_PRESET_OPTIONS = {
     { value: '', label: 'Default' },
     { value: 'fashion', label: 'Fashion' },
     { value: 'automobile', label: 'Automobile' },
+    { value: 'decor', label: 'Decor' },
   ],
   promo_banner: [
     { value: '', label: 'Default' },
     { value: 'beauty', label: 'Beauty' },
     { value: 'grocery', label: 'Grocery' },
     { value: 'automobile', label: 'Automobile (dark gradient + bullets)' },
+    { value: 'decor', label: 'Decor' },
   ],
 };
 
@@ -2802,6 +3010,11 @@ export const PRODUCT_CARD_VARIANT_OPTIONS = [
   { value: 'grocery_fresh', label: 'Grocery fresh cards' },
   { value: 'grocery_pantry', label: 'Grocery pantry cards' },
   { value: 'grocery_compact', label: 'Grocery compact cards' },
+];
+
+export const MEDIA_OVERLAY_VARIANT_OPTIONS = [
+  { value: '', label: 'Default carousel' },
+  { value: 'stacked', label: 'Stacked cards' },
 ];
 
 export const SHOWCASE_VARIANT_OPTIONS = [
@@ -2993,12 +3206,14 @@ export const resolveIndustryRoute = (industry, slug) => {
 };
 
 export const buildIndustryDefaultSections = (slug, industryName, industryId) => [
+  ...(slug === 'decor' ? buildDecorDefaultSections(industryId) : []),
   ...(slug === 'beauty' ? buildBeautyDefaultSections(industryId) : []),
   ...(slug === 'electronics' ? buildElectronicsDefaultSections(industryId) : []),
   ...(slug === 'grocery' ? buildGroceryDefaultSections(industryId) : []),
   ...(slug === 'fashion' ? buildFashionDefaultSections(industryId) : []),
   ...(slug === 'automobile' ? buildAutomobileDefaultSections(industryId) : []),
-  ...(slug === 'beauty'
+  ...(slug === 'decor'
+    || slug === 'beauty'
     || slug === 'electronics'
     || slug === 'grocery'
     || slug === 'fashion'

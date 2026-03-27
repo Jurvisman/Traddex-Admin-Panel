@@ -96,6 +96,7 @@ import {
   STYLE_PRESET_OPTIONS,
   PRODUCT_SHELF_VARIANT_OPTIONS,
   PRODUCT_CARD_VARIANT_OPTIONS,
+  MEDIA_OVERLAY_VARIANT_OPTIONS,
   MULTI_ITEM_GRID_FEED_OPTIONS,
   COMMON_LINK_PRESETS,
   resolveMultiItemGridDataSourceRef,
@@ -403,14 +404,17 @@ function AppConfigPage({ token }) {
     const pageId = String(selectedPage?.id || '').trim().toLowerCase();
     if (pageId.startsWith('home_') && pageId !== 'home_main') {
       const slug = pageId.replace(/^home_/, '');
-      if (slug === 'beauty' || slug === 'electronics' || slug === 'grocery') return slug;
+      if (slug === 'beauty' || slug === 'electronics' || slug === 'grocery' || slug === 'fashion' || slug === 'automobile' || slug === 'decor') return slug;
     }
     const route = String(selectedPage?.route || '').trim().toLowerCase();
     if (route.includes('beauty')) return 'beauty';
     if (route.includes('electronics')) return 'electronics';
     if (route.includes('grocery')) return 'grocery';
+    if (route.includes('fashion')) return 'fashion';
+    if (route.includes('automobile')) return 'automobile';
+    if (route.includes('decor')) return 'decor';
     const industrySlug = normalizeSlug(pageIndustry?.slug || pageIndustry?.name || '');
-    if (industrySlug === 'beauty' || industrySlug === 'electronics' || industrySlug === 'grocery') {
+    if (industrySlug === 'beauty' || industrySlug === 'electronics' || industrySlug === 'grocery' || industrySlug === 'fashion' || industrySlug === 'automobile' || industrySlug === 'decor') {
       return industrySlug;
     }
     return '';
@@ -4212,6 +4216,7 @@ function AppConfigPage({ token }) {
                           <option value="beauty">Beauty</option>
                           <option value="grocery">Grocery</option>
                           <option value="fashion">Fashion</option>
+                          <option value="decor">Decor</option>
                         </select>
                       </label>
                     ) : null}
@@ -4296,6 +4301,23 @@ function AppConfigPage({ token }) {
                           </select>
                         </label>
                       </>
+                    ) : null}
+                    {isMediaOverlayCarousel ? (
+                      <label className="field">
+                        <span>Card layout</span>
+                        <select
+                          value={sectionForm.cardVariant || ''}
+                          onChange={(event) =>
+                            setSectionForm((prev) => ({ ...prev, cardVariant: event.target.value }))
+                          }
+                        >
+                          {MEDIA_OVERLAY_VARIANT_OPTIONS.map((option) => (
+                            <option key={`media-overlay-variant-${option.value || 'default'}`} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
                     ) : null}
                     {isSectionTitleBlock ? (
                       <label className="field field-span">
