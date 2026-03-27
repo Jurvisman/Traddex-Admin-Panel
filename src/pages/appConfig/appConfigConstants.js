@@ -1165,6 +1165,142 @@ const KIDS_PARENT_TIPS_SAMPLE = [
   { title: 'Activity ideas', subtitle: 'Weekend plans and crafts', iconName: 'sunny-outline', deepLink: '' },
 ];
 
+const SPORTS_HERO_SAMPLE = {
+  badgeText: 'Game Day',
+  title: 'Train smart, play harder',
+  subtitle: 'Gear, plans, and arenas for every athlete',
+  ctaText: 'Join challenges',
+  imageUrl: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=1400&q=80',
+  ctaLink: '',
+};
+
+const SPORTS_QUICK_ACTIONS_SAMPLE = [
+  {
+    title: 'Book turf',
+    subtitle: 'Instant slots',
+    iconName: 'calendar-outline',
+    ctaText: 'Reserve',
+    deepLink: '',
+  },
+  {
+    title: 'Find coach',
+    subtitle: 'Verified trainers',
+    iconName: 'person-outline',
+    ctaText: 'Browse',
+    deepLink: '',
+  },
+  {
+    title: 'Track order',
+    subtitle: 'Gear delivery',
+    iconName: 'locate-outline',
+    ctaText: 'Track',
+    deepLink: '',
+  },
+];
+
+const SPORTS_CATEGORY_SAMPLE = [
+  {
+    title: 'Football',
+    imageUrl: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Cricket',
+    imageUrl: 'https://images.unsplash.com/photo-1530549387789-4c1017266635?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Running',
+    imageUrl: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Gym',
+    imageUrl: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+];
+
+const SPORTS_FEATURED_GEAR_SAMPLE = [
+  {
+    title: 'Sprint Pro Shoes',
+    subtitle: 'Lightweight runners',
+    priceLine: 'Rs 3,499',
+    rating: '4.8',
+    imageUrl: 'https://images.unsplash.com/photo-1528701800489-20be3c2ea1a2?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Strength Dumbbells',
+    subtitle: 'Adjustable set',
+    priceLine: 'Rs 4,999',
+    rating: '4.7',
+    imageUrl: 'https://images.unsplash.com/photo-1517964603305-11c0f6f66012?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Match Football',
+    subtitle: 'Pro grip finish',
+    priceLine: 'Rs 1,199',
+    rating: '4.6',
+    imageUrl: 'https://images.unsplash.com/photo-1517927033932-b3d18e61fb3a?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+];
+
+const SPORTS_LIVE_MATCHES_SAMPLE = [
+  { league: 'City League', home: 'Rovers', away: 'Dynamos', time: '6:30 PM', status: 'Live', score: '2 - 1' },
+  { league: 'Premier Cup', home: 'Titans', away: 'Falcons', time: '8:00 PM', status: 'Upcoming', score: '0 - 0' },
+  { league: 'Weekend T20', home: 'Strikers', away: 'Warriors', time: 'Tomorrow', status: 'Scheduled', score: '-' },
+];
+
+const SPORTS_TRAINING_SAMPLE = [
+  {
+    title: 'Strength Builder',
+    subtitle: '4 weeks | 5 workouts',
+    imageUrl: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+  {
+    title: '10K Run Plan',
+    subtitle: '6 weeks | cardio',
+    imageUrl: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Mobility Flow',
+    subtitle: 'Daily | 20 mins',
+    imageUrl: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+];
+
+const SPORTS_ARENAS_SAMPLE = [
+  {
+    title: 'Skyline Arena',
+    subtitle: 'Navrangpura',
+    rating: '4.7',
+    distance: '2.1 km',
+    imageUrl: 'https://images.unsplash.com/photo-1504309092620-4d0ec726efa4?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Pulse Sports Hub',
+    subtitle: 'Vastrapur',
+    rating: '4.6',
+    distance: '3.4 km',
+    imageUrl: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+];
+
+const SPORTS_RECOVERY_SAMPLE = [
+  { title: 'Foam roller', subtitle: 'Mobility recovery', iconName: 'swap-vertical-outline', deepLink: '' },
+  { title: 'Protein shake', subtitle: 'Post-workout', iconName: 'nutrition-outline', deepLink: '' },
+  { title: 'Sleep tracker', subtitle: 'Recovery scores', iconName: 'moon-outline', deepLink: '' },
+  { title: 'Stretch band', subtitle: 'Flexibility kit', iconName: 'bandage-outline', deepLink: '' },
+];
+
 const buildDecorDefaultSections = () => [
   {
     id: 'decor_hero',
@@ -1318,6 +1454,94 @@ const buildKidsDefaultSections = () => [
     stylePreset: 'kids',
     enabled: true,
     items: KIDS_PARENT_TIPS_SAMPLE.map((item) => ({ ...item })),
+  },
+];
+
+const buildSportsDefaultSections = (industryId) => [
+  {
+    id: 'sports_hero',
+    type: 'banner',
+    blockType: 'promo_hero_banner',
+    stylePreset: 'sports',
+    enabled: true,
+    items: [{ ...SPORTS_HERO_SAMPLE }],
+  },
+  {
+    id: 'sports_quick_actions',
+    type: 'horizontalList',
+    blockType: 'quick_action_row',
+    title: 'Quick actions',
+    actionText: 'View all',
+    quickActionPreset: 'sports',
+    enabled: true,
+    items: SPORTS_QUICK_ACTIONS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'sports_categories',
+    type: 'category_showcase',
+    blockType: 'category_showcase',
+    title: 'Shop by sport',
+    actionText: 'View all',
+    showcaseVariant: 'circle_icon',
+    stylePreset: 'sports',
+    enabled: true,
+    dataSource: {
+      sourceType: 'CATEGORY_FEED',
+      industryId: industryId ? String(industryId) : undefined,
+    },
+    items: SPORTS_CATEGORY_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'sports_featured_gear',
+    type: 'horizontalList',
+    blockType: 'product_shelf_horizontal',
+    title: 'Featured gear',
+    actionText: 'View all',
+    stylePreset: 'sports',
+    enabled: true,
+    items: SPORTS_FEATURED_GEAR_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'sports_live_matches_fixed',
+    type: 'fixed',
+    blockType: 'sports_live_matches_fixed',
+    title: 'Live matches',
+    actionText: 'View all',
+    enabled: true,
+    items: SPORTS_LIVE_MATCHES_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'sports_training_plans',
+    type: 'horizontalList',
+    blockType: 'media_overlay_carousel',
+    title: 'Training plans',
+    actionText: 'View all',
+    stylePreset: 'sports',
+    enabled: true,
+    items: SPORTS_TRAINING_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'sports_nearby_arenas',
+    type: 'horizontalList',
+    blockType: 'shop_card_carousel',
+    title: 'Nearby arenas',
+    actionText: 'View all',
+    stylePreset: 'sports',
+    enabled: true,
+    dataSource: {
+      sourceType: 'MANUAL',
+    },
+    items: SPORTS_ARENAS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'sports_recovery_essentials',
+    type: 'list',
+    blockType: 'info_list',
+    title: 'Recovery essentials',
+    actionText: 'View all',
+    stylePreset: 'sports',
+    enabled: true,
+    items: SPORTS_RECOVERY_SAMPLE.map((item) => ({ ...item })),
   },
 ];
 
@@ -1957,6 +2181,20 @@ export const screenToolboxItems = [
     },
   },
   {
+    key: 'sportsLiveMatchesFixed',
+    label: 'Sports Live Matches',
+    hint: 'Hardcoded sports live matches placeholder for CMS ordering',
+    section: {
+      id: 'sports_live_matches_fixed',
+      type: 'fixed',
+      blockType: 'sports_live_matches_fixed',
+      title: 'Live matches',
+      actionText: 'View all',
+      enabled: true,
+      items: SPORTS_LIVE_MATCHES_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
     key: 'splitPromoRow',
     label: 'Split Promo Row',
     hint: 'Two side-by-side promo cards in one row',
@@ -2329,6 +2567,7 @@ export const blockLabels = {
   bestseller_shelf: 'Bestsellers Shelf Block',
   automobile_b2b2c_fixed: 'Automobile B2B/B2C Section',
   automobile_fitment_fixed: 'Automobile Fitment Section',
+  sports_live_matches_fixed: 'Sports Live Matches Section',
   sectionTitle: 'Section Title Block',
   multiItemGrid: 'Product Grid Block',
   categoryPreviewGrid: 'Category Preview Grid',
@@ -3149,6 +3388,7 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'automobile', label: 'Automobile' },
     { value: 'decor', label: 'Decor' },
     { value: 'kids', label: 'Kids' },
+    { value: 'sports', label: 'Sports' },
   ],
   split_promo_row: [
     { value: 'grocery', label: 'Grocery' },
@@ -3161,6 +3401,7 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'automobile', label: 'Automobile' },
     { value: 'decor', label: 'Decor' },
     { value: 'kids', label: 'Kids' },
+    { value: 'sports', label: 'Sports' },
   ],
   media_overlay_carousel: [
     { value: 'electronics', label: 'Electronics' },
@@ -3168,6 +3409,7 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'grocery', label: 'Grocery' },
     { value: 'decor', label: 'Decor' },
     { value: 'kids', label: 'Kids' },
+    { value: 'sports', label: 'Sports' },
   ],
   product_card_carousel: [
     { value: 'electronics', label: 'Electronics' },
@@ -3187,6 +3429,7 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'beauty_routine', label: 'Beauty routine' },
     { value: 'fashion', label: 'Fashion' },
     { value: 'kids', label: 'Kids' },
+    { value: 'sports', label: 'Sports' },
   ],
   chip_scroll: [
     { value: '', label: 'Default' },
@@ -3207,6 +3450,7 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'fashion', label: 'Fashion (full card)' },
     { value: 'electronics', label: 'Electronics (full card)' },
     { value: 'automobile', label: 'Automobile (full card)' },
+    { value: 'sports', label: 'Sports (full card)' },
   ],
   category_icon_grid: [
     { value: '', label: 'Default' },
@@ -3224,6 +3468,7 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'automobile', label: 'Automobile' },
     { value: 'decor', label: 'Decor' },
     { value: 'kids', label: 'Kids' },
+    { value: 'sports', label: 'Sports' },
   ],
   promo_banner: [
     { value: '', label: 'Default' },
@@ -3443,6 +3688,7 @@ export const resolveIndustryRoute = (industry, slug) => {
 export const buildIndustryDefaultSections = (slug, industryName, industryId) => [
   ...(slug === 'decor' ? buildDecorDefaultSections(industryId) : []),
   ...(slug === 'kids' ? buildKidsDefaultSections(industryId) : []),
+  ...(slug === 'sports' ? buildSportsDefaultSections(industryId) : []),
   ...(slug === 'beauty' ? buildBeautyDefaultSections(industryId) : []),
   ...(slug === 'electronics' ? buildElectronicsDefaultSections(industryId) : []),
   ...(slug === 'grocery' ? buildGroceryDefaultSections(industryId) : []),
@@ -3450,6 +3696,7 @@ export const buildIndustryDefaultSections = (slug, industryName, industryId) => 
   ...(slug === 'automobile' ? buildAutomobileDefaultSections(industryId) : []),
   ...(slug === 'decor'
     || slug === 'kids'
+    || slug === 'sports'
     || slug === 'beauty'
     || slug === 'electronics'
     || slug === 'grocery'

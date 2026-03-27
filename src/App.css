@@ -4350,11 +4350,73 @@ textarea {
   color: #1e2a17;
 }
 
+.preview-showcase-theme-kids .preview-showcase-circle-image {
+  background: rgba(253, 186, 116, 0.22);
+  border: 1px solid rgba(47, 47, 47, 0.08);
+}
+
+.preview-showcase-theme-kids .preview-showcase-icon-badge {
+  background: #f06b6b;
+  border-color: #fff;
+}
+
+.preview-showcase-theme-kids .preview-showcase-circle-label {
+  color: #2f2f2f;
+}
+
+.preview-showcase-theme-sports .preview-showcase-circle-image {
+  background: #171b22;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.preview-showcase-theme-sports .preview-showcase-icon-badge {
+  background: #d4f000;
+  border-color: #fff;
+}
+
+.preview-showcase-theme-sports .preview-showcase-circle-label {
+  color: #e5e7eb;
+}
+
 .preview-title.preview-title-surface-pill {
   padding: 8px 12px;
   border-radius: 999px;
   background: #f8fafc;
   border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.preview-title.preview-title-theme-decor {
+  color: #4b3d34;
+}
+
+.preview-title.preview-title-theme-decor .preview-action-link {
+  color: #c46a4a;
+}
+
+.preview-title.preview-title-theme-kids {
+  color: #2f2f2f;
+}
+
+.preview-title.preview-title-theme-kids.preview-title-surface-pill {
+  background: #fff8f2;
+  border-color: rgba(47, 47, 47, 0.08);
+}
+
+.preview-title.preview-title-theme-kids .preview-action-link {
+  color: #f06b6b;
+}
+
+.preview-title.preview-title-theme-sports {
+  color: #e5e7eb;
+}
+
+.preview-title.preview-title-theme-sports.preview-title-surface-pill {
+  background: #171b22;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.preview-title.preview-title-theme-sports .preview-action-link {
+  color: #d4f000;
 }
 
 .preview-promo-hero {
@@ -4459,6 +4521,46 @@ textarea {
 
 .preview-promo-hero.is-fashion .preview-promo-hero-cta {
   background: #4e3823;
+}
+
+.preview-promo-hero.is-decor .preview-promo-hero-overlay {
+  background: linear-gradient(180deg, rgba(75, 61, 52, 0.08), rgba(75, 61, 52, 0.76));
+}
+
+.preview-promo-hero.is-decor .preview-promo-hero-badge {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.34);
+}
+
+.preview-promo-hero.is-decor .preview-promo-hero-cta {
+  background: #c46a4a;
+}
+
+.preview-promo-hero.is-kids .preview-promo-hero-overlay {
+  background: linear-gradient(180deg, rgba(47, 47, 47, 0.08), rgba(47, 47, 47, 0.7));
+}
+
+.preview-promo-hero.is-kids .preview-promo-hero-badge {
+  background: rgba(253, 186, 116, 0.24);
+  border-color: rgba(253, 186, 116, 0.4);
+}
+
+.preview-promo-hero.is-kids .preview-promo-hero-cta {
+  background: #f06b6b;
+}
+
+.preview-promo-hero.is-sports .preview-promo-hero-overlay {
+  background: linear-gradient(180deg, rgba(11, 14, 18, 0.08), rgba(11, 14, 18, 0.82));
+}
+
+.preview-promo-hero.is-sports .preview-promo-hero-badge {
+  background: rgba(212, 240, 0, 0.18);
+  border-color: rgba(212, 240, 0, 0.34);
+}
+
+.preview-promo-hero.is-sports .preview-promo-hero-cta {
+  background: #d4f000;
+  color: #0b0e12;
 }
 
 .preview-beauty-hero {
@@ -4674,6 +4776,94 @@ textarea {
 
 .preview-quick-action-section-is-fashion .preview-action-link {
   color: #4e3823;
+}
+
+.preview-quick-actions.is-decor .preview-quick-action-card {
+  border-color: rgba(75, 61, 52, 0.12);
+}
+
+.preview-quick-actions.is-decor .preview-quick-action-icon {
+  background: #efe7dc;
+  color: #c46a4a;
+}
+
+.preview-quick-actions.is-decor .preview-quick-action-title {
+  color: #4b3d34;
+}
+
+.preview-quick-actions.is-decor .preview-quick-action-subtitle {
+  color: #7d6b61;
+}
+
+.preview-quick-actions.is-decor .preview-quick-action-cta {
+  color: #c46a4a;
+}
+
+.preview-quick-actions.is-kids .preview-quick-action-card {
+  border-color: rgba(47, 47, 47, 0.08);
+}
+
+.preview-quick-actions.is-kids .preview-quick-action-icon {
+  background: rgba(253, 186, 116, 0.25);
+  color: #f06b6b;
+}
+
+.preview-quick-actions.is-kids .preview-quick-action-title {
+  color: #2f2f2f;
+}
+
+.preview-quick-actions.is-kids .preview-quick-action-subtitle {
+  color: #6b5c57;
+}
+
+.preview-quick-actions.is-kids .preview-quick-action-cta {
+  color: #f06b6b;
+}
+
+.preview-quick-actions.is-sports .preview-quick-action-card {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: #171b22;
+}
+
+.preview-quick-actions.is-sports .preview-quick-action-icon {
+  background: rgba(212, 240, 0, 0.14);
+  color: #d4f000;
+}
+
+.preview-quick-actions.is-sports .preview-quick-action-title {
+  color: #e5e7eb;
+}
+
+.preview-quick-actions.is-sports .preview-quick-action-subtitle {
+  color: #9ca3af;
+}
+
+.preview-quick-actions.is-sports .preview-quick-action-cta {
+  color: #d4f000;
+}
+
+.preview-quick-action-section-is-decor .preview-title {
+  color: #4b3d34;
+}
+
+.preview-quick-action-section-is-decor .preview-action-link {
+  color: #c46a4a;
+}
+
+.preview-quick-action-section-is-kids .preview-title {
+  color: #2f2f2f;
+}
+
+.preview-quick-action-section-is-kids .preview-action-link {
+  color: #f06b6b;
+}
+
+.preview-quick-action-section-is-sports .preview-title {
+  color: #e5e7eb;
+}
+
+.preview-quick-action-section-is-sports .preview-action-link {
+  color: #d4f000;
 }
 
 .preview-deal-carousel,
@@ -4928,6 +5118,42 @@ textarea {
   color: rgba(255, 255, 255, 0.84);
 }
 
+.preview-media-overlay-card.is-kids {
+  background: #f8d7be;
+}
+
+.preview-media-overlay-gradient.is-kids {
+  background: linear-gradient(180deg, rgba(47, 47, 47, 0.08), rgba(47, 47, 47, 0.7));
+}
+
+.preview-media-overlay-badge {
+  border: 1px solid transparent;
+}
+
+.preview-media-overlay-card.is-kids .preview-media-overlay-badge {
+  background: rgba(253, 186, 116, 0.22);
+  border-color: rgba(253, 186, 116, 0.38);
+}
+
+.preview-media-overlay-card.is-sports {
+  background: #1f2630;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.preview-media-overlay-gradient.is-sports {
+  background: linear-gradient(180deg, rgba(11, 14, 18, 0.08), rgba(11, 14, 18, 0.82));
+}
+
+.preview-media-overlay-card.is-sports .preview-media-overlay-badge {
+  background: rgba(212, 240, 0, 0.18);
+  border-color: rgba(212, 240, 0, 0.34);
+}
+
+.preview-media-overlay-card.is-decor .preview-media-overlay-badge {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.34);
+}
+
 .preview-info-list {
   display: flex;
   flex-direction: column;
@@ -5019,6 +5245,50 @@ textarea {
 
 .preview-info-list.is-fashion .preview-info-list-chevron {
   color: #8b735d;
+}
+
+.preview-info-list.is-kids .preview-info-list-item {
+  border-color: rgba(47, 47, 47, 0.08);
+  background: #ffffff;
+}
+
+.preview-info-list.is-kids .preview-info-list-icon {
+  background: rgba(253, 186, 116, 0.25);
+  color: #f06b6b;
+}
+
+.preview-info-list.is-kids .preview-info-list-title {
+  color: #2f2f2f;
+}
+
+.preview-info-list.is-kids .preview-info-list-subtitle {
+  color: #6b5c57;
+}
+
+.preview-info-list.is-kids .preview-info-list-chevron {
+  color: #a08f89;
+}
+
+.preview-info-list.is-sports .preview-info-list-item {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: #171b22;
+}
+
+.preview-info-list.is-sports .preview-info-list-icon {
+  background: rgba(212, 240, 0, 0.14);
+  color: #d4f000;
+}
+
+.preview-info-list.is-sports .preview-info-list-title {
+  color: #e5e7eb;
+}
+
+.preview-info-list.is-sports .preview-info-list-subtitle {
+  color: #9ca3af;
+}
+
+.preview-info-list.is-sports .preview-info-list-chevron {
+  color: #9ca3af;
 }
 
 .preview-beauty-action-card {
@@ -5670,6 +5940,321 @@ textarea {
   border-radius: 10px;
   overflow: hidden;
   background: #1f5fbf;
+}
+
+.preview-kids-brand-row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 110px;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.preview-kids-brand-card {
+  border-radius: 16px;
+  border: 1px solid rgba(47, 47, 47, 0.08);
+  background: #ffffff;
+  padding: 10px;
+}
+
+.preview-kids-brand-logo {
+  height: 62px;
+  border-radius: 14px;
+  background: rgba(253, 186, 116, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.preview-kids-brand-logo img {
+  width: 72%;
+  height: 72%;
+  object-fit: contain;
+}
+
+.preview-kids-brand-title {
+  margin-top: 8px;
+  font-size: 10px;
+  font-weight: 800;
+  color: #2f2f2f;
+}
+
+.preview-kids-brand-subtitle {
+  margin-top: 3px;
+  font-size: 8px;
+  color: #6b5c57;
+  line-height: 1.35;
+}
+
+.preview-shelf-row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 118px;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.preview-shelf-card {
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #ffffff;
+  padding: 10px;
+}
+
+.preview-shelf-image {
+  height: 86px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #f3f4f6;
+}
+
+.preview-shelf-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.preview-shelf-title {
+  margin-top: 8px;
+  font-size: 10px;
+  font-weight: 800;
+  color: #1f2937;
+  line-height: 1.35;
+}
+
+.preview-shelf-subtitle {
+  margin-top: 3px;
+  font-size: 8px;
+  color: #6b7280;
+}
+
+.preview-shelf-footer {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.preview-shelf-price {
+  font-size: 9px;
+  font-weight: 800;
+  color: #2563eb;
+}
+
+.preview-shelf-rating {
+  font-size: 8px;
+  font-weight: 700;
+  color: #6b7280;
+}
+
+.preview-shelf-row.is-kids .preview-shelf-card {
+  border-color: rgba(47, 47, 47, 0.08);
+}
+
+.preview-shelf-row.is-kids .preview-shelf-image {
+  background: rgba(253, 186, 116, 0.22);
+}
+
+.preview-shelf-row.is-kids .preview-shelf-title {
+  color: #2f2f2f;
+}
+
+.preview-shelf-row.is-kids .preview-shelf-subtitle,
+.preview-shelf-row.is-kids .preview-shelf-rating {
+  color: #6b5c57;
+}
+
+.preview-shelf-row.is-kids .preview-shelf-price {
+  color: #f06b6b;
+}
+
+.preview-shelf-row.is-sports .preview-shelf-card {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: #171b22;
+}
+
+.preview-shelf-row.is-sports .preview-shelf-image {
+  background: #1f2630;
+}
+
+.preview-shelf-row.is-sports .preview-shelf-title {
+  color: #e5e7eb;
+}
+
+.preview-shelf-row.is-sports .preview-shelf-subtitle,
+.preview-shelf-row.is-sports .preview-shelf-rating {
+  color: #9ca3af;
+}
+
+.preview-shelf-row.is-sports .preview-shelf-price {
+  color: #d4f000;
+}
+
+.preview-shop-card-row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 136px;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.preview-shop-card {
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #ffffff;
+  padding: 10px;
+}
+
+.preview-shop-card-image {
+  height: 88px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #f3f4f6;
+}
+
+.preview-shop-card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.preview-shop-card-title {
+  margin-top: 8px;
+  font-size: 10px;
+  font-weight: 800;
+  color: #1f2937;
+}
+
+.preview-shop-card-subtitle {
+  margin-top: 3px;
+  font-size: 8px;
+  color: #6b7280;
+}
+
+.preview-shop-card-meta {
+  margin-top: 6px;
+  display: flex;
+  gap: 6px;
+  font-size: 8px;
+  color: #6b7280;
+}
+
+.preview-shop-card-actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 6px;
+}
+
+.preview-shop-card-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 42px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: #ffffff;
+  font-size: 8px;
+  font-weight: 800;
+  color: #1f2937;
+}
+
+.preview-shop-card-row.is-sports .preview-shop-card {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: #171b22;
+}
+
+.preview-shop-card-row.is-sports .preview-shop-card-image {
+  background: #1f2630;
+}
+
+.preview-shop-card-row.is-sports .preview-shop-card-title {
+  color: #e5e7eb;
+}
+
+.preview-shop-card-row.is-sports .preview-shop-card-subtitle,
+.preview-shop-card-row.is-sports .preview-shop-card-meta {
+  color: #9ca3af;
+}
+
+.preview-shop-card-row.is-sports .preview-shop-card-pill {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: #1f2630;
+  color: #d4f000;
+}
+
+.preview-sports-match-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.preview-sports-match-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #171b22;
+}
+
+.preview-sports-match-copy {
+  min-width: 0;
+}
+
+.preview-sports-match-league {
+  font-size: 8px;
+  color: #9ca3af;
+}
+
+.preview-sports-match-teams {
+  margin-top: 4px;
+  font-size: 10px;
+  font-weight: 800;
+  color: #e5e7eb;
+}
+
+.preview-sports-match-time {
+  margin-top: 4px;
+  font-size: 8px;
+  color: #9ca3af;
+}
+
+.preview-sports-match-score {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.preview-sports-match-score-line {
+  font-size: 11px;
+  font-weight: 800;
+  color: #e5e7eb;
+}
+
+.preview-sports-match-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #1f2630;
+  color: #e5e7eb;
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.preview-sports-match-status.is-live {
+  background: rgba(239, 68, 68, 0.16);
 }
 
 .preview-grid {
