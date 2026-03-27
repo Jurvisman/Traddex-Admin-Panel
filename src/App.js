@@ -4,6 +4,7 @@ import { AdminShell } from './components';
 import {
   AdminDashboardPage,
   CategoryPage,
+  BrandPage,
   AppConfigPage,
   AdminTimezonesPage,
   BusinessPage,
@@ -269,6 +270,11 @@ const ADMIN_META = [
     match: '/admin/catalog-manager/categories',
     title: 'Category',
     subtitle: '',
+  },
+  {
+    match: '/admin/catalog-manager/brands',
+    title: 'Brand Master',
+    subtitle: 'Create, approve, and maintain canonical product brands.',
   },
   {
     match: '/admin/catalog-manager/collections',
@@ -562,6 +568,7 @@ function AppRoutes() {
               { path: '/admin/catalog-manager/main-categories', label: 'Main Category', icon: ICONS.catalog, tone: NAV_TONES.catalog },
               { path: '/admin/catalog-manager/categories', label: 'Category', icon: ICONS.catalog, tone: NAV_TONES.catalog },
               { path: '/admin/catalog-manager/collections', label: 'Collections', icon: ICONS.catalog, tone: NAV_TONES.catalog },
+              { path: '/admin/catalog-manager/brands', label: 'Brand Master', icon: ICONS.catalog, tone: NAV_TONES.catalog },
               { path: '/admin/catalog-manager/sub-categories', label: 'Sub-Category', icon: ICONS.catalog, tone: NAV_TONES.catalog },
               { path: '/admin/product-attribute', label: 'Reusable Fields', icon: ICONS.attributes, tone: NAV_TONES.fields },
             ],
@@ -997,6 +1004,21 @@ function AppRoutes() {
               fallbackPath={routeFallbackPath}
             >
               <CategoryPage token={authToken} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="catalog-manager/brands"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={
+                canAccessPath('/admin/catalog-manager/brands') &&
+                allowedActionCodes.has('ADMIN_BRAND_READ')
+              }
+              fallbackPath={routeFallbackPath}
+            >
+              <BrandPage token={authToken} />
             </PermissionGate>
           }
         />

@@ -139,6 +139,28 @@ export const deleteProductsBulk = (token, productIds) =>
   request('/admin/product/delete-bulk', { method: 'POST', body: { product_ids: productIds }, token });
 export const updateProductVariantStatus = (token, productId, variantId, payload) =>
   request(`/admin/product/${productId}/variants/${variantId}/status`, { method: 'PUT', body: payload, token });
+export const reviewProductBrand = (token, productId, payload) =>
+  request(`/admin/product/${productId}/brand/review`, { method: 'PUT', body: payload, token });
+
+export const listBrandOptions = (token, query) => {
+  const search = query ? `?query=${encodeURIComponent(query)}` : '';
+  return request(`/admin/brands/options${search}`, { token });
+};
+export const listBrands = (token, filters = {}) => {
+  const params = new URLSearchParams();
+  if (filters.query) params.set('query', filters.query);
+  if (filters.approvalStatus) params.set('approvalStatus', filters.approvalStatus);
+  if (filters.isActive === true || filters.isActive === false) params.set('isActive', filters.isActive);
+  if (filters.excludeMerged === true) params.set('excludeMerged', 'true');
+  const search = params.toString() ? `?${params.toString()}` : '';
+  return request(`/admin/brands${search}`, { token });
+};
+export const getBrand = (token, id) => request(`/admin/brands/${id}`, { token });
+export const createBrand = (token, payload) =>
+  request('/admin/brands', { method: 'POST', body: payload, token });
+export const updateBrand = (token, id, payload) =>
+  request(`/admin/brands/${id}`, { method: 'PUT', body: payload, token });
+export const deleteBrand = (token, id) => request(`/admin/brands/${id}`, { method: 'DELETE', token });
 
 export const listAttributeDefinitions = (token, active) => {
   const query = active === true || active === false ? `?active=${active}` : '';

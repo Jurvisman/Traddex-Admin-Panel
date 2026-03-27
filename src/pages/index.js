@@ -10,6 +10,7 @@ export { default as CatalogManagerPage } from './CatalogManagerPage';
 export { default as IndustryPage } from './IndustryPage';
 export { default as MainCategoryPage } from './MainCategoryPage';
 export { default as CategoryPage } from './CategoryPage';
+export { default as BrandPage } from './BrandPage';
 export { default as CollectionPage } from './CollectionPage';
 export { default as SubCategoryPage } from './SubCategoryPage';
 export { default as ProductPage } from './ProductPage';

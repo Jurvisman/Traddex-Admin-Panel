@@ -12,11 +12,13 @@ import {
   getProduct,
   listAttributeDefinitions,
   listAttributeMappings,
+  listBrandOptions,
   listCategories,
   listMainCategories,
   listProducts,
   listSubCategories,
   listUoms,
+  reviewProductBrand,
   uploadBannerImages,
   updateUom,
   updateProduct,
@@ -289,6 +291,13 @@ const createReviewForm = () => ({
   subCategoryId: '',
 });
 
+const createBrandReviewForm = (product) => ({
+  brandName: product?.brandName || '',
+  logoUrl: product?.brandLogoUrl || '',
+  website: product?.brandWebsite || '',
+  targetBrandId: '',
+});
+
 const createProductSelectorForm = () => ({
   userId: '',
   mainCategoryId: '',
@@ -335,6 +344,9 @@ function ProductPage({ token, adminUserId }) {
   const [attributeMappings, setAttributeMappings] = useState([]);
   const [viewAttributeMappings, setViewAttributeMappings] = useState([]);
   const [reviewForm, setReviewForm] = useState(createReviewForm);
+  const [brandReviewForm, setBrandReviewForm] = useState(() => createBrandReviewForm(null));
+  const [brandOptions, setBrandOptions] = useState([]);
+  const [isBrandAutocompleteOpen, setIsBrandAutocompleteOpen] = useState(false);
   const [reviewCategories, setReviewCategories] = useState([]);
   const [reviewSubCategories, setReviewSubCategories] = useState([]);
   const [showChangeRequestModal, setShowChangeRequestModal] = useState(false);
@@ -421,6 +433,22 @@ function ProductPage({ token, adminUserId }) {
     });
   }, [products, query]);
 
+  const brandSuggestions = useMemo(() => {
+    const term = normalize(form.brandName).trim();
+    if (!term) return [];
+    return [...brandOptions]
+      .filter((brand) => normalize(brand?.brandName).includes(term))
+      .sort((left, right) => {
+        const leftName = normalize(left?.brandName);
+        const rightName = normalize(right?.brandName);
+        const leftStarts = leftName.startsWith(term) ? 0 : 1;
+        const rightStarts = rightName.startsWith(term) ? 0 : 1;
+        if (leftStarts !== rightStarts) return leftStarts - rightStarts;
+        return String(left?.brandName || '').localeCompare(String(right?.brandName || ''));
+      })
+      .slice(0, 8);
+  }, [brandOptions, form.brandName]);
+
   const selectedProductId = id && !Number.isNaN(Number(id)) ? Number(id) : null;
   const isEditing = Boolean(editingProductId);
   const isViewing = Boolean(selectedProductId);
@@ -455,6 +483,11 @@ function ProductPage({ token, adminUserId }) {
   const loadProductDetail = async (productId) => {
     const response = await getProduct(token, productId);
     setSelectedProduct(response?.data || null);
+  };
+
+  const loadBrandOptions = async () => {
+    const response = await listBrandOptions(token);
+    setBrandOptions(response?.data?.brands || []);
   };
 
   const loadMainCategories = async () => {
@@ -1047,7 +1080,11 @@ function ProductPage({ token, adminUserId }) {
     didInitRef.current = true;
     setIsLoading(true);
     setMessage({ type: 'info', text: '' });
-    Promise.all([loadProducts(), loadMainCategories(), loadAttributeDefinitions(), loadUoms()])
+    const tasks = [loadProducts(), loadMainCategories(), loadAttributeDefinitions(), loadUoms()];
+    if (canCreateProduct || canEditProduct || canApproveProduct) {
+      tasks.push(loadBrandOptions());
+    }
+    Promise.all(tasks)
       .catch((error) => {
         setMessage({ type: 'error', text: error.message || 'Failed to load products.' });
       })
@@ -1074,6 +1111,14 @@ function ProductPage({ token, adminUserId }) {
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProductId, token]);
+
+  useEffect(() => {
+    if (!(canCreateProduct || canEditProduct || canApproveProduct) || brandOptions.length > 0) {
+      return;
+    }
+    loadBrandOptions().catch(() => null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canCreateProduct, canEditProduct, canApproveProduct, token, brandOptions.length]);
 
   useEffect(() => {
     if (!showViewOnly) return;
@@ -1110,6 +1155,7 @@ function ProductPage({ token, adminUserId }) {
   useEffect(() => {
     if (!selectedProduct) {
       setReviewForm(createReviewForm());
+      setBrandReviewForm(createBrandReviewForm(null));
       setReviewCategories([]);
       setReviewSubCategories([]);
       return;
@@ -1121,6 +1167,7 @@ function ProductPage({ token, adminUserId }) {
       subCategoryId: category?.subCategoryId ? String(category.subCategoryId) : '',
     };
     setReviewForm(nextReviewForm);
+    setBrandReviewForm(createBrandReviewForm(selectedProduct));
     hydrateCategoryOptionsForReview(nextReviewForm.mainCategoryId, nextReviewForm.categoryId).catch(() => {
       setReviewCategories([]);
       setReviewSubCategories([]);
@@ -1274,6 +1321,16 @@ function ProductPage({ token, adminUserId }) {
       }
       return next;
     });
+  };
+
+  const handleBrandInputChange = (value) => {
+    handleChange('brandName', value);
+    setIsBrandAutocompleteOpen(true);
+  };
+
+  const handleBrandSuggestionSelect = (brand) => {
+    handleChange('brandName', brand?.brandName || '');
+    setIsBrandAutocompleteOpen(false);
   };
 
   const handleCreateSelectorChange = (key, value) => {
@@ -1654,6 +1711,7 @@ function ProductPage({ token, adminUserId }) {
     });
     setDynamicValues(product.dynamicAttributes || {});
     setProductFormTab('general');
+    setIsBrandAutocompleteOpen(false);
     setShowForm(true);
   };
 
@@ -1667,6 +1725,7 @@ function ProductPage({ token, adminUserId }) {
     setAttributeMappings([]);
     setDynamicValues({});
     setProductFormTab('general');
+    setIsBrandAutocompleteOpen(false);
     setShowCreateUomModal(false);
     setShowForm(false);
     openCreateSelector(false).catch(() => {
@@ -1691,6 +1750,7 @@ function ProductPage({ token, adminUserId }) {
     setShowCreateSelector(false);
     setShowCreateUomModal(false);
     setEditingProductId(null);
+    setIsBrandAutocompleteOpen(false);
     if (isEditRoute && selectedProductId) {
       navigate(`/admin/products/${selectedProductId}`);
     }
@@ -2219,6 +2279,10 @@ function ProductPage({ token, adminUserId }) {
         setMessage({ type: 'error', text: 'You do not have permission to approve products.' });
         return;
       }
+      if (brandNeedsReview) {
+        setMessage({ type: 'error', text: 'Review and verify the brand before approving this product.' });
+        return;
+      }
       if (!reviewCategoryComplete) {
         setMessage({ type: 'error', text: 'Assign main category and category before approval.' });
         return;
@@ -2273,6 +2337,14 @@ function ProductPage({ token, adminUserId }) {
     }
     if (nextStatus === 'APPROVED' && !canApproveProduct) {
       setMessage({ type: 'error', text: 'You do not have permission to approve products.' });
+      return;
+    }
+    const product = products.find((item) => Number(item?.id || item?.productId) === Number(productId));
+    if (
+      nextStatus === 'APPROVED' &&
+      String(product?.brandApprovalStatus || '').trim().toUpperCase() === 'PENDING_REVIEW'
+    ) {
+      setMessage({ type: 'error', text: 'Open the review workspace and verify the brand before approval.' });
       return;
     }
     if (nextStatus === 'REJECTED' && !canRejectProduct) {
@@ -2334,7 +2406,63 @@ function ProductPage({ token, adminUserId }) {
     }
   };
 
+  const handleBrandReview = async (action) => {
+    if (!selectedProductId) return;
+    if (!(canEditProduct || canApproveProduct)) {
+      setMessage({ type: 'error', text: 'You do not have permission to review brands.' });
+      return;
+    }
+    if (!selectedProduct?.brandName && !selectedProduct?.brandId) {
+      setMessage({ type: 'info', text: 'This product does not have a linked brand to review.' });
+      return;
+    }
+    if (action === 'MERGE_INTO_EXISTING' && !brandReviewForm.targetBrandId) {
+      setMessage({ type: 'error', text: 'Select an approved target brand before merging.' });
+      return;
+    }
+
+    const adminId = getAdminId();
+    if (!adminId) return;
+
+    try {
+      setIsLoading(true);
+      await reviewProductBrand(token, selectedProductId, {
+        userId: adminId,
+        action,
+        brandName: brandReviewForm.brandName || null,
+        logoUrl: brandReviewForm.logoUrl || null,
+        website: brandReviewForm.website || null,
+        targetBrandId: brandReviewForm.targetBrandId ? Number(brandReviewForm.targetBrandId) : null,
+      });
+      await Promise.all([loadProducts(), loadProductDetail(selectedProductId), loadBrandOptions()]);
+      setMessage({
+        type: 'success',
+        text:
+          action === 'MERGE_INTO_EXISTING'
+            ? 'Brand merged into the selected approved master.'
+            : 'Brand approved successfully.',
+      });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to review the product brand.' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const statusValue = selectedProduct?.approvalStatus || '';
+  const canReviewBrand = canEditProduct || canApproveProduct;
+  const hasBrandAttached = Boolean(selectedProduct?.brandName || selectedProduct?.brandId);
+  const brandNeedsReview =
+    hasBrandAttached && String(selectedProduct?.brandApprovalStatus || '').trim().toUpperCase() === 'PENDING_REVIEW';
+  const brandStatusLabel =
+    selectedProduct?.brandApprovalStatus
+      ? String(selectedProduct.brandApprovalStatus).replaceAll('_', ' ')
+      : hasBrandAttached
+        ? 'Legacy / Unknown'
+        : 'No brand';
+  const mergeBrandOptions = brandOptions.filter(
+    (brand) => String(brand?.id || '') !== String(selectedProduct?.brandId || '')
+  );
   const statusLabel = formatStatus(statusValue);
   const productPreviewUrl = resolveMediaUrl(form.thumbnailImage || getPrimaryProductImage(selectedProduct));
   const productGalleryPreview = parseList(form.galleryImagesText).map(resolveMediaUrl).filter(Boolean);
@@ -2431,7 +2559,8 @@ function ProductPage({ token, adminUserId }) {
       .filter((group) => group && group.items.length > 0);
   }, [selectedProduct?.dynamicAttributes, viewAttributeMappings, definitionById, definitionByKey]);
   const variants = Array.isArray(selectedProduct?.variants) ? selectedProduct.variants : [];
-  const disableApprove = isLoading || !selectedProduct || !canApproveProduct || statusValue === 'APPROVED';
+  const disableApprove =
+    isLoading || !selectedProduct || !canApproveProduct || statusValue === 'APPROVED' || brandNeedsReview;
   const disableReject = isLoading || !selectedProduct || !canRejectProduct || statusValue === 'REJECTED';
   const disableRequestChanges =
     isLoading ||
@@ -2531,6 +2660,15 @@ function ProductPage({ token, adminUserId }) {
           ? 'Main category and category selected, applies to all sub-categories'
           : 'Main category, category, and sub-category selected'
         : 'Select main category and category',
+    },
+    {
+      label: 'Brand verification',
+      status: brandNeedsReview ? 'warning' : 'ready',
+      detail: !hasBrandAttached
+        ? 'Product is unbranded'
+        : brandNeedsReview
+          ? 'Review and confirm this brand before product approval'
+          : `Brand is ${brandStatusLabel.toLowerCase()}`,
     },
     {
       label: 'Required dynamic fields',
@@ -2921,6 +3059,123 @@ function ProductPage({ token, adminUserId }) {
       </div>
 
       <div className="gsc-product-view-section">
+        <div className="brand-review-head">
+          <div>
+            <h4 className="gsc-product-view-section-title">Brand Verification</h4>
+            <p className="product-review-section-text">
+              Approve this brand as a master brand, or merge it into an existing approved brand.
+            </p>
+          </div>
+          {selectedProduct?.brandLogoUrl ? (
+            <div className="brand-review-logo">
+              <img src={resolveMediaUrl(selectedProduct.brandLogoUrl)} alt={selectedProduct?.brandName || 'Brand'} />
+            </div>
+          ) : null}
+        </div>
+
+        {hasBrandAttached ? (
+          <>
+            <div className="product-view-detail-grid brand-review-detail-grid">
+              <div className="product-view-detail-item">
+                <span className="product-view-detail-label">Current brand</span>
+                <p className="product-view-detail-value">{formatValue(selectedProduct?.brandName)}</p>
+              </div>
+              <div className="product-view-detail-item">
+                <span className="product-view-detail-label">Brand status</span>
+                <p className="product-view-detail-value">{brandStatusLabel}</p>
+              </div>
+              <div className="product-view-detail-item">
+                <span className="product-view-detail-label">Brand ID</span>
+                <p className="product-view-detail-value">{formatValue(selectedProduct?.brandId)}</p>
+              </div>
+            </div>
+
+            {canReviewBrand ? (
+              <>
+                <div className="product-review-select-grid brand-review-form-grid">
+                  <label className="field">
+                    <span>Brand name</span>
+                    <input
+                      type="text"
+                      value={brandReviewForm.brandName}
+                      onChange={(event) =>
+                        setBrandReviewForm((prev) => ({ ...prev, brandName: event.target.value }))
+                      }
+                      placeholder="Brand name"
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Logo URL</span>
+                    <input
+                      type="url"
+                      value={brandReviewForm.logoUrl}
+                      onChange={(event) =>
+                        setBrandReviewForm((prev) => ({ ...prev, logoUrl: event.target.value }))
+                      }
+                      placeholder="https://..."
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Website</span>
+                    <input
+                      type="url"
+                      value={brandReviewForm.website}
+                      onChange={(event) =>
+                        setBrandReviewForm((prev) => ({ ...prev, website: event.target.value }))
+                      }
+                      placeholder="https://brand.com"
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Merge target</span>
+                    <select
+                      value={brandReviewForm.targetBrandId}
+                      onChange={(event) =>
+                        setBrandReviewForm((prev) => ({ ...prev, targetBrandId: event.target.value }))
+                      }
+                    >
+                      <option value="">Select approved brand</option>
+                      {mergeBrandOptions.map((brand) => (
+                        <option key={brand.id} value={brand.id}>
+                          {brand.brandName}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <div className="product-review-actions brand-review-actions">
+                  <button
+                    type="button"
+                    className="primary-btn compact"
+                    onClick={() => handleBrandReview('APPROVE')}
+                    disabled={isLoading}
+                  >
+                    Save & Approve Brand
+                  </button>
+                  <button
+                    type="button"
+                    className="ghost-btn small"
+                    onClick={() => handleBrandReview('MERGE_INTO_EXISTING')}
+                    disabled={isLoading || !mergeBrandOptions.length}
+                  >
+                    Merge Into Existing
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="review-note-box">
+                <p>You can review this brand from this workspace once edit or approve access is available.</p>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="review-note-box">
+            <p>This product is currently unbranded. No brand verification is required.</p>
+          </div>
+        )}
+      </div>
+
+      <div className="gsc-product-view-section">
         <h4 className="gsc-product-view-section-title">Current Review Note</h4>
         <div className="review-note-box">
           {selectedProduct?.reviewRemarks ? (
@@ -2934,6 +3189,11 @@ function ProductPage({ token, adminUserId }) {
       {hasProductReviewActions ? (
         <div className="gsc-product-view-section">
           <h4 className="gsc-product-view-section-title">Moderation Actions</h4>
+          {brandNeedsReview ? (
+            <p className="product-review-inline-note">
+              Product approval is locked until the brand decision is completed in the Brand Verification card.
+            </p>
+          ) : null}
           <div className="product-review-actions">
             {canApproveProduct ? (
               <button
@@ -3543,12 +3803,36 @@ function ProductPage({ token, adminUserId }) {
                     </label>
                     <label className="field">
                       <span>Brand name</span>
-                      <input
-                        type="text"
-                        value={form.brandName}
-                        onChange={(event) => handleChange('brandName', event.target.value)}
-                        placeholder="Brand"
-                      />
+                      <div className="brand-autocomplete">
+                        <input
+                          type="text"
+                          value={form.brandName}
+                          onChange={(event) => handleBrandInputChange(event.target.value)}
+                          onFocus={() => setIsBrandAutocompleteOpen(true)}
+                          onBlur={() => {
+                            window.setTimeout(() => setIsBrandAutocompleteOpen(false), 120);
+                          }}
+                          placeholder="Type brand name"
+                        />
+                        {isBrandAutocompleteOpen && brandSuggestions.length > 0 ? (
+                          <div className="brand-suggestion-menu">
+                            {brandSuggestions.map((brand) => (
+                              <button
+                                key={brand.id}
+                                type="button"
+                                className="brand-suggestion-item"
+                                onMouseDown={(event) => event.preventDefault()}
+                                onClick={() => handleBrandSuggestionSelect(brand)}
+                              >
+                                <span className="brand-suggestion-title">{brand.brandName}</span>
+                                {brand.website ? (
+                                  <span className="brand-suggestion-meta">{brand.website}</span>
+                                ) : null}
+                              </button>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
                     </label>
                     <label className="field">
                       <span>Short description</span>
