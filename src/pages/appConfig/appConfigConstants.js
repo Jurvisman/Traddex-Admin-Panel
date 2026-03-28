@@ -1017,6 +1017,172 @@ const DECOR_BESTSELLERS_SAMPLE = [
   },
 ];
 
+const AGRICULTURE_HERO_SAMPLE = {
+  badgeText: 'Seasonal Focus',
+  title: 'Kharif prep, made simple',
+  subtitle: 'Seeds, irrigation, soil care, and mandi updates in one feed',
+  ctaText: 'Plan crop cycle',
+  imageUrl: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1400&q=80',
+  ctaLink: '',
+};
+
+const AGRICULTURE_CATEGORY_SAMPLE = [
+  {
+    title: 'Grains',
+    iconName: 'leaf-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Vegetables',
+    iconName: 'nutrition-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1464226184884-fa280b87c399?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Fruits',
+    iconName: 'nutrition-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1485637701894-09ad422f6de6?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Spices',
+    iconName: 'flame-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+];
+
+const AGRICULTURE_WEATHER_SAMPLE = [
+  {
+    kind: 'current',
+    location: 'Ghatlodiya, Gujarat',
+    temp: '28C',
+    condition: 'Partly cloudy',
+    humidity: '62%',
+    wind: '12 km/h',
+  },
+  { kind: 'forecast', day: 'Mon', temp: '29C', icon: 'partly-sunny-outline' },
+  { kind: 'forecast', day: 'Tue', temp: '31C', icon: 'sunny-outline' },
+  { kind: 'forecast', day: 'Wed', temp: '27C', icon: 'cloudy-outline' },
+  { kind: 'forecast', day: 'Thu', temp: '30C', icon: 'sunny-outline' },
+];
+
+const AGRICULTURE_SEASONAL_PICKS_SAMPLE = [
+  {
+    badgeText: 'Seasonal',
+    title: 'Kharif Seed Kit',
+    subtitle: 'Hybrid rice and pulses',
+    imageUrl: 'https://images.unsplash.com/photo-1471193945509-9ad0617afabf?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+  {
+    badgeText: 'Water smart',
+    title: 'Drip Irrigation',
+    subtitle: 'Save up to 30% water',
+    imageUrl: 'https://images.unsplash.com/photo-1495107334309-fcf20504a5ab?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+  {
+    badgeText: 'Soil care',
+    title: 'Soil Booster',
+    subtitle: 'Organic compost blend',
+    imageUrl: 'https://images.unsplash.com/photo-1501004318641-b39e6451bec6?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+];
+
+const AGRICULTURE_MANDI_SAMPLE = [
+  { name: 'Wheat', market: 'Unjha', price: 'Rs 2,345 / qtl', change: '+1.8%', direction: 'up' },
+  { name: 'Soybean', market: 'Indore', price: 'Rs 4,220 / qtl', change: '-0.6%', direction: 'down' },
+  { name: 'Cotton', market: 'Rajkot', price: 'Rs 6,180 / qtl', change: '+0.9%', direction: 'up' },
+  { name: 'Onion', market: 'Pune', price: 'Rs 1,560 / qtl', change: '+0.3%', direction: 'up' },
+];
+
+const AGRICULTURE_TOOLS_SAMPLE = [
+  {
+    title: 'Mini Tractor',
+    subtitle: '28 HP compact',
+    priceLine: 'Rs 2.8L',
+    rating: '4.8',
+    imageUrl: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Battery Sprayer',
+    subtitle: '16L capacity',
+    priceLine: 'Rs 4,299',
+    rating: '4.7',
+    imageUrl: 'https://images.unsplash.com/photo-1475335771922-27ecbdb9c820?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Power Tiller',
+    subtitle: 'Field ready',
+    priceLine: 'Rs 64,999',
+    rating: '4.6',
+    imageUrl: 'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+];
+
+const AGRICULTURE_INPUTS_SAMPLE = [
+  {
+    title: 'Urea 45kg',
+    subtitle: 'Nitrogen boost',
+    badgeText: 'Top selling',
+    priceLine: 'Rs 349',
+    rating: '4.8',
+    imageUrl: 'https://images.unsplash.com/photo-1444395026247-0f8c2a1b7e18?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'DAP 50kg',
+    subtitle: 'Root growth support',
+    badgeText: 'Balanced',
+    priceLine: 'Rs 1,420',
+    rating: '4.7',
+    imageUrl: 'https://images.unsplash.com/photo-1464226184884-fa280b87c399?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Organic Manure',
+    subtitle: 'Soil health mix',
+    badgeText: 'Eco',
+    priceLine: 'Rs 650',
+    rating: '4.6',
+    imageUrl: 'https://images.unsplash.com/photo-1495107334309-fcf20504a5ab?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+];
+
+const AGRICULTURE_SUPPLIERS_SAMPLE = [
+  {
+    title: 'GreenFarm Supplies',
+    subtitle: 'Ahmedabad',
+    rating: '4.8',
+    distance: '2.8 km',
+    imageUrl: 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'AgroPrime Co-op',
+    subtitle: 'Mehsana',
+    rating: '4.7',
+    distance: '5.2 km',
+    imageUrl: 'https://images.unsplash.com/photo-1504593811423-6dd665756598?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'FreshMandi Network',
+    subtitle: 'Surat',
+    rating: '4.6',
+    distance: '6.9 km',
+    imageUrl: 'https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+];
+
 const KIDS_HERO_SAMPLE = {
   badgeText: 'Kids Fest',
   title: 'Bright play, safe picks',
@@ -1911,6 +2077,91 @@ const buildDecorDefaultSections = () => [
     actionText: 'Start a design brief',
     enabled: true,
     items: [],
+  },
+];
+
+const buildAgricultureDefaultSections = (industryId) => [
+  {
+    id: 'agriculture_hero',
+    type: 'banner',
+    blockType: 'promo_hero_banner',
+    stylePreset: 'agriculture',
+    enabled: true,
+    items: [{ ...AGRICULTURE_HERO_SAMPLE }],
+  },
+  {
+    id: 'agriculture_weather_fixed',
+    type: 'fixed',
+    blockType: 'agriculture_weather_fixed',
+    title: 'Weather & forecast',
+    actionText: '7 day view',
+    enabled: true,
+    items: AGRICULTURE_WEATHER_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'agriculture_categories',
+    type: 'category_showcase',
+    blockType: 'category_showcase',
+    title: 'Shop crop categories',
+    actionText: 'View all',
+    showcaseVariant: 'circle_icon',
+    stylePreset: 'agriculture',
+    enabled: true,
+    dataSource: {
+      sourceType: 'CATEGORY_FEED',
+      industryId: industryId ? String(industryId) : undefined,
+    },
+    items: AGRICULTURE_CATEGORY_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'agriculture_seasonal_picks',
+    type: 'horizontalList',
+    blockType: 'media_overlay_carousel',
+    title: 'Seasonal picks',
+    actionText: 'Explore',
+    stylePreset: 'agriculture',
+    enabled: true,
+    items: AGRICULTURE_SEASONAL_PICKS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'agriculture_mandi_prices_fixed',
+    type: 'fixed',
+    blockType: 'agriculture_mandi_prices_fixed',
+    title: 'Live mandi prices',
+    actionText: 'Refresh',
+    enabled: true,
+    items: AGRICULTURE_MANDI_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'agriculture_tools',
+    type: 'horizontalList',
+    blockType: 'product_shelf_horizontal',
+    title: 'Tools and equipment',
+    actionText: 'View all',
+    stylePreset: 'agriculture',
+    enabled: true,
+    items: AGRICULTURE_TOOLS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'agriculture_inputs',
+    type: 'horizontalList',
+    blockType: 'product_shelf_horizontal',
+    title: 'Fertilizers and inputs',
+    actionText: 'View all',
+    stylePreset: 'agriculture',
+    enabled: true,
+    items: AGRICULTURE_INPUTS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'agriculture_suppliers',
+    type: 'horizontalList',
+    blockType: 'shop_card_carousel',
+    title: 'Verified suppliers',
+    actionText: 'View all',
+    stylePreset: 'agriculture',
+    actionMode: 'CALL_WHATSAPP',
+    enabled: true,
+    items: AGRICULTURE_SUPPLIERS_SAMPLE.map((item) => ({ ...item })),
   },
 ];
 
@@ -3041,6 +3292,34 @@ export const screenToolboxItems = [
     },
   },
   {
+    key: 'agricultureWeatherFixed',
+    label: 'Agriculture Weather',
+    hint: 'Hardcoded agriculture weather placeholder for CMS ordering',
+    section: {
+      id: 'agriculture_weather_fixed',
+      type: 'fixed',
+      blockType: 'agriculture_weather_fixed',
+      title: 'Weather & forecast',
+      actionText: '7 day view',
+      enabled: true,
+      items: AGRICULTURE_WEATHER_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
+    key: 'agricultureMandiPricesFixed',
+    label: 'Agriculture Mandi Prices',
+    hint: 'Hardcoded mandi prices placeholder for CMS ordering',
+    section: {
+      id: 'agriculture_mandi_prices_fixed',
+      type: 'fixed',
+      blockType: 'agriculture_mandi_prices_fixed',
+      title: 'Live mandi prices',
+      actionText: 'Refresh',
+      enabled: true,
+      items: AGRICULTURE_MANDI_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
     key: 'sportsLiveMatchesFixed',
     label: 'Sports Live Matches',
     hint: 'Hardcoded sports live matches placeholder for CMS ordering',
@@ -3525,6 +3804,8 @@ export const blockLabels = {
   bestseller_shelf: 'Bestsellers Shelf Block',
   automobile_b2b2c_fixed: 'Automobile B2B/B2C Section',
   automobile_fitment_fixed: 'Automobile Fitment Section',
+  agriculture_weather_fixed: 'Agriculture Weather Section',
+  agriculture_mandi_prices_fixed: 'Agriculture Mandi Prices Section',
   sports_live_matches_fixed: 'Sports Live Matches Section',
   travel_flight_deals_fixed: 'Travel Flight Deals Section',
   travel_bookings_fixed: 'Travel Bookings Section',
@@ -4350,6 +4631,7 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'beauty', label: 'Beauty' },
     { value: 'grocery', label: 'Grocery' },
     { value: 'fashion', label: 'Fashion' },
+    { value: 'agriculture', label: 'Agriculture' },
     { value: 'automobile', label: 'Automobile' },
     { value: 'jewellery', label: 'Jewellery' },
     { value: 'decor', label: 'Decor' },
@@ -4367,6 +4649,7 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'electronics', label: 'Electronics' },
     { value: 'grocery', label: 'Grocery' },
     { value: 'fashion', label: 'Fashion' },
+    { value: 'agriculture', label: 'Agriculture' },
     { value: 'automobile', label: 'Automobile' },
     { value: 'jewellery', label: 'Jewellery' },
     { value: 'decor', label: 'Decor' },
@@ -4380,6 +4663,7 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'electronics', label: 'Electronics' },
     { value: 'beauty', label: 'Beauty' },
     { value: 'grocery', label: 'Grocery' },
+    { value: 'agriculture', label: 'Agriculture' },
     { value: 'jewellery', label: 'Jewellery' },
     { value: 'decor', label: 'Decor' },
     { value: 'kids', label: 'Kids' },
@@ -4429,6 +4713,7 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'beauty', label: 'Beauty (compact card)' },
     { value: 'grocery', label: 'Grocery (compact card)' },
     { value: 'fashion', label: 'Fashion (full card)' },
+    { value: 'agriculture', label: 'Agriculture (full card)' },
     { value: 'electronics', label: 'Electronics (full card)' },
     { value: 'automobile', label: 'Automobile (full card)' },
     { value: 'sports', label: 'Sports (full card)' },
@@ -4446,6 +4731,7 @@ export const STYLE_PRESET_OPTIONS = {
   product_shelf_horizontal: [
     { value: '', label: 'Default' },
     { value: 'fashion', label: 'Fashion' },
+    { value: 'agriculture', label: 'Agriculture' },
     { value: 'automobile', label: 'Automobile' },
     { value: 'jewellery', label: 'Jewellery' },
     { value: 'decor', label: 'Decor' },
@@ -4673,6 +4959,7 @@ export const resolveIndustryRoute = (industry, slug) => {
 export const buildIndustryDefaultSections = (slug, industryName, industryId) => [
   ...((slug === 'jewellery' || slug === 'jewelry' || slug === 'jwellery') ? buildJewelleryDefaultSections(industryId) : []),
   ...(slug === 'decor' ? buildDecorDefaultSections(industryId) : []),
+  ...(slug === 'agriculture' ? buildAgricultureDefaultSections(industryId) : []),
   ...(slug === 'kids' ? buildKidsDefaultSections(industryId) : []),
   ...(slug === 'sports' ? buildSportsDefaultSections(industryId) : []),
   ...(slug === 'travel' ? buildTravelDefaultSections(industryId) : []),
@@ -4687,6 +4974,7 @@ export const buildIndustryDefaultSections = (slug, industryName, industryId) => 
     || slug === 'jewellery'
     || slug === 'jewelry'
     || slug === 'jwellery'
+    || slug === 'agriculture'
     || slug === 'kids'
     || slug === 'sports'
     || slug === 'travel'

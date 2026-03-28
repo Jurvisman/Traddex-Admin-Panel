@@ -310,6 +310,7 @@ const resolvePreviewThemeKey = (preset, fallback = 'default') => {
   if (normalized === 'grocery') return 'grocery';
   if (normalized === 'fashion') return 'fashion';
   if (normalized === 'decor') return 'decor';
+  if (normalized === 'agriculture') return 'agriculture';
   if (normalized === 'kids') return 'kids';
   if (normalized === 'sports') return 'sports';
   if (normalized === 'travel') return 'travel';
@@ -850,6 +851,7 @@ export const PreviewSection = ({
     const isGroceryPreset = normalizedPreset === 'grocery';
     const isFashionPreset = normalizedPreset === 'fashion';
     const isDecorPreset = normalizedPreset === 'decor';
+    const isAgriculturePreset = normalizedPreset === 'agriculture';
     const isKidsPreset = normalizedPreset === 'kids';
     const isSportsPreset = normalizedPreset === 'sports';
     const isTravelPreset = normalizedPreset === 'travel';
@@ -862,6 +864,8 @@ export const PreviewSection = ({
           className={`preview-promo-hero ${
             isSportsPreset
               ? 'is-sports'
+              : isAgriculturePreset
+                ? 'is-agriculture'
               : isTravelPreset
                 ? 'is-travel'
               : isFitnessPreset
@@ -1429,6 +1433,92 @@ export const PreviewSection = ({
                 <span className={`preview-services-slot-status ${status === 'waitlist' ? 'is-waitlist' : status === 'filling fast' ? 'is-fast' : 'is-available'}`}>
                   {item?.status || item?.badgeText || 'Available'}
                 </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'agriculture_weather_fixed') {
+    const current = items.find((item) => item?.kind === 'current' || item?.location) || items[0] || {};
+    const forecastItems = items.filter((item) => item?.kind === 'forecast' || item?.day || item?.label).slice(0, 4);
+    const forecast = forecastItems.length
+      ? forecastItems
+      : [
+          { day: 'Mon', temp: '29C', icon: 'partly-sunny-outline' },
+          { day: 'Tue', temp: '31C', icon: 'sunny-outline' },
+          { day: 'Wed', temp: '27C', icon: 'cloudy-outline' },
+          { day: 'Thu', temp: '30C', icon: 'sunny-outline' },
+        ];
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className={buildPreviewTitleClass({ themeKey: 'agriculture', surface: true })}>
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-agriculture-weather-shell">
+          <div className="preview-agriculture-weather-card">
+            <div className="preview-agriculture-weather-top">
+              <div className="preview-agriculture-weather-copy">
+                <div className="preview-agriculture-weather-location">{current?.location || 'Ghatlodiya, Gujarat'}</div>
+                <div className="preview-agriculture-weather-temp">{current?.temp || '28C'}</div>
+              </div>
+              <div className="preview-agriculture-weather-today">
+                <div className="preview-agriculture-weather-today-icon">Sun</div>
+                <div className="preview-agriculture-weather-today-label">Today</div>
+              </div>
+            </div>
+            <div className="preview-agriculture-weather-inline">
+              <span>{current?.condition || 'Partly cloudy'}</span>
+              <span className="preview-agriculture-weather-inline-divider">|</span>
+              <span>{`Humidity ${current?.humidity || '62%'}`}</span>
+              <span className="preview-agriculture-weather-inline-divider">|</span>
+              <span>{`Wind ${current?.wind || '12 km/h'}`}</span>
+            </div>
+          </div>
+          <div className="preview-agriculture-forecast-row">
+            {forecast.map((item, itemIndex) => (
+              <div key={`preview-agriculture-forecast-${index}-${itemIndex}`} className="preview-agriculture-forecast-card">
+                <div className="preview-agriculture-forecast-day">{item?.day || item?.label || `Day ${itemIndex + 1}`}</div>
+                <div className="preview-agriculture-forecast-icon">{item?.icon || 'sun'}</div>
+                <div className="preview-agriculture-forecast-temp">{item?.temp || item?.value || '29C'}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'agriculture_mandi_prices_fixed') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className={buildPreviewTitleClass({ themeKey: 'agriculture', surface: true })}>
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-agriculture-mandi-list">
+          {items.map((item, itemIndex) => {
+            const change = String(item?.change || item?.badgeText || '+0.0%').trim();
+            const isDown = String(item?.direction || '').trim().toLowerCase() === 'down' || change.startsWith('-');
+            return (
+              <div key={`preview-agriculture-mandi-${index}-${itemIndex}`} className="preview-agriculture-mandi-card">
+                <div className="preview-agriculture-mandi-copy">
+                  <div className="preview-agriculture-mandi-name">{item?.name || item?.title || `Crop ${itemIndex + 1}`}</div>
+                  <div className="preview-agriculture-mandi-market">{item?.market || item?.subtitle || 'Market'}</div>
+                </div>
+                <div className="preview-agriculture-mandi-right">
+                  <div className="preview-agriculture-mandi-price">{item?.price || item?.priceLine || 'Rs 2,345 / qtl'}</div>
+                  <span className={`preview-agriculture-mandi-change ${isDown ? 'is-down' : 'is-up'}`}>
+                    {change}
+                  </span>
+                </div>
               </div>
             );
           })}

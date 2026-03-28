@@ -405,7 +405,7 @@ function AppConfigPage({ token }) {
     if (pageId.startsWith('home_') && pageId !== 'home_main') {
       const slug = pageId.replace(/^home_/, '');
       if (slug === 'jewellery' || slug === 'jewelry' || slug === 'jwellery') return 'jewellery';
-      if (slug === 'beauty' || slug === 'electronics' || slug === 'grocery' || slug === 'fashion' || slug === 'automobile' || slug === 'decor' || slug === 'kids' || slug === 'sports' || slug === 'travel' || slug === 'fitness' || slug === 'services') return slug;
+      if (slug === 'beauty' || slug === 'electronics' || slug === 'grocery' || slug === 'fashion' || slug === 'automobile' || slug === 'decor' || slug === 'kids' || slug === 'sports' || slug === 'travel' || slug === 'fitness' || slug === 'services' || slug === 'agriculture') return slug;
     }
     const route = String(selectedPage?.route || '').trim().toLowerCase();
     if (route.includes('jewellery') || route.includes('jewelry') || route.includes('jwellery')) return 'jewellery';
@@ -420,11 +420,12 @@ function AppConfigPage({ token }) {
     if (route.includes('travel')) return 'travel';
     if (route.includes('fitness')) return 'fitness';
     if (route.includes('services')) return 'services';
+    if (route.includes('agriculture')) return 'agriculture';
     const industrySlug = normalizeSlug(pageIndustry?.slug || pageIndustry?.name || '');
     if (industrySlug === 'jewellery' || industrySlug === 'jewelry' || industrySlug === 'jwellery') {
       return 'jewellery';
     }
-    if (industrySlug === 'beauty' || industrySlug === 'electronics' || industrySlug === 'grocery' || industrySlug === 'fashion' || industrySlug === 'automobile' || industrySlug === 'decor' || industrySlug === 'kids' || industrySlug === 'sports' || industrySlug === 'travel' || industrySlug === 'fitness' || industrySlug === 'services') {
+    if (industrySlug === 'beauty' || industrySlug === 'electronics' || industrySlug === 'grocery' || industrySlug === 'fashion' || industrySlug === 'automobile' || industrySlug === 'decor' || industrySlug === 'kids' || industrySlug === 'sports' || industrySlug === 'travel' || industrySlug === 'fitness' || industrySlug === 'services' || industrySlug === 'agriculture') {
       return industrySlug;
     }
     return '';

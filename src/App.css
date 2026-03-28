@@ -7206,6 +7206,283 @@ textarea {
   flex-shrink: 0;
 }
 
+.preview-title.preview-title-theme-agriculture {
+  color: #1e2a20;
+}
+
+.preview-title.preview-title-theme-agriculture.preview-title-surface-pill {
+  background: #ffffff;
+  border-color: rgba(47, 125, 50, 0.14);
+}
+
+.preview-title.preview-title-theme-agriculture .preview-action-link {
+  color: #2f7d32;
+}
+
+.preview-showcase-theme-agriculture .preview-showcase-circle-image {
+  background: #eff5ec;
+  border-color: rgba(47, 125, 50, 0.14);
+}
+
+.preview-showcase-theme-agriculture .preview-showcase-icon-badge {
+  background: #2f7d32;
+}
+
+.preview-showcase-theme-agriculture .preview-showcase-circle-label {
+  color: #1e2a20;
+}
+
+.preview-promo-hero.is-agriculture .preview-promo-hero-overlay {
+  background: linear-gradient(180deg, rgba(30, 42, 32, 0.1), rgba(30, 42, 32, 0.78));
+}
+
+.preview-promo-hero.is-agriculture .preview-promo-hero-badge {
+  background: rgba(111, 175, 78, 0.22);
+  border-color: rgba(111, 175, 78, 0.36);
+}
+
+.preview-promo-hero.is-agriculture .preview-promo-hero-cta {
+  background: #2f7d32;
+}
+
+.preview-media-overlay-card.is-agriculture {
+  border-color: rgba(47, 125, 50, 0.14);
+}
+
+.preview-media-overlay-card.is-agriculture .preview-media-overlay-badge {
+  background: rgba(111, 175, 78, 0.22);
+  color: #ffffff;
+}
+
+.preview-shelf-row.is-agriculture .preview-shelf-card {
+  border-color: rgba(47, 125, 50, 0.14);
+  background: #ffffff;
+}
+
+.preview-shelf-row.is-agriculture .preview-shelf-image {
+  background: #eff5ec;
+}
+
+.preview-shelf-row.is-agriculture .preview-shelf-title {
+  color: #1e2a20;
+}
+
+.preview-shelf-row.is-agriculture .preview-shelf-subtitle,
+.preview-shelf-row.is-agriculture .preview-shelf-rating {
+  color: #667766;
+}
+
+.preview-shelf-row.is-agriculture .preview-shelf-price {
+  color: #2f7d32;
+}
+
+.preview-shop-card-row.is-agriculture .preview-shop-card {
+  border-color: rgba(47, 125, 50, 0.14);
+  background: #ffffff;
+}
+
+.preview-shop-card-row.is-agriculture .preview-shop-card-image {
+  background: #eff5ec;
+}
+
+.preview-shop-card-row.is-agriculture .preview-shop-card-title {
+  color: #1e2a20;
+}
+
+.preview-shop-card-row.is-agriculture .preview-shop-card-subtitle,
+.preview-shop-card-row.is-agriculture .preview-shop-card-meta {
+  color: #667766;
+}
+
+.preview-shop-card-row.is-agriculture .preview-shop-card-pill {
+  border-color: rgba(47, 125, 50, 0.14);
+  color: #2f7d32;
+}
+
+.preview-agriculture-weather-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.preview-agriculture-weather-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid #e4e9e1;
+}
+
+.preview-agriculture-weather-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.preview-agriculture-weather-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.preview-agriculture-weather-location {
+  font-size: 9px;
+  font-weight: 700;
+  color: #7a8577;
+}
+
+.preview-agriculture-weather-temp {
+  margin-top: 4px;
+  font-size: 18px;
+  font-weight: 800;
+  color: #1e2a20;
+}
+
+.preview-agriculture-weather-today {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-agriculture-weather-today-icon {
+  font-size: 8px;
+  font-weight: 800;
+  color: #2f7d32;
+}
+
+.preview-agriculture-weather-today-label {
+  margin-top: 3px;
+  font-size: 7px;
+  font-weight: 700;
+  color: #2f7d32;
+}
+
+.preview-agriculture-weather-inline {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0;
+  font-size: 8px;
+  color: #667766;
+}
+
+.preview-agriculture-weather-inline-divider {
+  margin: 0 5px;
+  color: #b3bdb0;
+}
+
+.preview-agriculture-forecast-row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.preview-agriculture-forecast-card {
+  border-radius: 14px;
+  border: 1px solid #e4e9e1;
+  background: #ffffff;
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.preview-agriculture-forecast-day {
+  font-size: 8px;
+  font-weight: 800;
+  color: #7a8577;
+}
+
+.preview-agriculture-forecast-icon {
+  font-size: 8px;
+  font-weight: 800;
+  color: #2f7d32;
+}
+
+.preview-agriculture-forecast-temp {
+  font-size: 8px;
+  font-weight: 800;
+  color: #256428;
+}
+
+.preview-agriculture-mandi-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e4e9e1;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.preview-agriculture-mandi-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px;
+  background: #ffffff;
+}
+
+.preview-agriculture-mandi-card + .preview-agriculture-mandi-card {
+  border-top: 1px solid #ecefe9;
+}
+
+.preview-agriculture-mandi-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.preview-agriculture-mandi-name {
+  font-size: 10px;
+  font-weight: 800;
+  color: #1e2a20;
+}
+
+.preview-agriculture-mandi-market {
+  margin-top: 2px;
+  font-size: 8px;
+  color: #667766;
+}
+
+.preview-agriculture-mandi-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+  min-width: 74px;
+}
+
+.preview-agriculture-mandi-price {
+  font-size: 9px;
+  font-weight: 800;
+  color: #1e2a20;
+}
+
+.preview-agriculture-mandi-change {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.preview-agriculture-mandi-change.is-up {
+  background: rgba(34, 197, 94, 0.14);
+  color: #16a34a;
+}
+
+.preview-agriculture-mandi-change.is-down {
+  background: rgba(239, 68, 68, 0.14);
+  color: #dc2626;
+}
+
 .preview-grid {
   display: grid;
   grid-template-columns: repeat(var(--cols, 2), minmax(0, 1fr));
