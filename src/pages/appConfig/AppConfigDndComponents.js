@@ -312,6 +312,7 @@ const resolvePreviewThemeKey = (preset, fallback = 'default') => {
   if (normalized === 'kids') return 'kids';
   if (normalized === 'sports') return 'sports';
   if (normalized === 'travel') return 'travel';
+  if (normalized === 'fitness') return 'fitness';
   if (normalized === 'electronics') return 'electronics';
   if (normalized === 'automobile') return 'automobile';
   return normalized || fallback;
@@ -767,6 +768,7 @@ export const PreviewSection = ({
     const isKidsShowcase = normalizedShowcasePreset === 'kids';
     const isSportsShowcase = normalizedShowcasePreset === 'sports';
     const isTravelShowcase = normalizedShowcasePreset === 'travel';
+    const isFitnessShowcase = normalizedShowcasePreset === 'fitness';
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
         {title ? (
@@ -781,12 +783,14 @@ export const PreviewSection = ({
               ? 'preview-showcase-theme-electronics'
               : isGroceryShowcase
                 ? 'preview-showcase-theme-grocery'
-                : isKidsShowcase
-                  ? 'preview-showcase-theme-kids'
-                  : isSportsShowcase
-                    ? 'preview-showcase-theme-sports'
-                    : isTravelShowcase
-                      ? 'preview-showcase-theme-travel'
+                  : isKidsShowcase
+                    ? 'preview-showcase-theme-kids'
+                    : isSportsShowcase
+                      ? 'preview-showcase-theme-sports'
+                      : isTravelShowcase
+                        ? 'preview-showcase-theme-travel'
+                        : isFitnessShowcase
+                          ? 'preview-showcase-theme-fitness'
                 : ''
           }`}
         >
@@ -803,10 +807,10 @@ export const PreviewSection = ({
                 <div key={`preview-showcase-card-${index}-${itemIndex}`} className="preview-showcase-card-item">
                   <div className="preview-showcase-card-image">
                     {image ? <img src={image} alt="" /> : <div className="preview-image-placeholder" />}
-                    {isTravelShowcase ? <div className="preview-showcase-card-overlay" /> : null}
+                    {isTravelShowcase || isFitnessShowcase ? <div className="preview-showcase-card-overlay" /> : null}
                     {icon ? (
                       <img src={icon} alt="" className="preview-showcase-card-badge" />
-                    ) : isTravelShowcase ? (
+                    ) : isTravelShowcase || isFitnessShowcase ? (
                       <span className="preview-showcase-card-badge-icon">{iconGlyph}</span>
                     ) : null}
                     <div className="preview-showcase-card-label">{label}</div>
@@ -842,6 +846,7 @@ export const PreviewSection = ({
     const isKidsPreset = normalizedPreset === 'kids';
     const isSportsPreset = normalizedPreset === 'sports';
     const isTravelPreset = normalizedPreset === 'travel';
+    const isFitnessPreset = normalizedPreset === 'fitness';
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
         <div
@@ -850,6 +855,8 @@ export const PreviewSection = ({
               ? 'is-sports'
               : isTravelPreset
                 ? 'is-travel'
+              : isFitnessPreset
+                ? 'is-fitness'
               : isKidsPreset
                 ? 'is-kids'
                 : isDecorPreset
@@ -1288,6 +1295,95 @@ export const PreviewSection = ({
               <div className="preview-shelf-footer">
                 <span className="preview-shelf-price">{item?.priceLine || item?.price || 'Rs 999'}</span>
                 {item?.rating ? <span className="preview-shelf-rating">★ {item.rating}</span> : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'fitness_progress_stats_fixed') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className={buildPreviewTitleClass({ themeKey: 'fitness', surface: true })}>
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-fitness-stat-row">
+          {items.map((item, itemIndex) => (
+            <div key={`preview-fitness-stat-${index}-${itemIndex}`} className="preview-fitness-stat-card">
+              <div className="preview-fitness-stat-icon">{item?.iconName || item?.icon || 'fit'}</div>
+              <div className="preview-fitness-stat-value">{item?.value || `0${itemIndex + 1}`}</div>
+              <div className="preview-fitness-stat-label">{item?.label || `Stat ${itemIndex + 1}`}</div>
+              {item?.meta ? <div className="preview-fitness-stat-meta">{item.meta}</div> : null}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'fitness_class_schedule_fixed') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className={buildPreviewTitleClass({ themeKey: 'fitness', surface: true })}>
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-fitness-schedule-list">
+          {items.map((item, itemIndex) => (
+            <div key={`preview-fitness-schedule-${index}-${itemIndex}`} className="preview-fitness-schedule-card">
+              <div className="preview-fitness-schedule-icon">{item?.iconName || item?.icon || 'fit'}</div>
+              <div className="preview-fitness-schedule-copy">
+                <div className="preview-fitness-schedule-title">{item?.title || `Class ${itemIndex + 1}`}</div>
+                <div className="preview-fitness-schedule-meta">{`${item?.time || '6:30 AM'} | ${item?.coach || 'Coach'}`}</div>
+                {item?.level ? <div className="preview-fitness-schedule-meta">{item.level}</div> : null}
+              </div>
+              <span className="preview-fitness-schedule-badge">{item?.spots || 'Open'}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'fitness_memberships_fixed') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className={buildPreviewTitleClass({ themeKey: 'fitness', surface: true })}>
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-fitness-membership-list">
+          {items.map((item, itemIndex) => (
+            <div
+              key={`preview-fitness-membership-${index}-${itemIndex}`}
+              className={`preview-fitness-membership-card ${item?.highlight ? 'is-highlight' : ''}`}
+            >
+              <div className="preview-fitness-membership-head">
+                <div>
+                  <div className="preview-fitness-membership-name">{item?.name || item?.title || `Plan ${itemIndex + 1}`}</div>
+                  {item?.tagline || item?.subtitle ? (
+                    <div className="preview-fitness-membership-tagline">{item?.tagline || item?.subtitle}</div>
+                  ) : null}
+                </div>
+                <div className="preview-fitness-membership-price">{item?.price || item?.priceLine || 'Rs 999'}</div>
+              </div>
+              <div className="preview-fitness-membership-perks">
+                {Array.isArray(item?.perks)
+                  ? item.perks.slice(0, 3).map((perk, perkIndex) => (
+                      <div key={`preview-fitness-perk-${index}-${itemIndex}-${perkIndex}`} className="preview-fitness-membership-perk">
+                        {perk}
+                      </div>
+                    ))
+                  : <div className="preview-fitness-membership-perk">Plan perks</div>}
               </div>
             </div>
           ))}

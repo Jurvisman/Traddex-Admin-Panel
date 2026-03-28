@@ -1301,6 +1301,152 @@ const SPORTS_RECOVERY_SAMPLE = [
   { title: 'Stretch band', subtitle: 'Flexibility kit', iconName: 'bandage-outline', deepLink: '' },
 ];
 
+const FITNESS_HERO_SAMPLE = {
+  badgeText: 'Athlete Mode',
+  title: 'Build strength and stamina',
+  subtitle: 'Hybrid programs, smart nutrition, and tracking',
+  ctaText: 'Start program',
+  imageUrl: 'https://images.unsplash.com/photo-1517963879433-6ad2b056d712?auto=format&fit=crop&w=1400&q=80',
+  ctaLink: '',
+};
+
+const FITNESS_CATEGORY_SAMPLE = [
+  {
+    title: 'Equipment',
+    iconName: 'barbell-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1517963879433-6ad2b056d712?auto=format&fit=crop&w=700&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Classes',
+    iconName: 'bicycle-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=700&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Nutrition',
+    iconName: 'nutrition-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&w=700&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Recovery',
+    iconName: 'medkit-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=700&q=80',
+    deepLink: '',
+  },
+];
+
+const FITNESS_PROGRESS_STATS_SAMPLE = [
+  { label: 'Workout streak', value: '14 days', iconName: 'flame-outline', meta: '+3 this week' },
+  { label: 'Calories', value: '2,450', iconName: 'flash-outline', meta: 'Avg / day' },
+  { label: 'Strength PR', value: '+22%', iconName: 'barbell-outline', meta: 'Last 30 days' },
+  { label: 'Sleep', value: '7.2 hrs', iconName: 'moon-outline', meta: 'Recovery score' },
+];
+
+const FITNESS_WORKOUTS_SAMPLE = [
+  {
+    title: 'Power Strength',
+    subtitle: 'Upper body focus | Intermediate',
+    badgeText: '45 min',
+    imageUrl: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'HIIT Burn',
+    subtitle: 'Full body cardio | Advanced',
+    badgeText: '28 min',
+    imageUrl: 'https://images.unsplash.com/photo-1554344728-77cf90d9ed26?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Mobility Flow',
+    subtitle: 'Flexibility reset | All levels',
+    badgeText: '25 min',
+    imageUrl: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+];
+
+const FITNESS_CLASS_SCHEDULE_SAMPLE = [
+  { title: 'Spin Core', time: '6:30 AM', coach: 'Coach Riya', level: 'High intensity', iconName: 'bicycle-outline', spots: '4 spots left' },
+  { title: 'Strength Lab', time: '8:00 AM', coach: 'Coach Aman', level: 'Strength focus', iconName: 'barbell-outline', spots: 'Waitlist' },
+  { title: 'Mobility Yoga', time: '12:15 PM', coach: 'Coach Sana', level: 'Recovery', iconName: 'walk-outline', spots: '8 spots left' },
+];
+
+const FITNESS_TRAINERS_SAMPLE = [
+  {
+    title: 'Neha Kapoor',
+    subtitle: 'Strength + mobility',
+    priceLine: 'Coach',
+    rating: '4.9',
+    imageUrl: 'https://images.unsplash.com/photo-1554284126-aa88f22d8b72?auto=format&fit=crop&w=700&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Kabir Singh',
+    subtitle: 'HIIT + endurance',
+    priceLine: 'Coach',
+    rating: '4.8',
+    imageUrl: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=700&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Maya Desai',
+    subtitle: 'Yoga + recovery',
+    priceLine: 'Coach',
+    rating: '4.9',
+    imageUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=700&q=80',
+    deepLink: '',
+  },
+];
+
+const FITNESS_MEMBERSHIPS_SAMPLE = [
+  {
+    name: 'Starter',
+    price: 'Rs 999',
+    tagline: 'Gym access 5 days/week',
+    perks: ['4 classes/month', 'Nutrition guide', 'Progress tracker'],
+  },
+  {
+    name: 'Pro',
+    price: 'Rs 1,799',
+    tagline: 'Unlimited classes + sauna',
+    perks: ['Unlimited classes', 'Recovery lounge', 'Trainer check-ins'],
+    highlight: true,
+  },
+  {
+    name: 'Elite',
+    price: 'Rs 2,599',
+    tagline: '1:1 coaching + premium',
+    perks: ['Personal coach', 'Custom meal plan', 'VIP recovery'],
+  },
+];
+
+const FITNESS_NUTRITION_SAMPLE = [
+  {
+    title: 'Lean Cut',
+    subtitle: 'High protein, low carb',
+    priceLine: '1,900 kcal',
+    imageUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Lean Bulk',
+    subtitle: 'Performance carbs',
+    priceLine: '2,500 kcal',
+    imageUrl: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Plant Powered',
+    subtitle: 'Vegan strength',
+    priceLine: '2,100 kcal',
+    imageUrl: 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+];
+
 const TRAVEL_HERO_SAMPLE = {
   badgeText: 'Ocean Escape',
   title: 'Sail into summer',
@@ -1785,6 +1931,85 @@ const buildTravelDefaultSections = (industryId) => [
     actionText: 'Manage',
     enabled: true,
     items: TRAVEL_BOOKINGS_SAMPLE.map((item) => ({ ...item })),
+  },
+];
+
+const buildFitnessDefaultSections = () => [
+  {
+    id: 'fitness_hero',
+    type: 'banner',
+    blockType: 'promo_hero_banner',
+    stylePreset: 'fitness',
+    enabled: true,
+    items: [{ ...FITNESS_HERO_SAMPLE }],
+  },
+  {
+    id: 'fitness_categories',
+    type: 'category_showcase',
+    blockType: 'category_showcase',
+    title: 'Shop categories',
+    actionText: 'View all',
+    showcaseVariant: 'card',
+    stylePreset: 'fitness',
+    enabled: true,
+    items: FITNESS_CATEGORY_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'fitness_progress_stats_fixed',
+    type: 'fixed',
+    blockType: 'fitness_progress_stats_fixed',
+    title: 'Progress stats',
+    actionText: 'View insights',
+    enabled: true,
+    items: FITNESS_PROGRESS_STATS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'fitness_workouts',
+    type: 'horizontalList',
+    blockType: 'media_overlay_carousel',
+    title: 'Workouts',
+    actionText: 'See all',
+    stylePreset: 'fitness',
+    enabled: true,
+    items: FITNESS_WORKOUTS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'fitness_class_schedule_fixed',
+    type: 'fixed',
+    blockType: 'fitness_class_schedule_fixed',
+    title: 'Class schedule',
+    actionText: 'Full schedule',
+    enabled: true,
+    items: FITNESS_CLASS_SCHEDULE_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'fitness_top_trainers',
+    type: 'horizontalList',
+    blockType: 'product_shelf_horizontal',
+    title: 'Top trainers',
+    actionText: 'Meet all',
+    stylePreset: 'fitness',
+    enabled: true,
+    items: FITNESS_TRAINERS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'fitness_memberships_fixed',
+    type: 'fixed',
+    blockType: 'fitness_memberships_fixed',
+    title: 'Memberships',
+    actionText: 'Compare',
+    enabled: true,
+    items: FITNESS_MEMBERSHIPS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'fitness_nutrition',
+    type: 'horizontalList',
+    blockType: 'product_shelf_horizontal',
+    title: 'Nutrition plans',
+    actionText: 'View plans',
+    stylePreset: 'fitness',
+    enabled: true,
+    items: FITNESS_NUTRITION_SAMPLE.map((item) => ({ ...item })),
   },
 ];
 
@@ -2466,6 +2691,48 @@ export const screenToolboxItems = [
     },
   },
   {
+    key: 'fitnessProgressStatsFixed',
+    label: 'Fitness Progress Stats',
+    hint: 'Hardcoded fitness progress stats placeholder for CMS ordering',
+    section: {
+      id: 'fitness_progress_stats_fixed',
+      type: 'fixed',
+      blockType: 'fitness_progress_stats_fixed',
+      title: 'Progress stats',
+      actionText: 'View insights',
+      enabled: true,
+      items: FITNESS_PROGRESS_STATS_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
+    key: 'fitnessClassScheduleFixed',
+    label: 'Fitness Class Schedule',
+    hint: 'Hardcoded fitness class schedule placeholder for CMS ordering',
+    section: {
+      id: 'fitness_class_schedule_fixed',
+      type: 'fixed',
+      blockType: 'fitness_class_schedule_fixed',
+      title: 'Class schedule',
+      actionText: 'Full schedule',
+      enabled: true,
+      items: FITNESS_CLASS_SCHEDULE_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
+    key: 'fitnessMembershipsFixed',
+    label: 'Fitness Memberships',
+    hint: 'Hardcoded fitness memberships placeholder for CMS ordering',
+    section: {
+      id: 'fitness_memberships_fixed',
+      type: 'fixed',
+      blockType: 'fitness_memberships_fixed',
+      title: 'Memberships',
+      actionText: 'Compare',
+      enabled: true,
+      items: FITNESS_MEMBERSHIPS_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
     key: 'splitPromoRow',
     label: 'Split Promo Row',
     hint: 'Two side-by-side promo cards in one row',
@@ -2841,6 +3108,9 @@ export const blockLabels = {
   sports_live_matches_fixed: 'Sports Live Matches Section',
   travel_flight_deals_fixed: 'Travel Flight Deals Section',
   travel_bookings_fixed: 'Travel Bookings Section',
+  fitness_progress_stats_fixed: 'Fitness Progress Stats Section',
+  fitness_class_schedule_fixed: 'Fitness Class Schedule Section',
+  fitness_memberships_fixed: 'Fitness Memberships Section',
   sectionTitle: 'Section Title Block',
   multiItemGrid: 'Product Grid Block',
   categoryPreviewGrid: 'Category Preview Grid',
@@ -3663,6 +3933,7 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'kids', label: 'Kids' },
     { value: 'sports', label: 'Sports' },
     { value: 'travel', label: 'Travel' },
+    { value: 'fitness', label: 'Fitness' },
   ],
   split_promo_row: [
     { value: 'grocery', label: 'Grocery' },
@@ -3677,6 +3948,7 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'kids', label: 'Kids' },
     { value: 'sports', label: 'Sports' },
     { value: 'travel', label: 'Travel' },
+    { value: 'fitness', label: 'Fitness' },
   ],
   media_overlay_carousel: [
     { value: 'electronics', label: 'Electronics' },
@@ -3686,6 +3958,7 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'kids', label: 'Kids' },
     { value: 'sports', label: 'Sports' },
     { value: 'travel', label: 'Travel' },
+    { value: 'fitness', label: 'Fitness' },
   ],
   product_card_carousel: [
     { value: 'electronics', label: 'Electronics' },
@@ -3748,6 +4021,7 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'kids', label: 'Kids' },
     { value: 'sports', label: 'Sports' },
     { value: 'travel', label: 'Travel' },
+    { value: 'fitness', label: 'Fitness' },
   ],
   promo_banner: [
     { value: '', label: 'Default' },
@@ -3969,6 +4243,7 @@ export const buildIndustryDefaultSections = (slug, industryName, industryId) => 
   ...(slug === 'kids' ? buildKidsDefaultSections(industryId) : []),
   ...(slug === 'sports' ? buildSportsDefaultSections(industryId) : []),
   ...(slug === 'travel' ? buildTravelDefaultSections(industryId) : []),
+  ...(slug === 'fitness' ? buildFitnessDefaultSections(industryId) : []),
   ...(slug === 'beauty' ? buildBeautyDefaultSections(industryId) : []),
   ...(slug === 'electronics' ? buildElectronicsDefaultSections(industryId) : []),
   ...(slug === 'grocery' ? buildGroceryDefaultSections(industryId) : []),
@@ -3978,6 +4253,7 @@ export const buildIndustryDefaultSections = (slug, industryName, industryId) => 
     || slug === 'kids'
     || slug === 'sports'
     || slug === 'travel'
+    || slug === 'fitness'
     || slug === 'beauty'
     || slug === 'electronics'
     || slug === 'grocery'
