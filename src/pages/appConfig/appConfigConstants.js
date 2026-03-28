@@ -2005,6 +2005,241 @@ const TRAVEL_BOOKINGS_SAMPLE = [
   },
 ];
 
+const MANUFACTURING_HERO_SAMPLE = {
+  badgeText: 'Materials',
+  title: 'Manufacturing Essentials',
+  subtitle: 'Raw materials, equipment, tools, and verified industrial partners',
+  ctaText: 'Explore',
+  imageUrl: 'https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?auto=format&fit=crop&w=1400&q=80',
+  deepLink: '',
+};
+
+const MANUFACTURING_QUICK_ACTIONS_SAMPLE = [
+  {
+    title: 'Raise RFQ',
+    subtitle: 'Quote in 24-48h',
+    ctaText: 'Start RFQ',
+    iconName: 'document-text-outline',
+    deepLink: '',
+  },
+  {
+    title: 'Find supplier',
+    subtitle: 'Verified industrial partners',
+    ctaText: 'Browse',
+    iconName: 'search-outline',
+    deepLink: '',
+  },
+  {
+    title: 'Track order',
+    subtitle: 'Live shipment status',
+    ctaText: 'Track',
+    iconName: 'navigate-outline',
+    deepLink: '',
+  },
+];
+
+const MANUFACTURING_CATEGORY_SAMPLE = [
+  {
+    title: 'Raw Materials',
+    iconName: 'cube-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Machinery',
+    iconName: 'cog-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1581091012184-7a9d5c3b2d6a?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Packaging',
+    iconName: 'archive-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1567016549637-3f7b14448666?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Chemicals',
+    iconName: 'flask-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'OEM Parts',
+    iconName: 'hardware-chip-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1507477338202-487281e6c27e?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Safety',
+    iconName: 'shield-checkmark-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1581091215367-59c66f2b5b1b?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+];
+
+const MANUFACTURING_SUPPLIERS_SAMPLE = [
+  {
+    title: 'ForgeWorks Industrial',
+    subtitle: 'Pune, IN',
+    badgeText: 'ISO 9001',
+    businessType: 'CNC and castings',
+    moq: 'MOQ 50',
+    dispatch: 'Dispatch 24h',
+    rating: '4.8',
+    distance: '2.4 km',
+    imageUrl: 'https://images.unsplash.com/photo-1581091012184-7a9d5c3b2d6a?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'MetraSteel Solutions',
+    subtitle: 'Ahmedabad, IN',
+    badgeText: 'MSME',
+    businessType: 'Steel coils and sheets',
+    moq: 'MOQ 20',
+    dispatch: 'Dispatch 48h',
+    rating: '4.7',
+    distance: '4.1 km',
+    imageUrl: 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'PackLine Pro',
+    subtitle: 'Mumbai, IN',
+    badgeText: 'Verified',
+    businessType: 'Industrial packaging',
+    moq: 'MOQ 100',
+    dispatch: 'Dispatch 24h',
+    rating: '4.6',
+    distance: '6.8 km',
+    imageUrl: 'https://images.unsplash.com/photo-1567016549637-3f7b14448666?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+];
+
+const MANUFACTURING_STATS_SAMPLE = [
+  { label: 'Active RFQs', value: '48', meta: 'Avg response 14h', tone: 'accent', iconName: 'stats-chart-outline' },
+  { label: 'Verified suppliers', value: '1.2k', meta: 'ISO + MSME', tone: 'cool', iconName: 'shield-checkmark-outline' },
+  { label: 'On-time delivery', value: '96%', meta: 'Last 30 days', tone: 'success', iconName: 'checkmark-done-outline' },
+  { label: 'Avg lead time', value: '5.2d', meta: 'Down 12%', tone: 'accent', iconName: 'speedometer-outline' },
+];
+
+const MANUFACTURING_LIVE_PRICES_SAMPLE = [
+  { label: 'Steel', price: '102.4/MT', change: '+1.8%', direction: 'up', deepLink: '' },
+  { label: 'Aluminum', price: '2.1/kg', change: '-0.6%', direction: 'down', deepLink: '' },
+  { label: 'Copper', price: '8.9/kg', change: '+0.9%', direction: 'up', deepLink: '' },
+  { label: 'Resin', price: '1.3/kg', change: '+0.4%', direction: 'up', deepLink: '' },
+];
+
+const MANUFACTURING_RECENT_ORDERS_SAMPLE = [
+  { title: 'CNC Machined Gears', supplier: 'ForgeWorks Industrial', eta: 'ETA 2 days', status: 'In Transit', deepLink: '' },
+  { title: 'Packaging Pallets', supplier: 'PackLine Pro', eta: 'ETA 5 days', status: 'Processing', deepLink: '' },
+  { title: 'Stainless Steel Sheets', supplier: 'MetraSteel Solutions', eta: 'Delivered yesterday', status: 'Delivered', deepLink: '' },
+];
+
+const MANUFACTURING_COMPLIANCE_SAMPLE = [
+  { title: 'ISO 9001', subtitle: 'Quality systems', iconName: 'shield-checkmark-outline', deepLink: '' },
+  { title: 'RoHS', subtitle: 'Material compliance', iconName: 'leaf-outline', deepLink: '' },
+  { title: 'MSME Verified', subtitle: 'Vendor validation', iconName: 'business-outline', deepLink: '' },
+  { title: 'Audit Ready', subtitle: 'Traceable lots', iconName: 'document-text-outline', deepLink: '' },
+];
+
+const buildManufacturingDefaultSections = (industryId) => [
+  {
+    id: 'manufacturing_hero',
+    type: 'banner',
+    blockType: 'promo_hero_banner',
+    stylePreset: 'manufacturing',
+    enabled: true,
+    items: [{ ...MANUFACTURING_HERO_SAMPLE }],
+  },
+  {
+    id: 'manufacturing_quick_actions',
+    type: 'horizontalList',
+    blockType: 'quick_action_row',
+    title: 'Quick actions',
+    actionText: 'Manage',
+    quickActionPreset: 'manufacturing',
+    enabled: true,
+    items: MANUFACTURING_QUICK_ACTIONS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'manufacturing_stats_fixed',
+    type: 'fixed',
+    blockType: 'manufacturing_stats_fixed',
+    title: 'Manufacturing stats',
+    actionText: 'View dashboard',
+    enabled: true,
+    items: MANUFACTURING_STATS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'manufacturing_categories',
+    type: 'category_showcase',
+    blockType: 'category_showcase',
+    title: 'Categories',
+    actionText: 'View all',
+    showcaseVariant: 'circle_icon',
+    stylePreset: 'manufacturing',
+    enabled: true,
+    dataSource: {
+      sourceType: 'CATEGORY_FEED',
+      industryId: industryId ? String(industryId) : undefined,
+    },
+    items: MANUFACTURING_CATEGORY_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'manufacturing_suppliers',
+    type: 'horizontalList',
+    blockType: 'shop_card_carousel',
+    title: 'Featured suppliers',
+    actionText: 'Explore',
+    stylePreset: 'manufacturing',
+    enabled: true,
+    dataSource: {
+      sourceType: 'MANUAL',
+    },
+    items: MANUFACTURING_SUPPLIERS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'manufacturing_rfq_banner',
+    type: 'banner',
+    blockType: 'promo_banner',
+    stylePreset: 'manufacturing',
+    title: 'Need vendor quotes?',
+    text: 'Share specs and receive verified supplier responses in 24-48 hours.',
+    actionText: 'Start RFQ',
+    enabled: true,
+    items: [],
+  },
+  {
+    id: 'manufacturing_live_prices_fixed',
+    type: 'fixed',
+    blockType: 'manufacturing_live_prices_fixed',
+    title: 'Live industry prices',
+    actionText: 'Refresh',
+    enabled: true,
+    items: MANUFACTURING_LIVE_PRICES_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'manufacturing_recent_orders_fixed',
+    type: 'fixed',
+    blockType: 'manufacturing_recent_orders_fixed',
+    title: 'Recent orders',
+    actionText: 'View all',
+    enabled: true,
+    items: MANUFACTURING_RECENT_ORDERS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'manufacturing_compliance',
+    type: 'list',
+    blockType: 'info_list',
+    title: 'Compliance and quality',
+    actionText: 'View reports',
+    stylePreset: 'manufacturing',
+    enabled: true,
+    items: MANUFACTURING_COMPLIANCE_SAMPLE.map((item) => ({ ...item })),
+  },
+];
+
 const buildDecorDefaultSections = () => [
   {
     id: 'decor_hero',
@@ -3362,6 +3597,48 @@ export const screenToolboxItems = [
     },
   },
   {
+    key: 'manufacturingStatsFixed',
+    label: 'Manufacturing Stats',
+    hint: 'Hardcoded manufacturing stats placeholder for CMS ordering',
+    section: {
+      id: 'manufacturing_stats_fixed',
+      type: 'fixed',
+      blockType: 'manufacturing_stats_fixed',
+      title: 'Manufacturing stats',
+      actionText: 'View dashboard',
+      enabled: true,
+      items: MANUFACTURING_STATS_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
+    key: 'manufacturingLivePricesFixed',
+    label: 'Manufacturing Live Prices',
+    hint: 'Hardcoded manufacturing live prices placeholder for CMS ordering',
+    section: {
+      id: 'manufacturing_live_prices_fixed',
+      type: 'fixed',
+      blockType: 'manufacturing_live_prices_fixed',
+      title: 'Live industry prices',
+      actionText: 'Refresh',
+      enabled: true,
+      items: MANUFACTURING_LIVE_PRICES_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
+    key: 'manufacturingRecentOrdersFixed',
+    label: 'Manufacturing Recent Orders',
+    hint: 'Hardcoded manufacturing recent orders placeholder for CMS ordering',
+    section: {
+      id: 'manufacturing_recent_orders_fixed',
+      type: 'fixed',
+      blockType: 'manufacturing_recent_orders_fixed',
+      title: 'Recent orders',
+      actionText: 'View all',
+      enabled: true,
+      items: MANUFACTURING_RECENT_ORDERS_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
     key: 'fitnessProgressStatsFixed',
     label: 'Fitness Progress Stats',
     hint: 'Hardcoded fitness progress stats placeholder for CMS ordering',
@@ -3806,6 +4083,9 @@ export const blockLabels = {
   automobile_fitment_fixed: 'Automobile Fitment Section',
   agriculture_weather_fixed: 'Agriculture Weather Section',
   agriculture_mandi_prices_fixed: 'Agriculture Mandi Prices Section',
+  manufacturing_stats_fixed: 'Manufacturing Stats Section',
+  manufacturing_live_prices_fixed: 'Manufacturing Live Prices Section',
+  manufacturing_recent_orders_fixed: 'Manufacturing Recent Orders Section',
   sports_live_matches_fixed: 'Sports Live Matches Section',
   travel_flight_deals_fixed: 'Travel Flight Deals Section',
   travel_bookings_fixed: 'Travel Bookings Section',
@@ -4632,6 +4912,7 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'grocery', label: 'Grocery' },
     { value: 'fashion', label: 'Fashion' },
     { value: 'agriculture', label: 'Agriculture' },
+    { value: 'manufacturing', label: 'Manufacturing' },
     { value: 'automobile', label: 'Automobile' },
     { value: 'jewellery', label: 'Jewellery' },
     { value: 'decor', label: 'Decor' },
@@ -4650,6 +4931,7 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'grocery', label: 'Grocery' },
     { value: 'fashion', label: 'Fashion' },
     { value: 'agriculture', label: 'Agriculture' },
+    { value: 'manufacturing', label: 'Manufacturing' },
     { value: 'automobile', label: 'Automobile' },
     { value: 'jewellery', label: 'Jewellery' },
     { value: 'decor', label: 'Decor' },
@@ -4689,6 +4971,7 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'support_rows', label: 'Support rows' },
     { value: 'beauty_routine', label: 'Beauty routine' },
     { value: 'fashion', label: 'Fashion' },
+    { value: 'manufacturing', label: 'Manufacturing' },
     { value: 'jewellery', label: 'Jewellery' },
     { value: 'kids', label: 'Kids' },
     { value: 'sports', label: 'Sports' },
@@ -4714,6 +4997,7 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'grocery', label: 'Grocery (compact card)' },
     { value: 'fashion', label: 'Fashion (full card)' },
     { value: 'agriculture', label: 'Agriculture (full card)' },
+    { value: 'manufacturing', label: 'Manufacturing (full card)' },
     { value: 'electronics', label: 'Electronics (full card)' },
     { value: 'automobile', label: 'Automobile (full card)' },
     { value: 'sports', label: 'Sports (full card)' },
@@ -4745,6 +5029,7 @@ export const STYLE_PRESET_OPTIONS = {
     { value: '', label: 'Default' },
     { value: 'beauty', label: 'Beauty' },
     { value: 'grocery', label: 'Grocery' },
+    { value: 'manufacturing', label: 'Manufacturing' },
     { value: 'automobile', label: 'Automobile (dark gradient + bullets)' },
     { value: 'decor', label: 'Decor' },
   ],
@@ -4960,6 +5245,7 @@ export const buildIndustryDefaultSections = (slug, industryName, industryId) => 
   ...((slug === 'jewellery' || slug === 'jewelry' || slug === 'jwellery') ? buildJewelleryDefaultSections(industryId) : []),
   ...(slug === 'decor' ? buildDecorDefaultSections(industryId) : []),
   ...(slug === 'agriculture' ? buildAgricultureDefaultSections(industryId) : []),
+  ...(slug === 'manufacturing' ? buildManufacturingDefaultSections(industryId) : []),
   ...(slug === 'kids' ? buildKidsDefaultSections(industryId) : []),
   ...(slug === 'sports' ? buildSportsDefaultSections(industryId) : []),
   ...(slug === 'travel' ? buildTravelDefaultSections(industryId) : []),

@@ -311,6 +311,7 @@ const resolvePreviewThemeKey = (preset, fallback = 'default') => {
   if (normalized === 'fashion') return 'fashion';
   if (normalized === 'decor') return 'decor';
   if (normalized === 'agriculture') return 'agriculture';
+  if (normalized === 'manufacturing') return 'manufacturing';
   if (normalized === 'kids') return 'kids';
   if (normalized === 'sports') return 'sports';
   if (normalized === 'travel') return 'travel';
@@ -486,6 +487,7 @@ export const PreviewSection = ({
     const isBeautyPreset = normalizedPreset === 'beauty';
     const isGroceryPreset = normalizedPreset === 'grocery';
     const isDecorPreset = normalizedPreset === 'decor';
+    const isManufacturingPreset = normalizedPreset === 'manufacturing';
     if (isBeautyPreset) {
       return (
         <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
@@ -519,6 +521,19 @@ export const PreviewSection = ({
             <div className="preview-promo-text-title" style={{ color: '#4B3D34' }}>{title || 'Need a full room refresh?'}</div>
             {section?.text ? <div className="preview-promo-text-subtitle" style={{ color: '#7D6B61' }}>{section.text}</div> : null}
             {section?.actionText ? <span className="preview-promo-text-cta" style={{ color: '#C46A4A' }}>{section.actionText}</span> : null}
+          </div>
+        </div>
+      );
+    }
+    if (isManufacturingPreset) {
+      return (
+        <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+          <div className="preview-manufacturing-promo-banner" style={{ '--manufacturing-banner-base': section?.sectionBgColor || '#3B3A40' }}>
+            <div>
+              <div className="preview-manufacturing-promo-title">{title || 'Need vendor quotes?'}</div>
+              {section?.text ? <div className="preview-manufacturing-promo-subtitle">{section.text}</div> : null}
+            </div>
+            {section?.actionText ? <span className="preview-manufacturing-promo-cta">{section.actionText}</span> : null}
           </div>
         </div>
       );
@@ -773,11 +788,14 @@ export const PreviewSection = ({
     const isTravelShowcase = normalizedShowcasePreset === 'travel';
     const isFitnessShowcase = normalizedShowcasePreset === 'fitness';
     const isServicesShowcase = normalizedShowcasePreset === 'services';
+    const isManufacturingShowcase = normalizedShowcasePreset === 'manufacturing';
     const isJewelleryShowcase = normalizedShowcasePreset === 'jewellery';
     const showcaseThemeClass = isElectronicsShowcase
       ? 'preview-showcase-theme-electronics'
-      : isGroceryShowcase
-        ? 'preview-showcase-theme-grocery'
+        : isGroceryShowcase
+          ? 'preview-showcase-theme-grocery'
+        : isManufacturingShowcase
+          ? 'preview-showcase-theme-manufacturing'
         : isKidsShowcase
           ? 'preview-showcase-theme-kids'
           : isSportsShowcase
@@ -852,6 +870,7 @@ export const PreviewSection = ({
     const isFashionPreset = normalizedPreset === 'fashion';
     const isDecorPreset = normalizedPreset === 'decor';
     const isAgriculturePreset = normalizedPreset === 'agriculture';
+    const isManufacturingPreset = normalizedPreset === 'manufacturing';
     const isKidsPreset = normalizedPreset === 'kids';
     const isSportsPreset = normalizedPreset === 'sports';
     const isTravelPreset = normalizedPreset === 'travel';
@@ -866,6 +885,8 @@ export const PreviewSection = ({
               ? 'is-sports'
               : isAgriculturePreset
                 ? 'is-agriculture'
+              : isManufacturingPreset
+                ? 'is-manufacturing'
               : isTravelPreset
                 ? 'is-travel'
               : isFitnessPreset
@@ -1315,6 +1336,91 @@ export const PreviewSection = ({
               </div>
             </div>
           ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'manufacturing_stats_fixed') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className={buildPreviewTitleClass({ themeKey: 'manufacturing', surface: true })}>
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-manufacturing-stat-grid">
+          {items.map((item, itemIndex) => (
+            <div key={`preview-manufacturing-stat-${index}-${itemIndex}`} className="preview-manufacturing-stat-card">
+              <div className="preview-manufacturing-stat-icon">{item?.iconName || item?.icon || 'stat'}</div>
+              <div className="preview-manufacturing-stat-value">{item?.value || `0${itemIndex + 1}`}</div>
+              <div className="preview-manufacturing-stat-label">{item?.label || `Stat ${itemIndex + 1}`}</div>
+              {item?.meta ? <div className="preview-manufacturing-stat-meta">{item.meta}</div> : null}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'manufacturing_live_prices_fixed') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className={buildPreviewTitleClass({ themeKey: 'manufacturing', surface: true })}>
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-manufacturing-price-list">
+          {items.map((item, itemIndex) => {
+            const change = String(item?.change || item?.badgeText || '+0.0%').trim();
+            const isDown = String(item?.direction || '').trim().toLowerCase() === 'down' || change.startsWith('-');
+            return (
+              <div key={`preview-manufacturing-price-${index}-${itemIndex}`} className="preview-manufacturing-price-card">
+                <div className="preview-manufacturing-price-label">{item?.label || item?.title || `Material ${itemIndex + 1}`}</div>
+                <div className="preview-manufacturing-price-right">
+                  <div className="preview-manufacturing-price-value">{item?.price || item?.priceLine || '102.4/MT'}</div>
+                  <span className={`preview-manufacturing-price-change ${isDown ? 'is-down' : 'is-up'}`}>{change}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'manufacturing_recent_orders_fixed') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className={buildPreviewTitleClass({ themeKey: 'manufacturing', surface: true })}>
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-manufacturing-order-list">
+          {items.map((item, itemIndex) => {
+            const status = String(item?.status || item?.badgeText || 'Processing').trim().toLowerCase();
+            const statusClass = status === 'delivered' ? 'is-delivered' : status === 'in transit' ? 'is-transit' : 'is-processing';
+            return (
+              <div key={`preview-manufacturing-order-${index}-${itemIndex}`} className="preview-manufacturing-order-card">
+                <div className="preview-manufacturing-order-copy">
+                  <div className="preview-manufacturing-order-title">{item?.title || `Order ${itemIndex + 1}`}</div>
+                  <div className="preview-manufacturing-order-meta">
+                    {item?.supplier || item?.subtitle || 'Supplier'}
+                    {(item?.supplier || item?.subtitle) && (item?.eta || item?.text) ? ' | ' : ''}
+                    {item?.eta || item?.text || ''}
+                  </div>
+                </div>
+                <span className={`preview-manufacturing-order-status ${statusClass}`}>
+                  {item?.status || item?.badgeText || 'Processing'}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
     );
