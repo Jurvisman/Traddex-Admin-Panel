@@ -1725,6 +1725,230 @@ const SERVICES_COMPLIANCE_SAMPLE = [
   { title: 'Labour compliance', subtitle: 'Renewal pending', iconName: 'checkmark-circle-outline', deepLink: '' },
 ];
 
+const MEDICAL_HERO_SAMPLE = {
+  badgeText: 'Trusted Care',
+  title: 'Doctors, medicines and lab tests in one place',
+  subtitle: 'Consult, order and book care with a clean, verified experience',
+  ctaText: 'Explore care',
+  imageUrl: 'https://images.unsplash.com/photo-1584515933487-779824d29309?auto=format&fit=crop&w=1400&q=80',
+  ctaLink: '',
+};
+
+const MEDICAL_CATEGORY_GRID_SAMPLE = [
+  {
+    title: 'Medicines',
+    imageUrl: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    title: 'Hospitals',
+    imageUrl: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    title: 'Doctors',
+    imageUrl: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    title: 'Lab Tests',
+    imageUrl: 'https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    title: 'Skin & Care',
+    imageUrl: 'https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    title: 'Emergency',
+    imageUrl: 'https://images.unsplash.com/photo-1581595219315-a187dd40c322?auto=format&fit=crop&w=600&q=80',
+  },
+];
+
+const MEDICAL_NEARBY_HOSPITALS_SAMPLE = [
+  { title: 'CityCare Multispeciality', subtitle: 'Cardio, Ortho, ICU', distance: '2.1 km', tags: ['24x7', 'Emergency'] },
+  { title: 'Suburban Hospital', subtitle: 'Neuro, Pediatrics, Trauma', distance: '3.4 km', tags: ['24x7'] },
+  { title: 'Medical Towers Center', subtitle: 'ENT, Ortho, Diagnostics', distance: '4.6 km', tags: ['Emergency'] },
+];
+
+const MEDICAL_TOP_DOCTORS_SAMPLE = [
+  { title: 'Dr. Aisha Patel', subtitle: 'Cardiologist', experience: '9 yrs', fee: 'Rs 499', availability: 'Available today' },
+  { title: 'Dr. Sana Khan', subtitle: 'Gynecologist', experience: '12 yrs', fee: 'Rs 649', availability: 'Next: 1 hr' },
+  { title: 'Dr. Rahul Mehta', subtitle: 'General Physician', experience: '11 yrs', fee: 'Rs 399', availability: 'Available today' },
+];
+
+const MEDICAL_TRUSTED_MEDICINES_SAMPLE = [
+  {
+    title: 'Paracetamol 650',
+    subtitle: 'MediCure | Delivery in 30 mins',
+    priceLine: 'Rs 49',
+    badgeText: 'OTC',
+    imageUrl: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Cough Syrup',
+    subtitle: 'ReliefPlus | Delivery in 45 mins',
+    priceLine: 'Rs 99',
+    badgeText: 'OTC',
+    imageUrl: 'https://images.unsplash.com/photo-1607619056574-7b8d3ee536b2?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Azithro 500',
+    subtitle: 'ZenCare | Delivery in 60 mins',
+    priceLine: 'Rs 159',
+    badgeText: 'Rx required',
+    imageUrl: 'https://images.unsplash.com/photo-1576602976047-174e57a47881?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+];
+
+const MEDICAL_SKIN_CARE_SAMPLE = [
+  {
+    title: 'Acne care',
+    subtitle: 'Dermat approved',
+    imageUrl: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Sensitive skin',
+    subtitle: 'Daily repair',
+    imageUrl: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Glow routine',
+    subtitle: 'Face wash + serum',
+    imageUrl: 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+];
+
+const MEDICAL_LAB_TESTS_SAMPLE = [
+  {
+    title: 'Complete Blood Count',
+    subtitle: 'Reports in 12 hrs | Home sample',
+    priceLine: 'Rs 499',
+    badgeText: '20% OFF',
+    imageUrl: 'https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Thyroid Profile',
+    subtitle: 'Reports in 24 hrs | Home sample',
+    priceLine: 'Rs 699',
+    badgeText: '15% OFF',
+    imageUrl: 'https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'HbA1c Test',
+    subtitle: 'Reports in 24 hrs | Home sample',
+    priceLine: 'Rs 599',
+    badgeText: '10% OFF',
+    imageUrl: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+];
+
+const MEDICAL_HEALTH_PACKAGES_SAMPLE = [
+  {
+    title: 'Full Body Checkup',
+    subtitle: '70 tests included',
+    priceLine: 'Rs 1,499',
+    badgeText: 'Save 25%',
+    imageUrl: 'https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Diabetes Package',
+    subtitle: 'Sugar + lipid profile',
+    priceLine: 'Rs 999',
+    badgeText: 'Save 20%',
+    imageUrl: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Heart Health',
+    subtitle: 'ECG + lipid + BP',
+    priceLine: 'Rs 1,299',
+    badgeText: 'Save 15%',
+    imageUrl: 'https://images.unsplash.com/photo-1516549655669-df6c0cdb6355?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+];
+
+const MEDICAL_EMERGENCY_SAMPLE = [
+  { title: 'Ambulance', subtitle: 'Avg 10-15 mins', iconName: 'car-outline' },
+  { title: '24x7 Pharmacy', subtitle: 'Nearby open stores', iconName: 'storefront-outline' },
+  { title: 'Emergency Doctor', subtitle: 'Video in 5 mins', iconName: 'call-outline' },
+  { title: 'ICU Enquiry', subtitle: 'Live bed status', iconName: 'bed-outline' },
+];
+
+const MEDICAL_TRUST_SAMPLE = [
+  { title: 'Verified hospitals', iconName: 'shield-checkmark-outline' },
+  { title: 'Licensed pharmacies', iconName: 'medkit-outline' },
+  { title: 'Registered doctors', iconName: 'person-circle-outline' },
+  { title: 'Secure payments', iconName: 'lock-closed-outline' },
+];
+
+const MEDICAL_HEALTH_TIPS_SAMPLE = [
+  {
+    title: 'Skin care tips',
+    subtitle: 'Daily routine that works',
+    badgeText: 'Guide',
+    imageUrl: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Seasonal illness',
+    subtitle: 'Stay protected this week',
+    badgeText: 'Read',
+    imageUrl: 'https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Medicine usage',
+    subtitle: 'Safe dosage guidance',
+    badgeText: 'Tips',
+    imageUrl: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+];
+
+const MEDICAL_REMINDER_SAMPLE = [
+  { title: 'Medicine reminders', subtitle: 'Set daily alerts', iconName: 'alarm-outline' },
+  { title: 'Refill alerts', subtitle: 'Never run out', iconName: 'repeat-outline' },
+  { title: 'Monthly subscriptions', subtitle: 'Auto deliveries', iconName: 'calendar-outline' },
+];
+
+const MEDICAL_OFFERS_SAMPLE = [
+  {
+    title: 'Flat discount on tests',
+    subtitle: 'Save up to 25% today',
+    tag: 'Limited time',
+    imageUrl: 'https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=900&q=80',
+  },
+  {
+    title: 'Medicine cashback',
+    subtitle: 'Get 10% back on orders',
+    tag: 'Cashback',
+    imageUrl: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=900&q=80',
+  },
+  {
+    title: 'Free consultation',
+    subtitle: 'Video consult on select plans',
+    tag: 'Doctor care',
+    imageUrl: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=900&q=80',
+  },
+];
+
+const MEDICAL_FOOTER_LINKS_SAMPLE = [
+  { label: 'Prescription upload' },
+  { label: 'Insurance partners' },
+  { label: 'Order tracking' },
+  { label: 'Refund policy' },
+  { label: 'Health records' },
+  { label: 'Emergency numbers' },
+];
+
 const JEWELLERY_HERO_SAMPLE = {
   badgeText: 'Rose Gold Edit',
   title: 'Celebrate every sparkle',
@@ -2816,6 +3040,136 @@ const buildServicesDefaultSections = (industryId) => [
   },
 ];
 
+const buildMedicalDefaultSections = () => [
+  {
+    id: 'medical_hero',
+    type: 'banner',
+    blockType: 'promo_hero_banner',
+    stylePreset: 'medical',
+    enabled: true,
+    items: [{ ...MEDICAL_HERO_SAMPLE }],
+  },
+  {
+    id: 'medical_category_grid_fixed',
+    type: 'fixed',
+    blockType: 'medical_category_grid_fixed',
+    title: 'Shop medical categories',
+    enabled: true,
+    items: MEDICAL_CATEGORY_GRID_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'medical_nearby_hospitals_fixed',
+    type: 'fixed',
+    blockType: 'medical_nearby_hospitals_fixed',
+    title: 'Hospitals Near You',
+    actionText: 'View all hospitals',
+    enabled: true,
+    items: MEDICAL_NEARBY_HOSPITALS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'medical_top_doctors_fixed',
+    type: 'fixed',
+    blockType: 'medical_top_doctors_fixed',
+    title: 'Consult Top Doctors',
+    actionText: 'Book now',
+    enabled: true,
+    items: MEDICAL_TOP_DOCTORS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'medical_trusted_medicines',
+    type: 'horizontalList',
+    blockType: 'product_shelf_horizontal',
+    title: 'Trusted Medicines',
+    actionText: 'View all',
+    stylePreset: 'medical',
+    enabled: true,
+    items: MEDICAL_TRUSTED_MEDICINES_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'medical_skin_care',
+    type: 'horizontalList',
+    blockType: 'product_shelf_horizontal',
+    title: 'Skin & Face Care',
+    actionText: 'Explore skin care',
+    stylePreset: 'medical',
+    cardVariant: 'compact',
+    enabled: true,
+    items: MEDICAL_SKIN_CARE_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'medical_lab_tests',
+    type: 'horizontalList',
+    blockType: 'product_shelf_horizontal',
+    title: 'Book Lab Tests',
+    actionText: 'Book test',
+    stylePreset: 'medical',
+    enabled: true,
+    items: MEDICAL_LAB_TESTS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'medical_health_packages',
+    type: 'horizontalList',
+    blockType: 'product_shelf_horizontal',
+    title: 'Health Checkup Packages',
+    actionText: 'View packages',
+    stylePreset: 'medical',
+    enabled: true,
+    items: MEDICAL_HEALTH_PACKAGES_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'medical_emergency_fixed',
+    type: 'fixed',
+    blockType: 'medical_emergency_fixed',
+    title: 'Emergency Services',
+    actionText: 'Call now',
+    enabled: true,
+    items: MEDICAL_EMERGENCY_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'medical_trust_strip_fixed',
+    type: 'fixed',
+    blockType: 'medical_trust_strip_fixed',
+    title: 'Why Trust Us',
+    enabled: true,
+    items: MEDICAL_TRUST_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'medical_health_tips',
+    type: 'horizontalList',
+    blockType: 'media_overlay_carousel',
+    title: 'Health Tips',
+    actionText: 'Read more',
+    stylePreset: 'medical',
+    enabled: true,
+    items: MEDICAL_HEALTH_TIPS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'medical_reminder_fixed',
+    type: 'fixed',
+    blockType: 'medical_reminder_fixed',
+    title: 'Never Miss Your Medicines',
+    actionText: 'Set reminder',
+    enabled: true,
+    items: MEDICAL_REMINDER_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'medical_offers_fixed',
+    type: 'fixed',
+    blockType: 'medical_offers_fixed',
+    title: 'Offers for You',
+    enabled: true,
+    items: MEDICAL_OFFERS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'medical_footer_links_fixed',
+    type: 'fixed',
+    blockType: 'medical_footer_links_fixed',
+    title: 'Quick Links',
+    enabled: true,
+    items: MEDICAL_FOOTER_LINKS_SAMPLE.map((item) => ({ ...item })),
+  },
+];
+
 const buildJewelleryDefaultSections = (industryId) => [
   {
     id: 'jewellery_hero',
@@ -3639,6 +3993,114 @@ export const screenToolboxItems = [
     },
   },
   {
+    key: 'medicalCategoryGridFixed',
+    label: 'Medical Category Grid',
+    hint: 'Hardcoded medical category grid placeholder for CMS ordering',
+    section: {
+      id: 'medical_category_grid_fixed',
+      type: 'fixed',
+      blockType: 'medical_category_grid_fixed',
+      title: 'Shop medical categories',
+      enabled: true,
+      items: MEDICAL_CATEGORY_GRID_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
+    key: 'medicalNearbyHospitalsFixed',
+    label: 'Medical Nearby Hospitals',
+    hint: 'Hardcoded hospitals near you placeholder for CMS ordering',
+    section: {
+      id: 'medical_nearby_hospitals_fixed',
+      type: 'fixed',
+      blockType: 'medical_nearby_hospitals_fixed',
+      title: 'Hospitals Near You',
+      actionText: 'View all hospitals',
+      enabled: true,
+      items: MEDICAL_NEARBY_HOSPITALS_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
+    key: 'medicalTopDoctorsFixed',
+    label: 'Medical Top Doctors',
+    hint: 'Hardcoded top doctors placeholder for CMS ordering',
+    section: {
+      id: 'medical_top_doctors_fixed',
+      type: 'fixed',
+      blockType: 'medical_top_doctors_fixed',
+      title: 'Consult Top Doctors',
+      actionText: 'Book now',
+      enabled: true,
+      items: MEDICAL_TOP_DOCTORS_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
+    key: 'medicalEmergencyFixed',
+    label: 'Medical Emergency',
+    hint: 'Hardcoded emergency services placeholder for CMS ordering',
+    section: {
+      id: 'medical_emergency_fixed',
+      type: 'fixed',
+      blockType: 'medical_emergency_fixed',
+      title: 'Emergency Services',
+      actionText: 'Call now',
+      enabled: true,
+      items: MEDICAL_EMERGENCY_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
+    key: 'medicalTrustStripFixed',
+    label: 'Medical Trust Strip',
+    hint: 'Hardcoded medical trust strip placeholder for CMS ordering',
+    section: {
+      id: 'medical_trust_strip_fixed',
+      type: 'fixed',
+      blockType: 'medical_trust_strip_fixed',
+      title: 'Why Trust Us',
+      enabled: true,
+      items: MEDICAL_TRUST_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
+    key: 'medicalReminderFixed',
+    label: 'Medical Reminder',
+    hint: 'Hardcoded medical reminder placeholder for CMS ordering',
+    section: {
+      id: 'medical_reminder_fixed',
+      type: 'fixed',
+      blockType: 'medical_reminder_fixed',
+      title: 'Never Miss Your Medicines',
+      actionText: 'Set reminder',
+      enabled: true,
+      items: MEDICAL_REMINDER_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
+    key: 'medicalOffersFixed',
+    label: 'Medical Offers',
+    hint: 'Hardcoded medical offers placeholder for CMS ordering',
+    section: {
+      id: 'medical_offers_fixed',
+      type: 'fixed',
+      blockType: 'medical_offers_fixed',
+      title: 'Offers for You',
+      enabled: true,
+      items: MEDICAL_OFFERS_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
+    key: 'medicalFooterLinksFixed',
+    label: 'Medical Footer Links',
+    hint: 'Hardcoded medical quick links placeholder for CMS ordering',
+    section: {
+      id: 'medical_footer_links_fixed',
+      type: 'fixed',
+      blockType: 'medical_footer_links_fixed',
+      title: 'Quick Links',
+      enabled: true,
+      items: MEDICAL_FOOTER_LINKS_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
     key: 'fitnessProgressStatsFixed',
     label: 'Fitness Progress Stats',
     hint: 'Hardcoded fitness progress stats placeholder for CMS ordering',
@@ -4081,6 +4543,14 @@ export const blockLabels = {
   bestseller_shelf: 'Bestsellers Shelf Block',
   automobile_b2b2c_fixed: 'Automobile B2B/B2C Section',
   automobile_fitment_fixed: 'Automobile Fitment Section',
+  medical_category_grid_fixed: 'Medical Category Grid Section',
+  medical_nearby_hospitals_fixed: 'Medical Nearby Hospitals Section',
+  medical_top_doctors_fixed: 'Medical Top Doctors Section',
+  medical_emergency_fixed: 'Medical Emergency Services Section',
+  medical_trust_strip_fixed: 'Medical Trust Strip Section',
+  medical_reminder_fixed: 'Medical Reminder Section',
+  medical_offers_fixed: 'Medical Offers Section',
+  medical_footer_links_fixed: 'Medical Footer Links Section',
   agriculture_weather_fixed: 'Agriculture Weather Section',
   agriculture_mandi_prices_fixed: 'Agriculture Mandi Prices Section',
   manufacturing_stats_fixed: 'Manufacturing Stats Section',
@@ -4911,6 +5381,7 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'beauty', label: 'Beauty' },
     { value: 'grocery', label: 'Grocery' },
     { value: 'fashion', label: 'Fashion' },
+    { value: 'medical', label: 'Medical' },
     { value: 'agriculture', label: 'Agriculture' },
     { value: 'manufacturing', label: 'Manufacturing' },
     { value: 'automobile', label: 'Automobile' },
@@ -4945,6 +5416,7 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'electronics', label: 'Electronics' },
     { value: 'beauty', label: 'Beauty' },
     { value: 'grocery', label: 'Grocery' },
+    { value: 'medical', label: 'Medical' },
     { value: 'agriculture', label: 'Agriculture' },
     { value: 'jewellery', label: 'Jewellery' },
     { value: 'decor', label: 'Decor' },
@@ -5015,6 +5487,7 @@ export const STYLE_PRESET_OPTIONS = {
   product_shelf_horizontal: [
     { value: '', label: 'Default' },
     { value: 'fashion', label: 'Fashion' },
+    { value: 'medical', label: 'Medical' },
     { value: 'agriculture', label: 'Agriculture' },
     { value: 'automobile', label: 'Automobile' },
     { value: 'jewellery', label: 'Jewellery' },
@@ -5204,6 +5677,13 @@ export const fallbackIndustryPresets = [
     dataSourceUrl: '/api/home?category=agriculture',
     label: 'Agriculture',
   },
+  {
+    id: 'home_health',
+    route: '/home/health',
+    dataSourceRef: 'home.health',
+    dataSourceUrl: '/api/home?category=health',
+    label: 'Health',
+  },
 ];
 
 export const homeFixedSections = [
@@ -5242,6 +5722,7 @@ export const resolveIndustryRoute = (industry, slug) => {
 };
 
 export const buildIndustryDefaultSections = (slug, industryName, industryId) => [
+  ...((slug === 'medical' || slug === 'health') ? buildMedicalDefaultSections(industryId) : []),
   ...((slug === 'jewellery' || slug === 'jewelry' || slug === 'jwellery') ? buildJewelleryDefaultSections(industryId) : []),
   ...(slug === 'decor' ? buildDecorDefaultSections(industryId) : []),
   ...(slug === 'agriculture' ? buildAgricultureDefaultSections(industryId) : []),
@@ -5257,6 +5738,8 @@ export const buildIndustryDefaultSections = (slug, industryName, industryId) => 
   ...(slug === 'fashion' ? buildFashionDefaultSections(industryId) : []),
   ...(slug === 'automobile' ? buildAutomobileDefaultSections(industryId) : []),
   ...(slug === 'decor'
+    || slug === 'medical'
+    || slug === 'health'
     || slug === 'jewellery'
     || slug === 'jewelry'
     || slug === 'jwellery'
