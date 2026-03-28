@@ -404,9 +404,11 @@ function AppConfigPage({ token }) {
     const pageId = String(selectedPage?.id || '').trim().toLowerCase();
     if (pageId.startsWith('home_') && pageId !== 'home_main') {
       const slug = pageId.replace(/^home_/, '');
-      if (slug === 'beauty' || slug === 'electronics' || slug === 'grocery' || slug === 'fashion' || slug === 'automobile' || slug === 'decor' || slug === 'kids' || slug === 'sports' || slug === 'travel' || slug === 'fitness') return slug;
+      if (slug === 'jewellery' || slug === 'jewelry' || slug === 'jwellery') return 'jewellery';
+      if (slug === 'beauty' || slug === 'electronics' || slug === 'grocery' || slug === 'fashion' || slug === 'automobile' || slug === 'decor' || slug === 'kids' || slug === 'sports' || slug === 'travel' || slug === 'fitness' || slug === 'services') return slug;
     }
     const route = String(selectedPage?.route || '').trim().toLowerCase();
+    if (route.includes('jewellery') || route.includes('jewelry') || route.includes('jwellery')) return 'jewellery';
     if (route.includes('beauty')) return 'beauty';
     if (route.includes('electronics')) return 'electronics';
     if (route.includes('grocery')) return 'grocery';
@@ -417,8 +419,12 @@ function AppConfigPage({ token }) {
     if (route.includes('sports')) return 'sports';
     if (route.includes('travel')) return 'travel';
     if (route.includes('fitness')) return 'fitness';
+    if (route.includes('services')) return 'services';
     const industrySlug = normalizeSlug(pageIndustry?.slug || pageIndustry?.name || '');
-    if (industrySlug === 'beauty' || industrySlug === 'electronics' || industrySlug === 'grocery' || industrySlug === 'fashion' || industrySlug === 'automobile' || industrySlug === 'decor' || industrySlug === 'kids' || industrySlug === 'sports' || industrySlug === 'travel' || industrySlug === 'fitness') {
+    if (industrySlug === 'jewellery' || industrySlug === 'jewelry' || industrySlug === 'jwellery') {
+      return 'jewellery';
+    }
+    if (industrySlug === 'beauty' || industrySlug === 'electronics' || industrySlug === 'grocery' || industrySlug === 'fashion' || industrySlug === 'automobile' || industrySlug === 'decor' || industrySlug === 'kids' || industrySlug === 'sports' || industrySlug === 'travel' || industrySlug === 'fitness' || industrySlug === 'services') {
       return industrySlug;
     }
     return '';
@@ -4220,6 +4226,7 @@ function AppConfigPage({ token }) {
                           <option value="beauty">Beauty</option>
                           <option value="grocery">Grocery</option>
                           <option value="fashion">Fashion</option>
+                          <option value="jewellery">Jewellery</option>
                           <option value="decor">Decor</option>
                           <option value="kids">Kids</option>
                           <option value="sports">Sports</option>

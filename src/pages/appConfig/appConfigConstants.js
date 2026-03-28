@@ -1447,6 +1447,239 @@ const FITNESS_NUTRITION_SAMPLE = [
   },
 ];
 
+const SERVICES_HERO_SAMPLE = {
+  badgeText: 'Verified Experts',
+  title: 'Professional services, made simple',
+  subtitle: 'Advocates, CAs, and government services in one place',
+  ctaText: 'Post a request',
+  imageUrl: 'https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&w=1400&q=80',
+  ctaLink: '',
+};
+
+const SERVICES_CATEGORY_SAMPLE = [
+  {
+    title: 'Advocate',
+    iconName: 'briefcase-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&w=600&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Chartered CA',
+    iconName: 'calculator-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1554224154-22dec7ec8818?auto=format&fit=crop&w=600&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Govt Services',
+    iconName: 'business-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1472289065668-ce650ac443d2?auto=format&fit=crop&w=600&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Compliance',
+    iconName: 'shield-checkmark-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1485217988980-11786ced9454?auto=format&fit=crop&w=600&q=80',
+    deepLink: '',
+  },
+];
+
+const SERVICES_FEATURED_PROFESSIONALS_SAMPLE = [
+  {
+    title: 'Priya Mehta',
+    subtitle: 'Advocate - Corporate',
+    priceLine: 'From Rs 1,200',
+    rating: '4.9',
+    imageUrl: 'https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=crop&w=700&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Aarav Shah',
+    subtitle: 'CA - GST and Audit',
+    priceLine: 'From Rs 900',
+    rating: '4.8',
+    imageUrl: 'https://images.unsplash.com/photo-1551836022-4c4c79ecde51?auto=format&fit=crop&w=700&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Neel Patel',
+    subtitle: 'Accountant - Bookkeeping',
+    priceLine: 'From Rs 650',
+    rating: '4.7',
+    imageUrl: 'https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=crop&w=700&q=80',
+    deepLink: '',
+  },
+];
+
+const SERVICES_BOOKING_SLOTS_SAMPLE = [
+  { name: 'Advocate Priya', service: 'Contract review', time: '10:30 AM', date: 'Tomorrow', status: 'Available' },
+  { name: 'CA Aarav', service: 'GST filing', time: '1:15 PM', date: 'Thu', status: 'Filling fast' },
+  { name: 'Accountant Neel', service: 'Monthly books', time: '4:00 PM', date: 'Fri', status: 'Waitlist' },
+];
+
+const SERVICES_GOV_SERVICES_SAMPLE = [
+  {
+    title: 'Passport',
+    subtitle: 'New or renewal',
+    imageUrl: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'PAN / Aadhaar',
+    subtitle: 'Apply or update',
+    imageUrl: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'GST Registration',
+    subtitle: 'Business setup',
+    imageUrl: 'https://images.unsplash.com/photo-1554224154-22dec7ec8818?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+];
+
+const SERVICES_GOV_OFFICES_SAMPLE = [
+  { title: 'GST Seva Kendra', subtitle: 'Ashram Road, Ahmedabad | Mon-Fri 10 AM - 5 PM', iconName: 'business-outline', deepLink: '' },
+  { title: 'District Collector Office', subtitle: 'Ellis Bridge, Ahmedabad | Mon-Sat 9 AM - 6 PM', iconName: 'business-outline', deepLink: '' },
+  { title: 'Passport Seva Kendra', subtitle: 'Bopal, Ahmedabad | Mon-Fri 9 AM - 4 PM', iconName: 'business-outline', deepLink: '' },
+];
+
+const SERVICES_ADVOCATE_SPOTLIGHT_SAMPLE = {
+  badgeText: 'Advocate spotlight',
+  title: 'Ananya Rao',
+  subtitle: 'Legal drafting and disputes | 12 yrs experience',
+  ctaText: 'Book consultation',
+  imageUrl: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=1400&q=80',
+  ctaLink: '',
+};
+
+const SERVICES_COMPLIANCE_SAMPLE = [
+  { title: 'GST filing', subtitle: 'Due in 7 days', iconName: 'checkmark-circle-outline', deepLink: '' },
+  { title: 'TDS return', subtitle: 'Due in 12 days', iconName: 'checkmark-circle-outline', deepLink: '' },
+  { title: 'ROC annual filing', subtitle: 'Due in 25 days', iconName: 'checkmark-circle-outline', deepLink: '' },
+  { title: 'Labour compliance', subtitle: 'Renewal pending', iconName: 'checkmark-circle-outline', deepLink: '' },
+];
+
+const JEWELLERY_HERO_SAMPLE = {
+  badgeText: 'Rose Gold Edit',
+  title: 'Celebrate every sparkle',
+  subtitle: 'Handcrafted jewels for gifts, weddings, and milestones',
+  ctaText: 'Explore collection',
+  imageUrl: 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=1400&q=80',
+  deepLink: '',
+};
+
+const JEWELLERY_QUICK_ACTIONS_SAMPLE = [
+  {
+    title: 'Book appointment',
+    subtitle: 'In-store styling',
+    iconName: 'calendar-outline',
+    ctaText: 'Schedule',
+    deepLink: '',
+  },
+  {
+    title: 'Try at home',
+    subtitle: 'Curated kits',
+    iconName: 'home-outline',
+    ctaText: 'Request',
+    deepLink: '',
+  },
+  {
+    title: 'Gold rate',
+    subtitle: 'Live market',
+    iconName: 'stats-chart-outline',
+    ctaText: 'View',
+    deepLink: '',
+  },
+];
+
+const JEWELLERY_CATEGORY_SAMPLE = [
+  {
+    title: 'Rings',
+    iconName: 'diamond-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1514986888952-8cd320577b68?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Necklaces',
+    iconName: 'sparkles-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1522312346375-d1a52e2b99b3?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Earrings',
+    iconName: 'heart-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1500917293891-ef795e70e1f6?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Bangles',
+    iconName: 'ellipse-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+];
+
+const JEWELLERY_COLLECTIONS_SAMPLE = [
+  {
+    title: 'Bridal heirlooms',
+    subtitle: 'Set of 5 pieces',
+    imageUrl: 'https://images.unsplash.com/photo-1506630448388-4e683c67ddb0?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Everyday gold',
+    subtitle: 'Lightweight picks',
+    imageUrl: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Gemstone glow',
+    subtitle: 'Emerald and ruby',
+    imageUrl: 'https://images.unsplash.com/photo-1490367532201-b9bc1dc483f6?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+];
+
+const JEWELLERY_NEW_ARRIVALS_SAMPLE = [
+  {
+    title: 'Solitaire Halo Ring',
+    subtitle: '18K rose gold',
+    priceLine: 'Rs 34,990',
+    rating: '4.9',
+    imageUrl: 'https://images.unsplash.com/photo-1514986888952-8cd320577b68?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Luna Drop Earrings',
+    subtitle: 'Pearl finish',
+    priceLine: 'Rs 8,499',
+    rating: '4.8',
+    imageUrl: 'https://images.unsplash.com/photo-1512310604669-443f26c35f52?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Nova Tennis Bracelet',
+    subtitle: 'White gold',
+    priceLine: 'Rs 22,500',
+    rating: '4.8',
+    imageUrl: 'https://images.unsplash.com/photo-1506630448388-4e683c67ddb0?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+];
+
+const JEWELLERY_GOLD_RATES_SAMPLE = [
+  { label: '24K Gold', price: 'Rs 6,525/g', trend: '+0.4%' },
+  { label: '22K Gold', price: 'Rs 5,980/g', trend: '+0.3%' },
+  { label: 'Platinum', price: 'Rs 3,240/g', trend: '+0.1%' },
+];
+
+const JEWELLERY_TRUST_SAMPLE = [
+  { title: 'BIS Hallmark', subtitle: 'Certified purity', iconName: 'shield-checkmark-outline', deepLink: '' },
+  { title: 'IGI certified', subtitle: 'Diamond grading', iconName: 'ribbon-outline', deepLink: '' },
+  { title: 'Secure delivery', subtitle: 'Insured shipments', iconName: 'lock-closed-outline', deepLink: '' },
+  { title: 'Easy returns', subtitle: '7-day window', iconName: 'refresh-outline', deepLink: '' },
+];
+
 const TRAVEL_HERO_SAMPLE = {
   badgeText: 'Ocean Escape',
   title: 'Sail into summer',
@@ -2010,6 +2243,165 @@ const buildFitnessDefaultSections = () => [
     stylePreset: 'fitness',
     enabled: true,
     items: FITNESS_NUTRITION_SAMPLE.map((item) => ({ ...item })),
+  },
+];
+
+const buildServicesDefaultSections = (industryId) => [
+  {
+    id: 'services_hero',
+    type: 'banner',
+    blockType: 'promo_hero_banner',
+    stylePreset: 'services',
+    enabled: true,
+    items: [{ ...SERVICES_HERO_SAMPLE }],
+  },
+  {
+    id: 'services_categories',
+    type: 'category_showcase',
+    blockType: 'category_showcase',
+    title: 'Service categories',
+    actionText: 'View all',
+    showcaseVariant: 'circle_icon',
+    stylePreset: 'services',
+    enabled: true,
+    dataSource: {
+      sourceType: 'CATEGORY_FEED',
+      industryId: industryId ? String(industryId) : undefined,
+    },
+    items: SERVICES_CATEGORY_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'services_featured_professionals',
+    type: 'horizontalList',
+    blockType: 'product_shelf_horizontal',
+    title: 'Featured professionals',
+    actionText: 'View all',
+    stylePreset: 'services',
+    enabled: true,
+    items: SERVICES_FEATURED_PROFESSIONALS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'services_booking_slots_fixed',
+    type: 'fixed',
+    blockType: 'services_booking_slots_fixed',
+    title: 'Booking slots',
+    actionText: 'Schedule',
+    enabled: true,
+    items: SERVICES_BOOKING_SLOTS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'services_government_services',
+    type: 'horizontalList',
+    blockType: 'media_overlay_carousel',
+    title: 'Government services',
+    actionText: 'Explore',
+    stylePreset: 'services',
+    enabled: true,
+    items: SERVICES_GOV_SERVICES_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'services_government_offices',
+    type: 'list',
+    blockType: 'info_list',
+    title: 'Government offices',
+    actionText: 'View all',
+    stylePreset: 'services',
+    enabled: true,
+    items: SERVICES_GOV_OFFICES_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'services_advocate_spotlight',
+    type: 'banner',
+    blockType: 'promo_hero_banner',
+    stylePreset: 'services',
+    title: 'Advocate spotlight',
+    enabled: true,
+    items: [{ ...SERVICES_ADVOCATE_SPOTLIGHT_SAMPLE }],
+  },
+  {
+    id: 'services_compliance',
+    type: 'list',
+    blockType: 'info_list',
+    title: 'Compliance checklist',
+    actionText: 'Manage',
+    stylePreset: 'services',
+    enabled: true,
+    items: SERVICES_COMPLIANCE_SAMPLE.map((item) => ({ ...item })),
+  },
+];
+
+const buildJewelleryDefaultSections = (industryId) => [
+  {
+    id: 'jewellery_hero',
+    type: 'banner',
+    blockType: 'promo_hero_banner',
+    stylePreset: 'jewellery',
+    enabled: true,
+    items: [{ ...JEWELLERY_HERO_SAMPLE }],
+  },
+  {
+    id: 'jewellery_quick_actions',
+    type: 'horizontalList',
+    blockType: 'quick_action_row',
+    title: 'Quick actions',
+    actionText: 'Manage',
+    quickActionPreset: 'jewellery',
+    enabled: true,
+    items: JEWELLERY_QUICK_ACTIONS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'jewellery_categories',
+    type: 'category_showcase',
+    blockType: 'category_showcase',
+    title: 'Shop categories',
+    actionText: 'View all',
+    showcaseVariant: 'circle_icon',
+    stylePreset: 'jewellery',
+    enabled: true,
+    dataSource: {
+      sourceType: 'CATEGORY_FEED',
+      industryId: industryId ? String(industryId) : undefined,
+    },
+    items: JEWELLERY_CATEGORY_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'jewellery_collections',
+    type: 'horizontalList',
+    blockType: 'media_overlay_carousel',
+    title: 'Trending collections',
+    actionText: 'Explore',
+    stylePreset: 'jewellery',
+    enabled: true,
+    items: JEWELLERY_COLLECTIONS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'jewellery_new_arrivals',
+    type: 'horizontalList',
+    blockType: 'product_shelf_horizontal',
+    title: 'New arrivals',
+    actionText: 'View all',
+    stylePreset: 'jewellery',
+    enabled: true,
+    items: JEWELLERY_NEW_ARRIVALS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'jewellery_gold_rates_fixed',
+    type: 'fixed',
+    blockType: 'jewellery_gold_rates_fixed',
+    title: 'Gold rates today',
+    actionText: 'Refresh',
+    enabled: true,
+    items: JEWELLERY_GOLD_RATES_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'jewellery_trust',
+    type: 'list',
+    blockType: 'info_list',
+    title: 'Certified and secure',
+    actionText: 'Learn more',
+    stylePreset: 'jewellery',
+    enabled: true,
+    items: JEWELLERY_TRUST_SAMPLE.map((item) => ({ ...item })),
   },
 ];
 
@@ -2733,6 +3125,34 @@ export const screenToolboxItems = [
     },
   },
   {
+    key: 'servicesBookingSlotsFixed',
+    label: 'Services Booking Slots',
+    hint: 'Hardcoded services booking slots placeholder for CMS ordering',
+    section: {
+      id: 'services_booking_slots_fixed',
+      type: 'fixed',
+      blockType: 'services_booking_slots_fixed',
+      title: 'Booking slots',
+      actionText: 'Schedule',
+      enabled: true,
+      items: SERVICES_BOOKING_SLOTS_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
+    key: 'jewelleryGoldRatesFixed',
+    label: 'Jewellery Gold Rates',
+    hint: 'Hardcoded jewellery gold rates placeholder for CMS ordering',
+    section: {
+      id: 'jewellery_gold_rates_fixed',
+      type: 'fixed',
+      blockType: 'jewellery_gold_rates_fixed',
+      title: 'Gold rates today',
+      actionText: 'Refresh',
+      enabled: true,
+      items: JEWELLERY_GOLD_RATES_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
     key: 'splitPromoRow',
     label: 'Split Promo Row',
     hint: 'Two side-by-side promo cards in one row',
@@ -3111,6 +3531,8 @@ export const blockLabels = {
   fitness_progress_stats_fixed: 'Fitness Progress Stats Section',
   fitness_class_schedule_fixed: 'Fitness Class Schedule Section',
   fitness_memberships_fixed: 'Fitness Memberships Section',
+  services_booking_slots_fixed: 'Services Booking Slots Section',
+  jewellery_gold_rates_fixed: 'Jewellery Gold Rates Section',
   sectionTitle: 'Section Title Block',
   multiItemGrid: 'Product Grid Block',
   categoryPreviewGrid: 'Category Preview Grid',
@@ -3929,11 +4351,13 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'grocery', label: 'Grocery' },
     { value: 'fashion', label: 'Fashion' },
     { value: 'automobile', label: 'Automobile' },
+    { value: 'jewellery', label: 'Jewellery' },
     { value: 'decor', label: 'Decor' },
     { value: 'kids', label: 'Kids' },
     { value: 'sports', label: 'Sports' },
     { value: 'travel', label: 'Travel' },
     { value: 'fitness', label: 'Fitness' },
+    { value: 'services', label: 'Services' },
   ],
   split_promo_row: [
     { value: 'grocery', label: 'Grocery' },
@@ -3944,21 +4368,25 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'grocery', label: 'Grocery' },
     { value: 'fashion', label: 'Fashion' },
     { value: 'automobile', label: 'Automobile' },
+    { value: 'jewellery', label: 'Jewellery' },
     { value: 'decor', label: 'Decor' },
     { value: 'kids', label: 'Kids' },
     { value: 'sports', label: 'Sports' },
     { value: 'travel', label: 'Travel' },
     { value: 'fitness', label: 'Fitness' },
+    { value: 'services', label: 'Services' },
   ],
   media_overlay_carousel: [
     { value: 'electronics', label: 'Electronics' },
     { value: 'beauty', label: 'Beauty' },
     { value: 'grocery', label: 'Grocery' },
+    { value: 'jewellery', label: 'Jewellery' },
     { value: 'decor', label: 'Decor' },
     { value: 'kids', label: 'Kids' },
     { value: 'sports', label: 'Sports' },
     { value: 'travel', label: 'Travel' },
     { value: 'fitness', label: 'Fitness' },
+    { value: 'services', label: 'Services' },
   ],
   product_card_carousel: [
     { value: 'electronics', label: 'Electronics' },
@@ -3977,9 +4405,11 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'support_rows', label: 'Support rows' },
     { value: 'beauty_routine', label: 'Beauty routine' },
     { value: 'fashion', label: 'Fashion' },
+    { value: 'jewellery', label: 'Jewellery' },
     { value: 'kids', label: 'Kids' },
     { value: 'sports', label: 'Sports' },
     { value: 'travel', label: 'Travel' },
+    { value: 'services', label: 'Services' },
   ],
   chip_scroll: [
     { value: '', label: 'Default' },
@@ -4017,11 +4447,13 @@ export const STYLE_PRESET_OPTIONS = {
     { value: '', label: 'Default' },
     { value: 'fashion', label: 'Fashion' },
     { value: 'automobile', label: 'Automobile' },
+    { value: 'jewellery', label: 'Jewellery' },
     { value: 'decor', label: 'Decor' },
     { value: 'kids', label: 'Kids' },
     { value: 'sports', label: 'Sports' },
     { value: 'travel', label: 'Travel' },
     { value: 'fitness', label: 'Fitness' },
+    { value: 'services', label: 'Services' },
   ],
   promo_banner: [
     { value: '', label: 'Default' },
@@ -4239,21 +4671,27 @@ export const resolveIndustryRoute = (industry, slug) => {
 };
 
 export const buildIndustryDefaultSections = (slug, industryName, industryId) => [
+  ...((slug === 'jewellery' || slug === 'jewelry' || slug === 'jwellery') ? buildJewelleryDefaultSections(industryId) : []),
   ...(slug === 'decor' ? buildDecorDefaultSections(industryId) : []),
   ...(slug === 'kids' ? buildKidsDefaultSections(industryId) : []),
   ...(slug === 'sports' ? buildSportsDefaultSections(industryId) : []),
   ...(slug === 'travel' ? buildTravelDefaultSections(industryId) : []),
   ...(slug === 'fitness' ? buildFitnessDefaultSections(industryId) : []),
+  ...(slug === 'services' ? buildServicesDefaultSections(industryId) : []),
   ...(slug === 'beauty' ? buildBeautyDefaultSections(industryId) : []),
   ...(slug === 'electronics' ? buildElectronicsDefaultSections(industryId) : []),
   ...(slug === 'grocery' ? buildGroceryDefaultSections(industryId) : []),
   ...(slug === 'fashion' ? buildFashionDefaultSections(industryId) : []),
   ...(slug === 'automobile' ? buildAutomobileDefaultSections(industryId) : []),
   ...(slug === 'decor'
+    || slug === 'jewellery'
+    || slug === 'jewelry'
+    || slug === 'jwellery'
     || slug === 'kids'
     || slug === 'sports'
     || slug === 'travel'
     || slug === 'fitness'
+    || slug === 'services'
     || slug === 'beauty'
     || slug === 'electronics'
     || slug === 'grocery'

@@ -305,6 +305,7 @@ export const getPreviewTitle = (item) => item?.title || item?.name || item?.labe
 const resolvePreviewThemeKey = (preset, fallback = 'default') => {
   const normalized = String(preset || '').trim().toLowerCase();
   if (!normalized) return fallback;
+  if (normalized === 'jewellery' || normalized === 'jewelry' || normalized === 'jwellery') return 'jewellery';
   if (normalized === 'beauty') return 'beauty';
   if (normalized === 'grocery') return 'grocery';
   if (normalized === 'fashion') return 'fashion';
@@ -313,6 +314,7 @@ const resolvePreviewThemeKey = (preset, fallback = 'default') => {
   if (normalized === 'sports') return 'sports';
   if (normalized === 'travel') return 'travel';
   if (normalized === 'fitness') return 'fitness';
+  if (normalized === 'services') return 'services';
   if (normalized === 'electronics') return 'electronics';
   if (normalized === 'automobile') return 'automobile';
   return normalized || fallback;
@@ -769,6 +771,25 @@ export const PreviewSection = ({
     const isSportsShowcase = normalizedShowcasePreset === 'sports';
     const isTravelShowcase = normalizedShowcasePreset === 'travel';
     const isFitnessShowcase = normalizedShowcasePreset === 'fitness';
+    const isServicesShowcase = normalizedShowcasePreset === 'services';
+    const isJewelleryShowcase = normalizedShowcasePreset === 'jewellery';
+    const showcaseThemeClass = isElectronicsShowcase
+      ? 'preview-showcase-theme-electronics'
+      : isGroceryShowcase
+        ? 'preview-showcase-theme-grocery'
+        : isKidsShowcase
+          ? 'preview-showcase-theme-kids'
+          : isSportsShowcase
+            ? 'preview-showcase-theme-sports'
+            : isTravelShowcase
+              ? 'preview-showcase-theme-travel'
+              : isFitnessShowcase
+                ? 'preview-showcase-theme-fitness'
+                : isServicesShowcase
+                  ? 'preview-showcase-theme-services'
+                  : isJewelleryShowcase
+                    ? 'preview-showcase-theme-jewellery'
+                  : '';
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
         {title ? (
@@ -778,21 +799,7 @@ export const PreviewSection = ({
           </div>
         ) : null}
         <div
-          className={`preview-showcase-row preview-showcase-${variant} ${
-            isElectronicsShowcase
-              ? 'preview-showcase-theme-electronics'
-              : isGroceryShowcase
-                ? 'preview-showcase-theme-grocery'
-                  : isKidsShowcase
-                    ? 'preview-showcase-theme-kids'
-                    : isSportsShowcase
-                      ? 'preview-showcase-theme-sports'
-                      : isTravelShowcase
-                        ? 'preview-showcase-theme-travel'
-                        : isFitnessShowcase
-                          ? 'preview-showcase-theme-fitness'
-                : ''
-          }`}
+          className={`preview-showcase-row preview-showcase-${variant} ${showcaseThemeClass}`}
         >
           {items.map((item, itemIndex) => {
             const image = getPreviewImage(item);
@@ -807,10 +814,10 @@ export const PreviewSection = ({
                 <div key={`preview-showcase-card-${index}-${itemIndex}`} className="preview-showcase-card-item">
                   <div className="preview-showcase-card-image">
                     {image ? <img src={image} alt="" /> : <div className="preview-image-placeholder" />}
-                    {isTravelShowcase || isFitnessShowcase ? <div className="preview-showcase-card-overlay" /> : null}
+                    {isTravelShowcase || isFitnessShowcase || isServicesShowcase || isJewelleryShowcase ? <div className="preview-showcase-card-overlay" /> : null}
                     {icon ? (
                       <img src={icon} alt="" className="preview-showcase-card-badge" />
-                    ) : isTravelShowcase || isFitnessShowcase ? (
+                    ) : isTravelShowcase || isFitnessShowcase || isServicesShowcase || isJewelleryShowcase ? (
                       <span className="preview-showcase-card-badge-icon">{iconGlyph}</span>
                     ) : null}
                     <div className="preview-showcase-card-label">{label}</div>
@@ -847,6 +854,8 @@ export const PreviewSection = ({
     const isSportsPreset = normalizedPreset === 'sports';
     const isTravelPreset = normalizedPreset === 'travel';
     const isFitnessPreset = normalizedPreset === 'fitness';
+    const isServicesPreset = normalizedPreset === 'services';
+    const isJewelleryPreset = normalizedPreset === 'jewellery';
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
         <div
@@ -857,6 +866,10 @@ export const PreviewSection = ({
                 ? 'is-travel'
               : isFitnessPreset
                 ? 'is-fitness'
+              : isServicesPreset
+                ? 'is-services'
+              : isJewelleryPreset
+                ? 'is-jewellery'
               : isKidsPreset
                 ? 'is-kids'
                 : isDecorPreset
@@ -1392,6 +1405,62 @@ export const PreviewSection = ({
     );
   }
 
+  if (blockType === 'services_booking_slots_fixed') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className={buildPreviewTitleClass({ themeKey: 'services', surface: true })}>
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-services-slot-list">
+          {items.map((item, itemIndex) => {
+            const status = String(item?.status || item?.badgeText || 'Available').trim().toLowerCase();
+            return (
+              <div key={`preview-services-slot-${index}-${itemIndex}`} className="preview-services-slot-card">
+                <div className="preview-services-slot-copy">
+                  <div className="preview-services-slot-title">{item?.name || item?.title || `Slot ${itemIndex + 1}`}</div>
+                  {item?.service || item?.subtitle ? (
+                    <div className="preview-services-slot-meta">{item?.service || item?.subtitle}</div>
+                  ) : null}
+                  <div className="preview-services-slot-meta">{`${item?.date || 'Tomorrow'} at ${item?.time || '10:30 AM'}`}</div>
+                </div>
+                <span className={`preview-services-slot-status ${status === 'waitlist' ? 'is-waitlist' : status === 'filling fast' ? 'is-fast' : 'is-available'}`}>
+                  {item?.status || item?.badgeText || 'Available'}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'jewellery_gold_rates_fixed') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className={buildPreviewTitleClass({ themeKey: 'jewellery', surface: true })}>
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-jewellery-rate-list">
+          {items.map((item, itemIndex) => (
+            <div key={`preview-jewellery-rate-${index}-${itemIndex}`} className="preview-jewellery-rate-card">
+              <div className="preview-jewellery-rate-copy">
+                <div className="preview-jewellery-rate-label">{item?.label || item?.title || `Rate ${itemIndex + 1}`}</div>
+                <div className="preview-jewellery-rate-price">{item?.price || item?.priceLine || 'Rs 6,525/g'}</div>
+              </div>
+              <span className="preview-jewellery-rate-trend">{item?.trend || item?.badgeText || '+0.2%'}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   if (blockType === 'sports_live_matches_fixed') {
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
@@ -1676,6 +1745,8 @@ export const PreviewSection = ({
     const isKidsRows = infoPreset === 'kids';
     const isSportsRows = infoPreset === 'sports';
     const isTravelRows = infoPreset === 'travel';
+    const isServicesRows = infoPreset === 'services';
+    const isJewelleryRows = infoPreset === 'jewellery';
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
         {title ? (
@@ -1698,7 +1769,7 @@ export const PreviewSection = ({
             ))}
           </div>
         ) : (
-          <div className={`preview-info-list ${isLaunchRows ? 'is-launch-rows' : isFashionRows ? 'is-fashion' : isKidsRows ? 'is-kids' : isSportsRows ? 'is-sports' : isTravelRows ? 'is-travel' : 'is-support-rows'}`}>
+          <div className={`preview-info-list ${isLaunchRows ? 'is-launch-rows' : isFashionRows ? 'is-fashion' : isKidsRows ? 'is-kids' : isSportsRows ? 'is-sports' : isTravelRows ? 'is-travel' : isServicesRows ? 'is-services' : isJewelleryRows ? 'is-jewellery' : 'is-support-rows'}`}>
             {items.map((item, itemIndex) => (
               <div key={`preview-info-list-${index}-${itemIndex}`} className="preview-info-list-item">
                 <div className="preview-info-list-icon">
