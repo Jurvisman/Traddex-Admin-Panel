@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Banner, TableRowActionMenu } from '../components';
+import CatalogBulkImportModal from '../components/CatalogBulkImportModal';
 import { usePermissions } from '../shared/permissions';
 import { createIndustry, deleteIndustry, listIndustries, updateIndustry } from '../services/adminApi';
 import { buildOrderingWarning, findNextAvailableOrdering, findOrderingConflict, parseOrderingInput } from '../utils/ordering';
@@ -23,6 +24,7 @@ function IndustryPage({ token }) {
   const [editItem, setEditItem] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [openActionRowId, setOpenActionRowId] = useState(null);
+  const [showBulkImport, setShowBulkImport] = useState(false);
   const { hasPermission } = usePermissions();
   const canCreate = hasPermission(PRODUCT_MASTER_PERMISSIONS.industry.create);
   const canUpdate = hasPermission(PRODUCT_MASTER_PERMISSIONS.industry.update);
@@ -263,6 +265,12 @@ function IndustryPage({ token }) {
                   </svg>
                   Import/Export
                 </button>
+                <button type="button" className="gsc-toolbar-btn" title="Bulk Taxonomy Import" onClick={() => setShowBulkImport(true)}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2M7 8l5-5 5 5M12 3v13" />
+                  </svg>
+                  Bulk Import
+                </button>
               </div>
             </div>
             <div className="gsc-datatable-toolbar-right">
@@ -385,6 +393,18 @@ function IndustryPage({ token }) {
           )}
         </div>
       </div>
+      {showBulkImport ? (
+        <CatalogBulkImportModal
+          token={token}
+          industries={items}
+          onClose={() => setShowBulkImport(false)}
+          onImportSuccess={() => {
+            loadIndustries();
+            setShowBulkImport(false);
+            setMessage({ type: 'success', text: 'Taxonomy imported successfully.' });
+          }}
+        />
+      ) : null}
     </div>
   );
 }

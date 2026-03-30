@@ -142,6 +142,34 @@ export const updateProductVariantStatus = (token, productId, variantId, payload)
 export const reviewProductBrand = (token, productId, payload) =>
   request(`/admin/product/${productId}/brand/review`, { method: 'PUT', body: payload, token });
 
+const requestMultipart = async (path, { method = 'POST', formData, token: authToken } = {}) => {
+  const headers = {};
+  if (authToken) headers.Authorization = `Bearer ${authToken}`;
+  const response = await fetch(buildUrl(path), { method, headers, body: formData });
+  if (!response.ok) throw new Error(await parseError(response));
+  if (response.status === 204) return null;
+  return response.json();
+};
+
+export const downloadCatalogTemplate = (token) =>
+  fetch(buildUrl('/admin/catalog/import/template'), {
+    headers: { Authorization: `Bearer ${token}` },
+  }).then((r) => {
+    if (!r.ok) throw new Error('Template download failed');
+    return r.blob();
+  });
+
+export const previewCatalogImport = (token, industryId, mode, file) => {
+  const formData = new FormData();
+  formData.append('industryId', industryId);
+  formData.append('mode', mode);
+  formData.append('file', file);
+  return requestMultipart('/admin/catalog/import/preview', { formData, token });
+};
+
+export const commitCatalogImport = (token, payload) =>
+  request('/admin/catalog/import/commit', { method: 'POST', body: payload, token });
+
 export const listBrandOptions = (token, query) => {
   const search = query ? `?query=${encodeURIComponent(query)}` : '';
   return request(`/admin/brands/options${search}`, { token });
