@@ -309,6 +309,7 @@ const resolvePreviewThemeKey = (preset, fallback = 'default') => {
   if (normalized === 'medical' || normalized === 'health') return 'medical';
   if (normalized === 'beauty') return 'beauty';
   if (normalized === 'grocery') return 'grocery';
+  if (normalized === 'food') return 'food';
   if (normalized === 'fashion') return 'fashion';
   if (normalized === 'decor') return 'decor';
   if (normalized === 'agriculture') return 'agriculture';
@@ -784,6 +785,7 @@ export const PreviewSection = ({
     const normalizedShowcasePreset = resolvePreviewThemeKey(section?.stylePreset);
     const isElectronicsShowcase = normalizedShowcasePreset === 'electronics';
     const isGroceryShowcase = normalizedShowcasePreset === 'grocery';
+    const isFoodShowcase = normalizedShowcasePreset === 'food';
     const isKidsShowcase = normalizedShowcasePreset === 'kids';
     const isSportsShowcase = normalizedShowcasePreset === 'sports';
     const isTravelShowcase = normalizedShowcasePreset === 'travel';
@@ -795,6 +797,8 @@ export const PreviewSection = ({
       ? 'preview-showcase-theme-electronics'
         : isGroceryShowcase
           ? 'preview-showcase-theme-grocery'
+        : isFoodShowcase
+          ? 'preview-showcase-theme-food'
         : isManufacturingShowcase
           ? 'preview-showcase-theme-manufacturing'
         : isKidsShowcase
@@ -868,6 +872,7 @@ export const PreviewSection = ({
     const normalizedPreset = resolvePreviewThemeKey(stylePreset, 'electronics');
     const isBeautyPreset = normalizedPreset === 'beauty';
     const isGroceryPreset = normalizedPreset === 'grocery';
+    const isFoodPreset = normalizedPreset === 'food';
     const isFashionPreset = normalizedPreset === 'fashion';
     const isDecorPreset = normalizedPreset === 'decor';
     const isMedicalPreset = normalizedPreset === 'medical';
@@ -887,6 +892,8 @@ export const PreviewSection = ({
               ? 'is-sports'
               : isMedicalPreset
                 ? 'is-medical'
+              : isFoodPreset
+                ? 'is-food'
               : isAgriculturePreset
                 ? 'is-agriculture'
               : isManufacturingPreset
@@ -973,9 +980,10 @@ export const PreviewSection = ({
   }
 
   if (blockType === 'product_card_carousel') {
-    const normalizedPreset = String(stylePreset || '').trim().toLowerCase();
+    const normalizedPreset = resolvePreviewThemeKey(stylePreset);
     const isBeautyPreset = normalizedPreset === 'beauty';
     const isGroceryPreset = normalizedPreset === 'grocery';
+    const isFoodPreset = normalizedPreset === 'food';
     const previewActionMode = String(section?.actionMode || 'AUTO').trim().toUpperCase();
     const resolvePreviewCtaLabel = (item) => {
       if (item?.ctaText) return item.ctaText;
@@ -996,9 +1004,11 @@ export const PreviewSection = ({
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
         {title ? (
           <div
-            className={`preview-title preview-title-with-action ${
-              isBeautyPreset ? '' : 'preview-title-surface-pill'
-            }`}
+            className={
+              isBeautyPreset
+                ? 'preview-title preview-title-with-action'
+                : buildPreviewTitleClass({ themeKey: normalizedPreset, surface: true })
+            }
           >
             <span>{title}</span>
             {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
@@ -1025,7 +1035,7 @@ export const PreviewSection = ({
             ))}
           </div>
         ) : (
-          <div className={`preview-deal-carousel ${isGroceryPreset ? 'is-grocery' : ''}`}>
+          <div className={`preview-deal-carousel ${isGroceryPreset ? 'is-grocery' : isFoodPreset ? 'is-food' : ''}`}>
             {items.map((item, itemIndex) => (
               <div key={`preview-product-card-${index}-${itemIndex}`} className="preview-deal-card">
                 <div className="preview-deal-card-image">
@@ -1337,6 +1347,84 @@ export const PreviewSection = ({
               <div className="preview-shelf-footer">
                 <span className="preview-shelf-price">{item?.priceLine || item?.price || 'Rs 999'}</span>
                 {item?.rating ? <span className="preview-shelf-rating">★ {item.rating}</span> : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'food_explore_experience_fixed') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className={buildPreviewTitleClass({ themeKey: 'food', surface: true })}>
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-food-experience-row">
+          {items.map((item, itemIndex) => (
+            <div key={`preview-food-experience-${index}-${itemIndex}`} className="preview-food-experience-card">
+              {getPreviewImage(item) ? <img src={getPreviewImage(item)} alt="" /> : <div className="preview-image-placeholder" />}
+              <div className="preview-food-experience-overlay">
+                {item?.tag ? <span className="preview-food-experience-badge">{item.tag}</span> : null}
+                <div className="preview-food-experience-title">{item?.title || `Experience ${itemIndex + 1}`}</div>
+                {item?.subtitle ? <div className="preview-food-experience-subtitle">{item.subtitle}</div> : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'food_area_guide_fixed') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className={buildPreviewTitleClass({ themeKey: 'food', surface: true })}>
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-food-area-grid">
+          {items.map((item, itemIndex) => (
+            <div
+              key={`preview-food-area-${index}-${itemIndex}`}
+              className="preview-food-area-card"
+              style={item?.accentColor ? { background: `linear-gradient(135deg, ${item.accentColor}, #fff8f3)` } : undefined}
+            >
+              <div className="preview-food-area-title">{item?.title || `Area ${itemIndex + 1}`}</div>
+              {item?.subtitle ? <div className="preview-food-area-subtitle">{item.subtitle}</div> : null}
+              {item?.tag ? <span className="preview-food-area-badge">{item.tag}</span> : null}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'food_city_dictionary_fixed') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className={buildPreviewTitleClass({ themeKey: 'food', surface: true })}>
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-food-dictionary-list">
+          {items.map((item, itemIndex) => (
+            <div key={`preview-food-dictionary-${index}-${itemIndex}`} className="preview-food-dictionary-card">
+              <div className="preview-food-dictionary-image">
+                {getPreviewImage(item) ? <img src={getPreviewImage(item)} alt="" /> : <div className="preview-image-placeholder" />}
+              </div>
+              <div className="preview-food-dictionary-copy">
+                <div className="preview-food-dictionary-title">{item?.title || `Dish ${itemIndex + 1}`}</div>
+                {item?.subtitle ? <div className="preview-food-dictionary-subtitle">{item.subtitle}</div> : null}
+                {item?.ctaText ? <span className="preview-food-dictionary-cta">{item.ctaText}</span> : null}
               </div>
             </div>
           ))}
@@ -2227,6 +2315,7 @@ export const PreviewSection = ({
     const normalizedPreset = resolvePreviewThemeKey(stylePreset);
     const isBeautyChips = normalizedPreset === 'beauty';
     const isGroceryChips = normalizedPreset === 'grocery';
+    const isFoodChips = normalizedPreset === 'food';
     const isTravelChips = normalizedPreset === 'travel';
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
@@ -2245,11 +2334,11 @@ export const PreviewSection = ({
             ))}
           </div>
         ) : (
-          <div className={`preview-chip-scroll ${isGroceryChips ? 'is-grocery' : isTravelChips ? 'is-travel' : ''}`}>
+          <div className={`preview-chip-scroll ${isGroceryChips ? 'is-grocery' : isFoodChips ? 'is-food' : isTravelChips ? 'is-travel' : ''}`}>
             {items.map((item, itemIndex) => (
               <span
                 key={`preview-chip-${index}-${itemIndex}`}
-                className={`preview-chip ${isGroceryChips ? 'is-grocery' : isTravelChips ? 'is-travel' : ''}`}
+                className={`preview-chip ${isGroceryChips ? 'is-grocery' : isFoodChips ? 'is-food' : isTravelChips ? 'is-travel' : ''}`}
               >
                 {item.text || item.title || `Chip ${itemIndex + 1}`}
               </span>

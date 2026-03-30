@@ -4350,6 +4350,59 @@ textarea {
   color: #1e2a17;
 }
 
+.preview-showcase-theme-food .preview-showcase-circle-item {
+  min-width: 68px;
+  max-width: 76px;
+  gap: 8px;
+}
+
+.preview-showcase-theme-food .preview-showcase-circle-image {
+  width: 60px;
+  height: 60px;
+  border-radius: 18px;
+  border: 1px solid rgba(252, 128, 25, 0.18);
+  background: #fff1e8;
+}
+
+.preview-showcase-theme-food .preview-showcase-icon-badge {
+  width: 22px;
+  height: 22px;
+  background: #e23744;
+  border-color: #fff;
+}
+
+.preview-showcase-theme-food .preview-showcase-circle-label {
+  font-size: 9.5px;
+  font-weight: 800;
+  color: #2a1306;
+}
+
+.preview-showcase-theme-food .preview-showcase-card-item {
+  min-width: 122px;
+}
+
+.preview-showcase-theme-food .preview-showcase-card-image {
+  border-radius: 18px;
+  border: 1px solid rgba(252, 128, 25, 0.16);
+}
+
+.preview-showcase-theme-food .preview-showcase-card-overlay {
+  background: linear-gradient(180deg, rgba(42, 19, 6, 0.08), rgba(42, 19, 6, 0.78));
+}
+
+.preview-showcase-theme-food .preview-showcase-card-badge-icon {
+  background: rgba(226, 55, 68, 0.22);
+}
+
+.preview-showcase-theme-food .preview-showcase-card-label {
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  text-align: left;
+  font-size: 10px;
+  font-weight: 800;
+}
+
 .preview-showcase-theme-kids .preview-showcase-circle-image {
   background: rgba(253, 186, 116, 0.22);
   border: 1px solid rgba(47, 47, 47, 0.08);
@@ -4615,6 +4668,19 @@ textarea {
   color: #c46a4a;
 }
 
+.preview-title.preview-title-theme-food {
+  color: #2a1306;
+}
+
+.preview-title.preview-title-theme-food.preview-title-surface-pill {
+  background: #fff3eb;
+  border-color: rgba(226, 55, 68, 0.12);
+}
+
+.preview-title.preview-title-theme-food .preview-action-link {
+  color: #e23744;
+}
+
 .preview-title.preview-title-theme-kids {
   color: #2f2f2f;
 }
@@ -4782,6 +4848,20 @@ textarea {
 
 .preview-promo-hero.is-grocery .preview-promo-hero-cta {
   background: #2e6b1f;
+}
+
+.preview-promo-hero.is-food .preview-promo-hero-overlay {
+  background: linear-gradient(180deg, rgba(42, 19, 6, 0.08), rgba(42, 19, 6, 0.82));
+}
+
+.preview-promo-hero.is-food .preview-promo-hero-badge {
+  background: rgba(252, 128, 25, 0.22);
+  border-color: rgba(252, 128, 25, 0.36);
+}
+
+.preview-promo-hero.is-food .preview-promo-hero-cta {
+  background: #e23744;
+  color: #ffffff;
 }
 
 .preview-promo-hero.is-fashion .preview-promo-hero-overlay {
@@ -5078,6 +5158,28 @@ textarea {
   color: #2e6b1f;
 }
 
+.preview-quick-actions.is-food .preview-quick-action-card {
+  border-color: rgba(252, 128, 25, 0.18);
+  background: linear-gradient(180deg, #fff8f3 0%, #ffffff 82%);
+}
+
+.preview-quick-actions.is-food .preview-quick-action-icon {
+  background: rgba(252, 128, 25, 0.12);
+  color: #fc8019;
+}
+
+.preview-quick-actions.is-food .preview-quick-action-title {
+  color: #2a1306;
+}
+
+.preview-quick-actions.is-food .preview-quick-action-subtitle {
+  color: #7c5340;
+}
+
+.preview-quick-actions.is-food .preview-quick-action-cta {
+  color: #e23744;
+}
+
 .preview-quick-actions.is-fashion .preview-quick-action-card {
   border-color: rgba(78, 56, 35, 0.16);
 }
@@ -5105,6 +5207,14 @@ textarea {
 
 .preview-quick-action-section-is-fashion .preview-action-link {
   color: #4e3823;
+}
+
+.preview-quick-action-section-is-food .preview-title {
+  color: #2a1306;
+}
+
+.preview-quick-action-section-is-food .preview-action-link {
+  color: #e23744;
 }
 
 .preview-quick-actions.is-decor .preview-quick-action-card {
@@ -5410,6 +5520,44 @@ textarea {
 
 .preview-deal-carousel.is-grocery .preview-deal-card-cta-plus {
   margin-right: 2px;
+}
+
+.preview-deal-carousel.is-food .preview-deal-card {
+  border-color: rgba(226, 55, 68, 0.12);
+  background: linear-gradient(180deg, #fff8f3 0%, #ffffff 72%);
+  box-shadow: 0 8px 18px rgba(226, 55, 68, 0.08);
+}
+
+.preview-deal-carousel.is-food .preview-deal-card-badge {
+  background: rgba(226, 55, 68, 0.96);
+}
+
+.preview-deal-carousel.is-food .preview-deal-card-image {
+  border: 1px solid rgba(252, 128, 25, 0.14);
+  background: #fff1e8;
+}
+
+.preview-deal-carousel.is-food .preview-deal-card-title {
+  color: #2a1306;
+}
+
+.preview-deal-carousel.is-food .preview-deal-card-subtitle,
+.preview-deal-carousel.is-food .preview-deal-card-business {
+  color: #7c5340;
+}
+
+.preview-deal-carousel.is-food .preview-deal-card-price {
+  color: #e23744;
+}
+
+.preview-deal-carousel.is-food .preview-deal-card-footer {
+  border-top-color: rgba(252, 128, 25, 0.12);
+}
+
+.preview-deal-carousel.is-food .preview-deal-card-cta {
+  border-color: rgba(252, 128, 25, 0.96);
+  background: #fc8019;
+  color: #ffffff;
 }
 
 .preview-media-overlay-row {
@@ -6552,6 +6700,28 @@ textarea {
   color: #f06b6b;
 }
 
+.preview-shelf-row.is-food .preview-shelf-card {
+  border-color: rgba(252, 128, 25, 0.18);
+  background: linear-gradient(180deg, #fff8f3 0%, #ffffff 82%);
+}
+
+.preview-shelf-row.is-food .preview-shelf-image {
+  background: #fff1e8;
+}
+
+.preview-shelf-row.is-food .preview-shelf-title {
+  color: #2a1306;
+}
+
+.preview-shelf-row.is-food .preview-shelf-subtitle,
+.preview-shelf-row.is-food .preview-shelf-rating {
+  color: #7c5340;
+}
+
+.preview-shelf-row.is-food .preview-shelf-price {
+  color: #e23744;
+}
+
 .preview-shelf-row.is-sports .preview-shelf-card {
   border-color: rgba(255, 255, 255, 0.08);
   background: #171b22;
@@ -6757,6 +6927,29 @@ textarea {
   color: #d4f000;
 }
 
+.preview-shop-card-row.is-food .preview-shop-card {
+  border-color: rgba(252, 128, 25, 0.18);
+  background: linear-gradient(180deg, #fff8f3 0%, #ffffff 82%);
+}
+
+.preview-shop-card-row.is-food .preview-shop-card-image {
+  background: #fff1e8;
+}
+
+.preview-shop-card-row.is-food .preview-shop-card-title {
+  color: #2a1306;
+}
+
+.preview-shop-card-row.is-food .preview-shop-card-subtitle,
+.preview-shop-card-row.is-food .preview-shop-card-meta {
+  color: #7c5340;
+}
+
+.preview-shop-card-row.is-food .preview-shop-card-pill {
+  border-color: rgba(252, 128, 25, 0.2);
+  color: #fc8019;
+}
+
 .preview-sports-match-list {
   display: flex;
   flex-direction: column;
@@ -6838,6 +7031,153 @@ textarea {
   border: 1px solid rgba(20, 83, 116, 0.12);
   background: #ffffff;
   padding: 12px;
+}
+
+.preview-food-experience-row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 148px;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.preview-food-experience-card {
+  position: relative;
+  min-height: 148px;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #fff1e8;
+}
+
+.preview-food-experience-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.preview-food-experience-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 4px;
+  padding: 12px;
+  background: linear-gradient(180deg, rgba(42, 19, 6, 0.08), rgba(42, 19, 6, 0.8));
+}
+
+.preview-food-experience-badge {
+  align-self: flex-start;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(252, 128, 25, 0.22);
+  color: #ffffff;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.preview-food-experience-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.preview-food-experience-subtitle {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.84);
+}
+
+.preview-food-area-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.preview-food-area-card {
+  min-height: 86px;
+  border-radius: 18px;
+  border: 1px solid rgba(252, 128, 25, 0.16);
+  background: linear-gradient(135deg, #ffe7d1, #fff8f3);
+  padding: 12px;
+}
+
+.preview-food-area-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: #2a1306;
+}
+
+.preview-food-area-subtitle {
+  margin-top: 4px;
+  font-size: 9px;
+  color: #7c5340;
+}
+
+.preview-food-area-badge {
+  display: inline-flex;
+  margin-top: 8px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(226, 55, 68, 0.1);
+  color: #e23744;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.preview-food-dictionary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.preview-food-dictionary-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 18px;
+  border: 1px solid rgba(252, 128, 25, 0.16);
+  background: #ffffff;
+  padding: 10px;
+}
+
+.preview-food-dictionary-image {
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff1e8;
+  flex-shrink: 0;
+}
+
+.preview-food-dictionary-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.preview-food-dictionary-copy {
+  min-width: 0;
+}
+
+.preview-food-dictionary-title {
+  font-size: 10px;
+  font-weight: 800;
+  color: #2a1306;
+}
+
+.preview-food-dictionary-subtitle {
+  margin-top: 4px;
+  font-size: 8px;
+  color: #7c5340;
+}
+
+.preview-food-dictionary-cta {
+  display: inline-flex;
+  margin-top: 6px;
+  color: #e23744;
+  font-size: 8px;
+  font-weight: 800;
 }
 
 .preview-travel-flight-header {
@@ -15581,6 +15921,12 @@ textarea {
   color: #1e2a17;
   background: #eef7e8;
   border: 1px solid rgba(46, 107, 31, 0.14);
+}
+
+.preview-chip.is-food {
+  color: #8a3217;
+  background: #fff1e8;
+  border: 1px solid rgba(252, 128, 25, 0.14);
 }
 
 .preview-chip.is-travel {
