@@ -23,6 +23,7 @@ export { default as SubscriptionPlanPage } from './SubscriptionPlanPage';
 export { default as SubscriptionPlanCreatePage } from './SubscriptionPlanCreatePage';
 export { default as SubscriptionPlanViewPage } from './SubscriptionPlanViewPage';
 export { default as SubscriptionAssignPage } from './SubscriptionAssignPage';
+export { default as AddonPricingPage } from './AddonPricingPage';
 export { default as EmployeePage } from './EmployeePage';
 export { default as RolePermissionPage } from './RolePermissionPage';
 export { default as AppConfigPage } from './AppConfigPage';
@@ -34,3 +35,6 @@ export { default as SubscriptionRevenuePage } from './SubscriptionRevenuePage';
 export { default as AdvertisementRevenuePage } from './AdvertisementRevenuePage';
 export { default as PurchaseOrdersPage } from './PurchaseOrdersPage';
 export { default as SalesOrdersPage } from './SalesOrdersPage';
+export { default as AdvertisementReviewPage } from './AdvertisementReviewPage';
+export { default as AdvertisementViewPage } from './AdvertisementViewPage';
+

@@ -82,6 +82,10 @@ export const buildSectionFromForm = (base, form) => {
   setOrDelete('id', form.id?.trim());
   setOrDelete('type', form.type?.trim());
   setOrDelete('blockType', form.blockType?.trim());
+  setOrDelete(
+    'slotType',
+    resolvedBlockType === 'ad_banner' ? form.slotType?.trim().toUpperCase() || 'FULL_BANNER' : undefined
+  );
   setOrDelete('title', form.title?.trim());
   setOrDelete('text', form.text?.trim());
   setOrDelete('actionText', form.actionText?.trim());
@@ -572,6 +576,10 @@ export const buildSectionFormFromConfig = (section, fallbackType) => {
     id: section?.id || '',
     type: resolvedType,
     blockType: resolvedBlockType,
+    slotType:
+      resolvedBlockType === 'ad_banner'
+        ? String(section?.slotType || defaultSectionForm.slotType || 'FULL_BANNER')
+        : '',
     title: section?.title || '',
     text: section?.text || '',
     actionText: section?.actionText || '',

@@ -20,6 +20,7 @@ import {
   ProductPage,
   SubCategoryPage,
   SubscriptionAssignPage,
+  AddonPricingPage,
   SubscriptionFeaturePage,
   SubscriptionOverviewPage,
   SubscriptionPlanPage,
@@ -36,6 +37,8 @@ import {
   AdvertisementRevenuePage,
   PurchaseOrdersPage,
   SalesOrdersPage,
+  AdvertisementReviewPage,
+  AdvertisementViewPage,
 } from './pages';
 import { fetchMyPermissions } from './services/adminApi';
 import { PermissionsContext } from './shared/permissions';
@@ -134,6 +137,11 @@ const ICONS = {
         d="M7 4h10v3H7V4Zm-3 5h16v11H4V9Zm4 2v2h8v-2H8Zm0 4v2h5v-2H8Z"
         fill="currentColor"
       />
+    </svg>
+  ),
+  advertisement: (
+    <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+      <path d="M4 11v7h2v-3h2l5 3V6l-5 3H4v2Zm11-4c2.76 0 5 2.24 5 5s-2.24 5-5 5v-2c1.66 0 3-1.34 3-3s-1.34-3-3-3V7Z"/>
     </svg>
   ),
   appConfig: (
@@ -322,6 +330,11 @@ const ADMIN_META = [
    // subtitle: 'Create plans with pricing, durations, and feature limits.',
   },
   {
+    match: '/admin/subscription/addon-pricing',
+    title: 'Addon Pricing',
+    subtitle: 'Set per-unit addon pricing for features.',
+  },
+  {
     match: '/admin/subscription/assignments',
     title: 'Assign Subscriptions',
     subtitle: 'Grant plans to users and review assignments.',
@@ -364,7 +377,14 @@ const ADMIN_META = [
   {
     match: '/admin/revenue/advertisement',
     title: 'Advertisement Revenue',
-    subtitle: 'Ad campaigns, review workflow, and ad revenue.',
+    breadcrumbs: ['Revenue Model', 'Advertisement Revenue'],
+    type: 'list',
+  },
+  {
+    match: '/admin/advertisement/review',
+    title: 'Advertisement Review',
+    breadcrumbs: ['Advertisement', 'Ad Review'],
+    type: 'list',
   },
   {
     match: '/admin/orders/purchase',
@@ -592,6 +612,7 @@ function AppRoutes() {
               { path: '/admin/subscription/overview', label: 'Revenue Model', icon: ICONS.subOverview, tone: NAV_TONES.subOverview },
               { path: '/admin/subscription/features', label: 'Features', icon: ICONS.subFeatures, tone: NAV_TONES.subFeatures },
               { path: '/admin/subscription/plans', label: 'Plan', icon: ICONS.subPlans, tone: NAV_TONES.subPlans },
+              { path: '/admin/subscription/addon-pricing', label: 'Addon Pricing', icon: ICONS.subPlans, tone: NAV_TONES.subAssignments },
             ],
           },
           {
@@ -602,6 +623,15 @@ function AppRoutes() {
             children: [
               { path: '/admin/revenue/subscription', label: 'Subscription Revenue', icon: ICONS.revenue, tone: NAV_TONES.revenue },
               { path: '/admin/revenue/advertisement', label: 'Advertisement Revenue', icon: ICONS.revenue, tone: NAV_TONES.revenue },
+            ],
+          },
+          {
+            key: 'advertisement',
+            label: 'Advertisement',
+            icon: ICONS.advertisement,
+            basePath: '/admin/advertisement',
+            children: [
+              { path: '/admin/advertisement/review', label: 'Ad Review', icon: ICONS.settingsRole, tone: NAV_TONES.settingsRole },
             ],
           },
           { path: '/admin/employees', label: 'Employee', icon: ICONS.employee, tone: NAV_TONES.employee },
@@ -1246,6 +1276,18 @@ function AppRoutes() {
           }
         />
         <Route
+          path="subscription/addon-pricing"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={canAccessPath('/admin/subscription/addon-pricing')}
+              fallbackPath={routeFallbackPath}
+            >
+              <AddonPricingPage token={authToken} />
+            </PermissionGate>
+          }
+        />
+        <Route
           path="settings/roles"
           element={
             <PermissionGate
@@ -1371,6 +1413,30 @@ function AppRoutes() {
               fallbackPath={routeFallbackPath}
             >
               <AdvertisementRevenuePage token={authToken} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="advertisement/review"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={canAccessPath('/admin/advertisement/review')}
+              fallbackPath={routeFallbackPath}
+            >
+              <AdvertisementReviewPage token={authToken} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="advertisement/review/:id"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={canAccessPath('/admin/advertisement/review')}
+              fallbackPath={routeFallbackPath}
+            >
+              <AdvertisementViewPage token={authToken} />
             </PermissionGate>
           }
         />

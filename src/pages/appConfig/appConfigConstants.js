@@ -4133,6 +4133,21 @@ const buildAutomobileDefaultSections = (industryId) => {
 export const screenToolboxItems = [
   // ── Banners & Heroes ────────────────────────────────────────────────────
   {
+    key: 'adBanner',
+    label: 'Ad Banner',
+    hint: 'Live ad slot — serves the best matching active business ad based on industry and slot type. Shows nothing if no active ad exists.',
+    section: {
+      id: 'ad_banner',
+      type: 'ad_banner',
+      blockType: 'ad_banner',
+      // slotType controls which ad is fetched: FULL_BANNER | MID_CARD | BOTTOM_STRIP
+      // Use FULL_BANNER near the top, MID_CARD mid-scroll, BOTTOM_STRIP near the bottom.
+      // Only one of each slotType should exist per industry page.
+      slotType: 'FULL_BANNER',
+      enabled: true,
+    },
+  },
+  {
     key: 'heroBanner',
     label: 'Hero Banner',
     hint: 'Full-width image banner with tap destination',
@@ -6491,6 +6506,7 @@ export const defaultSectionForm = {
   quickActionPreset: 'electronics',
   stylePreset: '',
   cardVariant: '',
+  slotType: 'FULL_BANNER',
   bentoHeaderImage: '',
   bentoHeroImage: '',
   bentoHeroLink: '',

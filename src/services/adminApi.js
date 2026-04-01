@@ -344,6 +344,13 @@ export const updateSubscriptionPlan = (token, id, payload) =>
 export const deleteSubscriptionPlan = (token, id) =>
   request(`/admin/plan/${id}`, { method: 'DELETE', token });
 
+export const activateSubscriptionPlan = (token, payload) =>
+  request('/admin/subscription/assign', { method: 'POST', body: payload, token });
+
+
+
+
+
 export const assignSubscriptionPlan = (token, payload) =>
   request('/admin/subscription/assign', { method: 'POST', body: payload, token });
 export const listSubscriptionAssignments = (token, filters = {}) => {
@@ -353,6 +360,13 @@ export const listSubscriptionAssignments = (token, filters = {}) => {
   const query = params.toString() ? `?${params.toString()}` : '';
   return request(`/admin/subscription/list${query}`, { token });
 };
+
+// Addon pricing management
+export const upsertAddonPricing = (token, payload) =>
+  request('/admin/addon/pricing', { method: 'POST', body: payload, token });
+
+export const getAddonHistory = (token, userId) =>
+  request(`/admin/addon/history?user_id=${userId}`, { token });
 
 // Order disputes
 export const listOrderDisputes = (token, status) => {
@@ -374,3 +388,20 @@ export const getUserBusinessScore = (token, userId) =>
 
 export const getUserBusinessScoreHistory = (token, userId, limit = 25) =>
   request(`/admin/business-score/history?user_id=${userId}&limit=${limit}`, { token });
+
+// ── Advertisements ────────────────────────────────────────────────────────────
+
+// Admin: list all ads, optionally filtered by status (PENDING, ACTIVE, EXPIRED, REJECTED)
+export const listAllAds = (token, status = null) => {
+  const query = status ? `?status=${encodeURIComponent(status)}` : '';
+  return request(`/admin/advertisements${query}`, { token });
+};
+
+// Admin: get single ad detail
+export const getAdById = (token, adId) =>
+  request(`/admin/advertisements/${adId}`, { token });
+
+// Admin: approve / reject / force-expire an ad
+// payload: { status: 'ACTIVE' | 'REJECTED' | 'EXPIRED', adminNote?: string }
+export const updateAdStatus = (token, adId, payload) =>
+  request(`/admin/advertisements/${adId}/status`, { method: 'PATCH', body: payload, token });

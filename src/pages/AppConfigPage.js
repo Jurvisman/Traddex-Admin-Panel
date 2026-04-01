@@ -169,6 +169,11 @@ const NAVIGATION_TARGET_OPTIONS = [
   { value: 'EXTERNAL_URL', label: 'External URL' },
   { value: 'CUSTOM', label: 'Custom deep link' },
 ];
+const AD_SLOT_TYPE_OPTIONS = [
+  { value: 'FULL_BANNER', label: 'Full banner' },
+  { value: 'MID_CARD', label: 'Mid card' },
+  { value: 'BOTTOM_STRIP', label: 'Bottom strip' },
+];
 const NAVIGATION_TARGET_PLACEHOLDERS = {
   COLLECTION: 'summer-serums',
   CAMPAIGN: 'beauty-fest',
@@ -3204,6 +3209,7 @@ function AppConfigPage({ token }) {
   const screenBlockType = sectionForm.blockType || sectionForm.type;
   const headerBlockType = headerSectionForm.blockType || headerSectionForm.type;
   const isPhaseOneBlock = phaseOneBlockTypes.has(screenBlockType);
+  const isAdBannerBlock = screenBlockType === 'ad_banner';
   const isCategoryFeedEligible =
     screenBlockType === 'category_icon_grid' ||
     screenBlockType === 'horizontal_scroll_list' ||
@@ -4075,6 +4081,24 @@ function AppConfigPage({ token }) {
                       <span>Block type</span>
                       <input type="text" value={isEditingFixed ? 'Fixed' : screenBlockLabel} disabled />
                     </label>
+                    {isAdBannerBlock ? (
+                      <label className="field">
+                        <span>Ad slot</span>
+                        <select
+                          value={sectionForm.slotType || 'FULL_BANNER'}
+                          onChange={(event) =>
+                            setSectionForm((prev) => ({ ...prev, slotType: event.target.value }))
+                          }
+                        >
+                          {AD_SLOT_TYPE_OPTIONS.map((option) => (
+                            <option key={`ad-slot-${option.value}`} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                        <p className="field-help">Must match the published advertisement slot type.</p>
+                      </label>
+                    ) : null}
                     {!isPhaseOneBlock ? (
                       <label className="field">
                         <span>Block id</span>
