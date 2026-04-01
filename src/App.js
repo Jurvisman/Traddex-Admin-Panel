@@ -40,6 +40,7 @@ import {
   AdvertisementReviewPage,
   AdvertisementViewPage,
   AdPricingConfigPage,
+  AuditLogsPage,
 } from './pages';
 import { fetchMyPermissions } from './services/adminApi';
 import { PermissionsContext } from './shared/permissions';
@@ -650,6 +651,7 @@ function AppRoutes() {
             tone: NAV_TONES.settingsRole,
             children: [
               { path: '/admin/settings/roles', label: 'Role & Permission', icon: ICONS.settingsRole, tone: NAV_TONES.settingsRole },
+              { path: '/admin/settings/logs', label: 'Audit Logs', icon: ICONS.settingsRole, tone: NAV_TONES.settingsRole },
             ],
           },
           { path: '/admin/app-config', label: 'CMS', icon: ICONS.appConfig, tone: NAV_TONES.appConfig },
@@ -1457,6 +1459,18 @@ function AppRoutes() {
               fallbackPath={routeFallbackPath}
             >
               <AdPricingConfigPage token={authToken} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="settings/logs"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={canAccessPath('/admin/settings/logs')}
+              fallbackPath={routeFallbackPath}
+            >
+              <AuditLogsPage token={authToken} />
             </PermissionGate>
           }
         />

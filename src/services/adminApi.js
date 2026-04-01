@@ -395,6 +395,19 @@ export const getUserBusinessScoreHistory = (token, userId, limit = 25) =>
 export const getSubscriptionRevenue = (token) =>
   request('/admin/subscription/revenue', { token });
 
+// Admin: audit logs
+export const getAuditLogs = (token, { category, actorId, sensitiveOnly, dateFrom, dateTo, page = 0, size = 50 } = {}) => {
+  const params = new URLSearchParams();
+  if (category) params.set('category', category);
+  if (actorId) params.set('actorId', actorId);
+  if (sensitiveOnly) params.set('sensitiveOnly', 'true');
+  if (dateFrom) params.set('dateFrom', dateFrom);
+  if (dateTo) params.set('dateTo', dateTo);
+  params.set('page', page);
+  params.set('size', size);
+  return request(`/admin/audit-logs?${params.toString()}`, { token });
+};
+
 // Admin: list all ads, optionally filtered by status (PENDING, ACTIVE, EXPIRED, REJECTED)
 export const listAllAds = (token, status = null) => {
   const query = status ? `?status=${encodeURIComponent(status)}` : '';
