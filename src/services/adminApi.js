@@ -391,6 +391,10 @@ export const getUserBusinessScoreHistory = (token, userId, limit = 25) =>
 
 // ── Advertisements ────────────────────────────────────────────────────────────
 
+// Admin: subscription revenue dashboard
+export const getSubscriptionRevenue = (token) =>
+  request('/admin/subscription/revenue', { token });
+
 // Admin: list all ads, optionally filtered by status (PENDING, ACTIVE, EXPIRED, REJECTED)
 export const listAllAds = (token, status = null) => {
   const query = status ? `?status=${encodeURIComponent(status)}` : '';
