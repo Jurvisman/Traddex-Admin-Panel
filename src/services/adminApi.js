@@ -405,3 +405,10 @@ export const getAdById = (token, adId) =>
 // payload: { status: 'ACTIVE' | 'REJECTED' | 'EXPIRED', adminNote?: string }
 export const updateAdStatus = (token, adId, payload) =>
   request(`/admin/advertisements/${adId}/status`, { method: 'PATCH', body: payload, token });
+
+// Admin: Pricing Config
+export const getAdPricingConfig = (token) =>
+  request('/advertisements/pricing-config', { token });
+
+export const updateAdPricingConfig = (token, payload) =>
+  request('/admin/advertisements/pricing-config', { method: 'PUT', body: payload, token });

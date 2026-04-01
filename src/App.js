@@ -39,6 +39,7 @@ import {
   SalesOrdersPage,
   AdvertisementReviewPage,
   AdvertisementViewPage,
+  AdPricingConfigPage,
 } from './pages';
 import { fetchMyPermissions } from './services/adminApi';
 import { PermissionsContext } from './shared/permissions';
@@ -387,6 +388,12 @@ const ADMIN_META = [
     type: 'list',
   },
   {
+    match: '/admin/advertisement/pricing',
+    title: 'Ad Pricing Config',
+    breadcrumbs: ['Advertisement', 'Pricing Config'],
+    subtitle: 'Manage hourly base rates and multipliers for the pay-per-ad system.',
+  },
+  {
     match: '/admin/orders/purchase',
     title: 'Purchase Orders',
     subtitle: 'Orders where a buyer is purchasing from a seller/business.',
@@ -632,6 +639,7 @@ function AppRoutes() {
             basePath: '/admin/advertisement',
             children: [
               { path: '/admin/advertisement/review', label: 'Ad Review', icon: ICONS.settingsRole, tone: NAV_TONES.settingsRole },
+              { path: '/admin/advertisement/pricing', label: 'Pricing Config', icon: ICONS.attributes, tone: NAV_TONES.fields },
             ],
           },
           { path: '/admin/employees', label: 'Employee', icon: ICONS.employee, tone: NAV_TONES.employee },
@@ -1437,6 +1445,18 @@ function AppRoutes() {
               fallbackPath={routeFallbackPath}
             >
               <AdvertisementViewPage token={authToken} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="advertisement/pricing"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={canAccessPath('/admin/advertisement/pricing')}
+              fallbackPath={routeFallbackPath}
+            >
+              <AdPricingConfigPage token={authToken} />
             </PermissionGate>
           }
         />
