@@ -46,6 +46,7 @@ export default function CatalogBulkImportModal({ token, industries, onClose, onI
   const [file, setFile] = useState(null);
   const [step, setStep] = useState('setup'); // setup | preview | done
   const [previewData, setPreviewData] = useState(null);
+  const [sessionToken, setSessionToken] = useState(null);
   const [importResult, setImportResult] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -72,7 +73,9 @@ export default function CatalogBulkImportModal({ token, industries, onClose, onI
     setIsLoading(true);
     try {
       const resp = await previewCatalogImport(token, industryId, mode, file);
-      setPreviewData(resp?.data || resp);
+      const data = resp?.data || resp;
+      setPreviewData(data);
+      setSessionToken(data?.sessionToken || null);
       setStep('preview');
     } catch (err) {
       setError('Preview failed: ' + err.message);
@@ -83,14 +86,12 @@ export default function CatalogBulkImportModal({ token, industries, onClose, onI
 
   const handleCommit = async () => {
     if (!previewData) return;
-    const rows = (previewData.rows || [])
-      .filter((r) => !r.hasError)
-      .map((r) => r.rowData);
-    if (rows.length === 0) { setError('No valid rows to import.'); return; }
+    if (!sessionToken) { setError('Session expired. Please go back and re-upload the CSV.'); return; }
+    if (validRows.length === 0) { setError('No valid rows to import.'); return; }
     setError('');
     setIsLoading(true);
     try {
-      const resp = await commitCatalogImport(token, { industryId: Number(industryId), mode, rows });
+      const resp = await commitCatalogImport(token, { sessionToken });
       setImportResult(resp?.data || resp);
       setStep('done');
       if (onImportSuccess) onImportSuccess();
@@ -101,9 +102,25 @@ export default function CatalogBulkImportModal({ token, industries, onClose, onI
     }
   };
 
+  const handleDownloadErrorReport = () => {
+    const lines = ['row_number,main_category,category,sub_category,errors'];
+    errorRows.forEach((r) => {
+      const errors = (r.errors || []).join('; ').replace(/"/g, '""');
+      lines.push(`${r.rowNumber},"${r.mainCategoryName || ''}","${r.categoryName || ''}","${r.subCategoryName || ''}","${errors}"`);
+    });
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'import-errors.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleReset = () => {
     setStep('setup');
     setPreviewData(null);
+    setSessionToken(null);
     setImportResult(null);
     setFile(null);
     setError('');
@@ -216,8 +233,11 @@ export default function CatalogBulkImportModal({ token, industries, onClose, onI
             </div>
 
             {errorRows.length > 0 ? (
-              <div className="banner banner-error" style={{ marginBottom: 16 }}>
-                <p><strong>{errorRows.length} row(s) have errors</strong> and will be skipped. Fix the CSV and re-upload to include them.</p>
+              <div className="banner banner-error" style={{ marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                <p style={{ margin: 0 }}><strong>{errorRows.length} row(s) have errors</strong> and will be skipped. Fix the CSV and re-upload to include them.</p>
+                <button type="button" className="ghost-btn" onClick={handleDownloadErrorReport} style={{ flexShrink: 0 }}>
+                  Download Error Report
+                </button>
               </div>
             ) : null}
 
@@ -305,7 +325,8 @@ export default function CatalogBulkImportModal({ token, industries, onClose, onI
               <SummaryCard label="Cat Updated" value={importResult.categoriesUpdated} accent="#5eead4" />
               <SummaryCard label="Sub-Cat Created" value={importResult.subCategoriesCreated} accent="#0EA5E9" />
               <SummaryCard label="Sub-Cat Updated" value={importResult.subCategoriesUpdated} accent="#7dd3fc" />
-              <SummaryCard label="Skipped" value={importResult.rowsSkipped} accent="#6b7280" />
+              <SummaryCard label="Rows Succeeded" value={importResult.rowsSucceeded} accent="#22c55e" />
+              <SummaryCard label="Rows Skipped" value={importResult.rowsSkipped} accent="#6b7280" />
             </div>
             {(importResult.errors || []).length > 0 ? (
               <div className="banner banner-error" style={{ marginBottom: 16 }}>
