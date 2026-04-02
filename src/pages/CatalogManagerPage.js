@@ -1,6 +1,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Banner } from '../components';
+import CatalogBulkImportModal from '../components/CatalogBulkImportModal';
 import {
   createCategory,
   createIndustry,
@@ -85,6 +86,7 @@ function CatalogManagerPage({ token }) {
   const [editingMainId, setEditingMainId] = useState(null);
   const [editingCategoryId, setEditingCategoryId] = useState(null);
   const [editingSubId, setEditingSubId] = useState(null);
+  const [showBulkImport, setShowBulkImport] = useState(false);
 
   const loadIndustries = async (keepSelection = true) => {
     setIsLoading(true);
@@ -1007,6 +1009,9 @@ function CatalogManagerPage({ token }) {
           <p className="catalog-subtitle">Single place to manage industry, main categories, categories, and sub-categories.</p>
         </div>
         <div className="catalog-actions">
+          <button type="button" className="ghost-btn" onClick={() => setShowBulkImport(true)} disabled={isLoading}>
+            Bulk Import
+          </button>
           <button type="button" className="ghost-btn" onClick={() => loadIndustries(false)} disabled={isLoading}>
             Refresh
           </button>
@@ -1289,6 +1294,19 @@ function CatalogManagerPage({ token }) {
           </div>
         </aside>
       </div>
+
+      {showBulkImport ? (
+        <CatalogBulkImportModal
+          token={token}
+          industries={industries}
+          onClose={() => setShowBulkImport(false)}
+          onImportSuccess={() => {
+            loadIndustries(false);
+            setShowBulkImport(false);
+            setMessage({ type: 'success', text: 'Taxonomy imported successfully. Refreshing...' });
+          }}
+        />
+      ) : null}
     </div>
   );
 }

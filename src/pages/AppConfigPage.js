@@ -15,6 +15,7 @@ import {
   getAppConfigDraft,
   getPublishedAppConfig,
   getAppConfigPresets,
+  getBrandFeedPreview,
   getHomeCategoryPreview,
   listAppConfigVersions,
   listCategories,
@@ -87,10 +88,15 @@ import {
   resolveDefaultCategoryFeedMode,
   BENTO_TILE_SOURCE_OPTIONS,
   SOURCE_TYPE_OPTIONS,
+  TABBED_SHELF_SOURCE_OPTIONS,
+  SHOP_BLOCK_SOURCE_OPTIONS,
+  PRODUCT_FEED_MODE_OPTIONS,
+  TAB_FIELD_OPTIONS,
   SHOWCASE_VARIANT_OPTIONS,
   STYLE_PRESET_OPTIONS,
   PRODUCT_SHELF_VARIANT_OPTIONS,
   PRODUCT_CARD_VARIANT_OPTIONS,
+  MEDIA_OVERLAY_VARIANT_OPTIONS,
   MULTI_ITEM_GRID_FEED_OPTIONS,
   COMMON_LINK_PRESETS,
   resolveMultiItemGridDataSourceRef,
@@ -162,6 +168,11 @@ const NAVIGATION_TARGET_OPTIONS = [
   { value: 'CATEGORY', label: 'Category' },
   { value: 'EXTERNAL_URL', label: 'External URL' },
   { value: 'CUSTOM', label: 'Custom deep link' },
+];
+const AD_SLOT_TYPE_OPTIONS = [
+  { value: 'FULL_BANNER', label: 'Full banner' },
+  { value: 'MID_CARD', label: 'Mid card' },
+  { value: 'BOTTOM_STRIP', label: 'Bottom strip' },
 ];
 const NAVIGATION_TARGET_PLACEHOLDERS = {
   COLLECTION: 'summer-serums',
@@ -303,6 +314,8 @@ function AppConfigPage({ token }) {
   const [activePanel, setActivePanel] = useState(null);
   const [showEditor, setShowEditor] = useState(false);
   const [showAdvancedFields, setShowAdvancedFields] = useState(false);
+  const [collapsedGroups, setCollapsedGroups] = useState({});
+  const togglePropGroup = (key) => setCollapsedGroups((prev) => ({ ...prev, [key]: !prev[key] }));
   const [isUploadingBanner, setIsUploadingBanner] = useState(false);
   const [isUploadingHeaderImage, setIsUploadingHeaderImage] = useState(false);
   const [isUploadingHeroBanner, setIsUploadingHeroBanner] = useState(false);
@@ -396,14 +409,35 @@ function AppConfigPage({ token }) {
     const pageId = String(selectedPage?.id || '').trim().toLowerCase();
     if (pageId.startsWith('home_') && pageId !== 'home_main') {
       const slug = pageId.replace(/^home_/, '');
-      if (slug === 'beauty' || slug === 'electronics' || slug === 'grocery') return slug;
+      if (slug === 'jewellery' || slug === 'jewelry' || slug === 'jwellery') return 'jewellery';
+      if (slug === 'medical' || slug === 'health') return 'medical';
+      if (slug === 'beauty' || slug === 'electronics' || slug === 'grocery' || slug === 'food' || slug === 'fashion' || slug === 'automobile' || slug === 'decor' || slug === 'kids' || slug === 'sports' || slug === 'travel' || slug === 'fitness' || slug === 'services' || slug === 'agriculture' || slug === 'manufacturing') return slug;
     }
     const route = String(selectedPage?.route || '').trim().toLowerCase();
+    if (route.includes('jewellery') || route.includes('jewelry') || route.includes('jwellery')) return 'jewellery';
+    if (route.includes('medical') || route.includes('health')) return 'medical';
     if (route.includes('beauty')) return 'beauty';
     if (route.includes('electronics')) return 'electronics';
     if (route.includes('grocery')) return 'grocery';
+    if (route.includes('food')) return 'food';
+    if (route.includes('fashion')) return 'fashion';
+    if (route.includes('automobile')) return 'automobile';
+    if (route.includes('decor')) return 'decor';
+    if (route.includes('kids')) return 'kids';
+    if (route.includes('sports')) return 'sports';
+    if (route.includes('travel')) return 'travel';
+    if (route.includes('fitness')) return 'fitness';
+    if (route.includes('services')) return 'services';
+    if (route.includes('agriculture')) return 'agriculture';
+    if (route.includes('manufacturing')) return 'manufacturing';
     const industrySlug = normalizeSlug(pageIndustry?.slug || pageIndustry?.name || '');
-    if (industrySlug === 'beauty' || industrySlug === 'electronics' || industrySlug === 'grocery') {
+    if (industrySlug === 'jewellery' || industrySlug === 'jewelry' || industrySlug === 'jwellery') {
+      return 'jewellery';
+    }
+    if (industrySlug === 'medical' || industrySlug === 'health') {
+      return 'medical';
+    }
+    if (industrySlug === 'beauty' || industrySlug === 'electronics' || industrySlug === 'grocery' || industrySlug === 'food' || industrySlug === 'fashion' || industrySlug === 'automobile' || industrySlug === 'decor' || industrySlug === 'kids' || industrySlug === 'sports' || industrySlug === 'travel' || industrySlug === 'fitness' || industrySlug === 'services' || industrySlug === 'agriculture' || industrySlug === 'manufacturing') {
       return industrySlug;
     }
     return '';
@@ -1678,6 +1712,13 @@ function AppConfigPage({ token }) {
     category?.thumbnailImage ||
     '';
 
+  const resolveBrandSubtitle = (brand) =>
+    brand?.description ||
+    brand?.countryOfOrigin ||
+    String(brand?.website || '')
+      .replace(/^https?:\/\//i, '')
+      .replace(/^www\./i, '');
+
   const isCategoryActive = (category) => {
     if (category?.active === undefined || category?.active === null) return true;
     if (typeof category.active === 'boolean') return category.active;
@@ -2084,6 +2125,50 @@ function AppConfigPage({ token }) {
       setMessage({ type: 'success', text: 'Brand layout collections loaded from API.' });
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to resolve brand layout collections.' });
+    } finally {
+      setIsResolvingSource(false);
+    }
+  };
+
+  const handleApplyBrandFeed = async () => {
+    const resolvedBlockType = sectionForm.blockType || sectionForm.type || '';
+    if (resolvedBlockType !== 'brand_logo_grid') {
+      setMessage({ type: 'error', text: 'Brand feed is only supported for Brand Showcase.' });
+      return;
+    }
+
+    setIsResolvingSource(true);
+    setMessage(emptyMessage);
+    try {
+      const response = await getBrandFeedPreview({
+        industryId: normalizeCollectionId(sectionForm.sourceIndustryId),
+        mainCategoryId: normalizeCollectionId(sectionForm.sourceMainCategoryId),
+        limit: Number(sectionForm.sourceLimit || 8),
+      });
+      const brands = Array.isArray(response?.data?.brands) ? response.data.brands : [];
+      if (!brands.length) {
+        throw new Error('No approved brands found for the selected filters.');
+      }
+
+      const palette = ['#F3F4F6', '#FFF7ED', '#F0FDF4', '#FEF3C7', '#F5F3FF', '#FCE7F3'];
+      const nextItems = brands.slice(0, 12).map((brand, index) => ({
+        id: normalizeCollectionId(brand?.id),
+        title: String(brand?.brandName || '').trim(),
+        subtitle: resolveBrandSubtitle(brand),
+        imageUrl: brand?.logoUrl || '',
+        imageShellBg: palette[index % palette.length],
+        deepLink: '',
+      }));
+
+      setSectionForm((prev) => ({
+        ...prev,
+        sourceType: 'BRAND_FEED',
+        stylePreset: prev.stylePreset || 'automobile',
+        sduiItems: nextItems,
+      }));
+      setMessage({ type: 'success', text: 'Brand showcase preview loaded from the selected industry.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to resolve brand showcase feed.' });
     } finally {
       setIsResolvingSource(false);
     }
@@ -3124,6 +3209,7 @@ function AppConfigPage({ token }) {
   const screenBlockType = sectionForm.blockType || sectionForm.type;
   const headerBlockType = headerSectionForm.blockType || headerSectionForm.type;
   const isPhaseOneBlock = phaseOneBlockTypes.has(screenBlockType);
+  const isAdBannerBlock = screenBlockType === 'ad_banner';
   const isCategoryFeedEligible =
     screenBlockType === 'category_icon_grid' ||
     screenBlockType === 'horizontal_scroll_list' ||
@@ -3135,6 +3221,7 @@ function AppConfigPage({ token }) {
   const isPhaseOneColumnGrid = screenBlockType === 'column_grid';
   const isPhaseOneCategoryIconGrid = screenBlockType === 'category_icon_grid';
   const isPhaseOneBrandGrid = screenBlockType === 'brand_logo_grid';
+  const isBrandFeedEligible = isPhaseOneBrandGrid;
   const isPhaseOneProductShelf = screenBlockType === 'product_shelf_horizontal';
   const isPhaseOneHeroCarousel = screenBlockType === 'hero_carousel';
   const isSplitPromoRow = screenBlockType === 'split_promo_row';
@@ -3153,6 +3240,8 @@ function AppConfigPage({ token }) {
   const isBeautyRoutineList = screenBlockType === 'beauty_routine_list';
   const isBeautyTipChips = screenBlockType === 'beauty_tip_chips';
   const isBeautySalonCarousel = screenBlockType === 'beauty_salon_carousel';
+  const isTabbedProductShelf = screenBlockType === 'tabbed_product_shelf';
+  const isShopCardCarousel = screenBlockType === 'shop_card_carousel';
   const infoListPreset = String(sectionForm.stylePreset || 'launch_rows').trim().toLowerCase();
   const isLaunchInfoList = infoListPreset === 'launch_rows';
   const mediaOverlayPreset = String(sectionForm.stylePreset || 'electronics').trim().toLowerCase();
@@ -3977,11 +4066,39 @@ function AppConfigPage({ token }) {
                   </div>
                 </div>
                 {activePanel === 'screen' ? (
-                  <form className="field-grid" onSubmit={handleSectionSubmit}>
+                  <form className="prop-form" onSubmit={handleSectionSubmit}>
+                    {/* ── General ──────────────────────────────────────── */}
+                    <div className={`prop-group${collapsedGroups.general ? ' is-collapsed' : ''}`}>
+                      <div className="prop-group-header" onClick={() => togglePropGroup('general')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && togglePropGroup('general')}>
+                        <div className="prop-group-left">
+                          <span className="prop-group-title">General</span>
+                        </div>
+                        <span className="prop-group-toggle">▾</span>
+                      </div>
+                      <div className="prop-group-body">
+                        <div className="field-grid">
                     <label className="field field-span">
                       <span>Block type</span>
                       <input type="text" value={isEditingFixed ? 'Fixed' : screenBlockLabel} disabled />
                     </label>
+                    {isAdBannerBlock ? (
+                      <label className="field">
+                        <span>Ad slot</span>
+                        <select
+                          value={sectionForm.slotType || 'FULL_BANNER'}
+                          onChange={(event) =>
+                            setSectionForm((prev) => ({ ...prev, slotType: event.target.value }))
+                          }
+                        >
+                          {AD_SLOT_TYPE_OPTIONS.map((option) => (
+                            <option key={`ad-slot-${option.value}`} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                        <p className="field-help">Must match the published advertisement slot type.</p>
+                      </label>
+                    ) : null}
                     {!isPhaseOneBlock ? (
                       <label className="field">
                         <span>Block id</span>
@@ -4140,10 +4257,30 @@ function AppConfigPage({ token }) {
                           <option value="electronics">Electronics</option>
                           <option value="beauty">Beauty</option>
                           <option value="grocery">Grocery</option>
+                          <option value="food">Food</option>
                           <option value="fashion">Fashion</option>
+                          <option value="jewellery">Jewellery</option>
+                          <option value="decor">Decor</option>
+                          <option value="kids">Kids</option>
+                          <option value="sports">Sports</option>
+                          <option value="manufacturing">Manufacturing</option>
                         </select>
                       </label>
                     ) : null}
+                        </div>
+                      </div>
+                    </div>
+                    {/* ── Appearance ───────────────────────────────────── */}
+                    {(supportsStylePreset || isPhaseOneProductShelf || isProductCardCarousel || isSectionTitleBlock) ? (
+                      <div className={`prop-group${collapsedGroups.appearance ? ' is-collapsed' : ''}`}>
+                        <div className="prop-group-header" onClick={() => togglePropGroup('appearance')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && togglePropGroup('appearance')}>
+                          <div className="prop-group-left">
+                            <span className="prop-group-title">Appearance</span>
+                          </div>
+                          <span className="prop-group-toggle">▾</span>
+                        </div>
+                        <div className="prop-group-body">
+                          <div className="field-grid">
                     {supportsStylePreset ? (
                       <label className="field">
                         <span>Style preset</span>
@@ -4212,6 +4349,23 @@ function AppConfigPage({ token }) {
                         </label>
                       </>
                     ) : null}
+                    {isMediaOverlayCarousel ? (
+                      <label className="field">
+                        <span>Card layout</span>
+                        <select
+                          value={sectionForm.cardVariant || ''}
+                          onChange={(event) =>
+                            setSectionForm((prev) => ({ ...prev, cardVariant: event.target.value }))
+                          }
+                        >
+                          {MEDIA_OVERLAY_VARIANT_OPTIONS.map((option) => (
+                            <option key={`media-overlay-variant-${option.value || 'default'}`} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    ) : null}
                     {isSectionTitleBlock ? (
                       <label className="field field-span">
                         <span>Title text</span>
@@ -4223,8 +4377,21 @@ function AppConfigPage({ token }) {
                         />
                       </label>
                     ) : null}
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
+                    {/* ── Content ──────────────────────────────────────── */}
                     {isHeroBanner ? (
-                      <>
+                      <div className={`prop-group${collapsedGroups.content ? ' is-collapsed' : ''}`}>
+                        <div className="prop-group-header" onClick={() => togglePropGroup('content')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && togglePropGroup('content')}>
+                          <div className="prop-group-left">
+                            <span className="prop-group-title">Content</span>
+                          </div>
+                          <span className="prop-group-toggle">▾</span>
+                        </div>
+                        <div className="prop-group-body">
+                          <div className="field-grid">
                         <label className="field field-span">
                           <span>Image URL</span>
                           <div className="inline-row">
@@ -4425,35 +4592,89 @@ function AppConfigPage({ token }) {
                             onChange={(event) => setSectionForm((prev) => ({ ...prev, scheduleEnd: event.target.value }))}
                           />
                         </label>
-                      </>
+                          </div>
+                        </div>
+                      </div>
                     ) : null}
+                    {/* ── Data Source ───────────────────────────────────── */}
                     {isPhaseOneBlock ? (
-                      <>
+                      <div className={`prop-group${collapsedGroups.dataSource ? ' is-collapsed' : ''}`}>
+                        <div className="prop-group-header" onClick={() => togglePropGroup('dataSource')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && togglePropGroup('dataSource')}>
+                          <div className="prop-group-left">
+                            <span className="prop-group-title">Data Source</span>
+                          </div>
+                          <span className="prop-group-toggle">▾</span>
+                        </div>
+                        <div className="prop-group-body">
+                          <div className="field-grid">
                         <label className="field field-span">
                           <span>Data source</span>
                           <div className="field-grid source-config-grid">
                             {isPhaseOneProductShelf ? (
-                              <label className="field field-span">
-                                <span>Product feed</span>
-                                <select
-                                  value={sectionForm.dataSourceRef || ''}
-                                  onChange={(event) =>
-                                    setSectionForm((prev) => ({
-                                      ...prev,
-                                      dataSourceRef: event.target.value,
-                                    }))
-                                  }
-                                >
-                                  <option value="">Manual (no API)</option>
-                                  <option value="todaydealproducts">Today&apos;s deals</option>
-                                  <option value="home_top_selling_products">Top selling products</option>
-                                  <option value="home_most_rated_products">Most rated products</option>
-                                  <option value="home_recommended_products">Recommended products</option>
-                                </select>
-                                <p className="field-help">
-                                  Products are loaded from the selected feed. In manual mode you can edit the item list below.
-                                </p>
-                              </label>
+                              <>
+                                <label className="field field-span">
+                                  <span>Product feed</span>
+                                  <select
+                                    value={sectionForm.dataSourceRef || ''}
+                                    onChange={(event) =>
+                                      setSectionForm((prev) => {
+                                        const nextSourceRef = event.target.value;
+                                        const pageIndustryId = String(resolveIndustryId(pageIndustry) || '');
+                                        return {
+                                          ...prev,
+                                          dataSourceRef: nextSourceRef,
+                                          itemsPath: nextSourceRef ? (prev.itemsPath || '$.products') : '',
+                                          sourceIndustryId:
+                                            nextSourceRef && !prev.sourceIndustryId
+                                              ? pageIndustryId
+                                              : prev.sourceIndustryId,
+                                          sourceMainCategoryId: nextSourceRef ? prev.sourceMainCategoryId : '',
+                                          sourceCategoryIds: nextSourceRef ? prev.sourceCategoryIds : [],
+                                        };
+                                      })
+                                    }
+                                  >
+                                    <option value="">Manual (no API)</option>
+                                    <option value="todaydealproducts">Today&apos;s deals</option>
+                                    <option value="home_top_selling_products">Top selling products</option>
+                                    <option value="home_most_rated_products">Most rated products</option>
+                                    <option value="home_recommended_products">Recommended products</option>
+                                  </select>
+                                  <p className="field-help">
+                                    Products are loaded from the selected feed. In manual mode you can edit the item list below.
+                                  </p>
+                                </label>
+                                {sectionForm.dataSourceRef ? (
+                                  <label className="field">
+                                    <span>Industry</span>
+                                    <select
+                                      value={sectionForm.sourceIndustryId || ''}
+                                      onChange={(event) =>
+                                        setSectionForm((prev) => ({
+                                          ...prev,
+                                          sourceIndustryId: event.target.value,
+                                          sourceMainCategoryId: '',
+                                          sourceCategoryIds: [],
+                                        }))
+                                      }
+                                    >
+                                      <option value="">All industries</option>
+                                      {industries.map((item) => {
+                                        const id = resolveIndustryId(item);
+                                        if (!id) return null;
+                                        return (
+                                          <option key={id} value={id}>
+                                            {resolveIndustryLabel(item)}
+                                          </option>
+                                        );
+                                      })}
+                                    </select>
+                                    <p className="field-help">
+                                      Select an industry to scope live products. Leave blank to keep the feed global.
+                                    </p>
+                                  </label>
+                                ) : null}
+                              </>
                             ) : (
                               <>
                                 {!isPhaseOneCategoryIconGrid && !isPhaseOneBrandGrid && !isPhaseOneCategoryShowcase ? (
@@ -4473,6 +4694,7 @@ function AppConfigPage({ token }) {
                                       key={opt.value}
                                       value={opt.value}
                                           disabled={
+                                            (opt.value === 'BRAND_FEED' && !isBrandFeedEligible) ||
                                             (opt.value === 'CATEGORY_FEED' && !isCategoryFeedEligible) ||
                                             (opt.value === 'DATA_SOURCE' && !isPhaseOneDataSourceEligible) ||
                                             (opt.value === 'HYBRID' && !isPhaseOneHybridEligible)
@@ -4566,30 +4788,126 @@ function AppConfigPage({ token }) {
                                   </>
                                 ) : null}
                             {isPhaseOneBrandGrid ? (
-                              <label className="field">
-                                <span>Main category filter</span>
-                                <select
-                                  value={sectionForm.sourceMainCategoryId || ''}
-                                  onChange={(event) =>
-                                    setSectionForm((prev) => ({
-                                      ...prev,
-                                      sourceType: 'BRAND_COLLECTIONS',
-                                      sourceMainCategoryId: event.target.value,
-                                    }))
-                                  }
-                                >
-                                  <option value="">All main categories</option>
-                                  {mainCategories.map((item) => {
-                                    const id = resolveMainCategoryId(item);
-                                    if (!id) return null;
-                                    return (
-                                      <option key={id} value={id}>
-                                        {resolveMainCategoryName(item)}
-                                      </option>
-                                    );
-                                  })}
-                                </select>
-                              </label>
+                              <>
+                                <label className="field">
+                                  <span>Source type</span>
+                                  <select
+                                    value={phaseOneSourceType === 'BRAND_FEED' ? 'BRAND_FEED' : 'MANUAL'}
+                                    onChange={(event) =>
+                                      setSectionForm((prev) => ({
+                                        ...prev,
+                                        sourceType: event.target.value,
+                                        sourceIndustryId:
+                                          event.target.value === 'BRAND_FEED'
+                                            ? prev.sourceIndustryId || String(resolveIndustryId(pageIndustry) || '')
+                                            : prev.sourceIndustryId,
+                                      }))
+                                    }
+                                  >
+                                    <option value="MANUAL">Manual</option>
+                                    <option value="BRAND_FEED">Brand feed</option>
+                                  </select>
+                                  <p className="field-help">
+                                    Brand feed will pull approved brands from Brand Master using the selected industry.
+                                  </p>
+                                </label>
+                                {phaseOneSourceType === 'BRAND_FEED' ? (
+                                  <>
+                                    <label className="field">
+                                      <span>Industry</span>
+                                      <select
+                                        value={sectionForm.sourceIndustryId || ''}
+                                        onChange={(event) =>
+                                          setSectionForm((prev) => ({
+                                            ...prev,
+                                            sourceType: 'BRAND_FEED',
+                                            sourceIndustryId: event.target.value,
+                                            sourceMainCategoryId: '',
+                                          }))
+                                        }
+                                      >
+                                        <option value="">
+                                          {pageIndustry ? `Use page industry (${resolveIndustryLabel(pageIndustry)})` : 'All industries'}
+                                        </option>
+                                        {industries.map((item) => {
+                                          const id = resolveIndustryId(item);
+                                          if (!id) return null;
+                                          return (
+                                            <option key={id} value={id}>
+                                              {resolveIndustryLabel(item)}
+                                            </option>
+                                          );
+                                        })}
+                                      </select>
+                                    </label>
+                                    <label className="field">
+                                      <span>Main category (optional)</span>
+                                      <select
+                                        value={sectionForm.sourceMainCategoryId || ''}
+                                        onChange={(event) =>
+                                          setSectionForm((prev) => ({
+                                            ...prev,
+                                            sourceType: 'BRAND_FEED',
+                                            sourceMainCategoryId: event.target.value,
+                                          }))
+                                        }
+                                      >
+                                        <option value="">All main categories</option>
+                                        {(sectionForm.sourceIndustryId ? filteredMainCategoryOptions : mainCategories).map((item) => {
+                                          const id = resolveMainCategoryId(item);
+                                          if (!id) return null;
+                                          return (
+                                            <option key={id} value={id}>
+                                              {resolveMainCategoryName(item)}
+                                            </option>
+                                          );
+                                        })}
+                                      </select>
+                                    </label>
+                                    <label className="field">
+                                      <span>Brand limit</span>
+                                      <input
+                                        type="number"
+                                        min="1"
+                                        max="12"
+                                        value={sectionForm.sourceLimit || '8'}
+                                        onChange={(event) =>
+                                          setSectionForm((prev) => ({
+                                            ...prev,
+                                            sourceType: 'BRAND_FEED',
+                                            sourceLimit: event.target.value,
+                                          }))
+                                        }
+                                      />
+                                    </label>
+                                  </>
+                                ) : (
+                                  <label className="field">
+                                    <span>Main category filter</span>
+                                    <select
+                                      value={sectionForm.sourceMainCategoryId || ''}
+                                      onChange={(event) =>
+                                        setSectionForm((prev) => ({
+                                          ...prev,
+                                          sourceType: 'BRAND_COLLECTIONS',
+                                          sourceMainCategoryId: event.target.value,
+                                        }))
+                                      }
+                                    >
+                                      <option value="">All main categories</option>
+                                      {mainCategories.map((item) => {
+                                        const id = resolveMainCategoryId(item);
+                                        if (!id) return null;
+                                        return (
+                                          <option key={id} value={id}>
+                                            {resolveMainCategoryName(item)}
+                                          </option>
+                                        );
+                                      })}
+                                    </select>
+                                  </label>
+                                )}
+                              </>
                             ) : null}
                                 {showPhaseOneDataSourceConfig ? (
                                   <>
@@ -5025,13 +5343,19 @@ function AppConfigPage({ token }) {
                                     <button
                                       type="button"
                                       className="ghost-btn small"
-                                      onClick={handleApplyBrandCollections}
+                                      onClick={phaseOneSourceType === 'BRAND_FEED' ? handleApplyBrandFeed : handleApplyBrandCollections}
                                       disabled={isResolvingSource}
                                     >
-                                      {isResolvingSource ? 'Loading...' : 'Load selected collections'}
+                                      {isResolvingSource
+                                        ? 'Loading...'
+                                        : phaseOneSourceType === 'BRAND_FEED'
+                                          ? 'Load brand feed'
+                                          : 'Load selected collections'}
                                     </button>
                                     <span className="field-help">
-                                          The middle 4 tiles will auto-populate from the category preview API.
+                                      {phaseOneSourceType === 'BRAND_FEED'
+                                        ? 'Preview cards will load from Brand Master using the selected industry filters.'
+                                        : 'The middle 4 tiles will auto-populate from the category preview API.'}
                                     </span>
                                   </div>
                                 </div>
@@ -5274,9 +5598,296 @@ function AppConfigPage({ token }) {
                             ) : null}
                           </>
                         ) : null}
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
+                    {isTabbedProductShelf ? (
+                      <div className={`prop-group${collapsedGroups.tabbedSource ? ' is-collapsed' : ''}`}>
+                            <div
+                              className="prop-group-header"
+                              onClick={() => togglePropGroup('tabbedSource')}
+                              role="button"
+                              tabIndex={0}
+                              onKeyDown={(e) => e.key === 'Enter' && togglePropGroup('tabbedSource')}
+                            >
+                              <div className="prop-group-left">
+                                <span className="prop-group-title">Data Source</span>
+                                <span className={`prop-group-badge${(sectionForm.blockDataSourceType || 'MANUAL') === 'PRODUCT_FEED' ? ' live' : ''}`}>
+                                  {(sectionForm.blockDataSourceType || 'MANUAL') === 'PRODUCT_FEED' ? 'Live Feed' : 'Manual'}
+                                </span>
+                              </div>
+                              <span className="prop-group-toggle">▾</span>
+                            </div>
+                            <div className="prop-group-body">
+                            <div className="field-grid source-config-grid">
+                              <label className="field">
+                                <span>Product source</span>
+                                <select
+                                  value={sectionForm.blockDataSourceType || 'MANUAL'}
+                                  onChange={(event) => {
+                                    const nextMode = event.target.value;
+                                    setSectionForm((prev) => ({
+                                      ...prev,
+                                      blockDataSourceType: nextMode,
+                                      ...(nextMode === 'PRODUCT_FEED'
+                                        ? {
+                                            sourceIndustryId:
+                                              prev.sourceIndustryId || String(resolveIndustryId(pageIndustry) || ''),
+                                          }
+                                        : {}),
+                                    }));
+                                  }}
+                                >
+                                  {TABBED_SHELF_SOURCE_OPTIONS.map((option) => (
+                                    <option key={option.value} value={option.value}>
+                                      {option.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </label>
+                              {(sectionForm.blockDataSourceType || 'MANUAL') === 'PRODUCT_FEED' ? (
+                                <>
+                                  <label className="field">
+                                    <span>Feed mode</span>
+                                    <select
+                                      value={sectionForm.blockFeedMode || 'BESTSELLER'}
+                                      onChange={(event) =>
+                                        setSectionForm((prev) => ({
+                                          ...prev,
+                                          blockFeedMode: event.target.value,
+                                        }))
+                                      }
+                                    >
+                                      {PRODUCT_FEED_MODE_OPTIONS.map((option) => (
+                                        <option key={option.value} value={option.value}>
+                                          {option.label}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </label>
+                                  <label className="field">
+                                    <span>Group tabs by</span>
+                                    <select
+                                      value={sectionForm.blockTabField || 'mainCategoryName'}
+                                      onChange={(event) =>
+                                        setSectionForm((prev) => ({
+                                          ...prev,
+                                          blockTabField: event.target.value,
+                                        }))
+                                      }
+                                    >
+                                      {TAB_FIELD_OPTIONS.map((option) => (
+                                        <option key={option.value} value={option.value}>
+                                          {option.label}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </label>
+                                  <label className="field">
+                                    <span>Max products</span>
+                                    <input
+                                      type="number"
+                                      min="1"
+                                      max="60"
+                                      value={sectionForm.blockLimit || '10'}
+                                      onChange={(event) =>
+                                        setSectionForm((prev) => ({
+                                          ...prev,
+                                          blockLimit: event.target.value,
+                                        }))
+                                      }
+                                    />
+                                  </label>
+                                  <label className="field">
+                                    <span>Industry</span>
+                                    <select
+                                      value={sectionForm.sourceIndustryId || ''}
+                                      onChange={(event) =>
+                                        setSectionForm((prev) => ({
+                                          ...prev,
+                                          blockDataSourceType: 'PRODUCT_FEED',
+                                          sourceIndustryId: event.target.value,
+                                          sourceMainCategoryId: '',
+                                          sourceCategoryIds: [],
+                                        }))
+                                      }
+                                    >
+                                      <option value="">All industries</option>
+                                      {industries.map((item) => {
+                                        const id = resolveIndustryId(item);
+                                        if (!id) return null;
+                                        return (
+                                          <option key={id} value={id}>
+                                            {resolveIndustryLabel(item)}
+                                          </option>
+                                        );
+                                      })}
+                                    </select>
+                                  </label>
+                                  <label className="field">
+                                    <span>Main category</span>
+                                    <select
+                                      value={sectionForm.sourceMainCategoryId || ''}
+                                      onChange={(event) =>
+                                        setSectionForm((prev) => ({
+                                          ...prev,
+                                          blockDataSourceType: 'PRODUCT_FEED',
+                                          sourceMainCategoryId: event.target.value,
+                                          sourceCategoryIds: [],
+                                        }))
+                                      }
+                                    >
+                                      <option value="">All main categories</option>
+                                      {filteredMainCategoryOptions.map((item) => {
+                                        const id = resolveMainCategoryId(item);
+                                        if (!id) return null;
+                                        return (
+                                          <option key={id} value={id}>
+                                            {resolveMainCategoryName(item)}
+                                          </option>
+                                        );
+                                      })}
+                                    </select>
+                                  </label>
+                                  <label className="field field-span">
+                                    <span>Categories (optional)</span>
+                                    {isLoadingSourceCategories ? (
+                                      <p className="field-help">Loading categories...</p>
+                                    ) : sourceCategories.length ? (
+                                      <div className="checkbox-grid">
+                                        {sourceCategories.map((item) => {
+                                          const id = resolveCategoryId(item);
+                                          if (!id) return null;
+                                          const checked = Array.isArray(sectionForm.sourceCategoryIds)
+                                            ? sectionForm.sourceCategoryIds.includes(id)
+                                            : false;
+                                          return (
+                                            <label key={id} className="checkbox-row">
+                                              <input
+                                                type="checkbox"
+                                                checked={checked}
+                                                onChange={() =>
+                                                  setSectionForm((prev) => {
+                                                    const current = Array.isArray(prev.sourceCategoryIds)
+                                                      ? prev.sourceCategoryIds
+                                                      : [];
+                                                    const next = new Set(current);
+                                                    if (next.has(id)) {
+                                                      next.delete(id);
+                                                    } else {
+                                                      next.add(id);
+                                                    }
+                                                    return {
+                                                      ...prev,
+                                                      blockDataSourceType: 'PRODUCT_FEED',
+                                                      sourceCategoryIds: Array.from(next),
+                                                    };
+                                                  })
+                                                }
+                                              />
+                                              {resolveCategoryName(item)} <span className="muted">({id})</span>
+                                            </label>
+                                          );
+                                        })}
+                                      </div>
+                                    ) : (
+                                      <p className="field-help">Select main category to load categories.</p>
+                                    )}
+                                    <p className="field-help">
+                                      Leave categories empty to pull from the full industry or main-category feed.
+                                    </p>
+                                  </label>
+                                  <div className="field field-span">
+                                    <p className="field-help">
+                                      Products are fetched live and grouped into tabs by the selected field. The page's industry
+                                      is used automatically — no explicit industryId needed. Manual items below serve as a loading fallback.
+                                    </p>
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="field field-span">
+                                  <p className="field-help">
+                                    Manual mode renders the items added below. Switch to Product Feed to load live products
+                                    automatically grouped into tabs by category.
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                            </div>
+                          </div>
+                        ) : null}
+                        {isShopCardCarousel ? (
+                      <div className={`prop-group${collapsedGroups.shopSource ? ' is-collapsed' : ''}`}>
+                            <div
+                              className="prop-group-header"
+                              onClick={() => togglePropGroup('shopSource')}
+                              role="button"
+                              tabIndex={0}
+                              onKeyDown={(e) => e.key === 'Enter' && togglePropGroup('shopSource')}
+                            >
+                              <div className="prop-group-left">
+                                <span className="prop-group-title">Data Source</span>
+                                <span className={`prop-group-badge${(sectionForm.blockDataSourceType || 'SHOP_FEED') !== 'MANUAL' ? ' live' : ''}`}>
+                                  {(sectionForm.blockDataSourceType || 'SHOP_FEED') !== 'MANUAL' ? 'Live Feed' : 'Manual'}
+                                </span>
+                              </div>
+                              <span className="prop-group-toggle">▾</span>
+                            </div>
+                            <div className="prop-group-body">
+                            <div className="field-grid source-config-grid">
+                              <label className="field">
+                                <span>Shops source</span>
+                                <select
+                                  value={sectionForm.blockDataSourceType || 'SHOP_FEED'}
+                                  onChange={(event) =>
+                                    setSectionForm((prev) => ({
+                                      ...prev,
+                                      blockDataSourceType: event.target.value,
+                                    }))
+                                  }
+                                >
+                                  {SHOP_BLOCK_SOURCE_OPTIONS.map((option) => (
+                                    <option key={option.value} value={option.value}>
+                                      {option.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </label>
+                              <label className="field">
+                                <span>Max shops</span>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max="60"
+                                  value={sectionForm.blockLimit || '10'}
+                                  onChange={(event) =>
+                                    setSectionForm((prev) => ({
+                                      ...prev,
+                                      blockLimit: event.target.value,
+                                    }))
+                                  }
+                                />
+                              </label>
+                              <div className="field field-span">
+                                <p className="field-help">
+                                  Shop Feed fetches nearby businesses by location automatically. The page's industry is
+                                  used as a scope — no explicit industryId needed. Manual items are used as a fallback while loading.
+                                </p>
+                              </div>
+                            </div>
+                            </div>
+                          </div>
+                        ) : null}
                         {isBeautySalonCarousel ? (
-                          <>
-                            <div className="field field-span source-config-card">
+                          <div className={`prop-group${collapsedGroups.beautySource ? ' is-collapsed' : ''}`}>
+                            <div className="prop-group-header" onClick={() => togglePropGroup('beautySource')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && togglePropGroup('beautySource')}>
+                              <div className="prop-group-left">
+                                <span className="prop-group-title">Data Source</span>
+                              </div>
+                              <span className="prop-group-toggle">▾</span>
+                            </div>
+                            <div className="prop-group-body">
                               <div className="field-grid source-config-grid">
                                 <label className="field">
                                   <span>Cards source</span>
@@ -5380,8 +5991,18 @@ function AppConfigPage({ token }) {
                                 )}
                               </div>
                             </div>
-                          </>
+                          </div>
                         ) : null}
+                    {/* ── Items ────────────────────────────────────────── */}
+                    <div className={`prop-group${collapsedGroups.items ? ' is-collapsed' : ''}`}>
+                      <div className="prop-group-header" onClick={() => togglePropGroup('items')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && togglePropGroup('items')}>
+                        <div className="prop-group-left">
+                          <span className="prop-group-title">Items</span>
+                        </div>
+                        <span className="prop-group-toggle">▾</span>
+                      </div>
+                      <div className="prop-group-body">
+                        <div className="field-grid">
                         <label className="field field-span">
                           <span>Block items</span>
                           <div className="inline-row">
@@ -5392,6 +6013,8 @@ function AppConfigPage({ token }) {
                             !isProductCardCarouselFeed &&
                             !isPhaseOneDataSourceFeed &&
                             !isPromoBanner &&
+                            !(isTabbedProductShelf && (sectionForm.blockDataSourceType || 'MANUAL') === 'PRODUCT_FEED') &&
+                            !(isShopCardCarousel && (sectionForm.blockDataSourceType || 'SHOP_FEED') === 'SHOP_FEED') &&
                             !(isSplitPromoRow && normalizePhaseOneItems(sectionForm.sduiItems, screenBlockType).length >= 2) &&
                             !(isBeautySalonCarousel && String(sectionForm.sourceType || 'MANUAL').toUpperCase() === 'BUSINESS_SELECTION') ? (
                               <button type="button" className="ghost-btn small" onClick={addPhaseOneItem}>
@@ -5429,6 +6052,14 @@ function AppConfigPage({ token }) {
                                       ? 'Set title, subtitle, CTA text, icon, and deep link for each action.'
                                     : isPromoBanner
                                       ? 'This banner uses the section title, text and CTA fields above.'
+                                    : isTabbedProductShelf && (sectionForm.blockDataSourceType || 'MANUAL') === 'PRODUCT_FEED'
+                                      ? 'Products are fetched live from the selected feed and grouped into tabs automatically.'
+                                    : isTabbedProductShelf
+                                      ? 'Set title, tab label, image, price, and deep link for each product card.'
+                                    : isShopCardCarousel && (sectionForm.blockDataSourceType || 'SHOP_FEED') === 'SHOP_FEED'
+                                      ? 'Shops are fetched live by location. Add fallback items shown while loading.'
+                                    : isShopCardCarousel
+                                      ? 'Set name, image, rating, distance, and deep link for each shop card.'
                                   : 'Set image + text + deep link for each card.'}
                             </span>
                           </div>
@@ -6108,6 +6739,30 @@ function AppConfigPage({ token }) {
                                   ) : null}
                                 </>
                               ) : null}
+                              {isShopCardCarousel ? (
+                                <>
+                                  <label className="field">
+                                    <span>Rating</span>
+                                    <input type="text" value={item.rating || ''} onChange={(event) => updatePhaseOneItem(idx, 'rating', event.target.value)} placeholder="4.8" />
+                                  </label>
+                                  <label className="field">
+                                    <span>Distance</span>
+                                    <input type="text" value={item.distance || ''} onChange={(event) => updatePhaseOneItem(idx, 'distance', event.target.value)} placeholder="2.4 km" />
+                                  </label>
+                                </>
+                              ) : null}
+                              {isTabbedProductShelf ? (
+                                <>
+                                  <label className="field">
+                                    <span>Tab label</span>
+                                    <input type="text" value={item.tab || ''} onChange={(event) => updatePhaseOneItem(idx, 'tab', event.target.value)} placeholder="Men" />
+                                  </label>
+                                  <label className="field">
+                                    <span>Price</span>
+                                    <input type="text" value={item.price || ''} onChange={(event) => updatePhaseOneItem(idx, 'price', event.target.value)} placeholder="₹499" />
+                                  </label>
+                                </>
+                              ) : null}
                               {isPhaseOneColumnGrid ? (
                                 <>
                                   <label className="field">
@@ -6601,8 +7256,6 @@ function AppConfigPage({ token }) {
                             </p>
                           </>
                               ) : null}
-                      </>
-                    ) : null}
                     {isMultiItemGrid ? (
                       <>
                         {!isCategoryPreviewGrid ? (
@@ -7528,19 +8181,20 @@ function AppConfigPage({ token }) {
                         </label>
                       </>
                     ) : null}
-                    {!isEditingFixed && !isPhaseOneBlock ? (
-                      <div className="field field-span">
-                        <button
-                          type="button"
-                          className="ghost-btn small"
-                          onClick={() => setShowAdvancedFields((prev) => !prev)}
-                        >
-                          {showAdvancedFields ? 'Hide advanced fields' : 'Show advanced fields'}
-                        </button>
+                        </div>
                       </div>
-                    ) : null}
-                    {showAdvancedFields && !isEditingFixed && !isPhaseOneBlock ? (
-                      <>
+                    </div>
+                    {/* ── Advanced ──────────────────────────────────────── */}
+                    {(!isEditingFixed && !isPhaseOneBlock) ? (
+                      <div className={`prop-group${collapsedGroups.advanced ? ' is-collapsed' : ''}`}>
+                        <div className="prop-group-header" onClick={() => togglePropGroup('advanced')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && togglePropGroup('advanced')}>
+                          <div className="prop-group-left">
+                            <span className="prop-group-title">Advanced</span>
+                          </div>
+                          <span className="prop-group-toggle">▾</span>
+                        </div>
+                        <div className="prop-group-body">
+                          <div className="field-grid">
                         <label className="field">
                           <span>Items path</span>
                           <input
@@ -7642,9 +8296,11 @@ function AppConfigPage({ token }) {
                             placeholder="ACTIVE, TRIAL"
                           />
                         </label>
-                      </>
+                          </div>
+                        </div>
+                      </div>
                     ) : null}
-                    <div className="field field-span modal-actions">
+                    <div className="modal-actions">
                       <button type="button" className="ghost-btn" onClick={closeEditor}>
                         Close
                       </button>

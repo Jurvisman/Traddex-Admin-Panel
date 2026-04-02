@@ -302,16 +302,46 @@ export const getPreviewSecondaryImage = (item) => item?.secondaryImageUrl || '';
 
 export const getPreviewTitle = (item) => item?.title || item?.name || item?.label || 'Item';
 
+const resolvePreviewThemeKey = (preset, fallback = 'default') => {
+  const normalized = String(preset || '').trim().toLowerCase();
+  if (!normalized) return fallback;
+  if (normalized === 'jewellery' || normalized === 'jewelry' || normalized === 'jwellery') return 'jewellery';
+  if (normalized === 'medical' || normalized === 'health') return 'medical';
+  if (normalized === 'beauty') return 'beauty';
+  if (normalized === 'grocery') return 'grocery';
+  if (normalized === 'food') return 'food';
+  if (normalized === 'fashion') return 'fashion';
+  if (normalized === 'decor') return 'decor';
+  if (normalized === 'agriculture') return 'agriculture';
+  if (normalized === 'manufacturing') return 'manufacturing';
+  if (normalized === 'kids') return 'kids';
+  if (normalized === 'sports') return 'sports';
+  if (normalized === 'travel') return 'travel';
+  if (normalized === 'fitness') return 'fitness';
+  if (normalized === 'services') return 'services';
+  if (normalized === 'electronics') return 'electronics';
+  if (normalized === 'automobile') return 'automobile';
+  return normalized || fallback;
+};
+
+const buildPreviewTitleClass = ({ themeKey = '', surface = false } = {}) =>
+  [
+    'preview-title',
+    'preview-title-with-action',
+    surface ? 'preview-title-surface-pill' : '',
+    themeKey ? `preview-title-theme-${themeKey}` : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
 const renderQuickActionPreview = ({ section, index, hidden, title, items, preset = 'electronics' }) => {
-  const normalizedPresetKey = String(preset || '').trim().toLowerCase();
+  const normalizedPresetKey = resolvePreviewThemeKey(preset, 'electronics');
   const isBeauty = normalizedPresetKey === 'beauty';
-  const isGrocery = normalizedPresetKey === 'grocery';
-  const isFashion = normalizedPresetKey === 'fashion';
-  const quickActionThemeClass = isFashion ? 'is-fashion' : isBeauty ? 'is-beauty' : isGrocery ? 'is-grocery' : 'is-electronics';
+  const quickActionThemeClass = `is-${normalizedPresetKey}`;
   return (
     <div key={`preview-${index}`} className={`preview-section preview-quick-action-section-${quickActionThemeClass} ${hidden ? 'is-hidden' : ''}`}>
       {title ? (
-        <div className="preview-title preview-title-with-action">
+        <div className={buildPreviewTitleClass({ themeKey: normalizedPresetKey })}>
           <span>{title}</span>
           {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
         </div>
@@ -458,6 +488,8 @@ export const PreviewSection = ({
     const normalizedPreset = String(stylePreset || '').trim().toLowerCase();
     const isBeautyPreset = normalizedPreset === 'beauty';
     const isGroceryPreset = normalizedPreset === 'grocery';
+    const isDecorPreset = normalizedPreset === 'decor';
+    const isManufacturingPreset = normalizedPreset === 'manufacturing';
     if (isBeautyPreset) {
       return (
         <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
@@ -480,6 +512,30 @@ export const PreviewSection = ({
               {section?.text ? <div className="preview-beauty-offer-subtitle">{section.text}</div> : null}
             </div>
             {section?.actionText ? <span className="preview-beauty-offer-cta">{section.actionText}</span> : null}
+          </div>
+        </div>
+      );
+    }
+    if (isDecorPreset) {
+      return (
+        <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+          <div className="preview-promo-text-card" style={{ backgroundColor: section?.sectionBgColor || '#EFE7DC', borderColor: 'rgba(75,61,52,0.12)' }}>
+            <div className="preview-promo-text-title" style={{ color: '#4B3D34' }}>{title || 'Need a full room refresh?'}</div>
+            {section?.text ? <div className="preview-promo-text-subtitle" style={{ color: '#7D6B61' }}>{section.text}</div> : null}
+            {section?.actionText ? <span className="preview-promo-text-cta" style={{ color: '#C46A4A' }}>{section.actionText}</span> : null}
+          </div>
+        </div>
+      );
+    }
+    if (isManufacturingPreset) {
+      return (
+        <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+          <div className="preview-manufacturing-promo-banner" style={{ '--manufacturing-banner-base': section?.sectionBgColor || '#3B3A40' }}>
+            <div>
+              <div className="preview-manufacturing-promo-title">{title || 'Need vendor quotes?'}</div>
+              {section?.text ? <div className="preview-manufacturing-promo-subtitle">{section.text}</div> : null}
+            </div>
+            {section?.actionText ? <span className="preview-manufacturing-promo-cta">{section.actionText}</span> : null}
           </div>
         </div>
       );
@@ -726,36 +782,68 @@ export const PreviewSection = ({
 
   if (blockType === 'category_showcase') {
     const variant = section?.showcaseVariant || 'circle';
-    const normalizedShowcasePreset = String(section?.stylePreset || '').trim().toLowerCase();
+    const normalizedShowcasePreset = resolvePreviewThemeKey(section?.stylePreset);
     const isElectronicsShowcase = normalizedShowcasePreset === 'electronics';
     const isGroceryShowcase = normalizedShowcasePreset === 'grocery';
+    const isFoodShowcase = normalizedShowcasePreset === 'food';
+    const isKidsShowcase = normalizedShowcasePreset === 'kids';
+    const isSportsShowcase = normalizedShowcasePreset === 'sports';
+    const isTravelShowcase = normalizedShowcasePreset === 'travel';
+    const isFitnessShowcase = normalizedShowcasePreset === 'fitness';
+    const isServicesShowcase = normalizedShowcasePreset === 'services';
+    const isManufacturingShowcase = normalizedShowcasePreset === 'manufacturing';
+    const isJewelleryShowcase = normalizedShowcasePreset === 'jewellery';
+    const showcaseThemeClass = isElectronicsShowcase
+      ? 'preview-showcase-theme-electronics'
+        : isGroceryShowcase
+          ? 'preview-showcase-theme-grocery'
+        : isFoodShowcase
+          ? 'preview-showcase-theme-food'
+        : isManufacturingShowcase
+          ? 'preview-showcase-theme-manufacturing'
+        : isKidsShowcase
+          ? 'preview-showcase-theme-kids'
+          : isSportsShowcase
+            ? 'preview-showcase-theme-sports'
+            : isTravelShowcase
+              ? 'preview-showcase-theme-travel'
+              : isFitnessShowcase
+                ? 'preview-showcase-theme-fitness'
+                : isServicesShowcase
+                  ? 'preview-showcase-theme-services'
+                  : isJewelleryShowcase
+                    ? 'preview-showcase-theme-jewellery'
+                  : '';
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
         {title ? (
-          <div className="preview-title preview-title-with-action">
+          <div className={buildPreviewTitleClass({ themeKey: normalizedShowcasePreset, surface: true })}>
             <span>{title}</span>
             {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
           </div>
         ) : null}
         <div
-          className={`preview-showcase-row preview-showcase-${variant} ${
-            isElectronicsShowcase
-              ? 'preview-showcase-theme-electronics'
-              : isGroceryShowcase
-                ? 'preview-showcase-theme-grocery'
-                : ''
-          }`}
+          className={`preview-showcase-row preview-showcase-${variant} ${showcaseThemeClass}`}
         >
           {items.map((item, itemIndex) => {
             const image = getPreviewImage(item);
             const label = getPreviewTitle(item);
             const icon = item?.iconUrl || item?.mainCategoryIcon || '';
+            const iconGlyph = String(item?.iconName || item?.icon || label || 'T')
+              .trim()
+              .charAt(0)
+              .toUpperCase();
             if (variant === 'card') {
               return (
                 <div key={`preview-showcase-card-${index}-${itemIndex}`} className="preview-showcase-card-item">
                   <div className="preview-showcase-card-image">
                     {image ? <img src={image} alt="" /> : <div className="preview-image-placeholder" />}
-                    {icon ? <img src={icon} alt="" className="preview-showcase-card-badge" /> : null}
+                    {isTravelShowcase || isFitnessShowcase || isServicesShowcase || isJewelleryShowcase ? <div className="preview-showcase-card-overlay" /> : null}
+                    {icon ? (
+                      <img src={icon} alt="" className="preview-showcase-card-badge" />
+                    ) : isTravelShowcase || isFitnessShowcase || isServicesShowcase || isJewelleryShowcase ? (
+                      <span className="preview-showcase-card-badge-icon">{iconGlyph}</span>
+                    ) : null}
                     <div className="preview-showcase-card-label">{label}</div>
                   </div>
                 </div>
@@ -781,14 +869,55 @@ export const PreviewSection = ({
   if (blockType === 'promo_hero_banner') {
     const hero = items[0] || {};
     const image = getPreviewImage(hero);
-    const normalizedPreset = String(stylePreset || '').trim().toLowerCase();
+    const normalizedPreset = resolvePreviewThemeKey(stylePreset, 'electronics');
     const isBeautyPreset = normalizedPreset === 'beauty';
     const isGroceryPreset = normalizedPreset === 'grocery';
+    const isFoodPreset = normalizedPreset === 'food';
     const isFashionPreset = normalizedPreset === 'fashion';
+    const isDecorPreset = normalizedPreset === 'decor';
+    const isMedicalPreset = normalizedPreset === 'medical';
+    const isAgriculturePreset = normalizedPreset === 'agriculture';
+    const isManufacturingPreset = normalizedPreset === 'manufacturing';
+    const isKidsPreset = normalizedPreset === 'kids';
+    const isSportsPreset = normalizedPreset === 'sports';
+    const isTravelPreset = normalizedPreset === 'travel';
+    const isFitnessPreset = normalizedPreset === 'fitness';
+    const isServicesPreset = normalizedPreset === 'services';
+    const isJewelleryPreset = normalizedPreset === 'jewellery';
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
         <div
-          className={`preview-promo-hero ${isFashionPreset ? 'is-fashion' : isBeautyPreset ? 'is-beauty' : isGroceryPreset ? 'is-grocery' : 'is-electronics'} ${
+          className={`preview-promo-hero ${
+            isSportsPreset
+              ? 'is-sports'
+              : isMedicalPreset
+                ? 'is-medical'
+              : isFoodPreset
+                ? 'is-food'
+              : isAgriculturePreset
+                ? 'is-agriculture'
+              : isManufacturingPreset
+                ? 'is-manufacturing'
+              : isTravelPreset
+                ? 'is-travel'
+              : isFitnessPreset
+                ? 'is-fitness'
+              : isServicesPreset
+                ? 'is-services'
+              : isJewelleryPreset
+                ? 'is-jewellery'
+              : isKidsPreset
+                ? 'is-kids'
+                : isDecorPreset
+                  ? 'is-decor'
+                  : isFashionPreset
+                    ? 'is-fashion'
+                    : isBeautyPreset
+                      ? 'is-beauty'
+                      : isGroceryPreset
+                        ? 'is-grocery'
+                        : 'is-electronics'
+          } ${
             section?.placement === 'header' ? 'is-header-attached' : ''
           }`}
         >
@@ -851,9 +980,10 @@ export const PreviewSection = ({
   }
 
   if (blockType === 'product_card_carousel') {
-    const normalizedPreset = String(stylePreset || '').trim().toLowerCase();
+    const normalizedPreset = resolvePreviewThemeKey(stylePreset);
     const isBeautyPreset = normalizedPreset === 'beauty';
     const isGroceryPreset = normalizedPreset === 'grocery';
+    const isFoodPreset = normalizedPreset === 'food';
     const previewActionMode = String(section?.actionMode || 'AUTO').trim().toUpperCase();
     const resolvePreviewCtaLabel = (item) => {
       if (item?.ctaText) return item.ctaText;
@@ -874,9 +1004,11 @@ export const PreviewSection = ({
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
         {title ? (
           <div
-            className={`preview-title preview-title-with-action ${
-              isBeautyPreset ? '' : 'preview-title-surface-pill'
-            }`}
+            className={
+              isBeautyPreset
+                ? 'preview-title preview-title-with-action'
+                : buildPreviewTitleClass({ themeKey: normalizedPreset, surface: true })
+            }
           >
             <span>{title}</span>
             {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
@@ -903,7 +1035,7 @@ export const PreviewSection = ({
             ))}
           </div>
         ) : (
-          <div className={`preview-deal-carousel ${isGroceryPreset ? 'is-grocery' : ''}`}>
+          <div className={`preview-deal-carousel ${isGroceryPreset ? 'is-grocery' : isFoodPreset ? 'is-food' : ''}`}>
             {items.map((item, itemIndex) => (
               <div key={`preview-product-card-${index}-${itemIndex}`} className="preview-deal-card">
                 <div className="preview-deal-card-image">
@@ -962,15 +1094,14 @@ export const PreviewSection = ({
   }
 
   if (blockType === 'media_overlay_carousel') {
-    const isBeautyPreset = String(stylePreset || '').trim().toLowerCase() === 'beauty';
+    const normalizedPreset = resolvePreviewThemeKey(stylePreset);
+    const isBeautyPreset = normalizedPreset === 'beauty';
+    const isStacked = String(section?.cardVariant || '').trim().toLowerCase() === 'stacked';
+    const themeClass = normalizedPreset ? `is-${normalizedPreset}` : '';
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
         {title ? (
-          <div
-            className={`preview-title preview-title-with-action ${
-              isBeautyPreset ? '' : 'preview-title-surface-pill'
-            }`}
-          >
+          <div className={buildPreviewTitleClass({ themeKey: normalizedPreset, surface: !isBeautyPreset })}>
             <span>{title}</span>
             {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
           </div>
@@ -987,12 +1118,26 @@ export const PreviewSection = ({
               </div>
             ))}
           </div>
-        ) : (
-          <div className="preview-media-overlay-row">
+        ) : isStacked ? (
+          <div className={`preview-media-overlay-stack ${themeClass}`}>
             {items.map((item, itemIndex) => (
-              <div key={`preview-media-overlay-${index}-${itemIndex}`} className="preview-media-overlay-card">
+              <div key={`preview-media-overlay-${index}-${itemIndex}`} className={`preview-media-overlay-card is-stacked ${themeClass}`}>
                 {getPreviewImage(item) ? <img src={getPreviewImage(item)} alt="" /> : <div className="preview-image-placeholder" />}
-                <div className="preview-media-overlay-gradient" />
+                <div className={`preview-media-overlay-gradient ${themeClass}`} />
+                <div className="preview-media-overlay-copy">
+                  {item?.badgeText ? <div className="preview-media-overlay-badge">{item.badgeText}</div> : null}
+                  <div className="preview-media-overlay-title">{item?.title || `Card ${itemIndex + 1}`}</div>
+                  {item?.subtitle ? <div className="preview-media-overlay-subtitle">{item.subtitle}</div> : null}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className={`preview-media-overlay-row ${themeClass}`}>
+            {items.map((item, itemIndex) => (
+              <div key={`preview-media-overlay-${index}-${itemIndex}`} className={`preview-media-overlay-card ${themeClass}`}>
+                {getPreviewImage(item) ? <img src={getPreviewImage(item)} alt="" /> : <div className="preview-image-placeholder" />}
+                <div className={`preview-media-overlay-gradient ${themeClass}`} />
                 <div className="preview-media-overlay-copy">
                   <div className="preview-media-overlay-title">{item?.title || `Card ${itemIndex + 1}`}</div>
                   {item?.subtitle ? <div className="preview-media-overlay-subtitle">{item.subtitle}</div> : null}
@@ -1146,7 +1291,787 @@ export const PreviewSection = ({
     );
   }
 
+  if (blockType === 'shop_card_carousel') {
+    const normalizedPreset = resolvePreviewThemeKey(stylePreset);
+    const themeClass = normalizedPreset ? `is-${normalizedPreset}` : '';
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className={buildPreviewTitleClass({ themeKey: normalizedPreset, surface: true })}>
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className={`preview-shop-card-row ${themeClass}`}>
+          {items.map((item, itemIndex) => (
+            <div key={`preview-shop-card-${index}-${itemIndex}`} className={`preview-shop-card ${themeClass}`}>
+              <div className="preview-shop-card-image">
+                {getPreviewImage(item) ? <img src={getPreviewImage(item)} alt="" /> : <div className="preview-image-placeholder" />}
+              </div>
+              <div className="preview-shop-card-title">{item?.title || `Place ${itemIndex + 1}`}</div>
+              {item?.subtitle ? <div className="preview-shop-card-subtitle">{item.subtitle}</div> : null}
+              <div className="preview-shop-card-meta">
+                <span>{item?.rating || '4.8'}</span>
+                <span>{item?.distance || '2.4 km'}</span>
+              </div>
+              <div className="preview-shop-card-actions">
+                <span className="preview-shop-card-pill">View</span>
+                <span className="preview-shop-card-pill">Call</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'product_shelf_horizontal') {
+    const normalizedPreset = resolvePreviewThemeKey(stylePreset);
+    const themeClass = normalizedPreset ? `is-${normalizedPreset}` : '';
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className={buildPreviewTitleClass({ themeKey: normalizedPreset, surface: true })}>
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className={`preview-shelf-row ${themeClass}`}>
+          {items.map((item, itemIndex) => (
+            <div key={`preview-shelf-${index}-${itemIndex}`} className={`preview-shelf-card ${themeClass}`}>
+              <div className="preview-shelf-image">
+                {getPreviewImage(item) ? <img src={getPreviewImage(item)} alt="" /> : <div className="preview-image-placeholder" />}
+              </div>
+              <div className="preview-shelf-title">{item?.title || `Product ${itemIndex + 1}`}</div>
+              {item?.subtitle ? <div className="preview-shelf-subtitle">{item.subtitle}</div> : null}
+              <div className="preview-shelf-footer">
+                <span className="preview-shelf-price">{item?.priceLine || item?.price || 'Rs 999'}</span>
+                {item?.rating ? <span className="preview-shelf-rating">★ {item.rating}</span> : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'food_explore_experience_fixed') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className={buildPreviewTitleClass({ themeKey: 'food', surface: true })}>
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-food-experience-row">
+          {items.map((item, itemIndex) => (
+            <div key={`preview-food-experience-${index}-${itemIndex}`} className="preview-food-experience-card">
+              {getPreviewImage(item) ? <img src={getPreviewImage(item)} alt="" /> : <div className="preview-image-placeholder" />}
+              <div className="preview-food-experience-overlay">
+                {item?.tag ? <span className="preview-food-experience-badge">{item.tag}</span> : null}
+                <div className="preview-food-experience-title">{item?.title || `Experience ${itemIndex + 1}`}</div>
+                {item?.subtitle ? <div className="preview-food-experience-subtitle">{item.subtitle}</div> : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'food_area_guide_fixed') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className={buildPreviewTitleClass({ themeKey: 'food', surface: true })}>
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-food-area-grid">
+          {items.map((item, itemIndex) => (
+            <div
+              key={`preview-food-area-${index}-${itemIndex}`}
+              className="preview-food-area-card"
+              style={item?.accentColor ? { background: `linear-gradient(135deg, ${item.accentColor}, #fff8f3)` } : undefined}
+            >
+              <div className="preview-food-area-title">{item?.title || `Area ${itemIndex + 1}`}</div>
+              {item?.subtitle ? <div className="preview-food-area-subtitle">{item.subtitle}</div> : null}
+              {item?.tag ? <span className="preview-food-area-badge">{item.tag}</span> : null}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'food_city_dictionary_fixed') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className={buildPreviewTitleClass({ themeKey: 'food', surface: true })}>
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-food-dictionary-list">
+          {items.map((item, itemIndex) => (
+            <div key={`preview-food-dictionary-${index}-${itemIndex}`} className="preview-food-dictionary-card">
+              <div className="preview-food-dictionary-image">
+                {getPreviewImage(item) ? <img src={getPreviewImage(item)} alt="" /> : <div className="preview-image-placeholder" />}
+              </div>
+              <div className="preview-food-dictionary-copy">
+                <div className="preview-food-dictionary-title">{item?.title || `Dish ${itemIndex + 1}`}</div>
+                {item?.subtitle ? <div className="preview-food-dictionary-subtitle">{item.subtitle}</div> : null}
+                {item?.ctaText ? <span className="preview-food-dictionary-cta">{item.ctaText}</span> : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'medical_category_grid_fixed') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className={buildPreviewTitleClass({ themeKey: 'medical', surface: true })}>
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-medical-category-grid">
+          {items.map((item, itemIndex) => (
+            <div key={`preview-medical-category-${index}-${itemIndex}`} className="preview-medical-category-card">
+              <div className="preview-medical-category-image">
+                {getPreviewImage(item) ? <img src={getPreviewImage(item)} alt="" /> : <div className="preview-image-placeholder" />}
+              </div>
+              <div className="preview-medical-category-label">{item?.title || item?.label || `Category ${itemIndex + 1}`}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'medical_nearby_hospitals_fixed') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className={buildPreviewTitleClass({ themeKey: 'medical', surface: true })}>
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-medical-card-row">
+          {items.map((item, itemIndex) => (
+            <div key={`preview-medical-hospital-${index}-${itemIndex}`} className="preview-medical-card">
+              <div className="preview-medical-card-image">
+                {getPreviewImage(item) ? <img src={getPreviewImage(item)} alt="" /> : <div className="preview-image-placeholder" />}
+              </div>
+              <div className="preview-medical-card-title">{item?.title || `Hospital ${itemIndex + 1}`}</div>
+              <div className="preview-medical-card-subtitle">
+                {item?.distance || '2.1 km'}
+                {(item?.distance || item?.subtitle) ? ' | ' : ''}
+                {item?.subtitle || 'Departments'}
+              </div>
+              <div className="preview-medical-pill-row">
+                {Array.isArray(item?.tags)
+                  ? item.tags.slice(0, 2).map((tag, tagIndex) => (
+                      <span key={`preview-medical-hospital-tag-${index}-${itemIndex}-${tagIndex}`} className="preview-medical-pill">{tag}</span>
+                    ))
+                  : <span className="preview-medical-pill">24x7</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'medical_top_doctors_fixed') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className={buildPreviewTitleClass({ themeKey: 'medical', surface: true })}>
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-medical-card-row">
+          {items.map((item, itemIndex) => (
+            <div key={`preview-medical-doctor-${index}-${itemIndex}`} className="preview-medical-card is-doctor">
+              <div className="preview-medical-avatar">
+                {getPreviewImage(item) ? <img src={getPreviewImage(item)} alt="" /> : <div className="preview-image-placeholder" />}
+              </div>
+              <div className="preview-medical-card-title">{item?.title || `Doctor ${itemIndex + 1}`}</div>
+              <div className="preview-medical-card-subtitle">{item?.subtitle || 'Specialist'}</div>
+              <div className="preview-medical-card-subtitle">
+                {item?.experience || '9 yrs'}
+                {(item?.experience || item?.fee) ? ' | ' : ''}
+                {item?.fee || 'Rs 499'}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'medical_emergency_fixed') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className={buildPreviewTitleClass({ themeKey: 'medical', surface: true })}>
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-medical-emergency-grid">
+          {items.map((item, itemIndex) => (
+            <div key={`preview-medical-emergency-${index}-${itemIndex}`} className="preview-medical-emergency-card">
+              <div className="preview-medical-emergency-icon">{item?.iconName || item?.icon || 'med'}</div>
+              <div className="preview-medical-emergency-title">{item?.title || `Emergency ${itemIndex + 1}`}</div>
+              <div className="preview-medical-emergency-subtitle">{item?.subtitle || 'Fast response'}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'medical_trust_strip_fixed') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className={buildPreviewTitleClass({ themeKey: 'medical', surface: true })}>
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-medical-trust-card">
+          <div className="preview-medical-trust-grid">
+            {items.map((item, itemIndex) => (
+              <div key={`preview-medical-trust-${index}-${itemIndex}`} className="preview-medical-trust-item">
+                <div className="preview-medical-trust-icon">{item?.iconName || item?.icon || 'ok'}</div>
+                <div className="preview-medical-trust-text">{item?.title || item?.label || `Trust ${itemIndex + 1}`}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'medical_reminder_fixed') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className={buildPreviewTitleClass({ themeKey: 'medical', surface: true })}>
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-medical-reminder-card">
+          <div className="preview-medical-reminder-list">
+            {items.map((item, itemIndex) => (
+              <div key={`preview-medical-reminder-${index}-${itemIndex}`} className="preview-medical-reminder-item">
+                <div className="preview-medical-reminder-icon">{item?.iconName || item?.icon || 'rem'}</div>
+                <div className="preview-medical-reminder-copy">
+                  <div className="preview-medical-reminder-title">{item?.title || `Reminder ${itemIndex + 1}`}</div>
+                  <div className="preview-medical-reminder-subtitle">{item?.subtitle || 'Stay on track'}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="preview-medical-reminder-cta">{section?.actionText || 'Set reminder'}</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'medical_offers_fixed') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className={buildPreviewTitleClass({ themeKey: 'medical', surface: true })}>
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-medical-card-row">
+          {items.map((item, itemIndex) => (
+            <div key={`preview-medical-offer-${index}-${itemIndex}`} className="preview-medical-card">
+              <div className="preview-medical-card-image">
+                {getPreviewImage(item) ? <img src={getPreviewImage(item)} alt="" /> : <div className="preview-image-placeholder" />}
+              </div>
+              <div className="preview-medical-card-title">{item?.title || `Offer ${itemIndex + 1}`}</div>
+              <div className="preview-medical-card-subtitle">{item?.subtitle || 'Special savings'}</div>
+              {item?.tag ? <span className="preview-medical-pill">{item.tag}</span> : null}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'medical_footer_links_fixed') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className={buildPreviewTitleClass({ themeKey: 'medical', surface: true })}>
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-medical-footer-grid">
+          {items.map((item, itemIndex) => (
+            <div key={`preview-medical-footer-${index}-${itemIndex}`} className="preview-medical-footer-link">
+              {item?.label || item?.title || `Link ${itemIndex + 1}`}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'manufacturing_stats_fixed') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className={buildPreviewTitleClass({ themeKey: 'manufacturing', surface: true })}>
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-manufacturing-stat-grid">
+          {items.map((item, itemIndex) => (
+            <div key={`preview-manufacturing-stat-${index}-${itemIndex}`} className="preview-manufacturing-stat-card">
+              <div className="preview-manufacturing-stat-icon">{item?.iconName || item?.icon || 'stat'}</div>
+              <div className="preview-manufacturing-stat-value">{item?.value || `0${itemIndex + 1}`}</div>
+              <div className="preview-manufacturing-stat-label">{item?.label || `Stat ${itemIndex + 1}`}</div>
+              {item?.meta ? <div className="preview-manufacturing-stat-meta">{item.meta}</div> : null}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'manufacturing_live_prices_fixed') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className={buildPreviewTitleClass({ themeKey: 'manufacturing', surface: true })}>
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-manufacturing-price-list">
+          {items.map((item, itemIndex) => {
+            const change = String(item?.change || item?.badgeText || '+0.0%').trim();
+            const isDown = String(item?.direction || '').trim().toLowerCase() === 'down' || change.startsWith('-');
+            return (
+              <div key={`preview-manufacturing-price-${index}-${itemIndex}`} className="preview-manufacturing-price-card">
+                <div className="preview-manufacturing-price-label">{item?.label || item?.title || `Material ${itemIndex + 1}`}</div>
+                <div className="preview-manufacturing-price-right">
+                  <div className="preview-manufacturing-price-value">{item?.price || item?.priceLine || '102.4/MT'}</div>
+                  <span className={`preview-manufacturing-price-change ${isDown ? 'is-down' : 'is-up'}`}>{change}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'manufacturing_recent_orders_fixed') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className={buildPreviewTitleClass({ themeKey: 'manufacturing', surface: true })}>
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-manufacturing-order-list">
+          {items.map((item, itemIndex) => {
+            const status = String(item?.status || item?.badgeText || 'Processing').trim().toLowerCase();
+            const statusClass = status === 'delivered' ? 'is-delivered' : status === 'in transit' ? 'is-transit' : 'is-processing';
+            return (
+              <div key={`preview-manufacturing-order-${index}-${itemIndex}`} className="preview-manufacturing-order-card">
+                <div className="preview-manufacturing-order-copy">
+                  <div className="preview-manufacturing-order-title">{item?.title || `Order ${itemIndex + 1}`}</div>
+                  <div className="preview-manufacturing-order-meta">
+                    {item?.supplier || item?.subtitle || 'Supplier'}
+                    {(item?.supplier || item?.subtitle) && (item?.eta || item?.text) ? ' | ' : ''}
+                    {item?.eta || item?.text || ''}
+                  </div>
+                </div>
+                <span className={`preview-manufacturing-order-status ${statusClass}`}>
+                  {item?.status || item?.badgeText || 'Processing'}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'fitness_progress_stats_fixed') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className={buildPreviewTitleClass({ themeKey: 'fitness', surface: true })}>
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-fitness-stat-row">
+          {items.map((item, itemIndex) => (
+            <div key={`preview-fitness-stat-${index}-${itemIndex}`} className="preview-fitness-stat-card">
+              <div className="preview-fitness-stat-icon">{item?.iconName || item?.icon || 'fit'}</div>
+              <div className="preview-fitness-stat-value">{item?.value || `0${itemIndex + 1}`}</div>
+              <div className="preview-fitness-stat-label">{item?.label || `Stat ${itemIndex + 1}`}</div>
+              {item?.meta ? <div className="preview-fitness-stat-meta">{item.meta}</div> : null}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'fitness_class_schedule_fixed') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className={buildPreviewTitleClass({ themeKey: 'fitness', surface: true })}>
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-fitness-schedule-list">
+          {items.map((item, itemIndex) => (
+            <div key={`preview-fitness-schedule-${index}-${itemIndex}`} className="preview-fitness-schedule-card">
+              <div className="preview-fitness-schedule-icon">{item?.iconName || item?.icon || 'fit'}</div>
+              <div className="preview-fitness-schedule-copy">
+                <div className="preview-fitness-schedule-title">{item?.title || `Class ${itemIndex + 1}`}</div>
+                <div className="preview-fitness-schedule-meta">{`${item?.time || '6:30 AM'} | ${item?.coach || 'Coach'}`}</div>
+                {item?.level ? <div className="preview-fitness-schedule-meta">{item.level}</div> : null}
+              </div>
+              <span className="preview-fitness-schedule-badge">{item?.spots || 'Open'}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'fitness_memberships_fixed') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className={buildPreviewTitleClass({ themeKey: 'fitness', surface: true })}>
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-fitness-membership-list">
+          {items.map((item, itemIndex) => (
+            <div
+              key={`preview-fitness-membership-${index}-${itemIndex}`}
+              className={`preview-fitness-membership-card ${item?.highlight ? 'is-highlight' : ''}`}
+            >
+              <div className="preview-fitness-membership-head">
+                <div>
+                  <div className="preview-fitness-membership-name">{item?.name || item?.title || `Plan ${itemIndex + 1}`}</div>
+                  {item?.tagline || item?.subtitle ? (
+                    <div className="preview-fitness-membership-tagline">{item?.tagline || item?.subtitle}</div>
+                  ) : null}
+                </div>
+                <div className="preview-fitness-membership-price">{item?.price || item?.priceLine || 'Rs 999'}</div>
+              </div>
+              <div className="preview-fitness-membership-perks">
+                {Array.isArray(item?.perks)
+                  ? item.perks.slice(0, 3).map((perk, perkIndex) => (
+                      <div key={`preview-fitness-perk-${index}-${itemIndex}-${perkIndex}`} className="preview-fitness-membership-perk">
+                        {perk}
+                      </div>
+                    ))
+                  : <div className="preview-fitness-membership-perk">Plan perks</div>}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'services_booking_slots_fixed') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className={buildPreviewTitleClass({ themeKey: 'services', surface: true })}>
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-services-slot-list">
+          {items.map((item, itemIndex) => {
+            const status = String(item?.status || item?.badgeText || 'Available').trim().toLowerCase();
+            return (
+              <div key={`preview-services-slot-${index}-${itemIndex}`} className="preview-services-slot-card">
+                <div className="preview-services-slot-copy">
+                  <div className="preview-services-slot-title">{item?.name || item?.title || `Slot ${itemIndex + 1}`}</div>
+                  {item?.service || item?.subtitle ? (
+                    <div className="preview-services-slot-meta">{item?.service || item?.subtitle}</div>
+                  ) : null}
+                  <div className="preview-services-slot-meta">{`${item?.date || 'Tomorrow'} at ${item?.time || '10:30 AM'}`}</div>
+                </div>
+                <span className={`preview-services-slot-status ${status === 'waitlist' ? 'is-waitlist' : status === 'filling fast' ? 'is-fast' : 'is-available'}`}>
+                  {item?.status || item?.badgeText || 'Available'}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'agriculture_weather_fixed') {
+    const current = items.find((item) => item?.kind === 'current' || item?.location) || items[0] || {};
+    const forecastItems = items.filter((item) => item?.kind === 'forecast' || item?.day || item?.label).slice(0, 4);
+    const forecast = forecastItems.length
+      ? forecastItems
+      : [
+          { day: 'Mon', temp: '29C', icon: 'partly-sunny-outline' },
+          { day: 'Tue', temp: '31C', icon: 'sunny-outline' },
+          { day: 'Wed', temp: '27C', icon: 'cloudy-outline' },
+          { day: 'Thu', temp: '30C', icon: 'sunny-outline' },
+        ];
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className={buildPreviewTitleClass({ themeKey: 'agriculture', surface: true })}>
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-agriculture-weather-shell">
+          <div className="preview-agriculture-weather-card">
+            <div className="preview-agriculture-weather-top">
+              <div className="preview-agriculture-weather-copy">
+                <div className="preview-agriculture-weather-location">{current?.location || 'Ghatlodiya, Gujarat'}</div>
+                <div className="preview-agriculture-weather-temp">{current?.temp || '28C'}</div>
+              </div>
+              <div className="preview-agriculture-weather-today">
+                <div className="preview-agriculture-weather-today-icon">Sun</div>
+                <div className="preview-agriculture-weather-today-label">Today</div>
+              </div>
+            </div>
+            <div className="preview-agriculture-weather-inline">
+              <span>{current?.condition || 'Partly cloudy'}</span>
+              <span className="preview-agriculture-weather-inline-divider">|</span>
+              <span>{`Humidity ${current?.humidity || '62%'}`}</span>
+              <span className="preview-agriculture-weather-inline-divider">|</span>
+              <span>{`Wind ${current?.wind || '12 km/h'}`}</span>
+            </div>
+          </div>
+          <div className="preview-agriculture-forecast-row">
+            {forecast.map((item, itemIndex) => (
+              <div key={`preview-agriculture-forecast-${index}-${itemIndex}`} className="preview-agriculture-forecast-card">
+                <div className="preview-agriculture-forecast-day">{item?.day || item?.label || `Day ${itemIndex + 1}`}</div>
+                <div className="preview-agriculture-forecast-icon">{item?.icon || 'sun'}</div>
+                <div className="preview-agriculture-forecast-temp">{item?.temp || item?.value || '29C'}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'agriculture_mandi_prices_fixed') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className={buildPreviewTitleClass({ themeKey: 'agriculture', surface: true })}>
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-agriculture-mandi-list">
+          {items.map((item, itemIndex) => {
+            const change = String(item?.change || item?.badgeText || '+0.0%').trim();
+            const isDown = String(item?.direction || '').trim().toLowerCase() === 'down' || change.startsWith('-');
+            return (
+              <div key={`preview-agriculture-mandi-${index}-${itemIndex}`} className="preview-agriculture-mandi-card">
+                <div className="preview-agriculture-mandi-copy">
+                  <div className="preview-agriculture-mandi-name">{item?.name || item?.title || `Crop ${itemIndex + 1}`}</div>
+                  <div className="preview-agriculture-mandi-market">{item?.market || item?.subtitle || 'Market'}</div>
+                </div>
+                <div className="preview-agriculture-mandi-right">
+                  <div className="preview-agriculture-mandi-price">{item?.price || item?.priceLine || 'Rs 2,345 / qtl'}</div>
+                  <span className={`preview-agriculture-mandi-change ${isDown ? 'is-down' : 'is-up'}`}>
+                    {change}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'jewellery_gold_rates_fixed') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className={buildPreviewTitleClass({ themeKey: 'jewellery', surface: true })}>
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-jewellery-rate-list">
+          {items.map((item, itemIndex) => (
+            <div key={`preview-jewellery-rate-${index}-${itemIndex}`} className="preview-jewellery-rate-card">
+              <div className="preview-jewellery-rate-copy">
+                <div className="preview-jewellery-rate-label">{item?.label || item?.title || `Rate ${itemIndex + 1}`}</div>
+                <div className="preview-jewellery-rate-price">{item?.price || item?.priceLine || 'Rs 6,525/g'}</div>
+              </div>
+              <span className="preview-jewellery-rate-trend">{item?.trend || item?.badgeText || '+0.2%'}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'sports_live_matches_fixed') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className={buildPreviewTitleClass({ themeKey: 'sports', surface: true })}>
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-sports-match-list">
+          {items.map((item, itemIndex) => (
+            <div key={`preview-sports-match-${index}-${itemIndex}`} className="preview-sports-match-card">
+              <div className="preview-sports-match-copy">
+                <div className="preview-sports-match-league">{item?.league || 'League'}</div>
+                <div className="preview-sports-match-teams">
+                  {(item?.home || 'Home')} vs {(item?.away || 'Away')}
+                </div>
+                {item?.time ? <div className="preview-sports-match-time">{item.time}</div> : null}
+              </div>
+              <div className="preview-sports-match-score">
+                <div className="preview-sports-match-score-line">{item?.score || '-'}</div>
+                <span className={`preview-sports-match-status ${String(item?.status || '').trim().toLowerCase() === 'live' ? 'is-live' : ''}`}>
+                  {item?.status || 'Scheduled'}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'travel_flight_deals_fixed') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className={buildPreviewTitleClass({ themeKey: 'travel', surface: true })}>
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-travel-flight-list">
+          {items.map((item, itemIndex) => (
+            <div key={`preview-travel-flight-${index}-${itemIndex}`} className="preview-travel-flight-card">
+              <div className="preview-travel-flight-header">
+                <div className="preview-travel-flight-icon">Air</div>
+                <div className="preview-travel-flight-copy">
+                  <div className="preview-travel-flight-route">{item?.route || item?.title || 'Route'}</div>
+                  <div className="preview-travel-flight-meta">
+                    {item?.date || item?.subtitle || 'Date'}
+                    {(item?.date || item?.subtitle) && (item?.type || item?.badgeText) ? ' | ' : ''}
+                    {item?.type || item?.badgeText || ''}
+                  </div>
+                </div>
+              </div>
+              <div className="preview-travel-flight-footer">
+                <div className="preview-travel-flight-airline">{item?.airline || item?.label || 'Airline'}</div>
+                <div className="preview-travel-flight-price">{item?.price || item?.priceLine || 'Rs 3,999'}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (blockType === 'travel_bookings_fixed') {
+    return (
+      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+        {title ? (
+          <div className={buildPreviewTitleClass({ themeKey: 'travel', surface: true })}>
+            <span>{title}</span>
+            {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
+          </div>
+        ) : null}
+        <div className="preview-travel-booking-list">
+          {items.map((item, itemIndex) => {
+            const status = String(item?.status || item?.badgeText || 'Pending').trim().toLowerCase();
+            return (
+              <div key={`preview-travel-booking-${index}-${itemIndex}`} className="preview-travel-booking-card">
+                <div className="preview-travel-booking-copy">
+                  <div className="preview-travel-booking-title">{item?.title || `Booking ${itemIndex + 1}`}</div>
+                  <div className="preview-travel-booking-meta">
+                    {item?.meta || item?.subtitle || 'Hotel + flight'}
+                    {(item?.meta || item?.subtitle) && (item?.date || item?.text) ? ' | ' : ''}
+                    {item?.date || item?.text || ''}
+                  </div>
+                </div>
+                <span className={`preview-travel-booking-status ${status === 'confirmed' ? 'is-confirmed' : 'is-pending'}`}>
+                  {item?.status || item?.badgeText || 'Pending'}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
   if (blockType === 'brand_logo_grid') {
+    const normalizedPreset = resolvePreviewThemeKey(stylePreset);
+    if (normalizedPreset === 'kids') {
+      return (
+        <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
+          {title ? <div className={buildPreviewTitleClass({ themeKey: 'kids', surface: true })}><span>{title}</span></div> : null}
+          <div className="preview-kids-brand-row">
+            {items.map((item, itemIndex) => (
+              <div key={`preview-kids-brand-${index}-${itemIndex}`} className="preview-kids-brand-card">
+                <div className="preview-kids-brand-logo">
+                  {getPreviewImage(item) ? <img src={getPreviewImage(item)} alt="" /> : <div className="preview-image-placeholder" />}
+                </div>
+                <div className="preview-kids-brand-title">{getPreviewTitle(item)}</div>
+                {item?.subtitle ? <div className="preview-kids-brand-subtitle">{item.subtitle}</div> : null}
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
     const hero = items.find((item) => item?.kind === 'hero') || items[0] || null;
     const cta = items.find((item) => item?.kind === 'cta') || items[items.length - 1] || null;
     let tiles = items.filter((item) => item?.kind !== 'hero' && item?.kind !== 'cta');
@@ -1305,18 +2230,19 @@ export const PreviewSection = ({
   }
 
   if (blockType === 'info_list') {
-    const infoPreset = String(stylePreset || '').trim().toLowerCase();
+    const infoPreset = resolvePreviewThemeKey(stylePreset, 'launch_rows');
     const isLaunchRows = infoPreset === 'launch_rows';
     const isBeautyRoutine = infoPreset === 'beauty_routine';
     const isFashionRows = infoPreset === 'fashion';
+    const isKidsRows = infoPreset === 'kids';
+    const isSportsRows = infoPreset === 'sports';
+    const isTravelRows = infoPreset === 'travel';
+    const isServicesRows = infoPreset === 'services';
+    const isJewelleryRows = infoPreset === 'jewellery';
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
         {title ? (
-          <div
-            className={`preview-title preview-title-with-action ${
-              isBeautyRoutine || isFashionRows ? '' : 'preview-title-surface-pill'
-            }`}
-          >
+          <div className={buildPreviewTitleClass({ themeKey: infoPreset, surface: !(isBeautyRoutine || isFashionRows) })}>
             <span>{title}</span>
             {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
           </div>
@@ -1335,7 +2261,7 @@ export const PreviewSection = ({
             ))}
           </div>
         ) : (
-          <div className={`preview-info-list ${isLaunchRows ? 'is-launch-rows' : isFashionRows ? 'is-fashion' : 'is-support-rows'}`}>
+          <div className={`preview-info-list ${isLaunchRows ? 'is-launch-rows' : isFashionRows ? 'is-fashion' : isKidsRows ? 'is-kids' : isSportsRows ? 'is-sports' : isTravelRows ? 'is-travel' : isServicesRows ? 'is-services' : isJewelleryRows ? 'is-jewellery' : 'is-support-rows'}`}>
             {items.map((item, itemIndex) => (
               <div key={`preview-info-list-${index}-${itemIndex}`} className="preview-info-list-item">
                 <div className="preview-info-list-icon">
@@ -1386,13 +2312,15 @@ export const PreviewSection = ({
   }
 
   if (blockType === 'chip_scroll') {
-    const normalizedPreset = String(stylePreset || '').trim().toLowerCase();
+    const normalizedPreset = resolvePreviewThemeKey(stylePreset);
     const isBeautyChips = normalizedPreset === 'beauty';
     const isGroceryChips = normalizedPreset === 'grocery';
+    const isFoodChips = normalizedPreset === 'food';
+    const isTravelChips = normalizedPreset === 'travel';
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
         {title ? (
-          <div className="preview-title preview-title-with-action">
+          <div className={buildPreviewTitleClass({ themeKey: normalizedPreset, surface: !isBeautyChips })}>
             <span>{title}</span>
             {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
           </div>
@@ -1406,11 +2334,11 @@ export const PreviewSection = ({
             ))}
           </div>
         ) : (
-          <div className={`preview-chip-scroll ${isGroceryChips ? 'is-grocery' : ''}`}>
+          <div className={`preview-chip-scroll ${isGroceryChips ? 'is-grocery' : isFoodChips ? 'is-food' : isTravelChips ? 'is-travel' : ''}`}>
             {items.map((item, itemIndex) => (
               <span
                 key={`preview-chip-${index}-${itemIndex}`}
-                className={`preview-chip ${isGroceryChips ? 'is-grocery' : ''}`}
+                className={`preview-chip ${isGroceryChips ? 'is-grocery' : isFoodChips ? 'is-food' : isTravelChips ? 'is-travel' : ''}`}
               >
                 {item.text || item.title || `Chip ${itemIndex + 1}`}
               </span>

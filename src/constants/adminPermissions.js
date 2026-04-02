@@ -29,6 +29,12 @@ export const PRODUCT_MASTER_PERMISSIONS = {
     update: 'ADMIN_SUB_CATEGORY_UPDATE',
     delete: 'ADMIN_SUB_CATEGORY_DELETE',
   },
+  brand: {
+    create: 'ADMIN_BRAND_CREATE',
+    read: 'ADMIN_BRAND_READ',
+    update: 'ADMIN_BRAND_UPDATE',
+    delete: 'ADMIN_BRAND_DELETE',
+  },
 };
 
 export const BUSINESS_PERMISSIONS = {

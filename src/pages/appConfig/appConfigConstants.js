@@ -60,7 +60,7 @@ export const screenSectionTypeOptions = [
   { value: 'grid', label: 'Product grid' },
   { value: 'column_grid', label: 'Column grid (SDUI)' },
   { value: 'category_icon_grid', label: 'Category icon grid (SDUI)' },
-  { value: 'brand_logo_grid', label: 'Brand logo grid (SDUI)' },
+  { value: 'brand_logo_grid', label: 'Brand showcase (SDUI)' },
   { value: 'media_overlay_carousel', label: 'Media overlay carousel (SDUI)' },
   { value: 'product_card_carousel', label: 'Product card carousel (SDUI)' },
   { value: 'info_list', label: 'Info list (SDUI)' },
@@ -76,6 +76,8 @@ export const screenSectionTypeOptions = [
   { value: 'icon_list', label: 'Icon list' },
   { value: 'chip_scroll', label: 'Chip scroll' },
   { value: 'category_showcase', label: 'Category Showcase' },
+  { value: 'tabbed_product_shelf', label: 'Tabbed Product Shelf (SDUI)' },
+  { value: 'shop_card_carousel', label: 'Shop card carousel (SDUI)' },
 ];
 
 export const defaultBlockTypeBySectionType = {
@@ -887,6 +889,2695 @@ const BEAUTY_SALON_SAMPLE = [
   },
 ];
 
+const DECOR_HERO_SAMPLE = {
+  badgeText: 'Seasonal Edit',
+  title: 'Terracotta Calm',
+  subtitle: 'Warm beige, artisan textures, soft lighting',
+  ctaText: 'Explore collection',
+  imageUrl: 'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?auto=format&fit=crop&w=1400&q=80',
+  ctaLink: '',
+};
+
+const DECOR_QUICK_ACTIONS_SAMPLE = [
+  {
+    title: 'Styling help',
+    subtitle: 'Free 15 min consult',
+    iconName: 'chatbubble-ellipses-outline',
+    deepLink: '',
+  },
+  {
+    title: 'Material kit',
+    subtitle: 'Curated swatches',
+    iconName: 'color-palette-outline',
+    deepLink: '',
+  },
+  {
+    title: 'Room planner',
+    subtitle: 'Scale in AR',
+    iconName: 'cube-outline',
+    deepLink: '',
+  },
+];
+
+const DECOR_ROOM_SAMPLE = [
+  {
+    title: 'Living',
+    imageUrl: 'https://images.unsplash.com/photo-1501045661006-fcebe0257c3f?auto=format&fit=crop&w=300&h=300&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Bedroom',
+    imageUrl: 'https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=300&h=300&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Kitchen',
+    imageUrl: 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=300&h=300&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Outdoor',
+    imageUrl: 'https://images.unsplash.com/photo-1501004318641-b39e6451bec6?auto=format&fit=crop&w=300&h=300&q=80',
+    deepLink: '',
+  },
+];
+
+const DECOR_TRENDING_CATEGORIES_SAMPLE = [
+  {
+    title: 'Lighting',
+    subtitle: 'Warm glow',
+    imageUrl: 'https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=480&h=360&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Wall Art',
+    subtitle: 'Gallery sets',
+    imageUrl: 'https://images.unsplash.com/photo-1505691723518-36a5ac3be353?auto=format&fit=crop&w=480&h=360&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Rugs',
+    subtitle: 'Handwoven',
+    imageUrl: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=480&h=360&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Tableware',
+    subtitle: 'Stoneware',
+    imageUrl: 'https://images.unsplash.com/photo-1502005097973-6a7082348e28?auto=format&fit=crop&w=480&h=360&q=80',
+    deepLink: '',
+  },
+];
+
+const DECOR_COLLECTIONS_SAMPLE = [
+  {
+    badgeText: 'New',
+    title: 'Artisan Pottery',
+    subtitle: 'Earthy ceramics, hand glazed',
+    imageUrl: 'https://images.unsplash.com/photo-1475855581690-80accde3ae2b?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    badgeText: 'Bestseller',
+    title: 'Linen Textures',
+    subtitle: 'Soft throws and neutral layers',
+    imageUrl: 'https://images.unsplash.com/photo-1505691723518-36a5ac3be353?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+];
+
+const DECOR_BESTSELLERS_SAMPLE = [
+  {
+    title: 'Ceramic Table Lamp',
+    priceLine: 'Rs 2,499',
+    rating: '4.9',
+    imageUrl: 'https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=480&h=480&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Terracotta Vase',
+    priceLine: 'Rs 1,250',
+    rating: '4.8',
+    imageUrl: 'https://images.unsplash.com/photo-1502005097973-6a7082348e28?auto=format&fit=crop&w=480&h=480&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Woven Throw',
+    priceLine: 'Rs 1,899',
+    rating: '4.7',
+    imageUrl: 'https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=480&h=480&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Ceramic Planter',
+    priceLine: 'Rs 999',
+    rating: '4.6',
+    imageUrl: 'https://images.unsplash.com/photo-1501004318641-b39e6451bec6?auto=format&fit=crop&w=480&h=480&q=80',
+    deepLink: '',
+  },
+];
+
+const AGRICULTURE_HERO_SAMPLE = {
+  badgeText: 'Seasonal Focus',
+  title: 'Kharif prep, made simple',
+  subtitle: 'Seeds, irrigation, soil care, and mandi updates in one feed',
+  ctaText: 'Plan crop cycle',
+  imageUrl: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1400&q=80',
+  ctaLink: '',
+};
+
+const AGRICULTURE_CATEGORY_SAMPLE = [
+  {
+    title: 'Grains',
+    iconName: 'leaf-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Vegetables',
+    iconName: 'nutrition-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1464226184884-fa280b87c399?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Fruits',
+    iconName: 'nutrition-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1485637701894-09ad422f6de6?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Spices',
+    iconName: 'flame-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+];
+
+const AGRICULTURE_WEATHER_SAMPLE = [
+  {
+    kind: 'current',
+    location: 'Ghatlodiya, Gujarat',
+    temp: '28C',
+    condition: 'Partly cloudy',
+    humidity: '62%',
+    wind: '12 km/h',
+  },
+  { kind: 'forecast', day: 'Mon', temp: '29C', icon: 'partly-sunny-outline' },
+  { kind: 'forecast', day: 'Tue', temp: '31C', icon: 'sunny-outline' },
+  { kind: 'forecast', day: 'Wed', temp: '27C', icon: 'cloudy-outline' },
+  { kind: 'forecast', day: 'Thu', temp: '30C', icon: 'sunny-outline' },
+];
+
+const AGRICULTURE_SEASONAL_PICKS_SAMPLE = [
+  {
+    badgeText: 'Seasonal',
+    title: 'Kharif Seed Kit',
+    subtitle: 'Hybrid rice and pulses',
+    imageUrl: 'https://images.unsplash.com/photo-1471193945509-9ad0617afabf?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+  {
+    badgeText: 'Water smart',
+    title: 'Drip Irrigation',
+    subtitle: 'Save up to 30% water',
+    imageUrl: 'https://images.unsplash.com/photo-1495107334309-fcf20504a5ab?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+  {
+    badgeText: 'Soil care',
+    title: 'Soil Booster',
+    subtitle: 'Organic compost blend',
+    imageUrl: 'https://images.unsplash.com/photo-1501004318641-b39e6451bec6?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+];
+
+const AGRICULTURE_MANDI_SAMPLE = [
+  { name: 'Wheat', market: 'Unjha', price: 'Rs 2,345 / qtl', change: '+1.8%', direction: 'up' },
+  { name: 'Soybean', market: 'Indore', price: 'Rs 4,220 / qtl', change: '-0.6%', direction: 'down' },
+  { name: 'Cotton', market: 'Rajkot', price: 'Rs 6,180 / qtl', change: '+0.9%', direction: 'up' },
+  { name: 'Onion', market: 'Pune', price: 'Rs 1,560 / qtl', change: '+0.3%', direction: 'up' },
+];
+
+const AGRICULTURE_TOOLS_SAMPLE = [
+  {
+    title: 'Mini Tractor',
+    subtitle: '28 HP compact',
+    priceLine: 'Rs 2.8L',
+    rating: '4.8',
+    imageUrl: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Battery Sprayer',
+    subtitle: '16L capacity',
+    priceLine: 'Rs 4,299',
+    rating: '4.7',
+    imageUrl: 'https://images.unsplash.com/photo-1475335771922-27ecbdb9c820?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Power Tiller',
+    subtitle: 'Field ready',
+    priceLine: 'Rs 64,999',
+    rating: '4.6',
+    imageUrl: 'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+];
+
+const AGRICULTURE_INPUTS_SAMPLE = [
+  {
+    title: 'Urea 45kg',
+    subtitle: 'Nitrogen boost',
+    badgeText: 'Top selling',
+    priceLine: 'Rs 349',
+    rating: '4.8',
+    imageUrl: 'https://images.unsplash.com/photo-1444395026247-0f8c2a1b7e18?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'DAP 50kg',
+    subtitle: 'Root growth support',
+    badgeText: 'Balanced',
+    priceLine: 'Rs 1,420',
+    rating: '4.7',
+    imageUrl: 'https://images.unsplash.com/photo-1464226184884-fa280b87c399?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Organic Manure',
+    subtitle: 'Soil health mix',
+    badgeText: 'Eco',
+    priceLine: 'Rs 650',
+    rating: '4.6',
+    imageUrl: 'https://images.unsplash.com/photo-1495107334309-fcf20504a5ab?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+];
+
+const AGRICULTURE_SUPPLIERS_SAMPLE = [
+  {
+    title: 'GreenFarm Supplies',
+    subtitle: 'Ahmedabad',
+    rating: '4.8',
+    distance: '2.8 km',
+    imageUrl: 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'AgroPrime Co-op',
+    subtitle: 'Mehsana',
+    rating: '4.7',
+    distance: '5.2 km',
+    imageUrl: 'https://images.unsplash.com/photo-1504593811423-6dd665756598?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'FreshMandi Network',
+    subtitle: 'Surat',
+    rating: '4.6',
+    distance: '6.9 km',
+    imageUrl: 'https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+];
+
+const KIDS_HERO_SAMPLE = {
+  badgeText: 'Kids Fest',
+  title: 'Bright play, safe picks',
+  subtitle: 'Toys, books, and essentials for every age',
+  ctaText: 'Shop kids',
+  imageUrl: 'https://images.unsplash.com/photo-1516627145497-ae6968895b74?auto=format&fit=crop&w=1400&q=80',
+  ctaLink: '',
+};
+
+const KIDS_QUICK_ACTIONS_SAMPLE = [
+  {
+    title: 'Gift finder',
+    subtitle: 'Age-based ideas',
+    iconName: 'gift-outline',
+    ctaText: 'Explore',
+    deepLink: '',
+  },
+  {
+    title: 'Wishlist',
+    subtitle: 'Save favorites',
+    iconName: 'heart-outline',
+    ctaText: 'View list',
+    deepLink: '',
+  },
+  {
+    title: 'Track order',
+    subtitle: 'Live delivery',
+    iconName: 'locate-outline',
+    ctaText: 'Track',
+    deepLink: '',
+  },
+];
+
+const KIDS_CATEGORY_SAMPLE = [
+  {
+    title: '0-2 yrs',
+    imageUrl: 'https://images.unsplash.com/photo-1516627145497-ae6968895b74?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+  {
+    title: '3-5 yrs',
+    imageUrl: 'https://images.unsplash.com/photo-1504151932400-72d4384f04b3?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+  {
+    title: '6-8 yrs',
+    imageUrl: 'https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+  {
+    title: '9-12 yrs',
+    imageUrl: 'https://images.unsplash.com/photo-1521412644187-c49fa049e84d?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+];
+
+const KIDS_TRENDING_SAMPLE = [
+  {
+    title: 'Sky Builder Blocks',
+    subtitle: 'STEM 120 pcs',
+    priceLine: 'Rs 1,299',
+    imageUrl: 'https://images.unsplash.com/photo-1587654780291-39c9404d746b?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Racer Track Set',
+    subtitle: 'Glow loop tracks',
+    priceLine: 'Rs 1,650',
+    imageUrl: 'https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Mini Kitchen Play',
+    subtitle: 'Chef starter kit',
+    priceLine: 'Rs 2,450',
+    imageUrl: 'https://images.unsplash.com/photo-1601758123927-1961cfcbe4f1?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Space Rover',
+    subtitle: 'Remote control',
+    priceLine: 'Rs 1,999',
+    imageUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+];
+
+const KIDS_LEARNING_SAMPLE = [
+  {
+    title: 'Science Lab Kit',
+    subtitle: '25 experiments',
+    imageUrl: 'https://images.unsplash.com/photo-1535909339361-9b2ef0bca90f?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Coding Starter',
+    subtitle: 'Build and program',
+    imageUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Art Studio Box',
+    subtitle: 'Paint and craft',
+    imageUrl: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0ea?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+];
+
+const KIDS_BRANDS_SAMPLE = [
+  { title: 'LEGO', subtitle: 'Building blocks', imageUrl: 'https://logo.clearbit.com/lego.com?size=128', deepLink: '' },
+  { title: 'Disney', subtitle: 'Stories and magic', imageUrl: 'https://logo.clearbit.com/disney.com?size=128', deepLink: '' },
+  { title: 'Fisher-Price', subtitle: 'Baby essentials', imageUrl: 'https://logo.clearbit.com/fisher-price.com?size=128', deepLink: '' },
+  { title: 'Hot Wheels', subtitle: 'Speed toys', imageUrl: 'https://logo.clearbit.com/hotwheels.com?size=128', deepLink: '' },
+  { title: 'Hasbro', subtitle: 'Games and play', imageUrl: 'https://logo.clearbit.com/hasbro.com?size=128', deepLink: '' },
+  { title: 'Crayola', subtitle: 'Art supplies', imageUrl: 'https://logo.clearbit.com/crayola.com?size=128', deepLink: '' },
+];
+
+const KIDS_OUTFIT_SAMPLE = [
+  {
+    title: 'Sunny Day Set',
+    subtitle: 'Cotton essentials',
+    priceLine: 'Rs 899',
+    imageUrl: 'https://images.unsplash.com/photo-1519238263530-99bdd11df2ea?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Playground Hoodie',
+    subtitle: 'Soft fleece',
+    priceLine: 'Rs 1,099',
+    imageUrl: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Rainy Day Gear',
+    subtitle: 'Waterproof set',
+    priceLine: 'Rs 1,499',
+    imageUrl: 'https://images.unsplash.com/photo-1503341455253-b2e723bb3dbb?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+];
+
+const KIDS_PARENT_TIPS_SAMPLE = [
+  { title: 'Screen time planner', subtitle: 'Healthy daily routines', iconName: 'time-outline', deepLink: '' },
+  { title: 'Nutrition checklist', subtitle: 'Balanced snack ideas', iconName: 'nutrition-outline', deepLink: '' },
+  { title: 'Safety essentials', subtitle: 'Home and outdoor tips', iconName: 'shield-checkmark-outline', deepLink: '' },
+  { title: 'Activity ideas', subtitle: 'Weekend plans and crafts', iconName: 'sunny-outline', deepLink: '' },
+];
+
+const SPORTS_HERO_SAMPLE = {
+  badgeText: 'Game Day',
+  title: 'Train smart, play harder',
+  subtitle: 'Gear, plans, and arenas for every athlete',
+  ctaText: 'Join challenges',
+  imageUrl: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=1400&q=80',
+  ctaLink: '',
+};
+
+const SPORTS_QUICK_ACTIONS_SAMPLE = [
+  {
+    title: 'Book turf',
+    subtitle: 'Instant slots',
+    iconName: 'calendar-outline',
+    ctaText: 'Reserve',
+    deepLink: '',
+  },
+  {
+    title: 'Find coach',
+    subtitle: 'Verified trainers',
+    iconName: 'person-outline',
+    ctaText: 'Browse',
+    deepLink: '',
+  },
+  {
+    title: 'Track order',
+    subtitle: 'Gear delivery',
+    iconName: 'locate-outline',
+    ctaText: 'Track',
+    deepLink: '',
+  },
+];
+
+const SPORTS_CATEGORY_SAMPLE = [
+  {
+    title: 'Football',
+    imageUrl: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Cricket',
+    imageUrl: 'https://images.unsplash.com/photo-1530549387789-4c1017266635?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Running',
+    imageUrl: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Gym',
+    imageUrl: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+];
+
+const SPORTS_FEATURED_GEAR_SAMPLE = [
+  {
+    title: 'Sprint Pro Shoes',
+    subtitle: 'Lightweight runners',
+    priceLine: 'Rs 3,499',
+    rating: '4.8',
+    imageUrl: 'https://images.unsplash.com/photo-1528701800489-20be3c2ea1a2?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Strength Dumbbells',
+    subtitle: 'Adjustable set',
+    priceLine: 'Rs 4,999',
+    rating: '4.7',
+    imageUrl: 'https://images.unsplash.com/photo-1517964603305-11c0f6f66012?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Match Football',
+    subtitle: 'Pro grip finish',
+    priceLine: 'Rs 1,199',
+    rating: '4.6',
+    imageUrl: 'https://images.unsplash.com/photo-1517927033932-b3d18e61fb3a?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+];
+
+const SPORTS_LIVE_MATCHES_SAMPLE = [
+  { league: 'City League', home: 'Rovers', away: 'Dynamos', time: '6:30 PM', status: 'Live', score: '2 - 1' },
+  { league: 'Premier Cup', home: 'Titans', away: 'Falcons', time: '8:00 PM', status: 'Upcoming', score: '0 - 0' },
+  { league: 'Weekend T20', home: 'Strikers', away: 'Warriors', time: 'Tomorrow', status: 'Scheduled', score: '-' },
+];
+
+const SPORTS_TRAINING_SAMPLE = [
+  {
+    title: 'Strength Builder',
+    subtitle: '4 weeks | 5 workouts',
+    imageUrl: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+  {
+    title: '10K Run Plan',
+    subtitle: '6 weeks | cardio',
+    imageUrl: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Mobility Flow',
+    subtitle: 'Daily | 20 mins',
+    imageUrl: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+];
+
+const SPORTS_ARENAS_SAMPLE = [
+  {
+    title: 'Skyline Arena',
+    subtitle: 'Navrangpura',
+    rating: '4.7',
+    distance: '2.1 km',
+    imageUrl: 'https://images.unsplash.com/photo-1504309092620-4d0ec726efa4?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Pulse Sports Hub',
+    subtitle: 'Vastrapur',
+    rating: '4.6',
+    distance: '3.4 km',
+    imageUrl: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+];
+
+const SPORTS_RECOVERY_SAMPLE = [
+  { title: 'Foam roller', subtitle: 'Mobility recovery', iconName: 'swap-vertical-outline', deepLink: '' },
+  { title: 'Protein shake', subtitle: 'Post-workout', iconName: 'nutrition-outline', deepLink: '' },
+  { title: 'Sleep tracker', subtitle: 'Recovery scores', iconName: 'moon-outline', deepLink: '' },
+  { title: 'Stretch band', subtitle: 'Flexibility kit', iconName: 'bandage-outline', deepLink: '' },
+];
+
+const FITNESS_HERO_SAMPLE = {
+  badgeText: 'Athlete Mode',
+  title: 'Build strength and stamina',
+  subtitle: 'Hybrid programs, smart nutrition, and tracking',
+  ctaText: 'Start program',
+  imageUrl: 'https://images.unsplash.com/photo-1517963879433-6ad2b056d712?auto=format&fit=crop&w=1400&q=80',
+  ctaLink: '',
+};
+
+const FITNESS_CATEGORY_SAMPLE = [
+  {
+    title: 'Equipment',
+    iconName: 'barbell-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1517963879433-6ad2b056d712?auto=format&fit=crop&w=700&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Classes',
+    iconName: 'bicycle-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=700&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Nutrition',
+    iconName: 'nutrition-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&w=700&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Recovery',
+    iconName: 'medkit-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=700&q=80',
+    deepLink: '',
+  },
+];
+
+const FITNESS_PROGRESS_STATS_SAMPLE = [
+  { label: 'Workout streak', value: '14 days', iconName: 'flame-outline', meta: '+3 this week' },
+  { label: 'Calories', value: '2,450', iconName: 'flash-outline', meta: 'Avg / day' },
+  { label: 'Strength PR', value: '+22%', iconName: 'barbell-outline', meta: 'Last 30 days' },
+  { label: 'Sleep', value: '7.2 hrs', iconName: 'moon-outline', meta: 'Recovery score' },
+];
+
+const FITNESS_WORKOUTS_SAMPLE = [
+  {
+    title: 'Power Strength',
+    subtitle: 'Upper body focus | Intermediate',
+    badgeText: '45 min',
+    imageUrl: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'HIIT Burn',
+    subtitle: 'Full body cardio | Advanced',
+    badgeText: '28 min',
+    imageUrl: 'https://images.unsplash.com/photo-1554344728-77cf90d9ed26?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Mobility Flow',
+    subtitle: 'Flexibility reset | All levels',
+    badgeText: '25 min',
+    imageUrl: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+];
+
+const FITNESS_CLASS_SCHEDULE_SAMPLE = [
+  { title: 'Spin Core', time: '6:30 AM', coach: 'Coach Riya', level: 'High intensity', iconName: 'bicycle-outline', spots: '4 spots left' },
+  { title: 'Strength Lab', time: '8:00 AM', coach: 'Coach Aman', level: 'Strength focus', iconName: 'barbell-outline', spots: 'Waitlist' },
+  { title: 'Mobility Yoga', time: '12:15 PM', coach: 'Coach Sana', level: 'Recovery', iconName: 'walk-outline', spots: '8 spots left' },
+];
+
+const FITNESS_TRAINERS_SAMPLE = [
+  {
+    title: 'Neha Kapoor',
+    subtitle: 'Strength + mobility',
+    priceLine: 'Coach',
+    rating: '4.9',
+    imageUrl: 'https://images.unsplash.com/photo-1554284126-aa88f22d8b72?auto=format&fit=crop&w=700&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Kabir Singh',
+    subtitle: 'HIIT + endurance',
+    priceLine: 'Coach',
+    rating: '4.8',
+    imageUrl: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=700&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Maya Desai',
+    subtitle: 'Yoga + recovery',
+    priceLine: 'Coach',
+    rating: '4.9',
+    imageUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=700&q=80',
+    deepLink: '',
+  },
+];
+
+const FITNESS_MEMBERSHIPS_SAMPLE = [
+  {
+    name: 'Starter',
+    price: 'Rs 999',
+    tagline: 'Gym access 5 days/week',
+    perks: ['4 classes/month', 'Nutrition guide', 'Progress tracker'],
+  },
+  {
+    name: 'Pro',
+    price: 'Rs 1,799',
+    tagline: 'Unlimited classes + sauna',
+    perks: ['Unlimited classes', 'Recovery lounge', 'Trainer check-ins'],
+    highlight: true,
+  },
+  {
+    name: 'Elite',
+    price: 'Rs 2,599',
+    tagline: '1:1 coaching + premium',
+    perks: ['Personal coach', 'Custom meal plan', 'VIP recovery'],
+  },
+];
+
+const FITNESS_NUTRITION_SAMPLE = [
+  {
+    title: 'Lean Cut',
+    subtitle: 'High protein, low carb',
+    priceLine: '1,900 kcal',
+    imageUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Lean Bulk',
+    subtitle: 'Performance carbs',
+    priceLine: '2,500 kcal',
+    imageUrl: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Plant Powered',
+    subtitle: 'Vegan strength',
+    priceLine: '2,100 kcal',
+    imageUrl: 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+];
+
+const SERVICES_HERO_SAMPLE = {
+  badgeText: 'Verified Experts',
+  title: 'Professional services, made simple',
+  subtitle: 'Advocates, CAs, and government services in one place',
+  ctaText: 'Post a request',
+  imageUrl: 'https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&w=1400&q=80',
+  ctaLink: '',
+};
+
+const SERVICES_CATEGORY_SAMPLE = [
+  {
+    title: 'Advocate',
+    iconName: 'briefcase-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&w=600&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Chartered CA',
+    iconName: 'calculator-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1554224154-22dec7ec8818?auto=format&fit=crop&w=600&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Govt Services',
+    iconName: 'business-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1472289065668-ce650ac443d2?auto=format&fit=crop&w=600&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Compliance',
+    iconName: 'shield-checkmark-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1485217988980-11786ced9454?auto=format&fit=crop&w=600&q=80',
+    deepLink: '',
+  },
+];
+
+const SERVICES_FEATURED_PROFESSIONALS_SAMPLE = [
+  {
+    title: 'Priya Mehta',
+    subtitle: 'Advocate - Corporate',
+    priceLine: 'From Rs 1,200',
+    rating: '4.9',
+    imageUrl: 'https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=crop&w=700&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Aarav Shah',
+    subtitle: 'CA - GST and Audit',
+    priceLine: 'From Rs 900',
+    rating: '4.8',
+    imageUrl: 'https://images.unsplash.com/photo-1551836022-4c4c79ecde51?auto=format&fit=crop&w=700&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Neel Patel',
+    subtitle: 'Accountant - Bookkeeping',
+    priceLine: 'From Rs 650',
+    rating: '4.7',
+    imageUrl: 'https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=crop&w=700&q=80',
+    deepLink: '',
+  },
+];
+
+const SERVICES_BOOKING_SLOTS_SAMPLE = [
+  { name: 'Advocate Priya', service: 'Contract review', time: '10:30 AM', date: 'Tomorrow', status: 'Available' },
+  { name: 'CA Aarav', service: 'GST filing', time: '1:15 PM', date: 'Thu', status: 'Filling fast' },
+  { name: 'Accountant Neel', service: 'Monthly books', time: '4:00 PM', date: 'Fri', status: 'Waitlist' },
+];
+
+const SERVICES_GOV_SERVICES_SAMPLE = [
+  {
+    title: 'Passport',
+    subtitle: 'New or renewal',
+    imageUrl: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'PAN / Aadhaar',
+    subtitle: 'Apply or update',
+    imageUrl: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'GST Registration',
+    subtitle: 'Business setup',
+    imageUrl: 'https://images.unsplash.com/photo-1554224154-22dec7ec8818?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+];
+
+const SERVICES_GOV_OFFICES_SAMPLE = [
+  { title: 'GST Seva Kendra', subtitle: 'Ashram Road, Ahmedabad | Mon-Fri 10 AM - 5 PM', iconName: 'business-outline', deepLink: '' },
+  { title: 'District Collector Office', subtitle: 'Ellis Bridge, Ahmedabad | Mon-Sat 9 AM - 6 PM', iconName: 'business-outline', deepLink: '' },
+  { title: 'Passport Seva Kendra', subtitle: 'Bopal, Ahmedabad | Mon-Fri 9 AM - 4 PM', iconName: 'business-outline', deepLink: '' },
+];
+
+const SERVICES_ADVOCATE_SPOTLIGHT_SAMPLE = {
+  badgeText: 'Advocate spotlight',
+  title: 'Ananya Rao',
+  subtitle: 'Legal drafting and disputes | 12 yrs experience',
+  ctaText: 'Book consultation',
+  imageUrl: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=1400&q=80',
+  ctaLink: '',
+};
+
+const SERVICES_COMPLIANCE_SAMPLE = [
+  { title: 'GST filing', subtitle: 'Due in 7 days', iconName: 'checkmark-circle-outline', deepLink: '' },
+  { title: 'TDS return', subtitle: 'Due in 12 days', iconName: 'checkmark-circle-outline', deepLink: '' },
+  { title: 'ROC annual filing', subtitle: 'Due in 25 days', iconName: 'checkmark-circle-outline', deepLink: '' },
+  { title: 'Labour compliance', subtitle: 'Renewal pending', iconName: 'checkmark-circle-outline', deepLink: '' },
+];
+
+const MEDICAL_HERO_SAMPLE = {
+  badgeText: 'Trusted Care',
+  title: 'Doctors, medicines and lab tests in one place',
+  subtitle: 'Consult, order and book care with a clean, verified experience',
+  ctaText: 'Explore care',
+  imageUrl: 'https://images.unsplash.com/photo-1584515933487-779824d29309?auto=format&fit=crop&w=1400&q=80',
+  ctaLink: '',
+};
+
+const MEDICAL_CATEGORY_GRID_SAMPLE = [
+  {
+    title: 'Medicines',
+    imageUrl: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    title: 'Hospitals',
+    imageUrl: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    title: 'Doctors',
+    imageUrl: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    title: 'Lab Tests',
+    imageUrl: 'https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    title: 'Skin & Care',
+    imageUrl: 'https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    title: 'Emergency',
+    imageUrl: 'https://images.unsplash.com/photo-1581595219315-a187dd40c322?auto=format&fit=crop&w=600&q=80',
+  },
+];
+
+const MEDICAL_NEARBY_HOSPITALS_SAMPLE = [
+  { title: 'CityCare Multispeciality', subtitle: 'Cardio, Ortho, ICU', distance: '2.1 km', tags: ['24x7', 'Emergency'] },
+  { title: 'Suburban Hospital', subtitle: 'Neuro, Pediatrics, Trauma', distance: '3.4 km', tags: ['24x7'] },
+  { title: 'Medical Towers Center', subtitle: 'ENT, Ortho, Diagnostics', distance: '4.6 km', tags: ['Emergency'] },
+];
+
+const MEDICAL_TOP_DOCTORS_SAMPLE = [
+  { title: 'Dr. Aisha Patel', subtitle: 'Cardiologist', experience: '9 yrs', fee: 'Rs 499', availability: 'Available today' },
+  { title: 'Dr. Sana Khan', subtitle: 'Gynecologist', experience: '12 yrs', fee: 'Rs 649', availability: 'Next: 1 hr' },
+  { title: 'Dr. Rahul Mehta', subtitle: 'General Physician', experience: '11 yrs', fee: 'Rs 399', availability: 'Available today' },
+];
+
+const MEDICAL_TRUSTED_MEDICINES_SAMPLE = [
+  {
+    title: 'Paracetamol 650',
+    subtitle: 'MediCure | Delivery in 30 mins',
+    priceLine: 'Rs 49',
+    badgeText: 'OTC',
+    imageUrl: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Cough Syrup',
+    subtitle: 'ReliefPlus | Delivery in 45 mins',
+    priceLine: 'Rs 99',
+    badgeText: 'OTC',
+    imageUrl: 'https://images.unsplash.com/photo-1607619056574-7b8d3ee536b2?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Azithro 500',
+    subtitle: 'ZenCare | Delivery in 60 mins',
+    priceLine: 'Rs 159',
+    badgeText: 'Rx required',
+    imageUrl: 'https://images.unsplash.com/photo-1576602976047-174e57a47881?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+];
+
+const MEDICAL_SKIN_CARE_SAMPLE = [
+  {
+    title: 'Acne care',
+    subtitle: 'Dermat approved',
+    imageUrl: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Sensitive skin',
+    subtitle: 'Daily repair',
+    imageUrl: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Glow routine',
+    subtitle: 'Face wash + serum',
+    imageUrl: 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+];
+
+const MEDICAL_LAB_TESTS_SAMPLE = [
+  {
+    title: 'Complete Blood Count',
+    subtitle: 'Reports in 12 hrs | Home sample',
+    priceLine: 'Rs 499',
+    badgeText: '20% OFF',
+    imageUrl: 'https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Thyroid Profile',
+    subtitle: 'Reports in 24 hrs | Home sample',
+    priceLine: 'Rs 699',
+    badgeText: '15% OFF',
+    imageUrl: 'https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'HbA1c Test',
+    subtitle: 'Reports in 24 hrs | Home sample',
+    priceLine: 'Rs 599',
+    badgeText: '10% OFF',
+    imageUrl: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+];
+
+const MEDICAL_HEALTH_PACKAGES_SAMPLE = [
+  {
+    title: 'Full Body Checkup',
+    subtitle: '70 tests included',
+    priceLine: 'Rs 1,499',
+    badgeText: 'Save 25%',
+    imageUrl: 'https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Diabetes Package',
+    subtitle: 'Sugar + lipid profile',
+    priceLine: 'Rs 999',
+    badgeText: 'Save 20%',
+    imageUrl: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Heart Health',
+    subtitle: 'ECG + lipid + BP',
+    priceLine: 'Rs 1,299',
+    badgeText: 'Save 15%',
+    imageUrl: 'https://images.unsplash.com/photo-1516549655669-df6c0cdb6355?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+];
+
+const MEDICAL_EMERGENCY_SAMPLE = [
+  { title: 'Ambulance', subtitle: 'Avg 10-15 mins', iconName: 'car-outline' },
+  { title: '24x7 Pharmacy', subtitle: 'Nearby open stores', iconName: 'storefront-outline' },
+  { title: 'Emergency Doctor', subtitle: 'Video in 5 mins', iconName: 'call-outline' },
+  { title: 'ICU Enquiry', subtitle: 'Live bed status', iconName: 'bed-outline' },
+];
+
+const MEDICAL_TRUST_SAMPLE = [
+  { title: 'Verified hospitals', iconName: 'shield-checkmark-outline' },
+  { title: 'Licensed pharmacies', iconName: 'medkit-outline' },
+  { title: 'Registered doctors', iconName: 'person-circle-outline' },
+  { title: 'Secure payments', iconName: 'lock-closed-outline' },
+];
+
+const MEDICAL_HEALTH_TIPS_SAMPLE = [
+  {
+    title: 'Skin care tips',
+    subtitle: 'Daily routine that works',
+    badgeText: 'Guide',
+    imageUrl: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Seasonal illness',
+    subtitle: 'Stay protected this week',
+    badgeText: 'Read',
+    imageUrl: 'https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Medicine usage',
+    subtitle: 'Safe dosage guidance',
+    badgeText: 'Tips',
+    imageUrl: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+];
+
+const MEDICAL_REMINDER_SAMPLE = [
+  { title: 'Medicine reminders', subtitle: 'Set daily alerts', iconName: 'alarm-outline' },
+  { title: 'Refill alerts', subtitle: 'Never run out', iconName: 'repeat-outline' },
+  { title: 'Monthly subscriptions', subtitle: 'Auto deliveries', iconName: 'calendar-outline' },
+];
+
+const MEDICAL_OFFERS_SAMPLE = [
+  {
+    title: 'Flat discount on tests',
+    subtitle: 'Save up to 25% today',
+    tag: 'Limited time',
+    imageUrl: 'https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=900&q=80',
+  },
+  {
+    title: 'Medicine cashback',
+    subtitle: 'Get 10% back on orders',
+    tag: 'Cashback',
+    imageUrl: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=900&q=80',
+  },
+  {
+    title: 'Free consultation',
+    subtitle: 'Video consult on select plans',
+    tag: 'Doctor care',
+    imageUrl: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=900&q=80',
+  },
+];
+
+const MEDICAL_FOOTER_LINKS_SAMPLE = [
+  { label: 'Prescription upload' },
+  { label: 'Insurance partners' },
+  { label: 'Order tracking' },
+  { label: 'Refund policy' },
+  { label: 'Health records' },
+  { label: 'Emergency numbers' },
+];
+
+const JEWELLERY_HERO_SAMPLE = {
+  badgeText: 'Rose Gold Edit',
+  title: 'Celebrate every sparkle',
+  subtitle: 'Handcrafted jewels for gifts, weddings, and milestones',
+  ctaText: 'Explore collection',
+  imageUrl: 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=1400&q=80',
+  deepLink: '',
+};
+
+const JEWELLERY_QUICK_ACTIONS_SAMPLE = [
+  {
+    title: 'Book appointment',
+    subtitle: 'In-store styling',
+    iconName: 'calendar-outline',
+    ctaText: 'Schedule',
+    deepLink: '',
+  },
+  {
+    title: 'Try at home',
+    subtitle: 'Curated kits',
+    iconName: 'home-outline',
+    ctaText: 'Request',
+    deepLink: '',
+  },
+  {
+    title: 'Gold rate',
+    subtitle: 'Live market',
+    iconName: 'stats-chart-outline',
+    ctaText: 'View',
+    deepLink: '',
+  },
+];
+
+const JEWELLERY_CATEGORY_SAMPLE = [
+  {
+    title: 'Rings',
+    iconName: 'diamond-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1514986888952-8cd320577b68?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Necklaces',
+    iconName: 'sparkles-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1522312346375-d1a52e2b99b3?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Earrings',
+    iconName: 'heart-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1500917293891-ef795e70e1f6?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Bangles',
+    iconName: 'ellipse-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+];
+
+const JEWELLERY_COLLECTIONS_SAMPLE = [
+  {
+    title: 'Bridal heirlooms',
+    subtitle: 'Set of 5 pieces',
+    imageUrl: 'https://images.unsplash.com/photo-1506630448388-4e683c67ddb0?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Everyday gold',
+    subtitle: 'Lightweight picks',
+    imageUrl: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Gemstone glow',
+    subtitle: 'Emerald and ruby',
+    imageUrl: 'https://images.unsplash.com/photo-1490367532201-b9bc1dc483f6?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+];
+
+const JEWELLERY_NEW_ARRIVALS_SAMPLE = [
+  {
+    title: 'Solitaire Halo Ring',
+    subtitle: '18K rose gold',
+    priceLine: 'Rs 34,990',
+    rating: '4.9',
+    imageUrl: 'https://images.unsplash.com/photo-1514986888952-8cd320577b68?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Luna Drop Earrings',
+    subtitle: 'Pearl finish',
+    priceLine: 'Rs 8,499',
+    rating: '4.8',
+    imageUrl: 'https://images.unsplash.com/photo-1512310604669-443f26c35f52?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Nova Tennis Bracelet',
+    subtitle: 'White gold',
+    priceLine: 'Rs 22,500',
+    rating: '4.8',
+    imageUrl: 'https://images.unsplash.com/photo-1506630448388-4e683c67ddb0?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+];
+
+const JEWELLERY_GOLD_RATES_SAMPLE = [
+  { label: '24K Gold', price: 'Rs 6,525/g', trend: '+0.4%' },
+  { label: '22K Gold', price: 'Rs 5,980/g', trend: '+0.3%' },
+  { label: 'Platinum', price: 'Rs 3,240/g', trend: '+0.1%' },
+];
+
+const JEWELLERY_TRUST_SAMPLE = [
+  { title: 'BIS Hallmark', subtitle: 'Certified purity', iconName: 'shield-checkmark-outline', deepLink: '' },
+  { title: 'IGI certified', subtitle: 'Diamond grading', iconName: 'ribbon-outline', deepLink: '' },
+  { title: 'Secure delivery', subtitle: 'Insured shipments', iconName: 'lock-closed-outline', deepLink: '' },
+  { title: 'Easy returns', subtitle: '7-day window', iconName: 'refresh-outline', deepLink: '' },
+];
+
+const TRAVEL_HERO_SAMPLE = {
+  badgeText: 'Ocean Escape',
+  title: 'Sail into summer',
+  subtitle: 'Curated coastal stays, flights, and local guides',
+  ctaText: 'Plan a trip',
+  imageUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1400&q=80',
+  deepLink: '',
+};
+
+const TRAVEL_CATEGORY_SAMPLE = [
+  {
+    title: 'Flights',
+    iconName: 'airplane-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1473186578172-c141e6798cf4?auto=format&fit=crop&w=600&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Stays',
+    iconName: 'home-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1501117716987-c8e1ecb2100f?auto=format&fit=crop&w=600&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Packages',
+    iconName: 'briefcase-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=600&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Experiences',
+    iconName: 'map-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=600&q=80',
+    deepLink: '',
+  },
+];
+
+const TRAVEL_DESTINATIONS_SAMPLE = [
+  {
+    title: 'Goa',
+    subtitle: '3N from Rs 8,999',
+    imageUrl: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Bali',
+    subtitle: '5N from Rs 29,900',
+    imageUrl: 'https://images.unsplash.com/photo-1505739773434-c02c1a7d26ed?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Maldives',
+    subtitle: '4N from Rs 54,500',
+    imageUrl: 'https://images.unsplash.com/photo-1500375592092-40eb2168fd21?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+];
+
+const TRAVEL_FLIGHT_DEALS_SAMPLE = [
+  {
+    route: 'Mumbai to Goa',
+    date: 'Tue, 18 Jun',
+    price: 'Rs 3,999',
+    airline: 'Indigo',
+    type: 'Non-stop',
+    deepLink: '',
+  },
+  {
+    route: 'Delhi to Bengaluru',
+    date: 'Fri, 21 Jun',
+    price: 'Rs 4,650',
+    airline: 'Vistara',
+    type: 'Non-stop',
+    deepLink: '',
+  },
+  {
+    route: 'Ahmedabad to Jaipur',
+    date: 'Sat, 29 Jun',
+    price: 'Rs 3,250',
+    airline: 'Air India',
+    type: '1 stop',
+    deepLink: '',
+  },
+];
+
+const TRAVEL_STAYS_SAMPLE = [
+  {
+    title: 'Sunset Bay Resort',
+    subtitle: 'Goa',
+    price: 'Rs 3,800 / night',
+    rating: '4.7',
+    imageUrl: 'https://images.unsplash.com/photo-1501117716987-c8e1ecb2100f?auto=format&fit=crop&w=800&q=80',
+    badgeText: 'Popular',
+    deepLink: '',
+  },
+  {
+    title: 'Coastline Suites',
+    subtitle: 'Kochi',
+    price: 'Rs 2,950 / night',
+    rating: '4.6',
+    imageUrl: 'https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=800&q=80',
+    badgeText: 'Weekend',
+    deepLink: '',
+  },
+  {
+    title: 'Bluewave Villas',
+    subtitle: 'Bali',
+    price: 'Rs 6,500 / night',
+    rating: '4.9',
+    imageUrl: 'https://images.unsplash.com/photo-1445019980597-93fa8acb246c?auto=format&fit=crop&w=800&q=80',
+    badgeText: 'Luxury',
+    deepLink: '',
+  },
+];
+
+const TRAVEL_ITINERARIES_SAMPLE = [
+  {
+    title: 'Coastal Drive',
+    subtitle: '4 days | Beaches, seafood trail, sunsets',
+    iconName: 'map-outline',
+    deepLink: '',
+  },
+  {
+    title: 'Island Hopper',
+    subtitle: '5 days | Snorkeling, stays, island tours',
+    iconName: 'boat-outline',
+    deepLink: '',
+  },
+  {
+    title: 'Heritage Streets',
+    subtitle: '3 days | Markets, cafes, cultural spots',
+    iconName: 'business-outline',
+    deepLink: '',
+  },
+];
+
+const TRAVEL_TIPS_SAMPLE = [
+  { text: 'Smart packing', iconName: 'briefcase-outline', deepLink: '' },
+  { text: 'Budget hacks', iconName: 'cash-outline', deepLink: '' },
+  { text: 'Local food', iconName: 'restaurant-outline', deepLink: '' },
+  { text: 'Safety tips', iconName: 'shield-checkmark-outline', deepLink: '' },
+];
+
+const TRAVEL_BOOKINGS_SAMPLE = [
+  {
+    title: 'Goa Weekend Escape',
+    meta: 'Hotel + flight',
+    date: 'Jun 21 - Jun 24',
+    status: 'Confirmed',
+    deepLink: '',
+  },
+  {
+    title: 'Bengaluru Work Trip',
+    meta: 'Flight only',
+    date: 'Jul 05 - Jul 07',
+    status: 'Pending',
+    deepLink: '',
+  },
+];
+
+const MANUFACTURING_HERO_SAMPLE = {
+  badgeText: 'Materials',
+  title: 'Manufacturing Essentials',
+  subtitle: 'Raw materials, equipment, tools, and verified industrial partners',
+  ctaText: 'Explore',
+  imageUrl: 'https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?auto=format&fit=crop&w=1400&q=80',
+  deepLink: '',
+};
+
+const MANUFACTURING_QUICK_ACTIONS_SAMPLE = [
+  {
+    title: 'Raise RFQ',
+    subtitle: 'Quote in 24-48h',
+    ctaText: 'Start RFQ',
+    iconName: 'document-text-outline',
+    deepLink: '',
+  },
+  {
+    title: 'Find supplier',
+    subtitle: 'Verified industrial partners',
+    ctaText: 'Browse',
+    iconName: 'search-outline',
+    deepLink: '',
+  },
+  {
+    title: 'Track order',
+    subtitle: 'Live shipment status',
+    ctaText: 'Track',
+    iconName: 'navigate-outline',
+    deepLink: '',
+  },
+];
+
+const MANUFACTURING_CATEGORY_SAMPLE = [
+  {
+    title: 'Raw Materials',
+    iconName: 'cube-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Machinery',
+    iconName: 'cog-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1581091012184-7a9d5c3b2d6a?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Packaging',
+    iconName: 'archive-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1567016549637-3f7b14448666?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Chemicals',
+    iconName: 'flask-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'OEM Parts',
+    iconName: 'hardware-chip-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1507477338202-487281e6c27e?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Safety',
+    iconName: 'shield-checkmark-outline',
+    imageUrl: 'https://images.unsplash.com/photo-1581091215367-59c66f2b5b1b?auto=format&fit=crop&w=400&q=80',
+    deepLink: '',
+  },
+];
+
+const MANUFACTURING_SUPPLIERS_SAMPLE = [
+  {
+    title: 'ForgeWorks Industrial',
+    subtitle: 'Pune, IN',
+    badgeText: 'ISO 9001',
+    businessType: 'CNC and castings',
+    moq: 'MOQ 50',
+    dispatch: 'Dispatch 24h',
+    rating: '4.8',
+    distance: '2.4 km',
+    imageUrl: 'https://images.unsplash.com/photo-1581091012184-7a9d5c3b2d6a?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'MetraSteel Solutions',
+    subtitle: 'Ahmedabad, IN',
+    badgeText: 'MSME',
+    businessType: 'Steel coils and sheets',
+    moq: 'MOQ 20',
+    dispatch: 'Dispatch 48h',
+    rating: '4.7',
+    distance: '4.1 km',
+    imageUrl: 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'PackLine Pro',
+    subtitle: 'Mumbai, IN',
+    badgeText: 'Verified',
+    businessType: 'Industrial packaging',
+    moq: 'MOQ 100',
+    dispatch: 'Dispatch 24h',
+    rating: '4.6',
+    distance: '6.8 km',
+    imageUrl: 'https://images.unsplash.com/photo-1567016549637-3f7b14448666?auto=format&fit=crop&w=900&q=80',
+    deepLink: '',
+  },
+];
+
+const MANUFACTURING_STATS_SAMPLE = [
+  { label: 'Active RFQs', value: '48', meta: 'Avg response 14h', tone: 'accent', iconName: 'stats-chart-outline' },
+  { label: 'Verified suppliers', value: '1.2k', meta: 'ISO + MSME', tone: 'cool', iconName: 'shield-checkmark-outline' },
+  { label: 'On-time delivery', value: '96%', meta: 'Last 30 days', tone: 'success', iconName: 'checkmark-done-outline' },
+  { label: 'Avg lead time', value: '5.2d', meta: 'Down 12%', tone: 'accent', iconName: 'speedometer-outline' },
+];
+
+const MANUFACTURING_LIVE_PRICES_SAMPLE = [
+  { label: 'Steel', price: '102.4/MT', change: '+1.8%', direction: 'up', deepLink: '' },
+  { label: 'Aluminum', price: '2.1/kg', change: '-0.6%', direction: 'down', deepLink: '' },
+  { label: 'Copper', price: '8.9/kg', change: '+0.9%', direction: 'up', deepLink: '' },
+  { label: 'Resin', price: '1.3/kg', change: '+0.4%', direction: 'up', deepLink: '' },
+];
+
+const MANUFACTURING_RECENT_ORDERS_SAMPLE = [
+  { title: 'CNC Machined Gears', supplier: 'ForgeWorks Industrial', eta: 'ETA 2 days', status: 'In Transit', deepLink: '' },
+  { title: 'Packaging Pallets', supplier: 'PackLine Pro', eta: 'ETA 5 days', status: 'Processing', deepLink: '' },
+  { title: 'Stainless Steel Sheets', supplier: 'MetraSteel Solutions', eta: 'Delivered yesterday', status: 'Delivered', deepLink: '' },
+];
+
+const MANUFACTURING_COMPLIANCE_SAMPLE = [
+  { title: 'ISO 9001', subtitle: 'Quality systems', iconName: 'shield-checkmark-outline', deepLink: '' },
+  { title: 'RoHS', subtitle: 'Material compliance', iconName: 'leaf-outline', deepLink: '' },
+  { title: 'MSME Verified', subtitle: 'Vendor validation', iconName: 'business-outline', deepLink: '' },
+  { title: 'Audit Ready', subtitle: 'Traceable lots', iconName: 'document-text-outline', deepLink: '' },
+];
+
+const buildManufacturingDefaultSections = (industryId) => [
+  {
+    id: 'manufacturing_hero',
+    type: 'banner',
+    blockType: 'promo_hero_banner',
+    stylePreset: 'manufacturing',
+    enabled: true,
+    items: [{ ...MANUFACTURING_HERO_SAMPLE }],
+  },
+  {
+    id: 'manufacturing_quick_actions',
+    type: 'horizontalList',
+    blockType: 'quick_action_row',
+    title: 'Quick actions',
+    actionText: 'Manage',
+    quickActionPreset: 'manufacturing',
+    enabled: true,
+    items: MANUFACTURING_QUICK_ACTIONS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'manufacturing_stats_fixed',
+    type: 'fixed',
+    blockType: 'manufacturing_stats_fixed',
+    title: 'Manufacturing stats',
+    actionText: 'View dashboard',
+    enabled: true,
+    items: MANUFACTURING_STATS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'manufacturing_categories',
+    type: 'category_showcase',
+    blockType: 'category_showcase',
+    title: 'Categories',
+    actionText: 'View all',
+    showcaseVariant: 'circle_icon',
+    stylePreset: 'manufacturing',
+    enabled: true,
+    dataSource: {
+      sourceType: 'CATEGORY_FEED',
+      industryId: industryId ? String(industryId) : undefined,
+    },
+    items: MANUFACTURING_CATEGORY_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'manufacturing_suppliers',
+    type: 'horizontalList',
+    blockType: 'shop_card_carousel',
+    title: 'Featured suppliers',
+    actionText: 'Explore',
+    stylePreset: 'manufacturing',
+    enabled: true,
+    dataSource: {
+      sourceType: 'MANUAL',
+    },
+    items: MANUFACTURING_SUPPLIERS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'manufacturing_rfq_banner',
+    type: 'banner',
+    blockType: 'promo_banner',
+    stylePreset: 'manufacturing',
+    title: 'Need vendor quotes?',
+    text: 'Share specs and receive verified supplier responses in 24-48 hours.',
+    actionText: 'Start RFQ',
+    enabled: true,
+    items: [],
+  },
+  {
+    id: 'manufacturing_live_prices_fixed',
+    type: 'fixed',
+    blockType: 'manufacturing_live_prices_fixed',
+    title: 'Live industry prices',
+    actionText: 'Refresh',
+    enabled: true,
+    items: MANUFACTURING_LIVE_PRICES_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'manufacturing_recent_orders_fixed',
+    type: 'fixed',
+    blockType: 'manufacturing_recent_orders_fixed',
+    title: 'Recent orders',
+    actionText: 'View all',
+    enabled: true,
+    items: MANUFACTURING_RECENT_ORDERS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'manufacturing_compliance',
+    type: 'list',
+    blockType: 'info_list',
+    title: 'Compliance and quality',
+    actionText: 'View reports',
+    stylePreset: 'manufacturing',
+    enabled: true,
+    items: MANUFACTURING_COMPLIANCE_SAMPLE.map((item) => ({ ...item })),
+  },
+];
+
+const buildDecorDefaultSections = () => [
+  {
+    id: 'decor_hero',
+    type: 'banner',
+    blockType: 'promo_hero_banner',
+    stylePreset: 'decor',
+    enabled: true,
+    items: [{ ...DECOR_HERO_SAMPLE }],
+  },
+  {
+    id: 'decor_quick_actions',
+    type: 'horizontalList',
+    blockType: 'quick_action_row',
+    title: 'Quick actions',
+    actionText: 'See all',
+    quickActionPreset: 'decor',
+    enabled: true,
+    items: DECOR_QUICK_ACTIONS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'decor_shop_by_room',
+    type: 'category_showcase',
+    blockType: 'category_showcase',
+    title: 'Shop by room',
+    actionText: 'Browse',
+    showcaseVariant: 'card',
+    stylePreset: 'decor',
+    enabled: true,
+    items: DECOR_ROOM_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'decor_trending_categories',
+    type: 'category_showcase',
+    blockType: 'category_showcase',
+    title: 'Trending categories',
+    actionText: 'View all',
+    showcaseVariant: 'circle_icon',
+    stylePreset: 'decor',
+    enabled: true,
+    items: DECOR_TRENDING_CATEGORIES_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'decor_curated_collections',
+    type: 'horizontalList',
+    blockType: 'media_overlay_carousel',
+    title: 'Curated collections',
+    actionText: 'View all',
+    stylePreset: 'decor',
+    cardVariant: 'stacked',
+    enabled: true,
+    items: DECOR_COLLECTIONS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'decor_bestsellers',
+    type: 'horizontalList',
+    blockType: 'product_shelf_horizontal',
+    title: 'Bestsellers',
+    actionText: 'View all',
+    stylePreset: 'decor',
+    enabled: true,
+    items: DECOR_BESTSELLERS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'decor_design_brief',
+    type: 'banner',
+    blockType: 'promo_banner',
+    stylePreset: 'decor',
+    title: 'Need a full room refresh?',
+    text: 'Get a personalized mood board with matching decor.',
+    actionText: 'Start a design brief',
+    enabled: true,
+    items: [],
+  },
+];
+
+const buildAgricultureDefaultSections = (industryId) => [
+  {
+    id: 'agriculture_hero',
+    type: 'banner',
+    blockType: 'promo_hero_banner',
+    stylePreset: 'agriculture',
+    enabled: true,
+    items: [{ ...AGRICULTURE_HERO_SAMPLE }],
+  },
+  {
+    id: 'agriculture_weather_fixed',
+    type: 'fixed',
+    blockType: 'agriculture_weather_fixed',
+    title: 'Weather & forecast',
+    actionText: '7 day view',
+    enabled: true,
+    items: AGRICULTURE_WEATHER_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'agriculture_categories',
+    type: 'category_showcase',
+    blockType: 'category_showcase',
+    title: 'Shop crop categories',
+    actionText: 'View all',
+    showcaseVariant: 'circle_icon',
+    stylePreset: 'agriculture',
+    enabled: true,
+    dataSource: {
+      sourceType: 'CATEGORY_FEED',
+      industryId: industryId ? String(industryId) : undefined,
+    },
+    items: AGRICULTURE_CATEGORY_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'agriculture_seasonal_picks',
+    type: 'horizontalList',
+    blockType: 'media_overlay_carousel',
+    title: 'Seasonal picks',
+    actionText: 'Explore',
+    stylePreset: 'agriculture',
+    enabled: true,
+    items: AGRICULTURE_SEASONAL_PICKS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'agriculture_mandi_prices_fixed',
+    type: 'fixed',
+    blockType: 'agriculture_mandi_prices_fixed',
+    title: 'Live mandi prices',
+    actionText: 'Refresh',
+    enabled: true,
+    items: AGRICULTURE_MANDI_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'agriculture_tools',
+    type: 'horizontalList',
+    blockType: 'product_shelf_horizontal',
+    title: 'Tools and equipment',
+    actionText: 'View all',
+    stylePreset: 'agriculture',
+    enabled: true,
+    items: AGRICULTURE_TOOLS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'agriculture_inputs',
+    type: 'horizontalList',
+    blockType: 'product_shelf_horizontal',
+    title: 'Fertilizers and inputs',
+    actionText: 'View all',
+    stylePreset: 'agriculture',
+    enabled: true,
+    items: AGRICULTURE_INPUTS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'agriculture_suppliers',
+    type: 'horizontalList',
+    blockType: 'shop_card_carousel',
+    title: 'Verified suppliers',
+    actionText: 'View all',
+    stylePreset: 'agriculture',
+    actionMode: 'CALL_WHATSAPP',
+    enabled: true,
+    items: AGRICULTURE_SUPPLIERS_SAMPLE.map((item) => ({ ...item })),
+  },
+];
+
+const FOOD_HERO_SAMPLE = {
+  badgeText: 'Sponsored',
+  title: 'Top-rated food spots and dishes near you',
+  subtitle: 'Hot picks, cafe offers, and city favourites in one place.',
+  ctaText: 'Explore now',
+  imageUrl: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1400&q=80',
+  deepLink: '',
+};
+
+const FOOD_QUICK_ACTIONS_SAMPLE = [
+  { title: 'Near me', subtitle: 'Closest picks', ctaText: 'Explore', iconName: 'location-outline', deepLink: '' },
+  { title: 'Open now', subtitle: 'Ready to serve', ctaText: 'Browse', iconName: 'time-outline', deepLink: '' },
+  { title: 'Cafe vibe', subtitle: 'Coffee & brunch', ctaText: 'See cafes', iconName: 'cafe-outline', deepLink: '' },
+  { title: 'Deals', subtitle: 'Live offers', ctaText: 'View deals', iconName: 'pricetag-outline', deepLink: '' },
+];
+
+const FOOD_VENUE_TYPES_SAMPLE = [
+  { title: 'Restaurants', imageUrl: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80', iconName: 'restaurant-outline', deepLink: '' },
+  { title: 'Cafes', imageUrl: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=800&q=80', iconName: 'cafe-outline', deepLink: '' },
+  { title: 'Street Food', imageUrl: 'https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&w=800&q=80', iconName: 'storefront-outline', deepLink: '' },
+  { title: 'Cloud Kitchen', imageUrl: 'https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=800&q=80', iconName: 'bag-handle-outline', deepLink: '' },
+  { title: 'Bakery', imageUrl: 'https://images.unsplash.com/photo-1517433670267-08bbd4be890f?auto=format&fit=crop&w=800&q=80', iconName: 'nutrition-outline', deepLink: '' },
+  { title: 'Desserts', imageUrl: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=800&q=80', iconName: 'ice-cream-outline', deepLink: '' },
+];
+
+const FOOD_VIBE_SAMPLE = [
+  { title: 'Budget friendly', imageUrl: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=800&q=80', iconName: 'wallet-outline', deepLink: '' },
+  { title: 'Hangout spots', imageUrl: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=800&q=80', iconName: 'people-outline', deepLink: '' },
+  { title: 'Date night', imageUrl: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&w=800&q=80', iconName: 'heart-outline', deepLink: '' },
+  { title: 'Family dining', imageUrl: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=800&q=80', iconName: 'home-outline', deepLink: '' },
+  { title: 'Late-night eats', imageUrl: 'https://images.unsplash.com/photo-1528605248644-14dd04022da1?auto=format&fit=crop&w=800&q=80', iconName: 'moon-outline', deepLink: '' },
+];
+
+const FOOD_POPULAR_DISHES_SAMPLE = [
+  {
+    title: 'Truffle fries platter',
+    subtitle: 'Cafe special',
+    priceLine: 'Rs 249',
+    mrpLine: 'Rs 329',
+    rating: '4.7',
+    sellerLine: 'Brew & Beans • Navrangpura',
+    deliveryLabel: '20-25 min',
+    badgeText: 'Popular',
+    imageUrl: 'https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Butter cheese dosa',
+    subtitle: 'Street favourite',
+    priceLine: 'Rs 179',
+    mrpLine: 'Rs 229',
+    rating: '4.6',
+    sellerLine: 'Ramesh Dosa • Law Garden',
+    deliveryLabel: '15-20 min',
+    badgeText: 'Bestseller',
+    imageUrl: 'https://images.unsplash.com/photo-1630383249896-424e482df921?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Cold brew combo',
+    subtitle: 'Cafe combo',
+    priceLine: 'Rs 299',
+    mrpLine: 'Rs 369',
+    rating: '4.8',
+    sellerLine: 'Secret Garden • Satellite',
+    deliveryLabel: '25-30 min',
+    badgeText: 'Limited',
+    imageUrl: 'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+];
+
+const FOOD_SPECIALS_SAMPLE = [
+  {
+    title: 'Buy 1 Get 1 Pizza Slice',
+    subtitle: 'Tonight only',
+    businessName: 'Night Oven',
+    price: 'Rs 199',
+    oldPrice: 'Rs 299',
+    badgeText: '50% OFF',
+    imageUrl: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Weekend brunch set',
+    subtitle: 'Flat combo price',
+    businessName: 'Morning Table',
+    price: 'Rs 349',
+    oldPrice: 'Rs 459',
+    badgeText: 'Save 110',
+    imageUrl: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Dessert box offer',
+    subtitle: 'Chef picks',
+    businessName: 'Sugar Room',
+    price: 'Rs 279',
+    oldPrice: 'Rs 369',
+    badgeText: 'Sweet deal',
+    imageUrl: 'https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+];
+
+const FOOD_VENUES_NEARBY_SAMPLE = [
+  {
+    title: 'Brew & Beans Cafe',
+    subtitle: 'Cafe • Navrangpura',
+    rating: '4.6',
+    distance: '1.2 km',
+    verified: true,
+    badgeText: 'Top Rated',
+    businessType: 'Cafe',
+    status: 'Open',
+    phoneNumber: '+919876543210',
+    whatsappNumber: '+919876543210',
+    imageUrl: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Royal Gujarati Thali',
+    subtitle: 'Restaurant • CG Road',
+    rating: '4.5',
+    distance: '2.3 km',
+    verified: true,
+    badgeText: 'Family favourite',
+    businessType: 'Restaurant',
+    status: 'Open',
+    phoneNumber: '+919876543214',
+    whatsappNumber: '+919876543214',
+    imageUrl: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Sky Lounge & Bar',
+    subtitle: 'Rooftop • SG Highway',
+    rating: '4.5',
+    distance: '4.2 km',
+    verified: true,
+    badgeText: 'Rooftop',
+    businessType: 'Lounge',
+    status: 'Open',
+    phoneNumber: '+919876543219',
+    whatsappNumber: '+919876543219',
+    imageUrl: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+];
+
+const FOOD_STREET_LEGENDS_SAMPLE = [
+  {
+    title: 'Mahadev Sandwich',
+    subtitle: 'Manek Chowk',
+    rating: '4.9',
+    distance: '3.5 km',
+    verified: true,
+    badgeText: 'Legendary',
+    businessType: 'Street Food',
+    status: 'Open',
+    phoneNumber: '+919876543215',
+    whatsappNumber: '+919876543215',
+    imageUrl: 'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Vipul Bhai Sandwich',
+    subtitle: 'Law Garden',
+    rating: '4.7',
+    distance: '2.1 km',
+    verified: true,
+    badgeText: 'Late night',
+    businessType: 'Street Food',
+    status: 'Open',
+    phoneNumber: '+919876543216',
+    whatsappNumber: '+919876543216',
+    imageUrl: 'https://images.unsplash.com/photo-1530554764233-e79e16c91d08?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+  {
+    title: 'Kailash Khaman House',
+    subtitle: 'Paldi',
+    rating: '4.8',
+    distance: '1.8 km',
+    verified: true,
+    badgeText: 'Iconic',
+    businessType: 'Snacks',
+    status: 'Open',
+    phoneNumber: '+919876543217',
+    whatsappNumber: '+919876543217',
+    imageUrl: 'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&w=800&q=80',
+    deepLink: '',
+  },
+];
+
+const FOOD_AREA_GUIDE_SAMPLE = [
+  { title: 'Manek Chowk', subtitle: 'Night food bazaar with iconic sandwiches and kulfi', badgeText: '120+ spots', imageUrl: 'https://images.unsplash.com/photo-1528605248644-14dd04022da1?auto=format&fit=crop&w=800&q=80' },
+  { title: 'Law Garden', subtitle: 'Street snacks, dosa stalls and evening crowd favourites', badgeText: '80+ spots', imageUrl: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=800&q=80' },
+  { title: 'SG Highway', subtitle: 'Premium cafes, rooftop dining and late-night venues', badgeText: '60+ spots', imageUrl: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&w=800&q=80' },
+];
+
+const FOOD_CITY_DICTIONARY_SAMPLE = [
+  { title: 'Butter cheese dosa', subtitle: 'Law Garden • Best after 7 PM', priceLine: 'Rs 120 - 220', imageUrl: 'https://images.unsplash.com/photo-1630383249896-424e482df921?auto=format&fit=crop&w=800&q=80' },
+  { title: 'Chocolate sandwich', subtitle: 'Manek Chowk • Night classic', priceLine: 'Rs 80 - 160', imageUrl: 'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=800&q=80' },
+  { title: 'Loaded cold coffee', subtitle: 'Navrangpura • Cafe favourite', priceLine: 'Rs 140 - 240', imageUrl: 'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?auto=format&fit=crop&w=800&q=80' },
+];
+
+const FOOD_PROMISES_SAMPLE = [
+  { text: 'Verified places', iconName: 'shield-checkmark-outline' },
+  { text: 'Live deals daily', iconName: 'pricetag-outline' },
+  { text: 'Call & WhatsApp support', iconName: 'call-outline' },
+  { text: 'Popular local picks', iconName: 'sparkles-outline' },
+];
+
+const buildFoodDefaultSections = () => [
+  {
+    id: 'food_hero',
+    type: 'banner',
+    blockType: 'promo_hero_banner',
+    stylePreset: 'food',
+    enabled: true,
+    items: [{ ...FOOD_HERO_SAMPLE }],
+  },
+  {
+    id: 'food_quick_actions',
+    type: 'horizontalList',
+    blockType: 'quick_action_row',
+    title: 'Quick actions',
+    actionText: 'Explore',
+    quickActionPreset: 'food',
+    enabled: true,
+    items: FOOD_QUICK_ACTIONS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'food_venue_types',
+    type: 'category_showcase',
+    blockType: 'category_showcase',
+    title: 'Browse by venue type',
+    actionText: 'View all',
+    showcaseVariant: 'circle_icon',
+    stylePreset: 'food',
+    enabled: true,
+    items: FOOD_VENUE_TYPES_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'food_vibes',
+    type: 'category_showcase',
+    blockType: 'category_showcase',
+    title: 'Browse by vibe',
+    actionText: 'See all',
+    showcaseVariant: 'circle_icon',
+    stylePreset: 'food',
+    enabled: true,
+    items: FOOD_VIBE_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'food_explore_experience_fixed',
+    type: 'fixed',
+    blockType: 'food_explore_experience_fixed',
+    title: 'Explore by Experience',
+    enabled: true,
+    items: FOOD_VENUES_NEARBY_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'food_popular_dishes',
+    type: 'horizontalList',
+    blockType: 'product_shelf_horizontal',
+    title: 'Popular dishes',
+    actionText: 'View all',
+    stylePreset: 'food',
+    enabled: true,
+    items: FOOD_POPULAR_DISHES_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'food_todays_specials',
+    type: 'horizontalList',
+    blockType: 'product_card_carousel',
+    title: "Today's Specials",
+    actionText: 'See all',
+    stylePreset: 'food',
+    enabled: true,
+    items: FOOD_SPECIALS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'food_places_near_you',
+    type: 'horizontalList',
+    blockType: 'shop_card_carousel',
+    title: 'Food Places Around You',
+    actionText: 'View all',
+    actionMode: 'CALL_WHATSAPP',
+    stylePreset: 'food',
+    enabled: true,
+    items: FOOD_VENUES_NEARBY_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'food_street_legends',
+    type: 'horizontalList',
+    blockType: 'shop_card_carousel',
+    title: 'Street Food Legends',
+    actionText: 'View all',
+    actionMode: 'CALL_WHATSAPP',
+    stylePreset: 'food',
+    enabled: true,
+    items: FOOD_STREET_LEGENDS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'food_area_guide_fixed',
+    type: 'fixed',
+    blockType: 'food_area_guide_fixed',
+    title: 'Area Food Guide',
+    enabled: true,
+    items: FOOD_AREA_GUIDE_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'food_city_dictionary_fixed',
+    type: 'fixed',
+    blockType: 'food_city_dictionary_fixed',
+    title: 'Famous Foods of the City',
+    enabled: true,
+    items: FOOD_CITY_DICTIONARY_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'food_promises',
+    type: 'horizontalList',
+    blockType: 'chip_scroll',
+    title: 'Food promises',
+    actionText: 'Know more',
+    stylePreset: 'food',
+    enabled: true,
+    items: FOOD_PROMISES_SAMPLE.map((item) => ({ ...item })),
+  },
+];
+
+const buildKidsDefaultSections = () => [
+  {
+    id: 'kids_hero',
+    type: 'banner',
+    blockType: 'promo_hero_banner',
+    stylePreset: 'kids',
+    enabled: true,
+    items: [{ ...KIDS_HERO_SAMPLE }],
+  },
+  {
+    id: 'kids_quick_actions',
+    type: 'horizontalList',
+    blockType: 'quick_action_row',
+    title: 'Quick actions',
+    actionText: 'View all',
+    quickActionPreset: 'kids',
+    enabled: true,
+    items: KIDS_QUICK_ACTIONS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'kids_categories',
+    type: 'category_showcase',
+    blockType: 'category_showcase',
+    title: 'Shop categories',
+    actionText: 'Browse',
+    showcaseVariant: 'circle_icon',
+    stylePreset: 'kids',
+    enabled: true,
+    items: KIDS_CATEGORY_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'kids_trending_toys',
+    type: 'horizontalList',
+    blockType: 'product_shelf_horizontal',
+    title: 'Trending toys',
+    actionText: 'View all',
+    stylePreset: 'kids',
+    enabled: true,
+    items: KIDS_TRENDING_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'kids_learning',
+    type: 'horizontalList',
+    blockType: 'media_overlay_carousel',
+    title: 'Learning and creativity',
+    actionText: 'Explore',
+    stylePreset: 'kids',
+    enabled: true,
+    items: KIDS_LEARNING_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'kids_brands',
+    type: 'horizontalList',
+    blockType: 'brand_logo_grid',
+    title: 'Top brands',
+    stylePreset: 'kids',
+    enabled: true,
+    items: KIDS_BRANDS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'kids_outfit_picks',
+    type: 'horizontalList',
+    blockType: 'product_shelf_horizontal',
+    title: 'Outfit picks',
+    actionText: 'View all',
+    stylePreset: 'kids',
+    enabled: true,
+    items: KIDS_OUTFIT_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'kids_parent_corner',
+    type: 'list',
+    blockType: 'info_list',
+    title: 'Parent corner',
+    actionText: 'See all',
+    stylePreset: 'kids',
+    enabled: true,
+    items: KIDS_PARENT_TIPS_SAMPLE.map((item) => ({ ...item })),
+  },
+];
+
+const buildSportsDefaultSections = (industryId) => [
+  {
+    id: 'sports_hero',
+    type: 'banner',
+    blockType: 'promo_hero_banner',
+    stylePreset: 'sports',
+    enabled: true,
+    items: [{ ...SPORTS_HERO_SAMPLE }],
+  },
+  {
+    id: 'sports_quick_actions',
+    type: 'horizontalList',
+    blockType: 'quick_action_row',
+    title: 'Quick actions',
+    actionText: 'View all',
+    quickActionPreset: 'sports',
+    enabled: true,
+    items: SPORTS_QUICK_ACTIONS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'sports_categories',
+    type: 'category_showcase',
+    blockType: 'category_showcase',
+    title: 'Shop by sport',
+    actionText: 'View all',
+    showcaseVariant: 'circle_icon',
+    stylePreset: 'sports',
+    enabled: true,
+    dataSource: {
+      sourceType: 'CATEGORY_FEED',
+      industryId: industryId ? String(industryId) : undefined,
+    },
+    items: SPORTS_CATEGORY_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'sports_featured_gear',
+    type: 'horizontalList',
+    blockType: 'product_shelf_horizontal',
+    title: 'Featured gear',
+    actionText: 'View all',
+    stylePreset: 'sports',
+    enabled: true,
+    items: SPORTS_FEATURED_GEAR_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'sports_live_matches_fixed',
+    type: 'fixed',
+    blockType: 'sports_live_matches_fixed',
+    title: 'Live matches',
+    actionText: 'View all',
+    enabled: true,
+    items: SPORTS_LIVE_MATCHES_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'sports_training_plans',
+    type: 'horizontalList',
+    blockType: 'media_overlay_carousel',
+    title: 'Training plans',
+    actionText: 'View all',
+    stylePreset: 'sports',
+    enabled: true,
+    items: SPORTS_TRAINING_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'sports_nearby_arenas',
+    type: 'horizontalList',
+    blockType: 'shop_card_carousel',
+    title: 'Nearby arenas',
+    actionText: 'View all',
+    stylePreset: 'sports',
+    enabled: true,
+    dataSource: {
+      sourceType: 'MANUAL',
+    },
+    items: SPORTS_ARENAS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'sports_recovery_essentials',
+    type: 'list',
+    blockType: 'info_list',
+    title: 'Recovery essentials',
+    actionText: 'View all',
+    stylePreset: 'sports',
+    enabled: true,
+    items: SPORTS_RECOVERY_SAMPLE.map((item) => ({ ...item })),
+  },
+];
+
+const buildTravelDefaultSections = (industryId) => [
+  {
+    id: 'travel_hero',
+    type: 'banner',
+    blockType: 'promo_hero_banner',
+    stylePreset: 'travel',
+    enabled: true,
+    items: [{ ...TRAVEL_HERO_SAMPLE }],
+  },
+  {
+    id: 'travel_categories',
+    type: 'category_showcase',
+    blockType: 'category_showcase',
+    title: 'Travel categories',
+    actionText: 'View all',
+    showcaseVariant: 'card',
+    stylePreset: 'travel',
+    enabled: true,
+    dataSource: {
+      sourceType: 'CATEGORY_FEED',
+      industryId: industryId ? String(industryId) : undefined,
+    },
+    items: TRAVEL_CATEGORY_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'travel_top_destinations',
+    type: 'horizontalList',
+    blockType: 'media_overlay_carousel',
+    title: 'Top destinations',
+    actionText: 'View all',
+    stylePreset: 'travel',
+    enabled: true,
+    items: TRAVEL_DESTINATIONS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'travel_flight_deals_fixed',
+    type: 'fixed',
+    blockType: 'travel_flight_deals_fixed',
+    title: 'Flight deals',
+    actionText: 'See all',
+    enabled: true,
+    items: TRAVEL_FLIGHT_DEALS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'travel_hotel_stays',
+    type: 'horizontalList',
+    blockType: 'product_shelf_horizontal',
+    title: 'Hotel stays',
+    actionText: 'Explore',
+    stylePreset: 'travel',
+    enabled: true,
+    items: TRAVEL_STAYS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'travel_itineraries',
+    type: 'list',
+    blockType: 'info_list',
+    title: 'Itineraries',
+    actionText: 'Plan',
+    stylePreset: 'travel',
+    enabled: true,
+    items: TRAVEL_ITINERARIES_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'travel_tips',
+    type: 'horizontalList',
+    blockType: 'chip_scroll',
+    title: 'Travel tips',
+    actionText: 'View all',
+    stylePreset: 'travel',
+    enabled: true,
+    items: TRAVEL_TIPS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'travel_bookings_fixed',
+    type: 'fixed',
+    blockType: 'travel_bookings_fixed',
+    title: 'Your bookings',
+    actionText: 'Manage',
+    enabled: true,
+    items: TRAVEL_BOOKINGS_SAMPLE.map((item) => ({ ...item })),
+  },
+];
+
+const buildFitnessDefaultSections = () => [
+  {
+    id: 'fitness_hero',
+    type: 'banner',
+    blockType: 'promo_hero_banner',
+    stylePreset: 'fitness',
+    enabled: true,
+    items: [{ ...FITNESS_HERO_SAMPLE }],
+  },
+  {
+    id: 'fitness_categories',
+    type: 'category_showcase',
+    blockType: 'category_showcase',
+    title: 'Shop categories',
+    actionText: 'View all',
+    showcaseVariant: 'card',
+    stylePreset: 'fitness',
+    enabled: true,
+    items: FITNESS_CATEGORY_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'fitness_progress_stats_fixed',
+    type: 'fixed',
+    blockType: 'fitness_progress_stats_fixed',
+    title: 'Progress stats',
+    actionText: 'View insights',
+    enabled: true,
+    items: FITNESS_PROGRESS_STATS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'fitness_workouts',
+    type: 'horizontalList',
+    blockType: 'media_overlay_carousel',
+    title: 'Workouts',
+    actionText: 'See all',
+    stylePreset: 'fitness',
+    enabled: true,
+    items: FITNESS_WORKOUTS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'fitness_class_schedule_fixed',
+    type: 'fixed',
+    blockType: 'fitness_class_schedule_fixed',
+    title: 'Class schedule',
+    actionText: 'Full schedule',
+    enabled: true,
+    items: FITNESS_CLASS_SCHEDULE_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'fitness_top_trainers',
+    type: 'horizontalList',
+    blockType: 'product_shelf_horizontal',
+    title: 'Top trainers',
+    actionText: 'Meet all',
+    stylePreset: 'fitness',
+    enabled: true,
+    items: FITNESS_TRAINERS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'fitness_memberships_fixed',
+    type: 'fixed',
+    blockType: 'fitness_memberships_fixed',
+    title: 'Memberships',
+    actionText: 'Compare',
+    enabled: true,
+    items: FITNESS_MEMBERSHIPS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'fitness_nutrition',
+    type: 'horizontalList',
+    blockType: 'product_shelf_horizontal',
+    title: 'Nutrition plans',
+    actionText: 'View plans',
+    stylePreset: 'fitness',
+    enabled: true,
+    items: FITNESS_NUTRITION_SAMPLE.map((item) => ({ ...item })),
+  },
+];
+
+const buildServicesDefaultSections = (industryId) => [
+  {
+    id: 'services_hero',
+    type: 'banner',
+    blockType: 'promo_hero_banner',
+    stylePreset: 'services',
+    enabled: true,
+    items: [{ ...SERVICES_HERO_SAMPLE }],
+  },
+  {
+    id: 'services_categories',
+    type: 'category_showcase',
+    blockType: 'category_showcase',
+    title: 'Service categories',
+    actionText: 'View all',
+    showcaseVariant: 'circle_icon',
+    stylePreset: 'services',
+    enabled: true,
+    dataSource: {
+      sourceType: 'CATEGORY_FEED',
+      industryId: industryId ? String(industryId) : undefined,
+    },
+    items: SERVICES_CATEGORY_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'services_featured_professionals',
+    type: 'horizontalList',
+    blockType: 'product_shelf_horizontal',
+    title: 'Featured professionals',
+    actionText: 'View all',
+    stylePreset: 'services',
+    enabled: true,
+    items: SERVICES_FEATURED_PROFESSIONALS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'services_booking_slots_fixed',
+    type: 'fixed',
+    blockType: 'services_booking_slots_fixed',
+    title: 'Booking slots',
+    actionText: 'Schedule',
+    enabled: true,
+    items: SERVICES_BOOKING_SLOTS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'services_government_services',
+    type: 'horizontalList',
+    blockType: 'media_overlay_carousel',
+    title: 'Government services',
+    actionText: 'Explore',
+    stylePreset: 'services',
+    enabled: true,
+    items: SERVICES_GOV_SERVICES_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'services_government_offices',
+    type: 'list',
+    blockType: 'info_list',
+    title: 'Government offices',
+    actionText: 'View all',
+    stylePreset: 'services',
+    enabled: true,
+    items: SERVICES_GOV_OFFICES_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'services_advocate_spotlight',
+    type: 'banner',
+    blockType: 'promo_hero_banner',
+    stylePreset: 'services',
+    title: 'Advocate spotlight',
+    enabled: true,
+    items: [{ ...SERVICES_ADVOCATE_SPOTLIGHT_SAMPLE }],
+  },
+  {
+    id: 'services_compliance',
+    type: 'list',
+    blockType: 'info_list',
+    title: 'Compliance checklist',
+    actionText: 'Manage',
+    stylePreset: 'services',
+    enabled: true,
+    items: SERVICES_COMPLIANCE_SAMPLE.map((item) => ({ ...item })),
+  },
+];
+
+const buildMedicalDefaultSections = () => [
+  {
+    id: 'medical_hero',
+    type: 'banner',
+    blockType: 'promo_hero_banner',
+    stylePreset: 'medical',
+    enabled: true,
+    items: [{ ...MEDICAL_HERO_SAMPLE }],
+  },
+  {
+    id: 'medical_category_grid_fixed',
+    type: 'fixed',
+    blockType: 'medical_category_grid_fixed',
+    title: 'Shop medical categories',
+    enabled: true,
+    items: MEDICAL_CATEGORY_GRID_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'medical_nearby_hospitals_fixed',
+    type: 'fixed',
+    blockType: 'medical_nearby_hospitals_fixed',
+    title: 'Hospitals Near You',
+    actionText: 'View all hospitals',
+    enabled: true,
+    items: MEDICAL_NEARBY_HOSPITALS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'medical_top_doctors_fixed',
+    type: 'fixed',
+    blockType: 'medical_top_doctors_fixed',
+    title: 'Consult Top Doctors',
+    actionText: 'Book now',
+    enabled: true,
+    items: MEDICAL_TOP_DOCTORS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'medical_trusted_medicines',
+    type: 'horizontalList',
+    blockType: 'product_shelf_horizontal',
+    title: 'Trusted Medicines',
+    actionText: 'View all',
+    stylePreset: 'medical',
+    enabled: true,
+    items: MEDICAL_TRUSTED_MEDICINES_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'medical_skin_care',
+    type: 'horizontalList',
+    blockType: 'product_shelf_horizontal',
+    title: 'Skin & Face Care',
+    actionText: 'Explore skin care',
+    stylePreset: 'medical',
+    cardVariant: 'compact',
+    enabled: true,
+    items: MEDICAL_SKIN_CARE_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'medical_lab_tests',
+    type: 'horizontalList',
+    blockType: 'product_shelf_horizontal',
+    title: 'Book Lab Tests',
+    actionText: 'Book test',
+    stylePreset: 'medical',
+    enabled: true,
+    items: MEDICAL_LAB_TESTS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'medical_health_packages',
+    type: 'horizontalList',
+    blockType: 'product_shelf_horizontal',
+    title: 'Health Checkup Packages',
+    actionText: 'View packages',
+    stylePreset: 'medical',
+    enabled: true,
+    items: MEDICAL_HEALTH_PACKAGES_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'medical_emergency_fixed',
+    type: 'fixed',
+    blockType: 'medical_emergency_fixed',
+    title: 'Emergency Services',
+    actionText: 'Call now',
+    enabled: true,
+    items: MEDICAL_EMERGENCY_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'medical_trust_strip_fixed',
+    type: 'fixed',
+    blockType: 'medical_trust_strip_fixed',
+    title: 'Why Trust Us',
+    enabled: true,
+    items: MEDICAL_TRUST_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'medical_health_tips',
+    type: 'horizontalList',
+    blockType: 'media_overlay_carousel',
+    title: 'Health Tips',
+    actionText: 'Read more',
+    stylePreset: 'medical',
+    enabled: true,
+    items: MEDICAL_HEALTH_TIPS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'medical_reminder_fixed',
+    type: 'fixed',
+    blockType: 'medical_reminder_fixed',
+    title: 'Never Miss Your Medicines',
+    actionText: 'Set reminder',
+    enabled: true,
+    items: MEDICAL_REMINDER_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'medical_offers_fixed',
+    type: 'fixed',
+    blockType: 'medical_offers_fixed',
+    title: 'Offers for You',
+    enabled: true,
+    items: MEDICAL_OFFERS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'medical_footer_links_fixed',
+    type: 'fixed',
+    blockType: 'medical_footer_links_fixed',
+    title: 'Quick Links',
+    enabled: true,
+    items: MEDICAL_FOOTER_LINKS_SAMPLE.map((item) => ({ ...item })),
+  },
+];
+
+const buildJewelleryDefaultSections = (industryId) => [
+  {
+    id: 'jewellery_hero',
+    type: 'banner',
+    blockType: 'promo_hero_banner',
+    stylePreset: 'jewellery',
+    enabled: true,
+    items: [{ ...JEWELLERY_HERO_SAMPLE }],
+  },
+  {
+    id: 'jewellery_quick_actions',
+    type: 'horizontalList',
+    blockType: 'quick_action_row',
+    title: 'Quick actions',
+    actionText: 'Manage',
+    quickActionPreset: 'jewellery',
+    enabled: true,
+    items: JEWELLERY_QUICK_ACTIONS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'jewellery_categories',
+    type: 'category_showcase',
+    blockType: 'category_showcase',
+    title: 'Shop categories',
+    actionText: 'View all',
+    showcaseVariant: 'circle_icon',
+    stylePreset: 'jewellery',
+    enabled: true,
+    dataSource: {
+      sourceType: 'CATEGORY_FEED',
+      industryId: industryId ? String(industryId) : undefined,
+    },
+    items: JEWELLERY_CATEGORY_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'jewellery_collections',
+    type: 'horizontalList',
+    blockType: 'media_overlay_carousel',
+    title: 'Trending collections',
+    actionText: 'Explore',
+    stylePreset: 'jewellery',
+    enabled: true,
+    items: JEWELLERY_COLLECTIONS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'jewellery_new_arrivals',
+    type: 'horizontalList',
+    blockType: 'product_shelf_horizontal',
+    title: 'New arrivals',
+    actionText: 'View all',
+    stylePreset: 'jewellery',
+    enabled: true,
+    items: JEWELLERY_NEW_ARRIVALS_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'jewellery_gold_rates_fixed',
+    type: 'fixed',
+    blockType: 'jewellery_gold_rates_fixed',
+    title: 'Gold rates today',
+    actionText: 'Refresh',
+    enabled: true,
+    items: JEWELLERY_GOLD_RATES_SAMPLE.map((item) => ({ ...item })),
+  },
+  {
+    id: 'jewellery_trust',
+    type: 'list',
+    blockType: 'info_list',
+    title: 'Certified and secure',
+    actionText: 'Learn more',
+    stylePreset: 'jewellery',
+    enabled: true,
+    items: JEWELLERY_TRUST_SAMPLE.map((item) => ({ ...item })),
+  },
+];
+
 const buildBeautyDefaultSections = (industryId) => [
   {
     id: 'beauty_spotlight',
@@ -1241,11 +3932,225 @@ const buildFashionDefaultSections = (industryId) => [
   },
 ];
 
+const buildAutomobileDefaultSections = (industryId) => {
+  const scopedIndustryId = industryId ? String(industryId) : undefined;
+  const automobileShelfItems = [
+    {
+      title: 'All-season radial tyre',
+      price: '2,850',
+      mrp: '3,240',
+      rating: '4.8',
+      tag: 'Workshop pick',
+      moqLine: 'MOQ 4',
+      summaryLine: 'Same-day dispatch | In stock | TorqueHub Ahmedabad',
+      imageUrl: '',
+      deepLink: '',
+    },
+    {
+      title: 'Synthetic engine oil 5W-30',
+      price: '1,199',
+      mrp: '1,420',
+      rating: '4.7',
+      tag: 'Fast moving',
+      moqLine: 'MOQ 12',
+      summaryLine: 'Delivery in 2 hrs | In stock | Lubex Trade',
+      imageUrl: '',
+      deepLink: '',
+    },
+    {
+      title: 'LED headlight upgrade kit',
+      price: '2,099',
+      mrp: '2,499',
+      rating: '4.6',
+      tag: 'Retail favourite',
+      moqLine: 'MOQ 2',
+      summaryLine: 'Ready to ship | In stock | Lumina Parts',
+      imageUrl: '',
+      deepLink: '',
+    },
+  ];
+
+  return [
+    {
+      id: 'automobile_b2b2c_fixed',
+      type: 'fixed',
+      blockType: 'automobile_b2b2c_fixed',
+      title: 'B2B & B2C Marketplace',
+      enabled: true,
+    },
+    {
+      id: 'automobile_fitment_fixed',
+      type: 'fixed',
+      blockType: 'automobile_fitment_fixed',
+      title: 'Shop by vehicle',
+      enabled: true,
+    },
+    {
+      id: 'automobile_categories',
+      type: 'category_showcase',
+      blockType: 'category_showcase',
+      title: 'Shop by category',
+      actionText: 'View all',
+      showcaseVariant: 'circle',
+      stylePreset: 'automobile',
+      enabled: true,
+      dataSource: {
+        sourceType: 'CATEGORY_FEED',
+        industryId: scopedIndustryId,
+      },
+      items: [],
+    },
+    {
+      id: 'automobile_trending',
+      type: 'horizontalList',
+      blockType: 'tabbed_product_shelf',
+      title: 'Trending this week',
+      actionText: 'View all',
+      stylePreset: 'automobile',
+      enabled: true,
+      items: [],
+      dataSource: {
+        sourceType: 'PRODUCT_FEED',
+        feedMode: 'TRENDING',
+        industryId: scopedIndustryId,
+        tabField: 'mainCategoryName',
+        limit: 8,
+      },
+    },
+    {
+      id: 'automobile_sellers_near_you',
+      type: 'horizontalList',
+      blockType: 'shop_card_carousel',
+      title: 'Sellers near you',
+      actionText: 'View all',
+      actionMode: 'CALL_WHATSAPP',
+      stylePreset: 'automobile',
+      enabled: true,
+      items: [],
+      dataSource: {
+        sourceType: 'SHOP_FEED',
+        industryId: scopedIndustryId,
+        limit: 8,
+      },
+    },
+    {
+      id: 'automobile_recommended',
+      type: 'horizontalList',
+      blockType: 'product_shelf_horizontal',
+      title: 'Recommended for workshops',
+      actionText: 'View all',
+      stylePreset: 'automobile',
+      enabled: true,
+      items: automobileShelfItems.map((item) => ({ ...item })),
+    },
+    {
+      id: 'automobile_top_brands',
+      type: 'horizontalList',
+      blockType: 'brand_logo_grid',
+      title: 'Top brands',
+      stylePreset: 'automobile',
+      enabled: true,
+      items: [
+        { title: 'TorquePro', subtitle: 'Tyres & workshop kits', imageUrl: '', imageShellBg: '#F3F4F6', deepLink: '' },
+        { title: 'RoadMate', subtitle: 'Lighting and touring gear', imageUrl: '', imageShellBg: '#FFF7ED', deepLink: '' },
+        { title: 'VoltEdge', subtitle: 'Batteries and chargers', imageUrl: '', imageShellBg: '#ECFDF5', deepLink: '' },
+      ],
+    },
+    {
+      id: 'automobile_deals',
+      type: 'horizontalList',
+      blockType: 'product_card_carousel',
+      title: 'Deals of the day',
+      actionText: 'View all',
+      stylePreset: 'automobile',
+      enabled: true,
+      items: [
+        { title: 'Brake pad combo', subtitle: 'Bulk slab pricing', price: 'From 899', deepLink: '' },
+        { title: 'Bike care essentials', subtitle: 'Retail counter pack', price: 'From 499', deepLink: '' },
+        { title: 'Wiper + washer bundle', subtitle: 'Fast moving SKU', price: 'From 299', deepLink: '' },
+      ],
+    },
+    {
+      id: 'automobile_promises',
+      type: 'horizontalList',
+      blockType: 'chip_scroll',
+      title: 'Why buy automobile',
+      actionText: 'Explore',
+      stylePreset: 'automobile',
+      enabled: true,
+      items: [
+        { text: 'Same-day dispatch' },
+        { text: 'GST invoice' },
+        { text: 'Bulk quote support' },
+        { text: 'Fitment guidance' },
+      ],
+    },
+    {
+      id: 'automobile_services',
+      type: 'horizontalList',
+      blockType: 'shop_card_carousel',
+      title: 'Services near you',
+      actionText: 'View all',
+      actionMode: 'CALL_WHATSAPP',
+      cardVariant: 'compact',
+      stylePreset: 'automobile',
+      enabled: true,
+      items: [
+        { title: 'Tyre fitment', subtitle: 'SG Highway', rating: '4.8', distance: '2.3 km', imageUrl: '', deepLink: '' },
+        { title: 'Battery service', subtitle: 'Prahlad Nagar', rating: '4.6', distance: '3.1 km', imageUrl: '', deepLink: '' },
+        { title: 'Detailing studio', subtitle: 'Satellite', rating: '4.7', distance: '4.4 km', imageUrl: '', deepLink: '' },
+      ],
+    },
+    {
+      id: 'automobile_bulk_deals',
+      type: 'banner',
+      blockType: 'promo_banner',
+      title: 'Bulk workshop deals',
+      text: 'Tyres, oils and fast-moving SKUs with trade-first pricing.',
+      actionText: 'Request quote',
+      stylePreset: 'automobile',
+      sectionBgColor: '#0F172A',
+      enabled: true,
+      items: [
+        { text: 'Bulk pricing from 25 units' },
+        { text: 'Dedicated account manager' },
+        { text: 'Fast dispatch across city hubs' },
+      ],
+    },
+    {
+      id: 'automobile_recently_viewed',
+      type: 'horizontalList',
+      blockType: 'product_shelf_horizontal',
+      title: 'Recently viewed',
+      actionText: 'View all',
+      stylePreset: 'automobile',
+      enabled: true,
+      items: automobileShelfItems.map((item) => ({ ...item })),
+    },
+  ];
+};
+
 export const screenToolboxItems = [
+  // ── Banners & Heroes ────────────────────────────────────────────────────
+  {
+    key: 'adBanner',
+    label: 'Ad Banner',
+    hint: 'Live ad slot — serves the best matching active business ad based on industry and slot type. Shows nothing if no active ad exists.',
+    section: {
+      id: 'ad_banner',
+      type: 'ad_banner',
+      blockType: 'ad_banner',
+      // slotType controls which ad is fetched: FULL_BANNER | MID_CARD | BOTTOM_STRIP
+      // Use FULL_BANNER near the top, MID_CARD mid-scroll, BOTTOM_STRIP near the bottom.
+      // Only one of each slotType should exist per industry page.
+      slotType: 'FULL_BANNER',
+      enabled: true,
+    },
+  },
   {
     key: 'heroBanner',
-    label: 'Image Hero Banner',
-    hint: 'Simple image banner',
+    label: 'Hero Banner',
+    hint: 'Full-width image banner with tap destination',
     section: {
       id: 'hero_banner',
       type: 'banner',
@@ -1257,9 +4162,9 @@ export const screenToolboxItems = [
     },
   },
   {
-    key: 'phaseOneHeroCarousel',
-    label: 'Hero Carousel Block',
-    hint: 'Full-width campaign banners',
+    key: 'heroCarousel',
+    label: 'Hero Carousel',
+    hint: 'Swipeable full-width campaign slides',
     section: {
       id: 'hero_carousel',
       type: 'carousel',
@@ -1274,7 +4179,7 @@ export const screenToolboxItems = [
   {
     key: 'promoHeroBanner',
     label: 'Promo Hero Banner',
-    hint: 'Image banner with overlay text and CTA',
+    hint: 'Image with overlay title, subtitle, badge and CTA button',
     section: {
       id: 'promo_hero_banner',
       type: 'banner',
@@ -1284,9 +4189,381 @@ export const screenToolboxItems = [
     },
   },
   {
+    key: 'promoBanner',
+    label: 'Promo Text Banner',
+    hint: 'Coloured banner with title, body text and CTA — no image needed',
+    section: {
+      id: 'promo_banner',
+      type: 'banner',
+      blockType: 'promo_banner',
+      title: 'Sale is live',
+      text: 'Up to 40% off on selected items',
+      actionText: 'Shop offers',
+      actionLink: '',
+      stylePreset: '',
+      sectionBgColor: '#fce7f3',
+    },
+  },
+  {
+    key: 'automobileMarketplaceFixed',
+    label: 'Automobile B2B/B2C',
+    hint: 'Hardcoded automobile marketplace section placeholder for CMS ordering',
+    section: {
+      id: 'automobile_b2b2c_fixed',
+      type: 'fixed',
+      blockType: 'automobile_b2b2c_fixed',
+      title: 'B2B & B2C Marketplace',
+      enabled: true,
+    },
+  },
+  {
+    key: 'automobileFitmentFixed',
+    label: 'Automobile Fitment',
+    hint: 'Hardcoded vehicle fitment placeholder for CMS ordering',
+    section: {
+      id: 'automobile_fitment_fixed',
+      type: 'fixed',
+      blockType: 'automobile_fitment_fixed',
+      title: 'Shop by vehicle',
+      enabled: true,
+    },
+  },
+  {
+    key: 'agricultureWeatherFixed',
+    label: 'Agriculture Weather',
+    hint: 'Hardcoded agriculture weather placeholder for CMS ordering',
+    section: {
+      id: 'agriculture_weather_fixed',
+      type: 'fixed',
+      blockType: 'agriculture_weather_fixed',
+      title: 'Weather & forecast',
+      actionText: '7 day view',
+      enabled: true,
+      items: AGRICULTURE_WEATHER_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
+    key: 'agricultureMandiPricesFixed',
+    label: 'Agriculture Mandi Prices',
+    hint: 'Hardcoded mandi prices placeholder for CMS ordering',
+    section: {
+      id: 'agriculture_mandi_prices_fixed',
+      type: 'fixed',
+      blockType: 'agriculture_mandi_prices_fixed',
+      title: 'Live mandi prices',
+      actionText: 'Refresh',
+      enabled: true,
+      items: AGRICULTURE_MANDI_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
+    key: 'sportsLiveMatchesFixed',
+    label: 'Sports Live Matches',
+    hint: 'Hardcoded sports live matches placeholder for CMS ordering',
+    section: {
+      id: 'sports_live_matches_fixed',
+      type: 'fixed',
+      blockType: 'sports_live_matches_fixed',
+      title: 'Live matches',
+      actionText: 'View all',
+      enabled: true,
+      items: SPORTS_LIVE_MATCHES_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
+    key: 'travelFlightDealsFixed',
+    label: 'Travel Flight Deals',
+    hint: 'Hardcoded travel flight deals placeholder for CMS ordering',
+    section: {
+      id: 'travel_flight_deals_fixed',
+      type: 'fixed',
+      blockType: 'travel_flight_deals_fixed',
+      title: 'Flight deals',
+      actionText: 'See all',
+      enabled: true,
+      items: TRAVEL_FLIGHT_DEALS_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
+    key: 'travelBookingsFixed',
+    label: 'Travel Bookings',
+    hint: 'Hardcoded travel bookings placeholder for CMS ordering',
+    section: {
+      id: 'travel_bookings_fixed',
+      type: 'fixed',
+      blockType: 'travel_bookings_fixed',
+      title: 'Your bookings',
+      actionText: 'Manage',
+      enabled: true,
+      items: TRAVEL_BOOKINGS_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
+    key: 'foodExploreExperienceFixed',
+    label: 'Food Explore by Experience',
+    hint: 'Hardcoded explore by experience placeholder for CMS ordering',
+    section: {
+      id: 'food_explore_experience_fixed',
+      type: 'fixed',
+      blockType: 'food_explore_experience_fixed',
+      title: 'Explore by Experience',
+      actionText: 'View all',
+      enabled: true,
+      items: FOOD_VENUES_NEARBY_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
+    key: 'foodAreaGuideFixed',
+    label: 'Food Area Guide',
+    hint: 'Hardcoded area food guide placeholder for CMS ordering',
+    section: {
+      id: 'food_area_guide_fixed',
+      type: 'fixed',
+      blockType: 'food_area_guide_fixed',
+      title: 'Area Food Guide',
+      actionText: 'See all',
+      enabled: true,
+      items: FOOD_AREA_GUIDE_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
+    key: 'foodCityDictionaryFixed',
+    label: 'Food City Dictionary',
+    hint: 'Hardcoded famous foods placeholder for CMS ordering',
+    section: {
+      id: 'food_city_dictionary_fixed',
+      type: 'fixed',
+      blockType: 'food_city_dictionary_fixed',
+      title: 'Famous Foods of the City',
+      actionText: 'Explore',
+      enabled: true,
+      items: FOOD_CITY_DICTIONARY_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
+    key: 'manufacturingStatsFixed',
+    label: 'Manufacturing Stats',
+    hint: 'Hardcoded manufacturing stats placeholder for CMS ordering',
+    section: {
+      id: 'manufacturing_stats_fixed',
+      type: 'fixed',
+      blockType: 'manufacturing_stats_fixed',
+      title: 'Manufacturing stats',
+      actionText: 'View dashboard',
+      enabled: true,
+      items: MANUFACTURING_STATS_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
+    key: 'manufacturingLivePricesFixed',
+    label: 'Manufacturing Live Prices',
+    hint: 'Hardcoded manufacturing live prices placeholder for CMS ordering',
+    section: {
+      id: 'manufacturing_live_prices_fixed',
+      type: 'fixed',
+      blockType: 'manufacturing_live_prices_fixed',
+      title: 'Live industry prices',
+      actionText: 'Refresh',
+      enabled: true,
+      items: MANUFACTURING_LIVE_PRICES_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
+    key: 'manufacturingRecentOrdersFixed',
+    label: 'Manufacturing Recent Orders',
+    hint: 'Hardcoded manufacturing recent orders placeholder for CMS ordering',
+    section: {
+      id: 'manufacturing_recent_orders_fixed',
+      type: 'fixed',
+      blockType: 'manufacturing_recent_orders_fixed',
+      title: 'Recent orders',
+      actionText: 'View all',
+      enabled: true,
+      items: MANUFACTURING_RECENT_ORDERS_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
+    key: 'medicalCategoryGridFixed',
+    label: 'Medical Category Grid',
+    hint: 'Hardcoded medical category grid placeholder for CMS ordering',
+    section: {
+      id: 'medical_category_grid_fixed',
+      type: 'fixed',
+      blockType: 'medical_category_grid_fixed',
+      title: 'Shop medical categories',
+      enabled: true,
+      items: MEDICAL_CATEGORY_GRID_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
+    key: 'medicalNearbyHospitalsFixed',
+    label: 'Medical Nearby Hospitals',
+    hint: 'Hardcoded hospitals near you placeholder for CMS ordering',
+    section: {
+      id: 'medical_nearby_hospitals_fixed',
+      type: 'fixed',
+      blockType: 'medical_nearby_hospitals_fixed',
+      title: 'Hospitals Near You',
+      actionText: 'View all hospitals',
+      enabled: true,
+      items: MEDICAL_NEARBY_HOSPITALS_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
+    key: 'medicalTopDoctorsFixed',
+    label: 'Medical Top Doctors',
+    hint: 'Hardcoded top doctors placeholder for CMS ordering',
+    section: {
+      id: 'medical_top_doctors_fixed',
+      type: 'fixed',
+      blockType: 'medical_top_doctors_fixed',
+      title: 'Consult Top Doctors',
+      actionText: 'Book now',
+      enabled: true,
+      items: MEDICAL_TOP_DOCTORS_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
+    key: 'medicalEmergencyFixed',
+    label: 'Medical Emergency',
+    hint: 'Hardcoded emergency services placeholder for CMS ordering',
+    section: {
+      id: 'medical_emergency_fixed',
+      type: 'fixed',
+      blockType: 'medical_emergency_fixed',
+      title: 'Emergency Services',
+      actionText: 'Call now',
+      enabled: true,
+      items: MEDICAL_EMERGENCY_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
+    key: 'medicalTrustStripFixed',
+    label: 'Medical Trust Strip',
+    hint: 'Hardcoded medical trust strip placeholder for CMS ordering',
+    section: {
+      id: 'medical_trust_strip_fixed',
+      type: 'fixed',
+      blockType: 'medical_trust_strip_fixed',
+      title: 'Why Trust Us',
+      enabled: true,
+      items: MEDICAL_TRUST_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
+    key: 'medicalReminderFixed',
+    label: 'Medical Reminder',
+    hint: 'Hardcoded medical reminder placeholder for CMS ordering',
+    section: {
+      id: 'medical_reminder_fixed',
+      type: 'fixed',
+      blockType: 'medical_reminder_fixed',
+      title: 'Never Miss Your Medicines',
+      actionText: 'Set reminder',
+      enabled: true,
+      items: MEDICAL_REMINDER_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
+    key: 'medicalOffersFixed',
+    label: 'Medical Offers',
+    hint: 'Hardcoded medical offers placeholder for CMS ordering',
+    section: {
+      id: 'medical_offers_fixed',
+      type: 'fixed',
+      blockType: 'medical_offers_fixed',
+      title: 'Offers for You',
+      enabled: true,
+      items: MEDICAL_OFFERS_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
+    key: 'medicalFooterLinksFixed',
+    label: 'Medical Footer Links',
+    hint: 'Hardcoded medical quick links placeholder for CMS ordering',
+    section: {
+      id: 'medical_footer_links_fixed',
+      type: 'fixed',
+      blockType: 'medical_footer_links_fixed',
+      title: 'Quick Links',
+      enabled: true,
+      items: MEDICAL_FOOTER_LINKS_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
+    key: 'fitnessProgressStatsFixed',
+    label: 'Fitness Progress Stats',
+    hint: 'Hardcoded fitness progress stats placeholder for CMS ordering',
+    section: {
+      id: 'fitness_progress_stats_fixed',
+      type: 'fixed',
+      blockType: 'fitness_progress_stats_fixed',
+      title: 'Progress stats',
+      actionText: 'View insights',
+      enabled: true,
+      items: FITNESS_PROGRESS_STATS_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
+    key: 'fitnessClassScheduleFixed',
+    label: 'Fitness Class Schedule',
+    hint: 'Hardcoded fitness class schedule placeholder for CMS ordering',
+    section: {
+      id: 'fitness_class_schedule_fixed',
+      type: 'fixed',
+      blockType: 'fitness_class_schedule_fixed',
+      title: 'Class schedule',
+      actionText: 'Full schedule',
+      enabled: true,
+      items: FITNESS_CLASS_SCHEDULE_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
+    key: 'fitnessMembershipsFixed',
+    label: 'Fitness Memberships',
+    hint: 'Hardcoded fitness memberships placeholder for CMS ordering',
+    section: {
+      id: 'fitness_memberships_fixed',
+      type: 'fixed',
+      blockType: 'fitness_memberships_fixed',
+      title: 'Memberships',
+      actionText: 'Compare',
+      enabled: true,
+      items: FITNESS_MEMBERSHIPS_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
+    key: 'servicesBookingSlotsFixed',
+    label: 'Services Booking Slots',
+    hint: 'Hardcoded services booking slots placeholder for CMS ordering',
+    section: {
+      id: 'services_booking_slots_fixed',
+      type: 'fixed',
+      blockType: 'services_booking_slots_fixed',
+      title: 'Booking slots',
+      actionText: 'Schedule',
+      enabled: true,
+      items: SERVICES_BOOKING_SLOTS_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
+    key: 'jewelleryGoldRatesFixed',
+    label: 'Jewellery Gold Rates',
+    hint: 'Hardcoded jewellery gold rates placeholder for CMS ordering',
+    section: {
+      id: 'jewellery_gold_rates_fixed',
+      type: 'fixed',
+      blockType: 'jewellery_gold_rates_fixed',
+      title: 'Gold rates today',
+      actionText: 'Refresh',
+      enabled: true,
+      items: JEWELLERY_GOLD_RATES_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
     key: 'splitPromoRow',
     label: 'Split Promo Row',
-    hint: 'Two promo cards in a side-by-side row',
+    hint: 'Two side-by-side promo cards in one row',
     section: {
       id: 'split_promo_row',
       type: 'split_promo_row',
@@ -1296,9 +4573,83 @@ export const screenToolboxItems = [
     },
   },
   {
-    key: 'phaseOneHorizontalScrollList',
-    label: 'Featured Cards Block',
-    hint: 'Festive cards with badge + subtitle',
+    key: 'campaignBento',
+    label: 'Campaign Bento',
+    hint: 'Header image + hero banner + 4 quick-link tiles',
+    section: {
+      id: 'campaign_bento',
+      type: 'campaignBento',
+      blockType: 'campaignBento',
+      title: 'Skin-safe herbal gulal',
+      sectionBgColor: '',
+      stylePreset: '',
+      headerImage: '',
+      hero: { imageUrl: '', deepLink: '', label: '' },
+      tiles: Array.from({ length: 4 }, () => ({ imageUrl: '', deepLink: '', label: '' })),
+    },
+  },
+
+  // ── Product Blocks ───────────────────────────────────────────────────────
+  {
+    key: 'productCardCarousel',
+    label: 'Product Cards',
+    hint: 'Horizontal scrollable product cards — supports live feed or manual items',
+    section: {
+      id: 'product_card_carousel',
+      type: 'horizontalList',
+      blockType: 'product_card_carousel',
+      title: 'Hot deals',
+      actionText: 'View all',
+      stylePreset: 'electronics',
+      items: ELECTRONICS_DEAL_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
+    key: 'tabbedProductShelf',
+    label: 'Tabbed Product Shelf',
+    hint: 'Product cards grouped into tabs (e.g. Men / Women / Kids) — supports live feed',
+    section: {
+      id: 'tabbed_product_shelf',
+      blockType: 'tabbed_product_shelf',
+      title: 'Trending This Week',
+      enabled: true,
+      items: [],
+      dataSource: { sourceType: 'MANUAL' },
+    },
+  },
+  {
+    key: 'productShelf',
+    label: 'Product Shelf',
+    hint: 'Horizontal product list showing price and Add-to-cart button',
+    section: {
+      id: 'product_shelf_horizontal',
+      type: 'horizontalList',
+      blockType: 'product_shelf_horizontal',
+      title: 'Lowest prices ever',
+      itemsPath: '$.products',
+      dataSourceRef: 'home_top_selling_products',
+    },
+  },
+  {
+    key: 'productGrid',
+    label: 'Product Grid',
+    hint: '3-column live product grid — pulls from a feed endpoint',
+    section: {
+      id: 'multi_item_grid',
+      type: 'grid',
+      blockType: 'multiItemGrid',
+      title: 'Frequently bought',
+      productFeedMode: 'FREQUENTLY_BOUGHT',
+      dataSourceRef: 'home_frequently_bought_products',
+      itemsPath: '$.products',
+      columns: 3,
+      productLimit: 9,
+    },
+  },
+  {
+    key: 'featuredCards',
+    label: 'Featured Cards',
+    hint: 'Horizontal cards with badge and subtitle — great for festive highlights',
     section: {
       id: 'featured_cards',
       type: 'horizontalList',
@@ -1311,39 +4662,61 @@ export const screenToolboxItems = [
       ],
     },
   },
+
+  // ── Category & Brand ─────────────────────────────────────────────────────
   {
-    key: 'productCardCarousel',
-    label: 'Product Card Carousel',
-    hint: 'Reusable product cards with preset styling and optional feed mode',
+    key: 'categoryIconGrid',
+    label: 'Category Icon Grid',
+    hint: '4-column category icons — auto-fetched from industry',
     section: {
-      id: 'product_card_carousel',
-      type: 'horizontalList',
-      blockType: 'product_card_carousel',
-      title: 'Hot deals',
+      id: 'category_icon_grid',
+      type: 'grid',
+      blockType: 'category_icon_grid',
+      title: '',
+      dataSource: {
+        sourceType: 'CATEGORY_FEED',
+        mode: 'MAIN_CATEGORY',
+        limit: 8,
+      },
+      items: [],
+    },
+  },
+  {
+    key: 'categoryShowcase',
+    label: 'Category Showcase',
+    hint: 'Circular or square category bubbles — auto-fetched from industry',
+    section: {
+      id: 'category_showcase',
+      type: 'category_showcase',
+      blockType: 'category_showcase',
+      title: '',
       actionText: 'View all',
-      stylePreset: 'electronics',
-      items: ELECTRONICS_DEAL_SAMPLE.map((item) => ({ ...item })),
+      actionLink: '',
+      showcaseVariant: 'circle',
+      dataSource: { sourceType: 'CATEGORY_FEED', mode: 'MAIN_CATEGORY', limit: 8 },
+      sduiItems: [],
     },
   },
   {
-    key: 'phaseOneProductShelfHorizontal',
-    label: 'Product Shelf Block',
-    hint: 'Horizontal product list with price + ADD',
+    key: 'categoryPreviewGrid',
+    label: 'Category Preview Grid',
+    hint: 'Large 2-column category cards with image preview',
     section: {
-      id: 'product_shelf_horizontal',
-      type: 'horizontalList',
-      blockType: 'product_shelf_horizontal',
-      title: 'Lowest prices ever',
-      itemsPath: '$.products',
-      dataSourceRef: 'home_top_selling_products',
+      id: 'category_preview_grid',
+      type: 'grid',
+      blockType: 'categoryPreviewGrid',
+      title: 'Frequently bought',
+      collectionIds: [],
+      itemsPath: '$.categories',
+      columns: 2,
     },
   },
   {
-    key: 'phaseOneColumnGrid',
-    label: 'Festive Column Grid',
-    hint: '3-column cards with dual images',
+    key: 'columnGrid',
+    label: 'Column Grid',
+    hint: '3-column cards with dual images — supports category feed or manual items',
     section: {
-      id: 'festive_column_grid',
+      id: 'column_grid',
       type: 'grid',
       blockType: 'column_grid',
       title: 'Festive finds',
@@ -1356,10 +4729,7 @@ export const screenToolboxItems = [
         limit: 8,
         rankingWindowDays: 30,
         sortBy: 'MANUAL_RANK',
-        filters: {
-          activeOnly: true,
-          hasImageOnly: true,
-        },
+        filters: { activeOnly: true, hasImageOnly: true },
       },
       mapping: {
         titleField: 'name',
@@ -1375,45 +4745,49 @@ export const screenToolboxItems = [
     },
   },
   {
-    key: 'phaseOneCategoryIconGrid',
-    label: 'Category Icon Grid',
-    hint: '4-column category blocks',
+    key: 'brandShowcase',
+    label: 'Brand Showcase',
+    hint: 'Automobile-style horizontal brand cards with optional live industry feed',
     section: {
-      id: 'category_icon_grid',
-      type: 'grid',
-      blockType: 'category_icon_grid',
-      title: '',
+      id: 'brand_showcase',
+      type: 'horizontalList',
+      blockType: 'brand_logo_grid',
+      title: 'Top Brands',
+      stylePreset: 'automobile',
+      enabled: true,
       dataSource: {
-        sourceType: 'CATEGORY_FEED',
-        mode: 'MAIN_CATEGORY',
+        sourceType: 'BRAND_FEED',
         limit: 8,
       },
-      items: [],
+      items: [
+        { title: 'Brand Name', subtitle: 'Industry brand', imageUrl: '', imageShellBg: '#F3F4F6', deepLink: '' },
+        { title: 'Brand Name', subtitle: 'Industry brand', imageUrl: '', imageShellBg: '#FFF3E0', deepLink: '' },
+        { title: 'Brand Name', subtitle: 'Industry brand', imageUrl: '', imageShellBg: '#E8F5E9', deepLink: '' },
+      ],
     },
   },
   {
-    key: 'phaseOneBrandLogoGrid',
-    label: 'Brand Layout Block',
-    hint: 'Hero + 4 tiles + CTA strip',
+    key: 'brandLogoCarousel',
+    label: 'Brand Logo Carousel',
+    hint: 'Horizontal scrolling brand cards with logo + name + tagline (Automobile style)',
     section: {
-      id: 'brand_layout_grid',
-      type: 'grid',
+      id: 'brand_logo_carousel',
+      type: 'horizontalList',
       blockType: 'brand_logo_grid',
-      title: '',
+      title: 'Top Brands',
+      stylePreset: 'automobile',
+      enabled: true,
       items: [
-        { kind: 'hero', title: 'Hero', imageUrl: '', deepLink: '' },
-        { kind: 'tile', title: 'Beverage Corner', imageUrl: '', deepLink: '' },
-        { kind: 'tile', title: 'Snacks & Munchies', imageUrl: '', deepLink: '' },
-        { kind: 'tile', title: 'Toofani Party Zone', imageUrl: '', deepLink: '' },
-        { kind: 'tile', title: 'Sweet Delights', imageUrl: '', deepLink: '' },
-        { kind: 'cta', title: 'CTA', imageUrl: '', deepLink: '' },
+        { title: 'Brand Name', subtitle: 'Tagline here', imageUrl: '', imageShellBg: '#F3F4F6', deepLink: '' },
+        { title: 'Brand Name', subtitle: 'Tagline here', imageUrl: '', imageShellBg: '#FFF3E0', deepLink: '' },
+        { title: 'Brand Name', subtitle: 'Tagline here', imageUrl: '', imageShellBg: '#E8F5E9', deepLink: '' },
       ],
     },
   },
   {
     key: 'mediaOverlayCarousel',
-    label: 'Media Overlay Carousel',
-    hint: 'Horizontal image cards with text overlay',
+    label: 'Media Overlay Cards',
+    hint: 'Horizontal image cards with title/subtitle text overlay',
     section: {
       id: 'media_overlay_carousel',
       type: 'horizontalList',
@@ -1424,93 +4798,54 @@ export const screenToolboxItems = [
       items: ELECTRONICS_MEDIA_OVERLAY_SAMPLE.map((item) => ({ ...item })),
     },
   },
+
+  // ── Business / Shops ─────────────────────────────────────────────────────
   {
-    key: 'sectionTitle',
-    label: 'Section Title Block',
-    hint: 'Standalone heading',
-    section: { id: 'section_title', type: 'title', blockType: 'sectionTitle', text: 'Frequently bought' },
-  },
-  {
-    key: 'multiItemGrid',
-    label: 'Product Grid Block',
-    hint: 'Live product grid with smart filters',
+    key: 'shopsNearYou',
+    label: 'Shops Near You',
+    hint: 'Detailed shop cards with chips and 3 action buttons — fetches live by location',
     section: {
-      id: 'multi_item_grid',
-      type: 'grid',
-      blockType: 'multiItemGrid',
-      title: 'Frequently bought',
-      productFeedMode: 'FREQUENTLY_BOUGHT',
-      dataSourceRef: 'home_frequently_bought_products',
-      itemsPath: '$.products',
-      columns: 3,
-      productLimit: 9,
+      id: 'shop_card_carousel',
+      blockType: 'shop_card_carousel',
+      title: 'Shops Near You',
+      enabled: true,
+      dataSource: { sourceType: 'SHOP_FEED' },
+    },
+  },
+
+  // ── Actions & Navigation ─────────────────────────────────────────────────
+  {
+    key: 'quickActions',
+    label: 'Quick Actions',
+    hint: 'Row of shortcut action cards (e.g. New Order, My Cart)',
+    section: {
+      id: 'quick_actions',
+      type: 'horizontalList',
+      blockType: 'quick_action_row',
+      title: 'Quick actions',
+      actionText: 'Manage',
+      quickActionPreset: 'electronics',
+      items: ELECTRONICS_QUICK_ACTIONS_SAMPLE,
     },
   },
   {
-    key: 'categoryPreviewGrid',
-    label: 'Category Preview Grid',
-    hint: 'Blinkit-style category cards',
+    key: 'fashionQuickActions',
+    label: 'Quick Actions (Fashion)',
+    hint: 'Quick action cards in warm brown fashion palette',
     section: {
-      id: 'category_preview_grid',
-      type: 'grid',
-      blockType: 'categoryPreviewGrid',
-      title: 'Frequently bought',
-      collectionIds: [],
-      itemsPath: '$.categories',
-      columns: 2,
-    },
-  },
-  {
-    key: 'campaignBento',
-    label: 'Campaign Bento Block',
-    hint: 'Top banner + 4 quick-link cards + feature banner',
-    section: {
-      id: 'campaign_bento',
-      type: 'campaignBento',
-      blockType: 'campaignBento',
-      title: 'Skin-safe herbal gulal',
-      sectionBgColor: '',
-      stylePreset: '',
-      headerImage: '',
-      hero: { imageUrl: '', deepLink: '', label: '' },
-      tiles: Array.from({ length: 4 }, () => ({ imageUrl: '', deepLink: '', label: '' })),
-    },
-  },
-  {
-    key: 'infoList',
-    label: 'Info List',
-    hint: 'Stacked rows with icon, text, and optional trailing value',
-    section: {
-      id: 'info_list',
-      type: 'list',
-      blockType: 'info_list',
-      title: 'New launches',
-      actionText: 'See all',
-      stylePreset: 'launch_rows',
-      items: ELECTRONICS_LAUNCH_SAMPLE.map((item) => ({ ...item })),
-    },
-  },
-  {
-    key: 'iconList',
-    label: 'Icon List Block',
-    hint: 'Vertical list with icon + title + subtitle',
-    section: {
-      id: 'icon_list',
-      type: 'list',
-      blockType: 'icon_list',
-      title: 'Build your routine',
-      actionText: 'See all',
-      actionLink: '',
-      sduiItems: [
-        { iconUrl: '', title: 'Step 1', subtitle: 'Description', deepLink: '' },
-        { iconUrl: '', title: 'Step 2', subtitle: 'Description', deepLink: '' },
-      ],
+      id: 'fashion_quick_actions',
+      type: 'horizontalList',
+      blockType: 'quick_action_row',
+      title: 'Offers',
+      actionText: 'View all',
+      quickActionPreset: 'fashion',
+      items: FASHION_QUICK_ACTIONS_SAMPLE,
     },
   },
   {
     key: 'chipScroll',
-    label: 'Chip Scroll Block',
-    hint: 'Horizontal scrolling text pills',
+    label: 'Chip Scroll',
+    hint: 'Horizontal scrolling pill tags — great for tips, filters or topic links',
     section: {
       id: 'chip_scroll',
       type: 'horizontalList',
@@ -1525,101 +4860,44 @@ export const screenToolboxItems = [
       ],
     },
   },
+
+  // ── Content & Layout ─────────────────────────────────────────────────────
   {
-    key: 'promoBanner',
-    label: 'Promo Banner',
-    hint: 'Reusable text card banner with preset styling',
+    key: 'infoList',
+    label: 'Info List',
+    hint: 'Stacked rows with icon, title, subtitle and optional price or value',
     section: {
-      id: 'promo_banner',
-      type: 'banner',
-      blockType: 'promo_banner',
-      title: 'Sale is live',
-      text: 'Up to 40% off on selected items',
-      actionText: 'Shop offers',
+      id: 'info_list',
+      type: 'list',
+      blockType: 'info_list',
+      title: 'New launches',
+      actionText: 'See all',
+      stylePreset: 'launch_rows',
+      items: ELECTRONICS_LAUNCH_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
+    key: 'iconList',
+    label: 'Icon List',
+    hint: 'Vertical list rows with icon, title and subtitle',
+    section: {
+      id: 'icon_list',
+      type: 'list',
+      blockType: 'icon_list',
+      title: 'Build your routine',
+      actionText: 'See all',
       actionLink: '',
-      stylePreset: '',
-      sectionBgColor: '#fce7f3',
+      sduiItems: [
+        { iconUrl: '', title: 'Step 1', subtitle: 'Description', deepLink: '' },
+        { iconUrl: '', title: 'Step 2', subtitle: 'Description', deepLink: '' },
+      ],
     },
   },
   {
-    key: 'quickActionRow',
-    label: 'Quick Action Row',
-    hint: 'Reusable quick action cards with preset styling',
-    section: {
-      id: 'quick_actions',
-      type: 'horizontalList',
-      blockType: 'quick_action_row',
-      title: 'Quick actions',
-      actionText: 'Manage',
-      quickActionPreset: 'electronics',
-      items: ELECTRONICS_QUICK_ACTIONS_SAMPLE,
-    },
-  },
-  {
-    key: 'fashionQuickActionRow',
-    label: 'Fashion Quick Action Row',
-    hint: 'Quick action cards styled for fashion (warm brown palette)',
-    section: {
-      id: 'fashion_quick_actions',
-      type: 'horizontalList',
-      blockType: 'quick_action_row',
-      title: 'Offers',
-      actionText: 'View all',
-      quickActionPreset: 'fashion',
-      items: FASHION_QUICK_ACTIONS_SAMPLE,
-    },
-  },
-  {
-    key: 'beautySalonCarousel',
-    label: 'Place Card Carousel',
-    hint: 'Horizontal nearby place/store cards',
-    section: {
-      id: 'beauty_salons',
-      type: 'horizontalList',
-      blockType: 'beauty_salon_carousel',
-      title: 'Nearby places',
-      actionText: 'View all',
-      items: BEAUTY_SALON_SAMPLE,
-    },
-  },
-  {
-    key: 'tabbedProductShelf',
-    label: 'Tabbed Product Shelf',
-    hint: 'Horizontal product cards with tab filters (e.g. Men / Women / Girls)',
-    section: {
-      id: 'tabbed_product_shelf',
-      blockType: 'tabbed_product_shelf',
-      title: 'Trending This Week',
-      enabled: true,
-      items: [],
-    },
-  },
-  {
-    key: 'shopsNearYou',
-    label: 'Shops Near You',
-    hint: 'Location-based nearby shop cards with Call / WhatsApp / View actions',
-    section: {
-      id: 'shops_near_you',
-      blockType: 'shops_near_you',
-      title: 'Shops Near You',
-      enabled: true,
-    },
-  },
-  {
-    key: 'categoryShowcase',
-    label: 'Category Showcase',
-    hint: 'Auto-fetch categories by industry',
-    section: {
-      id: 'category_showcase',
-      type: 'category_showcase',
-      blockType: 'category_showcase',
-      title: '',
-      actionText: 'View all',
-      actionLink: '',
-      showcaseVariant: 'circle',
-      dataSource: { sourceType: 'CATEGORY_FEED', mode: 'MAIN_CATEGORY', limit: 8 },
-      sduiItems: [],
-    },
+    key: 'sectionTitle',
+    label: 'Section Title',
+    hint: 'Standalone heading text between sections',
+    section: { id: 'section_title', type: 'title', blockType: 'sectionTitle', text: 'Frequently bought' },
   },
 ];
 
@@ -1637,7 +4915,7 @@ export const blockLabels = {
   quick_action_row: 'Quick Action Row',
   column_grid: 'Festive Column Grid',
   category_icon_grid: 'Category Icon Grid',
-  brand_logo_grid: 'Brand Layout Block',
+  brand_logo_grid: 'Brand Showcase',
   media_overlay_carousel: 'Media Overlay Carousel',
   product_card_carousel: 'Product Card Carousel',
   deal_card_carousel: 'Product Card Carousel',
@@ -1653,6 +4931,32 @@ export const blockLabels = {
   beauty_tip_chips: 'Beauty Tip Chips',
   beauty_salon_carousel: 'Place Card Carousel',
   bestseller_shelf: 'Bestsellers Shelf Block',
+  automobile_b2b2c_fixed: 'Automobile B2B/B2C Section',
+  automobile_fitment_fixed: 'Automobile Fitment Section',
+  medical_category_grid_fixed: 'Medical Category Grid Section',
+  medical_nearby_hospitals_fixed: 'Medical Nearby Hospitals Section',
+  medical_top_doctors_fixed: 'Medical Top Doctors Section',
+  medical_emergency_fixed: 'Medical Emergency Services Section',
+  medical_trust_strip_fixed: 'Medical Trust Strip Section',
+  medical_reminder_fixed: 'Medical Reminder Section',
+  medical_offers_fixed: 'Medical Offers Section',
+  medical_footer_links_fixed: 'Medical Footer Links Section',
+  agriculture_weather_fixed: 'Agriculture Weather Section',
+  agriculture_mandi_prices_fixed: 'Agriculture Mandi Prices Section',
+  food_explore_experience_fixed: 'Food Explore by Experience Section',
+  food_area_guide_fixed: 'Food Area Guide Section',
+  food_city_dictionary_fixed: 'Food City Dictionary Section',
+  manufacturing_stats_fixed: 'Manufacturing Stats Section',
+  manufacturing_live_prices_fixed: 'Manufacturing Live Prices Section',
+  manufacturing_recent_orders_fixed: 'Manufacturing Recent Orders Section',
+  sports_live_matches_fixed: 'Sports Live Matches Section',
+  travel_flight_deals_fixed: 'Travel Flight Deals Section',
+  travel_bookings_fixed: 'Travel Bookings Section',
+  fitness_progress_stats_fixed: 'Fitness Progress Stats Section',
+  fitness_class_schedule_fixed: 'Fitness Class Schedule Section',
+  fitness_memberships_fixed: 'Fitness Memberships Section',
+  services_booking_slots_fixed: 'Services Booking Slots Section',
+  jewellery_gold_rates_fixed: 'Jewellery Gold Rates Section',
   sectionTitle: 'Section Title Block',
   multiItemGrid: 'Product Grid Block',
   categoryPreviewGrid: 'Category Preview Grid',
@@ -1662,6 +4966,7 @@ export const blockLabels = {
   category_showcase: 'Category Showcase Block',
   tabbed_product_shelf: 'Tabbed Product Shelf',
   shops_near_you: 'Shops Near You',
+  shop_card_carousel: 'Shop Card Carousel',
 };
 
 export const resolveBlockLabel = (blockType, fallback) =>
@@ -1678,6 +4983,9 @@ const LEGACY_BLOCK_TYPE_ALIASES = {
   beauty_routine_list: 'info_list',
   beauty_tip_chips: 'chip_scroll',
   bestseller_shelf: 'product_shelf_horizontal',
+  shops_near_you: 'shop_card_carousel',
+  shop_carousel: 'shop_card_carousel',
+  shopsnearby: 'shop_card_carousel',
 };
 
 export const resolveLegacyBlockTypeAlias = (value) => {
@@ -1882,6 +5190,7 @@ export const phaseOneBlockTypes = new Set([
   'beauty_tip_chips',
   'beauty_salon_carousel',
   'tabbed_product_shelf',
+  'shop_card_carousel',
 ]);
 
 export const getPhaseOneDefaultItem = (blockType, index = 0) => {
@@ -2050,6 +5359,15 @@ export const getPhaseOneDefaultItem = (blockType, index = 0) => {
       tab: '',
       imageUrl: '',
       price: '',
+      deepLink: '',
+    };
+  }
+  if (resolvedBlockType === 'shop_card_carousel') {
+    return {
+      title: '',
+      imageUrl: '',
+      rating: '',
+      distance: '',
       deepLink: '',
     };
   }
@@ -2234,6 +5552,26 @@ export const normalizePhaseOneItems = (items, blockType) => {
         deepLink: item?.deepLink || item?.targetUrl || '',
       };
     }
+    if (resolvedBlockType === 'shop_card_carousel') {
+      return {
+        ...base,
+        title: item?.title || item?.name || item?.businessName || item?.label || '',
+        imageUrl: item?.imageUrl || item?.imageUri || item?.logo || item?.thumbnailImage || '',
+        rating: item?.rating !== undefined && item?.rating !== null ? String(item.rating) : '',
+        distance: item?.distance || item?.distanceLabel || '',
+        deepLink: item?.deepLink || item?.targetUrl || '',
+      };
+    }
+    if (resolvedBlockType === 'tabbed_product_shelf') {
+      return {
+        ...base,
+        title: item?.title || item?.name || item?.productName || item?.label || '',
+        tab: item?.tab || '',
+        imageUrl: item?.imageUrl || item?.imageUri || item?.thumbnailImage || '',
+        price: item?.price !== undefined && item?.price !== null ? String(item.price) : '',
+        deepLink: item?.deepLink || item?.targetUrl || '',
+      };
+    }
     if (resolvedBlockType === 'icon_list') {
       return {
         ...base,
@@ -2388,6 +5726,7 @@ export const resolveDefaultCategoryFeedMode = (blockType, value = '') => {
 };
 export const SOURCE_TYPE_OPTIONS = [
   { value: 'MANUAL', label: 'Manual' },
+  { value: 'BRAND_FEED', label: 'Brand feed' },
   { value: 'DATA_SOURCE', label: 'Data source feed' },
   { value: 'HYBRID', label: 'Hybrid (manual + feed)' },
   { value: 'CATEGORY_FEED', label: 'Category feed' },
@@ -2396,6 +5735,30 @@ export const BENTO_TILE_SOURCE_OPTIONS = [
   { value: 'MANUAL', label: 'Manual cards' },
   { value: 'CATEGORY_FEED', label: 'Category feed' },
   { value: 'COLLECTION_FEED', label: 'Collection feed' },
+];
+export const TABBED_SHELF_SOURCE_OPTIONS = [
+  { value: 'MANUAL', label: 'Manual (CMS items)' },
+  { value: 'PRODUCT_FEED', label: 'Product Feed (live data)' },
+];
+export const SHOP_BLOCK_SOURCE_OPTIONS = [
+  { value: 'SHOP_FEED', label: 'Shop Feed (nearby shops, auto)' },
+  { value: 'MANUAL', label: 'Manual (CMS items only)' },
+];
+export const PRODUCT_FEED_MODE_OPTIONS = [
+  { value: 'BESTSELLER', label: 'Bestsellers' },
+  { value: 'TRENDING', label: 'Trending' },
+  { value: 'RECOMMENDED', label: 'Recommended' },
+  { value: 'FREQUENTLY_BOUGHT', label: 'Frequently Bought' },
+  { value: 'TOP_SELLING', label: 'Top Selling' },
+  { value: 'MOST_RATED', label: 'Most Rated' },
+  { value: 'LOWEST_PRICE', label: 'Lowest Price' },
+  { value: 'TODAY_DEAL', label: "Today's Deals" },
+];
+export const TAB_FIELD_OPTIONS = [
+  { value: 'mainCategoryName', label: 'Main Category Name' },
+  { value: 'mainCategoryId', label: 'Main Category ID' },
+  { value: 'tags', label: 'First Tag' },
+  { value: 'tab', label: 'Manual tab label (CMS field)' },
 ];
 
 export const STYLE_PRESET_OPTIONS = {
@@ -2410,7 +5773,19 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'electronics', label: 'Electronics' },
     { value: 'beauty', label: 'Beauty' },
     { value: 'grocery', label: 'Grocery' },
+    { value: 'food', label: 'Food' },
     { value: 'fashion', label: 'Fashion' },
+    { value: 'medical', label: 'Medical' },
+    { value: 'agriculture', label: 'Agriculture' },
+    { value: 'manufacturing', label: 'Manufacturing' },
+    { value: 'automobile', label: 'Automobile' },
+    { value: 'jewellery', label: 'Jewellery' },
+    { value: 'decor', label: 'Decor' },
+    { value: 'kids', label: 'Kids' },
+    { value: 'sports', label: 'Sports' },
+    { value: 'travel', label: 'Travel' },
+    { value: 'fitness', label: 'Fitness' },
+    { value: 'services', label: 'Services' },
   ],
   split_promo_row: [
     { value: 'grocery', label: 'Grocery' },
@@ -2419,18 +5794,40 @@ export const STYLE_PRESET_OPTIONS = {
     { value: '', label: 'Default' },
     { value: 'electronics', label: 'Electronics' },
     { value: 'grocery', label: 'Grocery' },
+    { value: 'food', label: 'Food' },
     { value: 'fashion', label: 'Fashion' },
+    { value: 'agriculture', label: 'Agriculture' },
+    { value: 'manufacturing', label: 'Manufacturing' },
+    { value: 'automobile', label: 'Automobile' },
+    { value: 'jewellery', label: 'Jewellery' },
+    { value: 'decor', label: 'Decor' },
+    { value: 'kids', label: 'Kids' },
+    { value: 'sports', label: 'Sports' },
+    { value: 'travel', label: 'Travel' },
+    { value: 'fitness', label: 'Fitness' },
+    { value: 'services', label: 'Services' },
   ],
   media_overlay_carousel: [
     { value: 'electronics', label: 'Electronics' },
     { value: 'beauty', label: 'Beauty' },
     { value: 'grocery', label: 'Grocery' },
+    { value: 'medical', label: 'Medical' },
+    { value: 'agriculture', label: 'Agriculture' },
+    { value: 'jewellery', label: 'Jewellery' },
+    { value: 'decor', label: 'Decor' },
+    { value: 'kids', label: 'Kids' },
+    { value: 'sports', label: 'Sports' },
+    { value: 'travel', label: 'Travel' },
+    { value: 'fitness', label: 'Fitness' },
+    { value: 'services', label: 'Services' },
   ],
   product_card_carousel: [
     { value: 'electronics', label: 'Electronics' },
     { value: 'beauty', label: 'Beauty' },
     { value: 'grocery', label: 'Grocery' },
+    { value: 'food', label: 'Food' },
     { value: 'fashion', label: 'Fashion' },
+    { value: 'automobile', label: 'Automobile (text-only deal cards)' },
   ],
   beauty_salon_carousel: [
     { value: 'beauty', label: 'Beauty' },
@@ -2442,33 +5839,71 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'support_rows', label: 'Support rows' },
     { value: 'beauty_routine', label: 'Beauty routine' },
     { value: 'fashion', label: 'Fashion' },
+    { value: 'manufacturing', label: 'Manufacturing' },
+    { value: 'jewellery', label: 'Jewellery' },
+    { value: 'kids', label: 'Kids' },
+    { value: 'sports', label: 'Sports' },
+    { value: 'travel', label: 'Travel' },
+    { value: 'services', label: 'Services' },
   ],
   chip_scroll: [
     { value: '', label: 'Default' },
     { value: 'beauty', label: 'Beauty' },
     { value: 'grocery', label: 'Grocery' },
+    { value: 'food', label: 'Food' },
     { value: 'fashion', label: 'Fashion' },
+    { value: 'automobile', label: 'Automobile' },
+    { value: 'travel', label: 'Travel' },
   ],
   tabbed_product_shelf: [
     { value: '', label: 'Default' },
     { value: 'fashion', label: 'Fashion' },
+    { value: 'automobile', label: 'Automobile (icon cards + Retail/Wholesale tabs)' },
+  ],
+  shop_card_carousel: [
+    { value: '', label: 'Default (full card)' },
+    { value: 'beauty', label: 'Beauty (compact card)' },
+    { value: 'grocery', label: 'Grocery (compact card)' },
+    { value: 'food', label: 'Food (full card)' },
+    { value: 'fashion', label: 'Fashion (full card)' },
+    { value: 'agriculture', label: 'Agriculture (full card)' },
+    { value: 'manufacturing', label: 'Manufacturing (full card)' },
+    { value: 'electronics', label: 'Electronics (full card)' },
+    { value: 'automobile', label: 'Automobile (full card)' },
+    { value: 'sports', label: 'Sports (full card)' },
   ],
   category_icon_grid: [
     { value: '', label: 'Default' },
     { value: 'fashion', label: 'Fashion' },
   ],
   brand_logo_grid: [
-    { value: '', label: 'Default (Blue)' },
+    { value: '', label: 'Default (Blue grid)' },
     { value: 'fashion', label: 'Fashion' },
+    { value: 'automobile', label: 'Automobile (horizontal carousel)' },
+    { value: 'kids', label: 'Kids' },
   ],
   product_shelf_horizontal: [
     { value: '', label: 'Default' },
+    { value: 'food', label: 'Food' },
     { value: 'fashion', label: 'Fashion' },
+    { value: 'medical', label: 'Medical' },
+    { value: 'agriculture', label: 'Agriculture' },
+    { value: 'automobile', label: 'Automobile' },
+    { value: 'jewellery', label: 'Jewellery' },
+    { value: 'decor', label: 'Decor' },
+    { value: 'kids', label: 'Kids' },
+    { value: 'sports', label: 'Sports' },
+    { value: 'travel', label: 'Travel' },
+    { value: 'fitness', label: 'Fitness' },
+    { value: 'services', label: 'Services' },
   ],
   promo_banner: [
     { value: '', label: 'Default' },
     { value: 'beauty', label: 'Beauty' },
     { value: 'grocery', label: 'Grocery' },
+    { value: 'manufacturing', label: 'Manufacturing' },
+    { value: 'automobile', label: 'Automobile (dark gradient + bullets)' },
+    { value: 'decor', label: 'Decor' },
   ],
 };
 
@@ -2483,6 +5918,11 @@ export const PRODUCT_CARD_VARIANT_OPTIONS = [
   { value: 'grocery_fresh', label: 'Grocery fresh cards' },
   { value: 'grocery_pantry', label: 'Grocery pantry cards' },
   { value: 'grocery_compact', label: 'Grocery compact cards' },
+];
+
+export const MEDIA_OVERLAY_VARIANT_OPTIONS = [
+  { value: '', label: 'Default carousel' },
+  { value: 'stacked', label: 'Stacked cards' },
 ];
 
 export const SHOWCASE_VARIANT_OPTIONS = [
@@ -2596,6 +6036,7 @@ export const fallbackHeaderTabs = [
   { id: 'electronics', label: 'Electronics', route: '/home/electronics' },
   { id: 'beauty', label: 'Beauty', route: '/home/beauty' },
   { id: 'grocery', label: 'Grocery', route: '/home/grocery' },
+  { id: 'food', label: 'Food', route: '/home/food' },
   { id: 'fashion', label: 'Fashion', route: '/home/fashion' },
   { id: 'agriculture', label: 'Agriculture', route: '/home/agriculture' },
 ];
@@ -2623,6 +6064,14 @@ export const fallbackIndustryPresets = [
     label: 'Grocery',
   },
   {
+    id: 'home_food',
+    route: '/home/food',
+    dataSourceRef: 'home.food',
+    dataSourceUrl: '/api/home?category=food',
+    label: 'Food',
+    sections: buildFoodDefaultSections(),
+  },
+  {
     id: 'home_fashion',
     route: '/home/fashion',
     dataSourceRef: 'home.fashion',
@@ -2635,6 +6084,13 @@ export const fallbackIndustryPresets = [
     dataSourceRef: 'home.agriculture',
     dataSourceUrl: '/api/home?category=agriculture',
     label: 'Agriculture',
+  },
+  {
+    id: 'home_health',
+    route: '/home/health',
+    dataSourceRef: 'home.health',
+    dataSourceUrl: '/api/home?category=health',
+    label: 'Health',
   },
 ];
 
@@ -2674,14 +6130,40 @@ export const resolveIndustryRoute = (industry, slug) => {
 };
 
 export const buildIndustryDefaultSections = (slug, industryName, industryId) => [
+  ...((slug === 'medical' || slug === 'health') ? buildMedicalDefaultSections(industryId) : []),
+  ...((slug === 'jewellery' || slug === 'jewelry' || slug === 'jwellery') ? buildJewelleryDefaultSections(industryId) : []),
+  ...(slug === 'decor' ? buildDecorDefaultSections(industryId) : []),
+  ...(slug === 'agriculture' ? buildAgricultureDefaultSections(industryId) : []),
+  ...(slug === 'food' ? buildFoodDefaultSections(industryId) : []),
+  ...(slug === 'manufacturing' ? buildManufacturingDefaultSections(industryId) : []),
+  ...(slug === 'kids' ? buildKidsDefaultSections(industryId) : []),
+  ...(slug === 'sports' ? buildSportsDefaultSections(industryId) : []),
+  ...(slug === 'travel' ? buildTravelDefaultSections(industryId) : []),
+  ...(slug === 'fitness' ? buildFitnessDefaultSections(industryId) : []),
+  ...(slug === 'services' ? buildServicesDefaultSections(industryId) : []),
   ...(slug === 'beauty' ? buildBeautyDefaultSections(industryId) : []),
   ...(slug === 'electronics' ? buildElectronicsDefaultSections(industryId) : []),
   ...(slug === 'grocery' ? buildGroceryDefaultSections(industryId) : []),
   ...(slug === 'fashion' ? buildFashionDefaultSections(industryId) : []),
-  ...(slug === 'beauty'
+  ...(slug === 'automobile' ? buildAutomobileDefaultSections(industryId) : []),
+  ...(slug === 'decor'
+    || slug === 'medical'
+    || slug === 'health'
+    || slug === 'jewellery'
+    || slug === 'jewelry'
+    || slug === 'jwellery'
+    || slug === 'agriculture'
+    || slug === 'food'
+    || slug === 'kids'
+    || slug === 'sports'
+    || slug === 'travel'
+    || slug === 'fitness'
+    || slug === 'services'
+    || slug === 'beauty'
     || slug === 'electronics'
     || slug === 'grocery'
     || slug === 'fashion'
+    || slug === 'automobile'
     ? []
     : [
   {
@@ -3024,6 +6506,7 @@ export const defaultSectionForm = {
   quickActionPreset: 'electronics',
   stylePreset: '',
   cardVariant: '',
+  slotType: 'FULL_BANNER',
   bentoHeaderImage: '',
   bentoHeroImage: '',
   bentoHeroLink: '',
@@ -3071,6 +6554,10 @@ export const defaultSectionForm = {
   mappingImageField: 'imageUrl',
   mappingSecondaryImageField: '',
   mappingDeepLinkTemplate: 'app://category/{id}',
+  blockDataSourceType: 'MANUAL',
+  blockFeedMode: 'BESTSELLER',
+  blockTabField: 'mainCategoryName',
+  blockLimit: '10',
 };
 
 export const defaultHeaderForm = {

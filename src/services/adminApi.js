@@ -139,6 +139,56 @@ export const deleteProductsBulk = (token, productIds) =>
   request('/admin/product/delete-bulk', { method: 'POST', body: { product_ids: productIds }, token });
 export const updateProductVariantStatus = (token, productId, variantId, payload) =>
   request(`/admin/product/${productId}/variants/${variantId}/status`, { method: 'PUT', body: payload, token });
+export const reviewProductBrand = (token, productId, payload) =>
+  request(`/admin/product/${productId}/brand/review`, { method: 'PUT', body: payload, token });
+
+const requestMultipart = async (path, { method = 'POST', formData, token: authToken } = {}) => {
+  const headers = {};
+  if (authToken) headers.Authorization = `Bearer ${authToken}`;
+  const response = await fetch(buildUrl(path), { method, headers, body: formData });
+  if (!response.ok) throw new Error(await parseError(response));
+  if (response.status === 204) return null;
+  return response.json();
+};
+
+export const downloadCatalogTemplate = (token) =>
+  fetch(buildUrl('/admin/catalog/import/template'), {
+    headers: { Authorization: `Bearer ${token}` },
+  }).then((r) => {
+    if (!r.ok) throw new Error('Template download failed');
+    return r.blob();
+  });
+
+export const previewCatalogImport = (token, industryId, mode, file) => {
+  const formData = new FormData();
+  formData.append('industryId', industryId);
+  formData.append('mode', mode);
+  formData.append('file', file);
+  return requestMultipart('/admin/catalog/import/preview', { formData, token });
+};
+
+export const commitCatalogImport = (token, payload) =>
+  request('/admin/catalog/import/commit', { method: 'POST', body: payload, token });
+
+export const listBrandOptions = (token, query) => {
+  const search = query ? `?query=${encodeURIComponent(query)}` : '';
+  return request(`/admin/brands/options${search}`, { token });
+};
+export const listBrands = (token, filters = {}) => {
+  const params = new URLSearchParams();
+  if (filters.query) params.set('query', filters.query);
+  if (filters.approvalStatus) params.set('approvalStatus', filters.approvalStatus);
+  if (filters.isActive === true || filters.isActive === false) params.set('isActive', filters.isActive);
+  if (filters.excludeMerged === true) params.set('excludeMerged', 'true');
+  const search = params.toString() ? `?${params.toString()}` : '';
+  return request(`/admin/brands${search}`, { token });
+};
+export const getBrand = (token, id) => request(`/admin/brands/${id}`, { token });
+export const createBrand = (token, payload) =>
+  request('/admin/brands', { method: 'POST', body: payload, token });
+export const updateBrand = (token, id, payload) =>
+  request(`/admin/brands/${id}`, { method: 'PUT', body: payload, token });
+export const deleteBrand = (token, id) => request(`/admin/brands/${id}`, { method: 'DELETE', token });
 
 export const listAttributeDefinitions = (token, active) => {
   const query = active === true || active === false ? `?active=${active}` : '';
@@ -214,6 +264,17 @@ export const getHomeCategoryPreview = (token, { ids = [], limit = 2, rankingWind
   return request(`/home/category-preview?${params.toString()}`, { token });
 };
 
+export const getBrandFeedPreview = (filters = {}) => {
+  const params = new URLSearchParams();
+  if (filters.industryId) params.set('industryId', String(filters.industryId));
+  if (filters.mainCategoryId) params.set('mainCategoryId', String(filters.mainCategoryId));
+  if (filters.limit !== undefined && filters.limit !== null && filters.limit !== '') {
+    params.set('limit', String(filters.limit));
+  }
+  const query = params.toString() ? `?${params.toString()}` : '';
+  return request(`/brand/getall${query}`);
+};
+
 export const uploadBannerImages = async (token, files) => {
   const headers = {};
   if (token) {
@@ -283,6 +344,13 @@ export const updateSubscriptionPlan = (token, id, payload) =>
 export const deleteSubscriptionPlan = (token, id) =>
   request(`/admin/plan/${id}`, { method: 'DELETE', token });
 
+export const activateSubscriptionPlan = (token, payload) =>
+  request('/admin/subscription/assign', { method: 'POST', body: payload, token });
+
+
+
+
+
 export const assignSubscriptionPlan = (token, payload) =>
   request('/admin/subscription/assign', { method: 'POST', body: payload, token });
 export const listSubscriptionAssignments = (token, filters = {}) => {
@@ -292,6 +360,13 @@ export const listSubscriptionAssignments = (token, filters = {}) => {
   const query = params.toString() ? `?${params.toString()}` : '';
   return request(`/admin/subscription/list${query}`, { token });
 };
+
+// Addon pricing management
+export const upsertAddonPricing = (token, payload) =>
+  request('/admin/addon/pricing', { method: 'POST', body: payload, token });
+
+export const getAddonHistory = (token, userId) =>
+  request(`/admin/addon/history?user_id=${userId}`, { token });
 
 // Order disputes
 export const listOrderDisputes = (token, status) => {
@@ -313,3 +388,44 @@ export const getUserBusinessScore = (token, userId) =>
 
 export const getUserBusinessScoreHistory = (token, userId, limit = 25) =>
   request(`/admin/business-score/history?user_id=${userId}&limit=${limit}`, { token });
+
+// ── Advertisements ────────────────────────────────────────────────────────────
+
+// Admin: subscription revenue dashboard
+export const getSubscriptionRevenue = (token) =>
+  request('/admin/subscription/revenue', { token });
+
+// Admin: audit logs
+export const getAuditLogs = (token, { category, actorId, sensitiveOnly, dateFrom, dateTo, page = 0, size = 50 } = {}) => {
+  const params = new URLSearchParams();
+  if (category) params.set('category', category);
+  if (actorId) params.set('actorId', actorId);
+  if (sensitiveOnly) params.set('sensitiveOnly', 'true');
+  if (dateFrom) params.set('dateFrom', dateFrom);
+  if (dateTo) params.set('dateTo', dateTo);
+  params.set('page', page);
+  params.set('size', size);
+  return request(`/admin/audit-logs?${params.toString()}`, { token });
+};
+
+// Admin: list all ads, optionally filtered by status (PENDING, ACTIVE, EXPIRED, REJECTED)
+export const listAllAds = (token, status = null) => {
+  const query = status ? `?status=${encodeURIComponent(status)}` : '';
+  return request(`/admin/advertisements${query}`, { token });
+};
+
+// Admin: get single ad detail
+export const getAdById = (token, adId) =>
+  request(`/admin/advertisements/${adId}`, { token });
+
+// Admin: approve / reject / force-expire an ad
+// payload: { status: 'ACTIVE' | 'REJECTED' | 'EXPIRED', adminNote?: string }
+export const updateAdStatus = (token, adId, payload) =>
+  request(`/admin/advertisements/${adId}/status`, { method: 'PATCH', body: payload, token });
+
+// Admin: Pricing Config
+export const getAdPricingConfig = (token) =>
+  request('/advertisements/pricing-config', { token });
+
+export const updateAdPricingConfig = (token, payload) =>
+  request('/admin/advertisements/pricing-config', { method: 'PUT', body: payload, token });
