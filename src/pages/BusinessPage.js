@@ -9,7 +9,8 @@ import {
   updateBusinessProfileStatus,
   updateBusinessAccount,
 } from '../services/adminApi';
-import { BUSINESS_PERMISSIONS } from '../constants/adminPermissions';
+import { BUSINESS_PERMISSIONS, REVIEW_MODERATION_PERMISSIONS } from '../constants/adminPermissions';
+import { usePermissions } from '../shared/permissions';
 
 const normalize = (value) => String(value || '').toLowerCase();
 
@@ -194,6 +195,7 @@ const pickUserProfileFields = (record) =>
 
 function BusinessPage({ token, allowedActions }) {
   const navigate = useNavigate();
+  const { hasPermission } = usePermissions();
   const { id: routeBusinessId } = useParams();
   const isDetailRoute = Boolean(routeBusinessId);
   const [businesses, setBusinesses] = useState([]);
@@ -227,6 +229,7 @@ function BusinessPage({ token, allowedActions }) {
   const canRead = !hasActionModel || allowedActionSet.has(BUSINESS_PERMISSIONS.read);
   const canEditKyc = !hasActionModel || allowedActionSet.has(BUSINESS_PERMISSIONS.kycUpdate);
   const canApprove = !hasActionModel || allowedActionSet.has(BUSINESS_PERMISSIONS.approve);
+  const canViewReviewModeration = hasPermission(REVIEW_MODERATION_PERMISSIONS.read);
 
   const loadBusinesses = async () => {
     if (!canRead) {
@@ -474,6 +477,18 @@ function BusinessPage({ token, allowedActions }) {
   const bankFields = useMemo(() => {
     return pickObjectFields(viewBusinessProfile, (key) => BANK_INFO_KEYS.has(key));
   }, [viewBusinessProfile]);
+  const businessReviewSummaryCards = [
+    {
+      label: 'Average Rating',
+      value:
+        viewBusinessProfile?.rating !== null && viewBusinessProfile?.rating !== undefined
+          ? Number(viewBusinessProfile.rating).toFixed(1)
+          : '0.0',
+    },
+    { label: 'Ratings', value: String(viewBusinessProfile?.ratingCount ?? 0) },
+    { label: 'Reviews', value: String(viewBusinessProfile?.reviewCount ?? 0) },
+    { label: 'Photo Reviews', value: String(viewBusinessProfile?.photoReviewCount ?? 0) },
+  ];
 
   const renderFieldGrid = (items, emptyText) => {
     if (!items.length) {
@@ -717,6 +732,42 @@ function BusinessPage({ token, allowedActions }) {
                     ) : null}
                   </div>
                 </div>
+
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+                    gap: 12,
+                    marginBottom: 18,
+                  }}
+                >
+                  {businessReviewSummaryCards.map((item) => (
+                    <div
+                      key={`business-review-summary-${item.label}`}
+                      style={{
+                        border: '1px solid #E2E8F0',
+                        borderRadius: 16,
+                        padding: 16,
+                        background: '#FFFFFF',
+                      }}
+                    >
+                      <div style={{ fontSize: 12, color: '#64748B', marginBottom: 6 }}>{item.label}</div>
+                      <div style={{ fontSize: 24, fontWeight: 800, color: '#0F172A' }}>{item.value}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {canViewReviewModeration ? (
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+                    <button
+                      type="button"
+                      className="ghost-btn small"
+                      onClick={() => navigate('/admin/orders/reviews')}
+                    >
+                      Open Review Moderation
+                    </button>
+                  </div>
+                ) : null}
 
                 <div className="user-view-tabs">
                   <button

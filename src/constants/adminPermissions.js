@@ -52,3 +52,8 @@ export const PRODUCT_PERMISSIONS = {
   requestChanges: 'ADMIN_PRODUCTS_REQUEST_CHANGES',
   reject: 'ADMIN_PRODUCTS_REJECT',
 };
+
+export const REVIEW_MODERATION_PERMISSIONS = {
+  read: 'ADMIN_REVIEWS_READ',
+  moderate: 'ADMIN_REVIEWS_MODERATE',
+};

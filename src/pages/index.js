@@ -29,6 +29,7 @@ export { default as RolePermissionPage } from './RolePermissionPage';
 export { default as AppConfigPage } from './AppConfigPage';
 export { default as OrderDisputesPage } from './OrderDisputesPage';
 export { default as OrderReturnsPage } from './OrderReturnsPage';
+export { default as ReviewModerationPage } from './ReviewModerationPage';
 export { default as AdminTimezonesPage } from './AdminTimezonesPage';
 export { default as SupportPage } from './SupportPage';
 export { default as SubscriptionRevenuePage } from './SubscriptionRevenuePage';

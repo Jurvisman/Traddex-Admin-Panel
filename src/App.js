@@ -32,6 +32,7 @@ import {
   RolePermissionPage,
   OrderDisputesPage,
   OrderReturnsPage,
+  ReviewModerationPage,
   SupportPage,
   SubscriptionRevenuePage,
   AdvertisementRevenuePage,
@@ -367,6 +368,11 @@ const ADMIN_META = [
     subtitle: 'Override return requests and lock final outcomes.',
   },
   {
+    match: '/admin/orders/reviews',
+    title: 'Review Moderation',
+    subtitle: 'Moderate reported buyer reviews across products and businesses.',
+  },
+  {
     match: '/admin/support',
     title: 'Support',
     subtitle: 'Customer tickets, inquiries, and complaint management.',
@@ -672,6 +678,7 @@ function AppRoutes() {
               { path: '/admin/orders/sales', label: 'Sales Orders', icon: ICONS.orders, tone: NAV_TONES.orders },
               { path: '/admin/orders/disputes', label: 'Order Disputes', icon: ICONS.disputes, tone: NAV_TONES.orders },
               { path: '/admin/orders/returns', label: 'Order Returns', icon: ICONS.returns, tone: NAV_TONES.orders },
+              { path: '/admin/orders/reviews', label: 'Review Moderation', icon: ICONS.settingsRole, tone: NAV_TONES.orders },
             ],
           },
           { path: '/admin/support', label: 'Support', icon: ICONS.support, tone: NAV_TONES.support },
@@ -1375,6 +1382,21 @@ function AppRoutes() {
               fallbackPath={routeFallbackPath}
             >
               <OrderReturnsPage token={authToken} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="orders/reviews"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={
+                canAccessPath('/admin/orders/reviews') &&
+                allowedActionCodes.has('ADMIN_REVIEWS_READ')
+              }
+              fallbackPath={routeFallbackPath}
+            >
+              <ReviewModerationPage token={authToken} />
             </PermissionGate>
           }
         />

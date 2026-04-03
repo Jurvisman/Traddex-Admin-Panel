@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMatch, useNavigate, useParams } from 'react-router-dom';
 import { Banner } from '../components';
-import { PRODUCT_PERMISSIONS } from '../constants/adminPermissions';
+import { PRODUCT_PERMISSIONS, REVIEW_MODERATION_PERMISSIONS } from '../constants/adminPermissions';
 import { usePermissions } from '../shared/permissions';
 import {
   createProduct,
@@ -461,6 +461,7 @@ function ProductPage({ token, adminUserId }) {
   const canApproveProduct = hasPermission(PRODUCT_PERMISSIONS.approve);
   const canRequestChangesProduct = hasPermission(PRODUCT_PERMISSIONS.requestChanges);
   const canRejectProduct = hasPermission(PRODUCT_PERMISSIONS.reject);
+  const canViewReviewModeration = hasPermission(REVIEW_MODERATION_PERMISSIONS.read);
   const hasProductListActions = Boolean(
     canViewProduct ||
       canEditProduct ||
@@ -2853,6 +2854,18 @@ function ProductPage({ token, adminUserId }) {
     { label: 'Internal Notes', value: formatValue(selectedProduct?.internalNotes), spanFull: true },
     { label: 'Review Note', value: formatValue(selectedProduct?.reviewRemarks), spanFull: true },
   ];
+  const productReviewSummaryCards = [
+    {
+      label: 'Average Rating',
+      value:
+        selectedProduct?.rating !== null && selectedProduct?.rating !== undefined
+          ? Number(selectedProduct.rating).toFixed(1)
+          : '0.0',
+    },
+    { label: 'Ratings', value: formatValue(selectedProduct?.ratingCount ?? 0) },
+    { label: 'Reviews', value: formatValue(selectedProduct?.reviewCount ?? 0) },
+    { label: 'Photo Reviews', value: formatValue(selectedProduct?.photoReviewCount ?? 0) },
+  ];
   const renderViewDetailGrid = (items, className = '') => (
     <div className={`product-view-detail-grid${className ? ` ${className}` : ''}`}>
       {items.map((item) => (
@@ -3247,6 +3260,57 @@ function ProductPage({ token, adminUserId }) {
               )}
             </div>
             {renderViewDetailGrid(generalViewFields, 'gsc-product-view-general-grid')}
+          </div>
+
+          <div className="gsc-product-view-section">
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: 16,
+                flexWrap: 'wrap',
+                marginBottom: 16,
+              }}
+            >
+              <div>
+                <h4 className="gsc-product-view-section-title" style={{ marginBottom: 6 }}>Review Summary</h4>
+                <p className="panel-subtitle" style={{ margin: 0 }}>
+                  Published buyer review metrics for this product.
+                </p>
+              </div>
+              {canViewReviewModeration ? (
+                <button
+                  type="button"
+                  className="ghost-btn small"
+                  onClick={() => navigate('/admin/orders/reviews')}
+                >
+                  Open Review Moderation
+                </button>
+              ) : null}
+            </div>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+                gap: 12,
+              }}
+            >
+              {productReviewSummaryCards.map((item) => (
+                <div
+                  key={`product-review-summary-${item.label}`}
+                  style={{
+                    border: '1px solid #E2E8F0',
+                    borderRadius: 16,
+                    padding: 16,
+                    background: '#FFFFFF',
+                  }}
+                >
+                  <div style={{ fontSize: 12, color: '#64748B', marginBottom: 6 }}>{item.label}</div>
+                  <div style={{ fontSize: 24, fontWeight: 800, color: '#0F172A' }}>{item.value}</div>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="gsc-product-view-section">

@@ -429,3 +429,35 @@ export const getAdPricingConfig = (token) =>
 
 export const updateAdPricingConfig = (token, payload) =>
   request('/admin/advertisements/pricing-config', { method: 'PUT', body: payload, token });
+
+// Review moderation
+export const listAdminProductReviews = (token, filters = {}) => {
+  const params = new URLSearchParams();
+  if (filters.status) params.set('status', filters.status);
+  if (filters.reportedOnly === true) params.set('reportedOnly', 'true');
+  if (filters.query) params.set('query', filters.query);
+  if (filters.page) params.set('page', String(filters.page));
+  if (filters.limit) params.set('limit', String(filters.limit));
+  const query = params.toString() ? `?${params.toString()}` : '';
+  return request(`/admin/reviews/products${query}`, { token });
+};
+
+export const listAdminBusinessReviews = (token, filters = {}) => {
+  const params = new URLSearchParams();
+  if (filters.status) params.set('status', filters.status);
+  if (filters.reportedOnly === true) params.set('reportedOnly', 'true');
+  if (filters.query) params.set('query', filters.query);
+  if (filters.page) params.set('page', String(filters.page));
+  if (filters.limit) params.set('limit', String(filters.limit));
+  const query = params.toString() ? `?${params.toString()}` : '';
+  return request(`/admin/reviews/businesses${query}`, { token });
+};
+
+export const updateAdminProductReviewStatus = (token, reviewId, status) =>
+  request(`/admin/reviews/products/${reviewId}/status`, { method: 'PATCH', body: { status }, token });
+
+export const updateAdminBusinessReviewStatus = (token, reviewId, status) =>
+  request(`/admin/reviews/businesses/${reviewId}/status`, { method: 'PATCH', body: { status }, token });
+
+export const updateAdminReviewReportStatus = (token, reportId, status) =>
+  request(`/admin/reviews/reports/${reportId}`, { method: 'PATCH', body: { status }, token });
