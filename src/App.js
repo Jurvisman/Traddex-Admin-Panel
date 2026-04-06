@@ -9,6 +9,7 @@ import {
   AdminTimezonesPage,
   BusinessPage,
   BusinessProfileEditPage,
+  BusinessAnalyticsPage,
   IndustryPage,
   CollectionPage,
   LoginPage,
@@ -918,6 +919,18 @@ function AppRoutes() {
               fallbackPath={routeFallbackPath}
             >
               <BusinessProfileEditPage token={authToken} allowedActions={allowedActionCodes} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="businesses/analytics"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={canAccessPath('/admin/businesses') && allowedActionCodes.has('ADMIN_BUSINESS_READ')}
+              fallbackPath={routeFallbackPath}
+            >
+              <BusinessAnalyticsPage token={authToken} />
             </PermissionGate>
           }
         />

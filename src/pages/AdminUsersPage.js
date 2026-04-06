@@ -395,8 +395,22 @@ function AdminUsersPage({ token, allowedActions }) {
     await loadCreateRoles();
   };
 
+  const [createErrors, setCreateErrors] = useState({});
+
+  const validateCreateForm = (form) => {
+    const errors = {};
+    if (!form.name?.trim()) errors.name = 'Name is required.';
+    else if (form.name.trim().length < 2) errors.name = 'Name must be at least 2 characters.';
+    if (!form.number?.trim()) errors.number = 'Phone number is required.';
+    else if (!/^[0-9]{10}$/.test(form.number.trim())) errors.number = 'Phone must be exactly 10 digits.';
+    if (!form.userType) errors.userType = 'User type is required.';
+    if (!form.role) errors.role = 'Role is required.';
+    return errors;
+  };
+
   const handleCreateChange = (key, value) => {
     setCreateForm((prev) => ({ ...prev, [key]: value }));
+    if (createErrors[key]) setCreateErrors((p) => { const n = { ...p }; delete n[key]; return n; });
   };
 
   const openEdit = (user) => {
@@ -454,6 +468,14 @@ function AdminUsersPage({ token, allowedActions }) {
       return;
     }
 
+    const errors = validateCreateForm(createForm);
+    if (Object.keys(errors).length > 0) {
+      setCreateErrors(errors);
+      setMessage({ type: 'error', text: 'Please fix the errors before submitting.' });
+      return;
+    }
+    setCreateErrors({});
+
     const payload = {
       name: createForm.name.trim(),
       number: createForm.number.trim(),
@@ -469,11 +491,6 @@ function AdminUsersPage({ token, allowedActions }) {
         industry: 'GENERAL',
         type: 'B2B',
       };
-    }
-
-    if (!payload.name || !payload.number || !payload.userType || !payload.role) {
-      setMessage({ type: 'error', text: 'Name, number, type and role are required.' });
-      return;
     }
 
     setIsCreateSaving(true);
@@ -1276,42 +1293,43 @@ function AdminUsersPage({ token, allowedActions }) {
             </div>
 
             <form className="field-grid" onSubmit={handleCreateUser}>
-              <label className="field field-span">
-                <span>Name</span>
+              <label className={`field field-span ${createErrors.name ? 'field-error' : ''}`}>
+                <span>Name <span className="field-required">*</span></span>
                 <input
                   type="text"
                   value={createForm.name}
                   onChange={(event) => handleCreateChange('name', event.target.value)}
-                  required
+                  className={createErrors.name ? 'input-error' : ''}
                 />
+                {createErrors.name && <span className="field-error-msg">{createErrors.name}</span>}
               </label>
-              <label className="field field-span">
-                <span>Phone</span>
+              <label className={`field field-span ${createErrors.number ? 'field-error' : ''}`}>
+                <span>Phone <span className="field-required">*</span></span>
                 <input
                   type="text"
                   value={createForm.number}
                   onChange={(event) => handleCreateChange('number', event.target.value)}
                   placeholder="10-digit mobile"
-                  required
+                  className={createErrors.number ? 'input-error' : ''}
                 />
+                {createErrors.number && <span className="field-error-msg">{createErrors.number}</span>}
               </label>
-              <label className="field">
-                <span>User Type</span>
+              <label className={`field ${createErrors.userType ? 'field-error' : ''}`}>
+                <span>User Type <span className="field-required">*</span></span>
                 <select value={createForm.userType} onChange={(event) => handleCreateChange('userType', event.target.value)}>
                   {USER_TYPE_OPTIONS.map((type) => (
-                    <option key={type.value} value={type.value}>
-                      {type.label}
-                    </option>
+                    <option key={type.value} value={type.value}>{type.label}</option>
                   ))}
                 </select>
+                {createErrors.userType && <span className="field-error-msg">{createErrors.userType}</span>}
               </label>
-              <label className="field">
-                <span>Role</span>
+              <label className={`field ${createErrors.role ? 'field-error' : ''}`}>
+                <span>Role <span className="field-required">*</span></span>
                 <select
                   value={createForm.role}
                   onChange={(event) => handleCreateChange('role', event.target.value)}
                   disabled={isCreateRoleLoading}
-                  required
+                  className={createErrors.role ? 'input-error' : ''}
                 >
                   <option value="">{isCreateRoleLoading ? 'Loading roles...' : 'Select role'}</option>
                   {createRoles.map((role) => {
@@ -1324,6 +1342,7 @@ function AdminUsersPage({ token, allowedActions }) {
                     );
                   })}
                 </select>
+                {createErrors.role && <span className="field-error-msg">{createErrors.role}</span>}
               </label>
               <label className="field field-span">
                 <span>Time Zone</span>

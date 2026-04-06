@@ -1,11 +1,11 @@
 export { default as LoginPage } from './LoginPage';
 export { default as OtpVerifyPage } from './OtpVerifyPage';
-export { default as DashboardPage } from './DashboardPage';
 export { default as AdminDashboardPage } from './AdminDashboardPage';
 export { default as AdminUsersPage } from './AdminUsersPage';
 export { default as UserDirectoryPage } from './UserDirectoryPage';
 export { default as BusinessPage } from './BusinessPage';
 export { default as BusinessProfileEditPage } from './BusinessProfileEditPage';
+export { default as BusinessAnalyticsPage } from './BusinessAnalyticsPage';
 export { default as CatalogManagerPage } from './CatalogManagerPage';
 export { default as IndustryPage } from './IndustryPage';
 export { default as MainCategoryPage } from './MainCategoryPage';

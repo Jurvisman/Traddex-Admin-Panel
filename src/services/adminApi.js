@@ -129,6 +129,9 @@ export const deleteSubCategory = (token, id) => request(`/sub-categories/${id}`,
 export const listProducts = (token) => request('/admin/product/getall', { token });
 export const listProductsByUser = (token, userId) => request(`/admin/product/by-user?userId=${userId}`, { token });
 export const listProductsByBusinessUser = (token, userId) => request(`/admin/businesses/${userId}/products`, { token });
+export const getBusinessLeadSummary = (token, userId) => request(`/admin/businesses/${userId}/leads`, { token });
+export const getBusinessOrderSummary = (token, userId) => request(`/admin/businesses/${userId}/orders`, { token });
+export const getBusinessPaymentSummary = (token, userId) => request(`/admin/businesses/${userId}/payments`, { token });
 export const createProduct = (token, payload) =>
   request('/admin/product/create', { method: 'POST', body: payload, token });
 export const getProduct = (token, id) => request(`/admin/product/${id}`, { token });

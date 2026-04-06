@@ -57,7 +57,9 @@ function OrderReturnsPage({ token }) {
     setMessage({ type: 'info', text: '' });
     try {
       const response = await listOrderReturns(token, override.status);
-      setItems(response?.data || []);
+      const raw = Array.isArray(response?.data) ? response.data : [];
+      raw.sort((a, b) => new Date(b?.createdAt || b?.created_at || 0) - new Date(a?.createdAt || a?.created_at || 0));
+      setItems(raw);
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to load returns.' });
     } finally {
