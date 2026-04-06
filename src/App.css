@@ -16471,6 +16471,9 @@ textarea {
 .bv-tab-bar::-webkit-scrollbar { display: none; }
 
 .bv-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   flex-shrink: 0;
   padding: 14px 18px;
   font-size: 13px;
@@ -16484,6 +16487,27 @@ textarea {
   transition: color 0.15s, border-color 0.15s;
   margin-bottom: -1px;
   letter-spacing: 0.01em;
+}
+.bv-tab-btn-label {
+  display: inline-block;
+}
+.bv-tab-badge {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  background: #e5e7eb;
+  color: #374151;
+}
+.bv-tab-badge.danger {
+  background: #dc2626;
+  color: #ffffff;
 }
 .bv-tab-btn:hover { color: var(--admin-ink, #111827); }
 .bv-tab-btn.active {
@@ -16653,6 +16677,67 @@ textarea {
 
 .business-page .bv-tab-content .admin-table.bv-detail-table td {
   font-size: 13px;
+}
+
+.business-page .bv-tab-content .admin-table.bv-detail-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.business-page .bv-tab-content .admin-table.bv-detail-table .bv-clickable-row td {
+  cursor: pointer;
+}
+
+.business-page .bv-tab-content .admin-table.bv-detail-table .bv-clickable-row:hover td {
+  background: #faf7ff;
+}
+
+.bv-table-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 4px 0;
+  flex-wrap: wrap;
+}
+
+.bv-table-pagination {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.bv-table-pagination .secondary-btn {
+  min-width: 68px;
+  height: 30px;
+  padding: 0 12px !important;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #374151;
+  font-weight: 600;
+  box-shadow: none;
+}
+
+.bv-table-pagination .secondary-btn:hover:not(:disabled) {
+  background: #f9fafb;
+  border-color: #cbd5e1;
+}
+
+.bv-table-pagination .secondary-btn:disabled {
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.bv-list-tab-products {
+  margin-top: -8px;
+}
+
+.bv-list-tab-products .table-shell {
+  margin-top: 0;
 }
 
 .business-page .bv-payments-table th:nth-child(1),

@@ -22,6 +22,7 @@ import { BUSINESS_PERMISSIONS, REVIEW_MODERATION_PERMISSIONS } from '../constant
 import { usePermissions } from '../shared/permissions';
 
 const normalize = (value) => String(value || '').toLowerCase();
+const DETAIL_PAGE_SIZE = 10;
 
 const formatDate = (value) => {
   if (!value) return '-';
@@ -51,6 +52,24 @@ const formatCurrency = (value) => {
 };
 
 const normalizeStatus = (value) => String(value || '').trim().toUpperCase();
+
+const paginateItems = (items, page, pageSize = DETAIL_PAGE_SIZE) => {
+  const list = Array.isArray(items) ? items : [];
+  const totalItems = list.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const safePage = Math.min(Math.max(page, 0), totalPages - 1);
+  const start = safePage * pageSize;
+  const end = Math.min(start + pageSize, totalItems);
+
+  return {
+    items: list.slice(start, end),
+    totalItems,
+    totalPages,
+    page: safePage,
+    start,
+    end,
+  };
+};
 
 const getStatusPillClass = (value) => {
   const normalized = normalizeStatus(value);
@@ -377,6 +396,10 @@ function BusinessPage({ token, allowedActions }) {
   const [viewBusinessScore, setViewBusinessScore] = useState(null);
   const [viewAddonHistory, setViewAddonHistory] = useState([]);
   const [isTabDataLoading, setIsTabDataLoading] = useState(false);
+  const [productsPage, setProductsPage] = useState(0);
+  const [paymentsPage, setPaymentsPage] = useState(0);
+  const [leadsPage, setLeadsPage] = useState(0);
+  const [ordersPage, setOrdersPage] = useState(0);
 
   const allowedActionSet = useMemo(() => {
     const next = new Set();
@@ -461,10 +484,18 @@ function BusinessPage({ token, allowedActions }) {
       setViewPayments(null);
       setViewBusinessScore(null);
       setViewAddonHistory([]);
+      setProductsPage(0);
+      setPaymentsPage(0);
+      setLeadsPage(0);
+      setOrdersPage(0);
       return;
     }
     const parsedId = Number(routeBusinessId);
     const safeId = Number.isNaN(parsedId) ? routeBusinessId : parsedId;
+    setProductsPage(0);
+    setPaymentsPage(0);
+    setLeadsPage(0);
+    setOrdersPage(0);
     loadBusinessDetails(safeId);
     loadViewTabData(safeId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -835,6 +866,89 @@ function BusinessPage({ token, allowedActions }) {
   const bankFields = useMemo(() => {
     return pickObjectFields(viewBusinessProfile, (key) => BANK_INFO_KEYS.has(key));
   }, [viewBusinessProfile]);
+
+  const productPendingCount = useMemo(() => (
+    viewProducts.filter((product) => normalizeStatus(product?.approvalStatus || product?.status || product?.productStatus) === 'PENDING_REVIEW').length
+  ), [viewProducts]);
+
+  const paymentItems = useMemo(() => (
+    Array.isArray(viewPayments?.payments) ? viewPayments.payments : []
+  ), [viewPayments]);
+
+  const leadItems = useMemo(() => (
+    Array.isArray(viewLeads?.leads) ? viewLeads.leads : []
+  ), [viewLeads]);
+
+  const orderItems = useMemo(() => (
+    Array.isArray(viewOrders?.orders) ? viewOrders.orders : []
+  ), [viewOrders]);
+
+  const pagedProducts = useMemo(() => paginateItems(viewProducts, productsPage), [viewProducts, productsPage]);
+  const pagedPayments = useMemo(() => paginateItems(paymentItems, paymentsPage), [paymentItems, paymentsPage]);
+  const pagedLeads = useMemo(() => paginateItems(leadItems, leadsPage), [leadItems, leadsPage]);
+  const pagedOrders = useMemo(() => paginateItems(orderItems, ordersPage), [orderItems, ordersPage]);
+
+  const detailTabs = useMemo(() => ([
+    { key: 'personal', label: 'Personal' },
+    { key: 'business', label: 'Business' },
+    { key: 'bank', label: 'Banking' },
+    { key: 'media', label: 'Media' },
+    { key: 'products', label: 'Products', count: viewProducts.length, badgeCount: productPendingCount, badgeTone: 'danger' },
+    { key: 'subscription', label: 'Subscription', count: viewSubscriptions.length },
+    { key: 'payments', label: 'Payments', count: viewPayments?.totalPayments || 0 },
+    { key: 'leads', label: 'Leads', count: viewLeads?.totalLeads || 0 },
+    { key: 'orders', label: 'Orders', count: viewOrders?.totalOrders || 0 },
+    { key: 'performance', label: 'Performance' },
+  ]), [
+    productPendingCount,
+    viewLeads?.totalLeads,
+    viewOrders?.totalOrders,
+    viewPayments?.totalPayments,
+    viewProducts.length,
+    viewSubscriptions.length,
+  ]);
+
+  const openProductDetail = (product) => {
+    const productId = product?.id || product?.productId || product?.product_id;
+    if (!productId) return;
+    navigate(`/admin/products/${productId}`);
+  };
+
+  const renderTableFooter = (paged, setPage, itemLabel) => {
+    if (!paged.totalItems) return null;
+
+    return (
+      <div className="bv-table-footer">
+        <div className="table-record-count">
+          Showing {paged.start + 1}-{paged.end} of {paged.totalItems} {itemLabel}
+        </div>
+        {paged.totalPages > 1 ? (
+          <div className="bv-table-pagination">
+            <button
+              type="button"
+              className="secondary-btn"
+              style={{ padding: '4px 10px', fontSize: 12 }}
+              disabled={paged.page === 0}
+              onClick={() => setPage((prev) => Math.max(prev - 1, 0))}
+            >
+              {'< Prev'}
+            </button>
+            <span>Page {paged.page + 1} / {paged.totalPages}</span>
+            <button
+              type="button"
+              className="secondary-btn"
+              style={{ padding: '4px 10px', fontSize: 12 }}
+              disabled={paged.page >= paged.totalPages - 1}
+              onClick={() => setPage((prev) => prev + 1)}
+            >
+              {'Next >'}
+            </button>
+          </div>
+        ) : null}
+      </div>
+    );
+  };
+
   const renderFieldGrid = (items, emptyText) => {
     if (!items.length) {
       return <p className="empty-state">{emptyText}</p>;
@@ -1247,25 +1361,20 @@ function BusinessPage({ token, allowedActions }) {
               {/* ── Tab panel ──────────────────────────────────────── */}
               <div className="bv-panel panel card">
                 <div className="bv-tab-bar">
-                  {[
-                    { key: 'personal',     label: 'Personal' },
-                    { key: 'business',     label: 'Business' },
-                    { key: 'bank',         label: 'Banking' },
-                    { key: 'media',        label: 'Media' },
-                    { key: 'products',     label: `Products${viewProducts.length ? ` (${viewProducts.length})` : ''}` },
-                    { key: 'subscription', label: `Subscription${viewSubscriptions.length ? ` (${viewSubscriptions.length})` : ''}` },
-                    { key: 'payments',     label: `Payments${viewPayments?.totalPayments ? ` (${viewPayments.totalPayments})` : ''}` },
-                    { key: 'leads',        label: `Leads${viewLeads?.totalLeads ? ` (${viewLeads.totalLeads})` : ''}` },
-                    { key: 'orders',       label: `Orders${viewOrders?.totalOrders ? ` (${viewOrders.totalOrders})` : ''}` },
-                    { key: 'performance',  label: 'Performance' },
-                  ].map((tab) => (
+                  {detailTabs.map((tab) => (
                     <button
                       key={tab.key}
                       type="button"
                       className={`bv-tab-btn ${activeTab === tab.key ? 'active' : ''}`}
                       onClick={() => setActiveTab(tab.key)}
                     >
-                      {tab.label}
+                      <span className="bv-tab-btn-label">
+                        {tab.label}
+                        {tab.count ? ` (${tab.count})` : ''}
+                      </span>
+                      {tab.badgeCount ? (
+                        <span className={`bv-tab-badge ${tab.badgeTone || ''}`}>{tab.badgeCount}</span>
+                      ) : null}
                     </button>
                   ))}
                 </div>
@@ -1314,7 +1423,7 @@ function BusinessPage({ token, allowedActions }) {
 
                   {/* Products */}
                   {activeTab === 'products' ? (
-                    <div>
+                    <div className="bv-list-tab bv-list-tab-products">
                       {isTabDataLoading ? (
                         <p className="empty-state">Loading products...</p>
                       ) : viewProducts.length === 0 ? (
@@ -1334,13 +1443,22 @@ function BusinessPage({ token, allowedActions }) {
                               </tr>
                             </thead>
                             <tbody>
-                              {viewProducts.map((p, i) => {
-                                const pStatus = String(p?.status || p?.productStatus || '').toUpperCase();
-                                const pStatusClass = pStatus === 'ACTIVE' ? 'status-verified' : pStatus === 'INACTIVE' ? 'status-inactive' : 'status-pending';
+                              {pagedProducts.items.map((product, i) => {
+                                const p = {
+                                  ...product,
+                                  status: product?.approvalStatus || product?.status || product?.productStatus || '',
+                                };
+                                const pStatus = p?.status || '';
+                                const productId = p?.id || p?.product_id;
+                                const pStatusClass = getStatusPillClass(pStatus);
                                 return (
-                                  <tr key={p?.id || p?.product_id || i}>
-                                    <td>{i + 1}</td>
-                                    <td>{p?.id || p?.product_id || '-'}</td>
+                                  <tr
+                                    key={productId || i}
+                                    className={productId ? 'bv-clickable-row' : ''}
+                                    onClick={productId ? () => openProductDetail(p) : undefined}
+                                  >
+                                    <td>{pagedProducts.start + i + 1}</td>
+                                    <td>{productId || '-'}</td>
                                     <td>{p?.productType || p?.type || '-'}</td>
                                     <td>{p?.name || p?.productName || p?.title || '—'}</td>
                                     <td>{p?.category?.name || p?.category?.categoryName || p?.category?.subCategoryName || p?.categoryName || (typeof p?.category === 'string' ? p.category : '—')}</td>
@@ -1351,7 +1469,7 @@ function BusinessPage({ token, allowedActions }) {
                               })}
                             </tbody>
                           </table>
-                          <div className="table-record-count">{viewProducts.length} product{viewProducts.length !== 1 ? 's' : ''} total</div>
+                          {renderTableFooter(pagedProducts, setProductsPage, 'products')}
                         </div>
                       )}
                     </div>
@@ -1476,7 +1594,7 @@ function BusinessPage({ token, allowedActions }) {
                                   <tr><th>Payment ID</th><th>Type</th><th>Razorpay ID</th><th>Amount</th><th>Status</th><th>Date</th></tr>
                                 </thead>
                                 <tbody>
-                                  {viewPayments.payments.map((payment, i) => (
+                                  {pagedPayments.items.map((payment, i) => (
                                     <tr key={payment?.paymentId || i}>
                                       <td>{payment?.paymentId ?? '-'}</td>
                                       <td>{payment?.type || '-'}</td>
@@ -1492,6 +1610,7 @@ function BusinessPage({ token, allowedActions }) {
                                   ))}
                                 </tbody>
                               </table>
+                              {renderTableFooter(pagedPayments, setPaymentsPage, 'payments')}
                             </div>
                           ) : (
                             <p className="empty-state" style={{ marginTop: 20 }}>No payment records linked to this business account.</p>
@@ -1533,7 +1652,7 @@ function BusinessPage({ token, allowedActions }) {
                                   <tr><th>Lead ID</th><th>Buyer</th><th>Requirement</th><th>Priority</th><th>Status</th><th>Date</th></tr>
                                 </thead>
                                 <tbody>
-                                  {viewLeads.leads.map((lead, i) => (
+                                  {pagedLeads.items.map((lead, i) => (
                                     <tr key={lead?.id || i}>
                                       <td>{lead?.id ?? '-'}</td>
                                       <td>{lead?.buyerName || '-'}</td>
@@ -1549,6 +1668,7 @@ function BusinessPage({ token, allowedActions }) {
                                   ))}
                                 </tbody>
                               </table>
+                              {renderTableFooter(pagedLeads, setLeadsPage, 'leads')}
                             </div>
                           ) : (
                             <p className="empty-state" style={{ marginTop: 20 }}>No leads linked to this business yet.</p>
@@ -1590,7 +1710,7 @@ function BusinessPage({ token, allowedActions }) {
                                   <tr><th>Order ID</th><th>Type</th><th>Counterparty</th><th>Requirement</th><th>Amount</th><th>Payment</th><th>Status</th><th>Date</th></tr>
                                 </thead>
                                 <tbody>
-                                  {viewOrders.orders.map((order, i) => (
+                                  {pagedOrders.items.map((order, i) => (
                                     <tr key={`${order?.orderType || 'ORDER'}-${order?.orderId || i}`}>
                                       <td>{order?.orderId ?? '-'}</td>
                                       <td>{order?.orderType || '-'}</td>
@@ -1612,6 +1732,7 @@ function BusinessPage({ token, allowedActions }) {
                                   ))}
                                 </tbody>
                               </table>
+                              {renderTableFooter(pagedOrders, setOrdersPage, 'orders')}
                             </div>
                           ) : (
                             <p className="empty-state" style={{ marginTop: 20 }}>No purchase or sales orders linked to this business yet.</p>
