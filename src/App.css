@@ -16691,6 +16691,44 @@ textarea {
   background: #faf7ff;
 }
 
+.bv-table-toolbar {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 12px 0 14px;
+}
+
+.bv-table-filter {
+  display: grid;
+  gap: 6px;
+  min-width: 170px;
+}
+
+.bv-table-filter-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.bv-table-filter-select {
+  height: 36px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #111827;
+  padding: 0 12px;
+  font-size: 13px;
+  outline: none;
+}
+
+.bv-table-filter-select:focus {
+  border-color: #8660ff;
+  box-shadow: 0 0 0 3px rgba(134, 96, 255, 0.12);
+}
+
 .bv-table-footer {
   display: flex;
   align-items: center;
@@ -16733,7 +16771,11 @@ textarea {
 }
 
 .bv-list-tab-products {
-  margin-top: -8px;
+  margin-top: -12px;
+}
+
+.bv-list-tab-products .bv-table-toolbar {
+  margin-top: 0;
 }
 
 .bv-list-tab-products .table-shell {

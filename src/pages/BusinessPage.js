@@ -71,6 +71,14 @@ const paginateItems = (items, page, pageSize = DETAIL_PAGE_SIZE) => {
   };
 };
 
+const buildStatusOptions = (items, picker) => (
+  Array.from(new Set(
+    (Array.isArray(items) ? items : [])
+      .map((item) => normalizeStatus(picker(item)))
+      .filter(Boolean)
+  ))
+);
+
 const getStatusPillClass = (value) => {
   const normalized = normalizeStatus(value);
   if (['ACTIVE', 'VERIFIED', 'APPROVED', 'PAID', 'SUCCESS', 'ACCEPTED', 'COMPLETED'].includes(normalized)) {
@@ -400,6 +408,11 @@ function BusinessPage({ token, allowedActions }) {
   const [paymentsPage, setPaymentsPage] = useState(0);
   const [leadsPage, setLeadsPage] = useState(0);
   const [ordersPage, setOrdersPage] = useState(0);
+  const [productStatusFilter, setProductStatusFilter] = useState('');
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState('');
+  const [leadStatusFilter, setLeadStatusFilter] = useState('');
+  const [orderStatusFilter, setOrderStatusFilter] = useState('');
+  const [orderPaymentStatusFilter, setOrderPaymentStatusFilter] = useState('');
 
   const allowedActionSet = useMemo(() => {
     const next = new Set();
@@ -488,6 +501,11 @@ function BusinessPage({ token, allowedActions }) {
       setPaymentsPage(0);
       setLeadsPage(0);
       setOrdersPage(0);
+      setProductStatusFilter('');
+      setPaymentStatusFilter('');
+      setLeadStatusFilter('');
+      setOrderStatusFilter('');
+      setOrderPaymentStatusFilter('');
       return;
     }
     const parsedId = Number(routeBusinessId);
@@ -496,6 +514,11 @@ function BusinessPage({ token, allowedActions }) {
     setPaymentsPage(0);
     setLeadsPage(0);
     setOrdersPage(0);
+    setProductStatusFilter('');
+    setPaymentStatusFilter('');
+    setLeadStatusFilter('');
+    setOrderStatusFilter('');
+    setOrderPaymentStatusFilter('');
     loadBusinessDetails(safeId);
     loadViewTabData(safeId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -883,10 +906,61 @@ function BusinessPage({ token, allowedActions }) {
     Array.isArray(viewOrders?.orders) ? viewOrders.orders : []
   ), [viewOrders]);
 
-  const pagedProducts = useMemo(() => paginateItems(viewProducts, productsPage), [viewProducts, productsPage]);
-  const pagedPayments = useMemo(() => paginateItems(paymentItems, paymentsPage), [paymentItems, paymentsPage]);
-  const pagedLeads = useMemo(() => paginateItems(leadItems, leadsPage), [leadItems, leadsPage]);
-  const pagedOrders = useMemo(() => paginateItems(orderItems, ordersPage), [orderItems, ordersPage]);
+  const productStatusOptions = useMemo(() => (
+    buildStatusOptions(viewProducts, (product) => product?.approvalStatus || product?.status || product?.productStatus)
+  ), [viewProducts]);
+
+  const paymentStatusOptions = useMemo(() => (
+    buildStatusOptions(paymentItems, (payment) => payment?.status)
+  ), [paymentItems]);
+
+  const leadStatusOptions = useMemo(() => (
+    buildStatusOptions(leadItems, (lead) => lead?.status)
+  ), [leadItems]);
+
+  const orderStatusOptions = useMemo(() => (
+    buildStatusOptions(orderItems, (order) => order?.status)
+  ), [orderItems]);
+
+  const orderPaymentStatusOptions = useMemo(() => (
+    buildStatusOptions(orderItems, (order) => order?.paymentStatus)
+  ), [orderItems]);
+
+  const filteredProducts = useMemo(() => (
+    viewProducts.filter((product) => {
+      const status = normalizeStatus(product?.approvalStatus || product?.status || product?.productStatus);
+      return !productStatusFilter || status === productStatusFilter;
+    })
+  ), [productStatusFilter, viewProducts]);
+
+  const filteredPayments = useMemo(() => (
+    paymentItems.filter((payment) => {
+      const status = normalizeStatus(payment?.status);
+      return !paymentStatusFilter || status === paymentStatusFilter;
+    })
+  ), [paymentItems, paymentStatusFilter]);
+
+  const filteredLeads = useMemo(() => (
+    leadItems.filter((lead) => {
+      const status = normalizeStatus(lead?.status);
+      return !leadStatusFilter || status === leadStatusFilter;
+    })
+  ), [leadItems, leadStatusFilter]);
+
+  const filteredOrders = useMemo(() => (
+    orderItems.filter((order) => {
+      const status = normalizeStatus(order?.status);
+      const paymentStatus = normalizeStatus(order?.paymentStatus);
+      if (orderStatusFilter && status !== orderStatusFilter) return false;
+      if (orderPaymentStatusFilter && paymentStatus !== orderPaymentStatusFilter) return false;
+      return true;
+    })
+  ), [orderItems, orderPaymentStatusFilter, orderStatusFilter]);
+
+  const pagedProducts = useMemo(() => paginateItems(filteredProducts, productsPage), [filteredProducts, productsPage]);
+  const pagedPayments = useMemo(() => paginateItems(filteredPayments, paymentsPage), [filteredPayments, paymentsPage]);
+  const pagedLeads = useMemo(() => paginateItems(filteredLeads, leadsPage), [filteredLeads, leadsPage]);
+  const pagedOrders = useMemo(() => paginateItems(filteredOrders, ordersPage), [filteredOrders, ordersPage]);
 
   const detailTabs = useMemo(() => ([
     { key: 'personal', label: 'Personal' },
@@ -948,6 +1022,26 @@ function BusinessPage({ token, allowedActions }) {
       </div>
     );
   };
+
+  const renderTableFilters = (filters) => (
+    <div className="bv-table-toolbar">
+      {filters.map((filter) => (
+        <label key={filter.key} className="bv-table-filter">
+          <span className="bv-table-filter-label">{filter.label}</span>
+          <select
+            className="bv-table-filter-select"
+            value={filter.value}
+            onChange={(event) => filter.onChange(event.target.value)}
+          >
+            <option value="">{filter.allLabel}</option>
+            {filter.options.map((option) => (
+              <option key={option} value={option}>{option}</option>
+            ))}
+          </select>
+        </label>
+      ))}
+    </div>
+  );
 
   const renderFieldGrid = (items, emptyText) => {
     if (!items.length) {
@@ -1429,6 +1523,23 @@ function BusinessPage({ token, allowedActions }) {
                       ) : viewProducts.length === 0 ? (
                         <p className="empty-state">No products linked to this business yet.</p>
                       ) : (
+                        <>
+                          {renderTableFilters([
+                            {
+                              key: 'product-status',
+                              label: 'Status',
+                              value: productStatusFilter,
+                              onChange: (value) => {
+                                setProductStatusFilter(value);
+                                setProductsPage(0);
+                              },
+                              options: productStatusOptions,
+                              allLabel: 'All statuses',
+                            },
+                          ])}
+                          {filteredProducts.length === 0 ? (
+                            <p className="empty-state" style={{ marginTop: 12 }}>No products match the selected status.</p>
+                          ) : (
                         <div className="table-shell">
                           <table className="admin-table bv-detail-table bv-products-table">
                             <thead>
@@ -1459,7 +1570,7 @@ function BusinessPage({ token, allowedActions }) {
                                   >
                                     <td>{pagedProducts.start + i + 1}</td>
                                     <td>{productId || '-'}</td>
-                                    <td>{p?.productType || p?.type || '-'}</td>
+                                    <td>{p?.productType || p?.product_type || p?.type || '-'}</td>
                                     <td>{p?.name || p?.productName || p?.title || '—'}</td>
                                     <td>{p?.category?.name || p?.category?.categoryName || p?.category?.subCategoryName || p?.categoryName || (typeof p?.category === 'string' ? p.category : '—')}</td>
                                     <td><span className={`status-pill ${pStatusClass}`}>{p?.status || '—'}</span></td>
@@ -1471,6 +1582,8 @@ function BusinessPage({ token, allowedActions }) {
                           </table>
                           {renderTableFooter(pagedProducts, setProductsPage, 'products')}
                         </div>
+                          )}
+                        </>
                       )}
                     </div>
                   ) : null}
@@ -1587,7 +1700,24 @@ function BusinessPage({ token, allowedActions }) {
                               <p className="bv-kpi-card-val">{formatCurrency(viewPayments?.totalPaidAmount)}</p>
                             </div>
                           </div>
-                          {Array.isArray(viewPayments?.payments) && viewPayments.payments.length > 0 ? (
+                          {paymentItems.length > 0 ? (
+                            <>
+                              {renderTableFilters([
+                                {
+                                  key: 'payment-status',
+                                  label: 'Status',
+                                  value: paymentStatusFilter,
+                                  onChange: (value) => {
+                                    setPaymentStatusFilter(value);
+                                    setPaymentsPage(0);
+                                  },
+                                  options: paymentStatusOptions,
+                                  allLabel: 'All statuses',
+                                },
+                              ])}
+                              {filteredPayments.length === 0 ? (
+                                <p className="empty-state" style={{ marginTop: 12 }}>No payments match the selected status.</p>
+                              ) : (
                             <div className="table-shell" style={{ marginTop: 20 }}>
                               <table className="admin-table bv-detail-table bv-payments-table">
                                 <thead>
@@ -1612,6 +1742,8 @@ function BusinessPage({ token, allowedActions }) {
                               </table>
                               {renderTableFooter(pagedPayments, setPaymentsPage, 'payments')}
                             </div>
+                              )}
+                            </>
                           ) : (
                             <p className="empty-state" style={{ marginTop: 20 }}>No payment records linked to this business account.</p>
                           )}
@@ -1645,7 +1777,24 @@ function BusinessPage({ token, allowedActions }) {
                               <p className="bv-kpi-card-val">{viewLeads?.acceptedLeads ?? 0}</p>
                             </div>
                           </div>
-                          {Array.isArray(viewLeads?.leads) && viewLeads.leads.length > 0 ? (
+                          {leadItems.length > 0 ? (
+                            <>
+                              {renderTableFilters([
+                                {
+                                  key: 'lead-status',
+                                  label: 'Status',
+                                  value: leadStatusFilter,
+                                  onChange: (value) => {
+                                    setLeadStatusFilter(value);
+                                    setLeadsPage(0);
+                                  },
+                                  options: leadStatusOptions,
+                                  allLabel: 'All statuses',
+                                },
+                              ])}
+                              {filteredLeads.length === 0 ? (
+                                <p className="empty-state" style={{ marginTop: 12 }}>No leads match the selected status.</p>
+                              ) : (
                             <div className="table-shell" style={{ marginTop: 20 }}>
                               <table className="admin-table bv-detail-table bv-leads-table">
                                 <thead>
@@ -1670,6 +1819,8 @@ function BusinessPage({ token, allowedActions }) {
                               </table>
                               {renderTableFooter(pagedLeads, setLeadsPage, 'leads')}
                             </div>
+                              )}
+                            </>
                           ) : (
                             <p className="empty-state" style={{ marginTop: 20 }}>No leads linked to this business yet.</p>
                           )}
@@ -1703,7 +1854,35 @@ function BusinessPage({ token, allowedActions }) {
                               <p className="bv-kpi-card-val">{formatCurrency(viewOrders?.totalOrderValue)}</p>
                             </div>
                           </div>
-                          {Array.isArray(viewOrders?.orders) && viewOrders.orders.length > 0 ? (
+                          {orderItems.length > 0 ? (
+                            <>
+                              {renderTableFilters([
+                                {
+                                  key: 'order-status',
+                                  label: 'Status',
+                                  value: orderStatusFilter,
+                                  onChange: (value) => {
+                                    setOrderStatusFilter(value);
+                                    setOrdersPage(0);
+                                  },
+                                  options: orderStatusOptions,
+                                  allLabel: 'All statuses',
+                                },
+                                {
+                                  key: 'order-payment-status',
+                                  label: 'Payment Status',
+                                  value: orderPaymentStatusFilter,
+                                  onChange: (value) => {
+                                    setOrderPaymentStatusFilter(value);
+                                    setOrdersPage(0);
+                                  },
+                                  options: orderPaymentStatusOptions,
+                                  allLabel: 'All payment statuses',
+                                },
+                              ])}
+                              {filteredOrders.length === 0 ? (
+                                <p className="empty-state" style={{ marginTop: 12 }}>No orders match the selected filters.</p>
+                              ) : (
                             <div className="table-shell" style={{ marginTop: 20 }}>
                               <table className="admin-table bv-detail-table bv-orders-table">
                                 <thead>
@@ -1734,6 +1913,8 @@ function BusinessPage({ token, allowedActions }) {
                               </table>
                               {renderTableFooter(pagedOrders, setOrdersPage, 'orders')}
                             </div>
+                              )}
+                            </>
                           ) : (
                             <p className="empty-state" style={{ marginTop: 20 }}>No purchase or sales orders linked to this business yet.</p>
                           )}
