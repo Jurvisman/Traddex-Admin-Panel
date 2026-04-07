@@ -1069,7 +1069,7 @@ function BusinessPage({ token, allowedActions }) {
             <span className="status-chip login">{activeCount} Active</span>
             <span className="status-chip logout">{inactiveCount} Inactive</span>
             <span className="status-chip pending">{pendingCount} Pending Review</span>
-            <button type="button" className="primary-btn small bdt-add-btn" onClick={openCreateBusiness}>
+            <button type="button" className="primary-btn small bdt-add-btn" onClick={() => navigate('/admin/businesses/create')}>
               + Add Business
             </button>
           </div>

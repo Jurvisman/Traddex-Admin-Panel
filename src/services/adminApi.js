@@ -76,6 +76,19 @@ export const updateBusinessProfileStatus = (token, profileId, status) =>
   request(`/admin/profile/${profileId}/status?status=${encodeURIComponent(status)}`, { method: 'POST', token });
 
 export const listIndustries = (token) => request('/industries', { token });
+export const sendOtp    = (mobileNumber) => request('/users/send-otp',   { method: 'POST', body: { mobileNumber } });
+export const verifyOtp  = (mobileNumber, otpCode) => request('/users/verify-otp', { method: 'POST', body: { mobileNumber, otpCode } });
+export const sendBusinessCreateOtp = (token, mobileNumber) =>
+  request('/admin/businesses/send-otp', { method: 'POST', body: { mobileNumber }, token });
+export const verifyBusinessCreateOtp = (token, mobileNumber, otpCode) =>
+  request('/admin/businesses/verify-otp', { method: 'POST', body: { mobileNumber, otpCode }, token });
+export const listCountries  = (token) => request('/locations/countries', { token });
+export const listStates     = (token, countryCode) => request(`/locations/states?countryCode=${encodeURIComponent(countryCode)}`, { token });
+export const listCities     = (token, stateCode)   => request(`/locations/cities?stateCode=${encodeURIComponent(stateCode)}`, { token });
+export const listBusinessTypes = (token, segment) => {
+  const params = segment ? `?segment=${encodeURIComponent(segment.toUpperCase())}` : '';
+  return request(`/profile/business/types${params}`, { token });
+};
 export const createIndustry = (token, payload) => request('/industries', { method: 'POST', body: payload, token });
 export const updateIndustry = (token, id, payload) =>
   request(`/industries/${id}`, { method: 'PUT', body: payload, token });

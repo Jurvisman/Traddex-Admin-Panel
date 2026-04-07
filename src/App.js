@@ -8,6 +8,7 @@ import {
   AppConfigPage,
   AdminTimezonesPage,
   BusinessPage,
+  BusinessCreatePage,
   BusinessProfileEditPage,
   BusinessAnalyticsPage,
   IndustryPage,
@@ -888,6 +889,18 @@ function AppRoutes() {
               fallbackPath={routeFallbackPath}
             >
               <BusinessPage token={authToken} allowedActions={allowedActionCodes} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="businesses/create"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={canAccessPath('/admin/businesses') && allowedActionCodes.has('ADMIN_BUSINESS_READ')}
+              fallbackPath={routeFallbackPath}
+            >
+              <BusinessCreatePage token={authToken} />
             </PermissionGate>
           }
         />
