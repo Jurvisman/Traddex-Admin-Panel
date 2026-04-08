@@ -1801,7 +1801,7 @@ function BusinessPage({ token, allowedActions }) {
                             <div className="table-shell" style={{ marginTop: 20 }}>
                               <table className="admin-table bv-detail-table bv-payments-table">
                                 <thead>
-                                  <tr><th>Payment ID</th><th>Type</th><th>Razorpay ID</th><th>Amount</th><th>Status</th><th>Date</th></tr>
+                                  <tr><th>P-ID</th><th>Type</th><th>Razorpay ID</th><th>Amount</th><th>Status</th><th>Date</th></tr>
                                 </thead>
                                 <tbody>
                                   {pagedPayments.items.map((payment, i) => (

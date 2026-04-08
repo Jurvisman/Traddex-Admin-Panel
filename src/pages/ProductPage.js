@@ -46,6 +46,12 @@ const createVariantEntry = () => ({
   attributes: [createVariantAttributeEntry()],
 });
 
+const PRODUCT_EDITOR_TABS = [
+  { key: 'general', label: 'General Details' },
+  { key: 'pricing', label: 'Pricing Details' },
+  { key: 'media', label: 'Media' },
+];
+
 const ADMIN_API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:8080';
 
 const normalize = (value) => String(value || '').toLowerCase();
@@ -809,7 +815,20 @@ function ProductPage({ token, adminUserId }) {
       });
       return next;
     });
-  };
+};
+
+function ProductEditorField({ label, required = false, span2 = false, hint = '', children }) {
+  return (
+    <div className={`bc-field${span2 ? ' bc-span2' : ''}`}>
+      <label className="bc-field-label">
+        {label}
+        {required ? <span className="bc-required"> *</span> : null}
+      </label>
+      {children}
+      {hint ? <span className="bc-hint">{hint}</span> : null}
+    </div>
+  );
+}
 
   const loadViewAttributeMappings = async (mainCategoryId, categoryId, subCategoryId) => {
     if (!mainCategoryId && !categoryId && !subCategoryId) {
@@ -1447,8 +1466,8 @@ function ProductPage({ token, adminUserId }) {
     if (type === 'BOOLEAN') {
       const boolValue = value === true ? 'true' : value === false ? 'false' : '';
       return (
-        <label className="field" key={mapping.id || mapping.attributeKey}>
-          <span>{label}</span>
+        <div className="bc-field" key={mapping.id || mapping.attributeKey}>
+          <label className="bc-field-label">{label}</label>
           <select
             value={boolValue}
             onChange={(event) => handleDynamicChange(mapping.attributeKey, event.target.value)}
@@ -1458,15 +1477,15 @@ function ProductPage({ token, adminUserId }) {
             <option value="true">Yes</option>
             <option value="false">No</option>
           </select>
-          {description ? <span className="field-help">{description}</span> : null}
-        </label>
+          {description ? <span className="bc-hint">{description}</span> : null}
+        </div>
       );
     }
 
     if (type === 'ENUM' && Array.isArray(options)) {
       return (
-        <label className="field" key={mapping.id || mapping.attributeKey}>
-          <span>{label}</span>
+        <div className="bc-field" key={mapping.id || mapping.attributeKey}>
+          <label className="bc-field-label">{label}</label>
           <select
             value={value}
             onChange={(event) => handleDynamicChange(mapping.attributeKey, event.target.value)}
@@ -1479,15 +1498,15 @@ function ProductPage({ token, adminUserId }) {
               </option>
             ))}
           </select>
-          {description ? <span className="field-help">{description}</span> : null}
-        </label>
+          {description ? <span className="bc-hint">{description}</span> : null}
+        </div>
       );
     }
 
     if (type === 'LIST') {
       return (
-        <label className="field field-span" key={mapping.id || mapping.attributeKey}>
-          <span>{label}</span>
+        <div className="bc-field bc-span2" key={mapping.id || mapping.attributeKey}>
+          <label className="bc-field-label">{label}</label>
           <input
             type="text"
             value={normalizeListValue(value)}
@@ -1495,16 +1514,16 @@ function ProductPage({ token, adminUserId }) {
             placeholder="e.g. red, blue"
             required={mapping.required}
           />
-          <span className="field-help">Enter comma-separated values.</span>
-          {description ? <span className="field-help">{description}</span> : null}
-        </label>
+          <span className="bc-hint">Enter comma-separated values.</span>
+          {description ? <span className="bc-hint">{description}</span> : null}
+        </div>
       );
     }
 
     if (type === 'OBJECT') {
       return (
-        <label className="field field-span" key={mapping.id || mapping.attributeKey}>
-          <span>{label}</span>
+        <div className="bc-field bc-span2" key={mapping.id || mapping.attributeKey}>
+          <label className="bc-field-label">{label}</label>
           <textarea
             rows={3}
             value={normalizeObjectValue(value)}
@@ -1512,15 +1531,15 @@ function ProductPage({ token, adminUserId }) {
             placeholder='{"key":"value"}'
             required={mapping.required}
           />
-          <span className="field-help">Advanced JSON field.</span>
-          {description ? <span className="field-help">{description}</span> : null}
-        </label>
+          <span className="bc-hint">Advanced JSON field.</span>
+          {description ? <span className="bc-hint">{description}</span> : null}
+        </div>
       );
     }
 
     return (
-      <label className="field" key={mapping.id || mapping.attributeKey}>
-        <span>{label}</span>
+      <div className="bc-field" key={mapping.id || mapping.attributeKey}>
+        <label className="bc-field-label">{label}</label>
         <input
           type={type === 'NUMBER' ? 'number' : type === 'DATE' ? 'date' : 'text'}
           value={value}
@@ -1528,9 +1547,9 @@ function ProductPage({ token, adminUserId }) {
           placeholder={mapping.attributeKey}
           required={mapping.required}
         />
-        {description ? <span className="field-help">{description}</span> : null}
-        {unitText ? <span className="field-help">{unitText}</span> : null}
-      </label>
+        {description ? <span className="bc-hint">{description}</span> : null}
+        {unitText ? <span className="bc-hint">{unitText}</span> : null}
+      </div>
     );
   };
 
@@ -3147,6 +3166,725 @@ function ProductPage({ token, adminUserId }) {
     selectedSubCategory?.name ||
     getScopedSubCategoryLabel(selectedCategory?.name, '', Boolean(form.useAllSubCategories)) ||
     '-';
+  const resolvedEditorTab = PRODUCT_EDITOR_TABS.some((tab) => tab.key === productFormTab)
+    ? productFormTab
+    : 'general';
+  const renderProductEditorForm = () => (
+    <div className="pcc-page">
+      <div className="pcc-topbar">
+        <span className="pcc-breadcrumb">Inventory / Products / Edit Product</span>
+        <button type="button" className="pcc-back-btn" onClick={handleCloseForm}>
+          ‹ Back
+        </button>
+      </div>
+      <Banner message={message} />
+      <form className="pcc-form-card" onSubmit={handleSubmit} noValidate>
+        <div className="pcc-tab-bar">
+          {PRODUCT_EDITOR_TABS.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              className={`pcc-tab-btn${resolvedEditorTab === tab.key ? ' active' : ''}`}
+              onClick={() => setProductFormTab(tab.key)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        <div className="pcc-form-body">
+          {resolvedEditorTab === 'general' ? (
+            <>
+              <div className="pcc-top-card pcc-top-card-setup">
+                <div className="pcc-top-card-head">
+                  <div>
+                    <h3 className="pcc-subsection-title">Setup Basics</h3>
+                    <p className="pcc-specs-sub">
+                      Business ownership stays fixed on edit. Category-specific fields load below in this same tab.
+                    </p>
+                  </div>
+                </div>
+                <div className="pcc-fgrid pcc-fgrid-setup">
+                  <ProductEditorField label="Business Account" span2 hint="Business mapping is read-only on edit.">
+                    <div className="field-static">
+                      {selectedBusinessAccount ? getBusinessName(selectedBusinessAccount) : selectedProduct?.businessName || 'No business linked'}
+                    </div>
+                  </ProductEditorField>
+                  <ProductEditorField label="Main Category" required>
+                    <select value={form.mainCategoryId} onChange={(event) => handleChange('mainCategoryId', event.target.value)}>
+                      <option value="">Select main category</option>
+                      {mainCategories.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.name}
+                        </option>
+                      ))}
+                    </select>
+                  </ProductEditorField>
+                  <ProductEditorField label="Category" required>
+                    <select
+                      value={form.categoryId}
+                      onChange={(event) => handleChange('categoryId', event.target.value)}
+                      disabled={!form.mainCategoryId}
+                    >
+                      <option value="">{form.mainCategoryId ? 'Select category' : 'Select main category first'}</option>
+                      {categories.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.name}
+                        </option>
+                      ))}
+                    </select>
+                  </ProductEditorField>
+                  <ProductEditorField
+                    label="Sub-category"
+                    hint={form.useAllSubCategories ? 'This product applies to all sub-categories under the selected category.' : ''}
+                  >
+                    <select
+                      value={form.subCategoryId}
+                      onChange={(event) => handleChange('subCategoryId', event.target.value)}
+                      disabled={!form.categoryId}
+                    >
+                      <option value="">{form.categoryId ? 'All sub-categories (optional)' : 'Select category first'}</option>
+                      {subCategories.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.name}
+                        </option>
+                      ))}
+                    </select>
+                  </ProductEditorField>
+                </div>
+              </div>
+
+              <div className="pcc-setup-summary" style={{ marginTop: 16 }}>
+                <div className="pcc-setup-pill">
+                  <span className="pcc-setup-pill-label">Business</span>
+                  <span className="pcc-setup-pill-value">
+                    {selectedBusinessAccount ? getBusinessName(selectedBusinessAccount) : selectedProduct?.businessName || 'No business linked'}
+                  </span>
+                </div>
+                <div className="pcc-setup-pill">
+                  <span className="pcc-setup-pill-label">Category Path</span>
+                  <span className="pcc-setup-pill-value">
+                    {[selectedMainCategory?.name, selectedCategory?.name, selectedSubCategoryLabel]
+                      .filter((part) => part && part !== '-')
+                      .join(' / ') || 'Complete category selection'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="pcc-fgrid" style={{ marginTop: 20 }}>
+                <ProductEditorField label="Product Name" required span2>
+                  <input
+                    type="text"
+                    value={form.productName}
+                    onChange={(event) => handleChange('productName', event.target.value)}
+                    placeholder="Enter product name"
+                  />
+                </ProductEditorField>
+                <ProductEditorField label="Product Type">
+                  <select value={form.productType} onChange={(event) => handleChange('productType', event.target.value)}>
+                    <option value="Physical">Physical</option>
+                    <option value="Digital">Digital</option>
+                  </select>
+                </ProductEditorField>
+                <ProductEditorField label="Brand Name">
+                  <div className="brand-autocomplete">
+                    <input
+                      type="text"
+                      value={form.brandName}
+                      onChange={(event) => handleBrandInputChange(event.target.value)}
+                      onFocus={() => setIsBrandAutocompleteOpen(true)}
+                      onBlur={() => {
+                        window.setTimeout(() => setIsBrandAutocompleteOpen(false), 120);
+                      }}
+                      placeholder="Type brand name"
+                    />
+                    {isBrandAutocompleteOpen && brandSuggestions.length > 0 ? (
+                      <div className="brand-suggestion-menu">
+                        {brandSuggestions.map((brand) => (
+                          <button
+                            key={brand.id}
+                            type="button"
+                            className="brand-suggestion-item"
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={() => handleBrandSuggestionSelect(brand)}
+                          >
+                            <span className="brand-suggestion-title">{brand.brandName}</span>
+                            {brand.website ? <span className="brand-suggestion-meta">{brand.website}</span> : null}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                </ProductEditorField>
+                <ProductEditorField label="HSN Code">
+                  <input
+                    type="text"
+                    value={form.hsnCode}
+                    onChange={(event) => handleChange('hsnCode', event.target.value)}
+                    placeholder="e.g. 61091000"
+                  />
+                </ProductEditorField>
+                <ProductEditorField label="Country Of Origin">
+                  <input
+                    type="text"
+                    value={form.countryOfOrigin}
+                    onChange={(event) => handleChange('countryOfOrigin', event.target.value)}
+                    placeholder="e.g. India"
+                  />
+                </ProductEditorField>
+                <ProductEditorField label="Short Description" span2>
+                  <input
+                    type="text"
+                    value={form.shortDescription}
+                    onChange={(event) => handleChange('shortDescription', event.target.value)}
+                    placeholder="One-line summary"
+                  />
+                </ProductEditorField>
+                <ProductEditorField label="Long Description" span2>
+                  <textarea
+                    rows={3}
+                    value={form.longDescription}
+                    onChange={(event) => handleChange('longDescription', event.target.value)}
+                    placeholder="Detailed product description..."
+                  />
+                </ProductEditorField>
+                <ProductEditorField label="Model Variant">
+                  <input
+                    type="text"
+                    value={form.modelVariant}
+                    onChange={(event) => handleChange('modelVariant', event.target.value)}
+                    placeholder="e.g. CT-212"
+                  />
+                </ProductEditorField>
+                <ProductEditorField label="Keywords" span2>
+                  <input
+                    type="text"
+                    value={form.keywords}
+                    onChange={(event) => handleChange('keywords', event.target.value)}
+                    placeholder="e.g. tyre, durable, ceat"
+                  />
+                </ProductEditorField>
+                <ProductEditorField label="Product Label">
+                  <input
+                    type="text"
+                    value={form.productLabel}
+                    onChange={(event) => handleChange('productLabel', event.target.value)}
+                    placeholder="e.g. Premium"
+                  />
+                </ProductEditorField>
+                <ProductEditorField label="Certifications">
+                  <input
+                    type="text"
+                    value={form.certifications}
+                    onChange={(event) => handleChange('certifications', event.target.value)}
+                    placeholder="e.g. ISO 9001"
+                  />
+                </ProductEditorField>
+                <ProductEditorField label="Warranty Period">
+                  <input
+                    type="text"
+                    value={form.warrantyPeriod}
+                    onChange={(event) => handleChange('warrantyPeriod', event.target.value)}
+                    placeholder="e.g. 1 year"
+                  />
+                </ProductEditorField>
+                <ProductEditorField label="Attributes" span2>
+                  <textarea
+                    rows={2}
+                    value={form.attributes}
+                    onChange={(event) => handleChange('attributes', event.target.value)}
+                    placeholder="General product attributes"
+                  />
+                </ProductEditorField>
+                <ProductEditorField label="Specifications" span2>
+                  <textarea
+                    rows={2}
+                    value={form.specifications}
+                    onChange={(event) => handleChange('specifications', event.target.value)}
+                    placeholder="General product specifications"
+                  />
+                </ProductEditorField>
+                <ProductEditorField label="Video Link" span2>
+                  <input
+                    type="text"
+                    value={form.videoLink}
+                    onChange={(event) => handleChange('videoLink', event.target.value)}
+                    placeholder="https://..."
+                  />
+                </ProductEditorField>
+                <ProductEditorField label="Account Code">
+                  <input
+                    type="text"
+                    value={form.accountCode}
+                    onChange={(event) => handleChange('accountCode', event.target.value)}
+                    placeholder="Enter account code"
+                  />
+                </ProductEditorField>
+                <ProductEditorField label="License Certificate ID">
+                  <input
+                    type="text"
+                    value={form.licenseCertificateId}
+                    onChange={(event) => handleChange('licenseCertificateId', event.target.value)}
+                    placeholder="Enter certificate ID"
+                  />
+                </ProductEditorField>
+                <ProductEditorField label="License Documents" span2>
+                  <textarea
+                    rows={2}
+                    value={form.licenseDocumentsText}
+                    onChange={(event) => handleChange('licenseDocumentsText', event.target.value)}
+                    placeholder="Paste license document URLs separated by comma or new line"
+                  />
+                </ProductEditorField>
+                <ProductEditorField label="Internal Notes" span2>
+                  <textarea
+                    rows={2}
+                    value={form.internalNotes}
+                    onChange={(event) => handleChange('internalNotes', event.target.value)}
+                    placeholder="Internal admin note"
+                  />
+                </ProductEditorField>
+                {attributeMappings.map((mapping) => renderDynamicFieldInput(mapping))}
+              </div>
+            </>
+          ) : null}
+          {resolvedEditorTab === 'pricing' ? (
+            <>
+              <p className="pcc-section-label">Base Pricing</p>
+              <div className="pcc-fgrid">
+                <ProductEditorField label="Selling Price (Rs)" required>
+                  <input
+                    type="number"
+                    value={form.sellingPrice}
+                    onChange={(event) => handleChange('sellingPrice', event.target.value)}
+                    placeholder="0.00"
+                    min="0"
+                    step="0.01"
+                  />
+                </ProductEditorField>
+                <ProductEditorField label="MRP (Rs)" required>
+                  <input
+                    type="number"
+                    value={form.mrp}
+                    onChange={(event) => handleChange('mrp', event.target.value)}
+                    placeholder="0.00"
+                    min="0"
+                    step="0.01"
+                  />
+                </ProductEditorField>
+                <ProductEditorField label="GST Rate (%)" required>
+                  <input
+                    type="number"
+                    value={form.gstRate}
+                    onChange={(event) => handleChange('gstRate', event.target.value)}
+                    placeholder="18"
+                    min="0"
+                    step="0.01"
+                  />
+                </ProductEditorField>
+                <ProductEditorField label="Minimum Order Qty">
+                  <input
+                    type="number"
+                    value={form.minimumOrderQuantity}
+                    onChange={(event) => handleChange('minimumOrderQuantity', event.target.value)}
+                    placeholder="e.g. 1"
+                    min="1"
+                  />
+                </ProductEditorField>
+              </div>
+
+              <div className="pcc-section-label-row">
+                <span className="pcc-section-label" style={{ marginBottom: 0 }}>Unit of Measure (UOM)</span>
+                <button
+                  type="button"
+                  className="ghost-btn small"
+                  onClick={() => handleAddUomEntry('generic')}
+                  disabled={!form.baseUomId || (form.uomConversions || []).length >= 3 || uoms.length === 0}
+                >
+                  + Add UOM Conversion
+                </button>
+              </div>
+              <div className="pcc-fgrid">
+                <ProductEditorField label="Base UOM" required hint="Selling price is interpreted per 1 unit of this UOM.">
+                  <select value={form.baseUomId} onChange={(event) => handleChange('baseUomId', event.target.value)}>
+                    <option value="">{uoms.length === 0 ? 'No UOMs available' : 'Select base UOM'}</option>
+                    {uoms.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {formatUomLabel(item)}
+                      </option>
+                    ))}
+                  </select>
+                </ProductEditorField>
+              </div>
+              {form.baseUomId ? (
+                <div className="pcc-uom-table-wrap">
+                  {form.uomConversions.length > 0 ? (
+                    <table className="pcc-uom-table">
+                      <thead>
+                        <tr>
+                          <th>UOM</th>
+                          <th>Qty</th>
+                          <th style={{ width: 30 }} />
+                          <th>Base UOM</th>
+                          <th>Factor <span className="bc-required">*</span></th>
+                          <th style={{ width: 40 }} />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {form.uomConversions.map((entry, index) => (
+                          <tr key={entry.rowId || `uom-row-${index}`}>
+                            <td>
+                              <select
+                                value={entry.uomId}
+                                onChange={(event) => handleUomConversionChange(index, 'uomId', event.target.value)}
+                              >
+                                <option value="">Select UOM</option>
+                                {uoms
+                                  .filter((item) => String(item.id) !== String(form.baseUomId || ''))
+                                  .map((item) => (
+                                    <option key={item.id} value={item.id}>
+                                      {formatUomLabel(item)}
+                                    </option>
+                                  ))}
+                              </select>
+                            </td>
+                            <td><input type="number" value="1" readOnly className="pcc-uom-fixed" /></td>
+                            <td className="pcc-uom-eq">=</td>
+                            <td><div className="pcc-uom-base-label">{selectedBaseUomLabel}</div></td>
+                            <td>
+                              <input
+                                type="number"
+                                step="0.000001"
+                                value={entry.conversionFactor}
+                                onChange={(event) => handleUomConversionChange(index, 'conversionFactor', event.target.value)}
+                                placeholder="e.g. 1000"
+                              />
+                            </td>
+                            <td>
+                              <button
+                                type="button"
+                                className="pcc-uom-remove"
+                                onClick={() => handleRemoveUomEntry('generic', index)}
+                                title="Remove"
+                              >
+                                ✕
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <div className="pcc-variants-empty">No conversion rows added yet.</div>
+                  )}
+                  {form.uomConversions.length > 0 ? (
+                    <div className="pcc-fgrid" style={{ marginTop: 16 }}>
+                      <ProductEditorField label="Default UOM for Stock In" required>
+                        <select
+                          value={form.defaultStockInUomId}
+                          onChange={(event) => handleUomDefaultChange('defaultStockInUomId', event.target.value)}
+                        >
+                          <option value="">Select UOM</option>
+                          {combinedDefaultOptions.map((option) => (
+                            <option key={`default-stock-in-${option.value}`} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </ProductEditorField>
+                      <ProductEditorField label="Default UOM for Stock Out" required>
+                        <select
+                          value={form.defaultStockOutUomId}
+                          onChange={(event) => handleUomDefaultChange('defaultStockOutUomId', event.target.value)}
+                        >
+                          <option value="">Select UOM</option>
+                          {combinedDefaultOptions.map((option) => (
+                            <option key={`default-stock-out-${option.value}`} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </ProductEditorField>
+                    </div>
+                  ) : null}
+                </div>
+              ) : (
+                <p className="pcc-hint-text">Select a base UOM first to configure conversion rows.</p>
+              )}
+
+              <div className="pcc-section-label-row" style={{ marginTop: 8 }}>
+                <span className="pcc-section-label" style={{ marginBottom: 0 }}>Variants ({form.variants.length})</span>
+                <button
+                  type="button"
+                  className="primary-btn small"
+                  onClick={handleAddVariant}
+                  disabled={form.variants.length >= 20}
+                >
+                  + Add Variant
+                </button>
+              </div>
+              {form.variants.length === 0 ? (
+                <div className="pcc-variants-empty">No variants added. Click "+ Add Variant" to begin.</div>
+              ) : (
+                <div className="pcc-variants-list">
+                  {form.variants.map((variant, index) => {
+                    const variantThumbnail = resolveMediaUrl(getPrimaryVariantImage(variant));
+                    const variantGallery = parseList(variant.galleryImagesText).map(resolveMediaUrl).filter(Boolean);
+                    return (
+                      <div className="pcc-variant-card" key={`variant-${index}`}>
+                        <div className="pcc-variant-card-head">
+                          <span className="pcc-variant-index">{variant.variantName || variant.sku || `Variant ${index + 1}`}</span>
+                          <button type="button" className="ghost-btn small" onClick={() => handleRemoveVariant(index)}>
+                            Remove
+                          </button>
+                        </div>
+                        <div className="pcc-fgrid">
+                          <ProductEditorField label="Variant Name">
+                            <input
+                              type="text"
+                              value={variant.variantName}
+                              onChange={(event) => handleVariantChange(index, 'variantName', event.target.value)}
+                              placeholder="e.g. Black / 256GB"
+                            />
+                          </ProductEditorField>
+                          <ProductEditorField label="SKU">
+                            <input
+                              type="text"
+                              value={variant.sku}
+                              onChange={(event) => handleVariantChange(index, 'sku', event.target.value)}
+                              placeholder="Variant SKU"
+                            />
+                          </ProductEditorField>
+                          <ProductEditorField label="Barcode">
+                            <input
+                              type="text"
+                              value={variant.barcode}
+                              onChange={(event) => handleVariantChange(index, 'barcode', event.target.value)}
+                              placeholder="Barcode"
+                            />
+                          </ProductEditorField>
+                          <ProductEditorField label="Selling Price (Rs)">
+                            <input
+                              type="number"
+                              value={variant.sellingPrice}
+                              onChange={(event) => handleVariantChange(index, 'sellingPrice', event.target.value)}
+                              placeholder="0.00"
+                            />
+                          </ProductEditorField>
+                          <ProductEditorField label="MRP (Rs)">
+                            <input
+                              type="number"
+                              value={variant.mrp}
+                              onChange={(event) => handleVariantChange(index, 'mrp', event.target.value)}
+                              placeholder="0.00"
+                            />
+                          </ProductEditorField>
+                          <ProductEditorField label="Stock Quantity">
+                            <input
+                              type="number"
+                              value={variant.stockQuantity}
+                              onChange={(event) => handleVariantChange(index, 'stockQuantity', event.target.value)}
+                              placeholder="0"
+                            />
+                          </ProductEditorField>
+                          <ProductEditorField label="Low Stock Alert">
+                            <input
+                              type="number"
+                              value={variant.lowStockAlert}
+                              onChange={(event) => handleVariantChange(index, 'lowStockAlert', event.target.value)}
+                              placeholder="0"
+                            />
+                          </ProductEditorField>
+                        </div>
+                        <div className="pcc-variant-media">
+                          <div className="pcc-variant-thumb-box">
+                            {variantThumbnail ? <img src={variantThumbnail} alt={variant.variantName || `Variant ${index + 1}`} /> : <span>No image</span>}
+                          </div>
+                          <div className="pcc-variant-media-actions">
+                            <button
+                              type="button"
+                              className="ghost-btn small"
+                              onClick={() => openMediaUpload({ kind: 'variant', index, field: 'thumbnailImage' })}
+                              disabled={isUploadingMedia}
+                            >
+                              {isUploadingMedia &&
+                              mediaTarget?.kind === 'variant' &&
+                              mediaTarget?.index === index &&
+                              mediaTarget?.field === 'thumbnailImage'
+                                ? 'Uploading...'
+                                : 'Upload Thumbnail'}
+                            </button>
+                            <button
+                              type="button"
+                              className="ghost-btn small"
+                              onClick={() => openMediaUpload({ kind: 'variant', index, field: 'galleryImagesText' })}
+                              disabled={isUploadingMedia}
+                            >
+                              {isUploadingMedia &&
+                              mediaTarget?.kind === 'variant' &&
+                              mediaTarget?.index === index &&
+                              mediaTarget?.field === 'galleryImagesText'
+                                ? 'Uploading...'
+                                : '+ Gallery'}
+                            </button>
+                            {variantGallery.length > 0 ? (
+                              <div className="pcc-gallery-grid pcc-variant-gallery">
+                                {variantGallery.map((image, imageIndex) => (
+                                  <div className="pcc-gallery-thumb" key={`${image}-${imageIndex}`}>
+                                    <img src={image} alt="" />
+                                    <button
+                                      type="button"
+                                      className="pcc-gallery-remove"
+                                      onClick={() => {
+                                        const urls = parseList(variant.galleryImagesText);
+                                        urls.splice(imageIndex, 1);
+                                        handleVariantChange(index, 'galleryImagesText', urls.join(', '));
+                                      }}
+                                      title="Remove image"
+                                    >
+                                      ×
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+                        <div className="pcc-variant-attrs">
+                          <div className="pcc-variant-attrs-head">
+                            <span className="pcc-media-label">Attributes</span>
+                            <button type="button" className="ghost-btn small" onClick={() => handleAddVariantAttribute(index)}>
+                              + Add
+                            </button>
+                          </div>
+                          {(variant.attributes || []).map((attr, attrIndex) => (
+                            <div className="pcc-attr-row" key={`variant-${index}-attr-${attrIndex}`}>
+                              <input
+                                type="text"
+                                value={attr.key}
+                                onChange={(event) => handleVariantAttributeChange(index, attrIndex, 'key', event.target.value)}
+                                placeholder="Key (e.g. color)"
+                              />
+                              <input
+                                type="text"
+                                value={attr.value}
+                                onChange={(event) => handleVariantAttributeChange(index, attrIndex, 'value', event.target.value)}
+                                placeholder="Value (e.g. Black)"
+                              />
+                              <button
+                                type="button"
+                                className="ghost-btn small"
+                                onClick={() => handleRemoveVariantAttribute(index, attrIndex)}
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          ) : null}
+          {resolvedEditorTab === 'media' ? (
+            <>
+              <p className="pcc-section-label">Thumbnail Image</p>
+              <div className="pcc-media-row">
+                <div className="pcc-thumb-box">
+                  {productPreviewUrl ? (
+                    <img src={productPreviewUrl} alt={form.productName || 'Product preview'} className="pcc-thumb-img" />
+                  ) : (
+                    <div className="pcc-thumb-empty"><span>No thumbnail</span></div>
+                  )}
+                </div>
+                <div className="pcc-thumb-actions">
+                  <p className="pcc-media-hint">Shown in product cards and listings. Square image recommended.</p>
+                  <div className="pcc-media-btns">
+                    <button
+                      type="button"
+                      className="primary-btn small"
+                      onClick={() => openMediaUpload({ kind: 'product', field: 'thumbnailImage' })}
+                      disabled={isUploadingMedia}
+                    >
+                      {isUploadingMedia && mediaTarget?.kind === 'product' && mediaTarget?.field === 'thumbnailImage'
+                        ? 'Uploading...'
+                        : 'Upload Thumbnail'}
+                    </button>
+                    {form.thumbnailImage ? (
+                      <button
+                        type="button"
+                        className="ghost-btn small"
+                        onClick={() => clearMediaField({ kind: 'product', field: 'thumbnailImage' })}
+                      >
+                        Clear
+                      </button>
+                    ) : null}
+                  </div>
+                  <div className="bc-field" style={{ marginTop: 10 }}>
+                    <label className="bc-field-label">Or paste URL</label>
+                    <input
+                      type="text"
+                      value={form.thumbnailImage}
+                      onChange={(event) => handleChange('thumbnailImage', event.target.value)}
+                      placeholder="https://..."
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="pcc-section-label-row" style={{ marginTop: 20 }}>
+                <span className="pcc-section-label" style={{ marginBottom: 0 }}>
+                  Gallery Images ({productGalleryPreview.length})
+                </span>
+                <button
+                  type="button"
+                  className="primary-btn small"
+                  onClick={() => openMediaUpload({ kind: 'product', field: 'galleryImagesText' })}
+                  disabled={isUploadingMedia}
+                >
+                  {isUploadingMedia && mediaTarget?.kind === 'product' && mediaTarget?.field === 'galleryImagesText'
+                    ? 'Uploading...'
+                    : '+ Add Images'}
+                </button>
+              </div>
+              {productGalleryPreview.length > 0 ? (
+                <div className="pcc-gallery-grid">
+                  {productGalleryPreview.map((image, index) => (
+                    <div className="pcc-gallery-thumb" key={`${image}-${index}`}>
+                      <img src={image} alt="" />
+                      <button
+                        type="button"
+                        className="pcc-gallery-remove"
+                        onClick={() => {
+                          const urls = parseList(form.galleryImagesText);
+                          urls.splice(index, 1);
+                          handleChange('galleryImagesText', urls.join(', '));
+                        }}
+                        title="Remove image"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="pcc-gallery-empty">No gallery images added yet.</div>
+              )}
+            </>
+          ) : null}
+        </div>
+        <div className="pcc-form-actions">
+          <button type="button" className="ghost-btn" onClick={handleCloseForm} disabled={isLoading}>
+            Cancel
+          </button>
+          <button type="submit" className="primary-btn" disabled={isLoading}>
+            {isLoading ? 'Updating...' : 'Update Product'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
   const selectorBusinessAccount =
     businessAccounts.find((item) => String(item?.id || '') === String(createSelectorForm.userId || '')) || null;
   const selectorMainCategory =
@@ -4110,7 +4848,7 @@ function ProductPage({ token, adminUserId }) {
 
   return (
     <div className="users-page product-page">
-      {showForm ? (
+      {showForm && !isEditing ? (
         <div className="gsc-form-page-header">
           <div className="gsc-form-breadcrumb-row">
             <div className="gsc-form-meta">
@@ -4127,7 +4865,7 @@ function ProductPage({ token, adminUserId }) {
           </div>
         </div>
       ) : null}
-      <Banner message={message} />
+      {showForm && isEditing ? null : <Banner message={message} />}
       <input
         ref={mediaInputRef}
         type="file"
@@ -4242,6 +4980,7 @@ function ProductPage({ token, adminUserId }) {
         </div>
       ) : null}
       {showForm ? (
+        isEditing ? renderProductEditorForm() : (
         <form className="panel card product-form gsc-create-form" onSubmit={handleSubmit}>
             <div className="gsc-form-tabs">
               <button type="button" className={`gsc-form-tab ${productFormTab === 'general' ? 'active' : ''}`} onClick={() => setProductFormTab('general')}>General Details</button>
@@ -5290,6 +6029,7 @@ function ProductPage({ token, adminUserId }) {
               </button>
             </div>
         </form>
+        )
       ) : null}
       {showViewOnly ? (
         <div className="product-view-shell">
