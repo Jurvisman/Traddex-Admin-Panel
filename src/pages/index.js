@@ -15,6 +15,7 @@ export { default as BrandPage } from './BrandPage';
 export { default as CollectionPage } from './CollectionPage';
 export { default as SubCategoryPage } from './SubCategoryPage';
 export { default as ProductPage } from './ProductPage';
+export { default as ProductCreatePage } from './ProductCreatePage';
 export { default as ProductAttributePage } from './ProductAttributePage';
 export { default as InquiryConfigPage } from './InquiryConfigPage';
 export { default as InquiryReportPage } from './InquiryReportPage';

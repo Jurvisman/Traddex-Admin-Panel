@@ -19,6 +19,7 @@ import {
   MainCategoryPage,
   OtpVerifyPage,
   ProductAttributePage,
+  ProductCreatePage,
   ProductPage,
   SubCategoryPage,
   SubscriptionAssignPage,
@@ -1152,6 +1153,22 @@ function AppRoutes() {
               fallbackPath={routeFallbackPath}
             >
               <ProductPage token={authToken} adminUserId={authUserId} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="products/create"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={
+                canAccessPath('/admin/products') &&
+                allowedActionCodes.has('ADMIN_PRODUCTS_READ') &&
+                allowedActionCodes.has('ADMIN_PRODUCTS_CREATE')
+              }
+              fallbackPath={routeFallbackPath}
+            >
+              <ProductCreatePage token={authToken} />
             </PermissionGate>
           }
         />

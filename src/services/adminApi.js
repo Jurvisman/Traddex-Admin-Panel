@@ -449,6 +449,9 @@ export const updateAdPricingConfig = (token, payload) =>
 // Review moderation
 export const listAdminProductReviews = (token, filters = {}) => {
   const params = new URLSearchParams();
+  if (filters.productId !== null && filters.productId !== undefined && filters.productId !== '') {
+    params.set('productId', String(filters.productId));
+  }
   if (filters.status) params.set('status', filters.status);
   if (filters.reportedOnly === true) params.set('reportedOnly', 'true');
   if (filters.query) params.set('query', filters.query);
