@@ -23,6 +23,7 @@ import { usePermissions } from '../shared/permissions';
 
 const normalize = (value) => String(value || '').toLowerCase();
 const DETAIL_PAGE_SIZE = 10;
+const BUSINESS_LIST_PAGE_SIZE_OPTIONS = [10, 25, 50];
 
 const formatDate = (value) => {
   if (!value) return '-';
@@ -370,6 +371,8 @@ function BusinessPage({ token, allowedActions }) {
   const [filterStatus, setFilterStatus] = useState('');
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [showColumnPicker, setShowColumnPicker] = useState(false);
+  const [businessListPage, setBusinessListPage] = useState(0);
+  const [businessListPageSize, setBusinessListPageSize] = useState(10);
   const [columnVisibility, setColumnVisibility] = useState({
     srNo: true,
     businessName: true,
@@ -560,6 +563,33 @@ function BusinessPage({ token, allowedActions }) {
       return true;
     });
   }, [query, filterStatus, businesses]);
+
+  const pagedBusinesses = useMemo(
+    () => paginateItems(filteredBusinesses, businessListPage, businessListPageSize),
+    [filteredBusinesses, businessListPage, businessListPageSize]
+  );
+
+  const visibleBusinessRowIds = useMemo(
+    () =>
+      pagedBusinesses.items
+        .map((user) => user?.id || user?.user_id)
+        .filter((value) => value !== null && value !== undefined && value !== ''),
+    [pagedBusinesses.items]
+  );
+
+  const allVisibleBusinessesSelected =
+    visibleBusinessRowIds.length > 0 &&
+    visibleBusinessRowIds.every((rowId) => selectedRows.has(rowId));
+
+  useEffect(() => {
+    setBusinessListPage(0);
+  }, [query, filterStatus]);
+
+  useEffect(() => {
+    if (businessListPage !== pagedBusinesses.page) {
+      setBusinessListPage(pagedBusinesses.page);
+    }
+  }, [businessListPage, pagedBusinesses.page]);
 
   const activeCount = useMemo(() => businesses.filter((user) => Number(user?.active) === 1).length, [businesses]);
   const inactiveCount = Math.max(0, businesses.length - activeCount);
@@ -1228,12 +1258,21 @@ function BusinessPage({ token, allowedActions }) {
                         <input
                           type="checkbox"
                           className="select-checkbox"
-                          checked={selectedRows.size === filteredBusinesses.length && filteredBusinesses.length > 0}
+                          checked={allVisibleBusinessesSelected}
                           onChange={(e) => {
+                            const pageRowIds = visibleBusinessRowIds;
                             if (e.target.checked) {
-                              setSelectedRows(new Set(filteredBusinesses.map((u) => u?.id || u?.user_id)));
+                              setSelectedRows((prev) => {
+                                const next = new Set(prev);
+                                pageRowIds.forEach((rowId) => next.add(rowId));
+                                return next;
+                              });
                             } else {
-                              setSelectedRows(new Set());
+                              setSelectedRows((prev) => {
+                                const next = new Set(prev);
+                                pageRowIds.forEach((rowId) => next.delete(rowId));
+                                return next;
+                              });
                             }
                           }}
                         />
@@ -1252,7 +1291,7 @@ function BusinessPage({ token, allowedActions }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredBusinesses.map((user, index) => {
+                    {pagedBusinesses.items.map((user, index) => {
                       const rowId = user?.id || user?.user_id;
                       const bp = user?.businessProfile || user;
                       const unifiedStatus = resolveUnifiedStatus(user);
@@ -1274,7 +1313,7 @@ function BusinessPage({ token, allowedActions }) {
                               }}
                             />
                           </td>
-                          {columnVisibility.srNo && <td>{index + 1}</td>}
+                          {columnVisibility.srNo && <td>{pagedBusinesses.start + index + 1}</td>}
                           {columnVisibility.businessName && (
                             <td>
                               <span className="bdt-name-link" onClick={() => handleView(user)} role="button" tabIndex={0}
@@ -1315,11 +1354,52 @@ function BusinessPage({ token, allowedActions }) {
                     })}
                   </tbody>
                 </table>
-                <div className="table-record-count">
-                  <span>Showing {filteredBusinesses.length} of {businesses.length} businesses</span>
-                  {filteredBusinesses.length === businesses.length && (
-                    <span className="bdt-no-more">All records shown</span>
-                  )}
+                <div className="bv-table-footer">
+                  <div className="table-record-count">
+                    <span>
+                      Showing {pagedBusinesses.totalItems ? pagedBusinesses.start + 1 : 0}-{pagedBusinesses.end} of {filteredBusinesses.length} businesses
+                    </span>
+                    {query || filterStatus ? <span className="bdt-no-more">Filtered from {businesses.length} total</span> : null}
+                  </div>
+                  <div className="product-pagination-controls">
+                    <label className="product-pagination-size">
+                      <span>Rows</span>
+                      <select
+                        value={businessListPageSize}
+                        onChange={(event) => {
+                          setBusinessListPageSize(Number(event.target.value) || 10);
+                          setBusinessListPage(0);
+                        }}
+                      >
+                        {BUSINESS_LIST_PAGE_SIZE_OPTIONS.map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <div className="bv-table-pagination">
+                      <button
+                        type="button"
+                        className="secondary-btn"
+                        disabled={pagedBusinesses.page === 0 || isLoading}
+                        onClick={() => setBusinessListPage((prev) => Math.max(prev - 1, 0))}
+                      >
+                        {'< Prev'}
+                      </button>
+                      <span>Page {pagedBusinesses.page + 1} / {pagedBusinesses.totalPages}</span>
+                      <button
+                        type="button"
+                        className="secondary-btn"
+                        disabled={pagedBusinesses.page >= pagedBusinesses.totalPages - 1 || isLoading}
+                        onClick={() =>
+                          setBusinessListPage((prev) => Math.min(prev + 1, Math.max(pagedBusinesses.totalPages - 1, 0)))
+                        }
+                      >
+                        {'Next >'}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
