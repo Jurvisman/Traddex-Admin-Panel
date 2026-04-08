@@ -1604,6 +1604,17 @@ function BusinessPage({ token, allowedActions }) {
                   {/* Products */}
                   {activeTab === 'products' ? (
                     <div className="bv-list-tab bv-list-tab-products">
+                      <div className="bv-tab-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                        <span className="bv-section-title" style={{ margin: 0 }}>Products ({viewProducts.length})</span>
+                        <button
+                          type="button"
+                          className="primary-btn"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 16px', fontSize: 13 }}
+                          onClick={() => navigate(`/admin/products/create?businessId=${viewUser?.id || routeBusinessId}`)}
+                        >
+                          <span style={{ fontSize: 16, lineHeight: 1 }}>+</span> Create Product
+                        </button>
+                      </div>
                       {isTabDataLoading ? (
                         <p className="empty-state">Loading products...</p>
                       ) : viewProducts.length === 0 ? (

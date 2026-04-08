@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Banner } from '../components';
 import {
   createProduct,
@@ -222,6 +222,8 @@ function MediaThumb({ url, onRemove }) {
 /* ══════════════════════════════════════════════════════════════ */
 function ProductCreatePage({ token }) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const prefilledBusinessId = searchParams.get('businessId') || '';
   const mediaInputRef = useRef(null);
   const variantMediaInputRef = useRef(null);
   const saveMenuRef = useRef(null);
@@ -294,6 +296,16 @@ function ProductCreatePage({ token }) {
       }
       if (defsRes.status === 'fulfilled')
         setAttributeDefinitions(defsRes.value?.data?.definitions || []);
+
+      // Auto-select business if prefilledBusinessId is set (from Business View page)
+      if (prefilledBusinessId && usersRes.status === 'fulfilled') {
+        const all = Array.isArray(usersRes.value?.data) ? usersRes.value.data : [];
+        const match = all.find((u) => String(u?.id) === prefilledBusinessId);
+        if (match) {
+          setForm((prev) => ({ ...prev, userId: prefilledBusinessId }));
+          setTouched((prev) => ({ ...prev, userId: true }));
+        }
+      }
     });
   }, [token]);
 
@@ -820,10 +832,13 @@ function ProductCreatePage({ token }) {
                 </div>
                 <div className="pcc-fgrid pcc-fgrid-setup">
                   <Field label="Business Account" required error={errors.userId} touched={touched.userId}>
-                    <select {...inp('userId')}>
+                    <select {...inp('userId')} disabled={Boolean(prefilledBusinessId && form.userId === prefilledBusinessId)}>
                       <option value="">Select business account</option>
                       {businesses.map((business) => <option key={business.id} value={business.id}>{getBusinessName(business)}</option>)}
                     </select>
+                    {prefilledBusinessId && form.userId === prefilledBusinessId ? (
+                      <span className="bc-hint">Pre-selected from Business View page</span>
+                    ) : null}
                   </Field>
                   <Field label="Main Category" required error={errors.mainCategoryId} touched={touched.mainCategoryId}>
                     <select {...inp('mainCategoryId')}>
