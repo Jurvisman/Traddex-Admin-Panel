@@ -16837,6 +16837,70 @@ textarea {
   letter-spacing: 0.06em;
 }
 
+/* ── Feature usage section inside subscription card ─────────── */
+.bv-feature-usage-section {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--admin-line, #e5e7eb);
+}
+.bv-feature-usage-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--admin-ink, #111827);
+  margin: 0 0 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.bv-feature-usage-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+  background: #f3f4f6;
+  border-radius: 20px;
+  padding: 2px 8px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.bv-feature-usage-empty {
+  font-size: 13px;
+  color: #9ca3af;
+  margin: 0;
+}
+.bv-feature-usage-table th,
+.bv-feature-usage-table td {
+  font-size: 12.5px;
+}
+.bv-feature-usage-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+.bv-feature-usage-bar-track {
+  flex: 1;
+  height: 8px;
+  border-radius: 4px;
+  background: #f3f4f6;
+  overflow: hidden;
+  min-width: 60px;
+}
+.bv-feature-usage-bar {
+  height: 100%;
+  border-radius: 4px;
+  min-width: 2px;
+  transition: width 0.3s ease;
+}
+.bv-feature-usage-pct {
+  font-size: 11px;
+  color: #6b7280;
+  white-space: nowrap;
+  min-width: 32px;
+  text-align: right;
+}
+
 /* ── KPI cards grid ────────────────────────────────────────── */
 .bv-kpi-grid {
   display: grid;

@@ -392,6 +392,9 @@ export const listSubscriptionAssignments = (token, filters = {}) => {
   return request(`/admin/subscription/list${query}`, { token });
 };
 
+export const getBusinessFeatureUsage = (token, userId) =>
+  request(`/admin/subscription/feature-usage?user_id=${userId}`, { token });
+
 // Addon pricing management
 export const upsertAddonPricing = (token, payload) =>
   request('/admin/addon/pricing', { method: 'POST', body: payload, token });

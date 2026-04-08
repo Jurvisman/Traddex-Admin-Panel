@@ -7,6 +7,7 @@ import {
   fetchBusinessDetails,
   fetchBusinesses,
   getAddonHistory,
+  getBusinessFeatureUsage,
   getBusinessLeadSummary,
   getBusinessOrderSummary,
   getBusinessPaymentSummary,
@@ -401,6 +402,7 @@ function BusinessPage({ token, allowedActions }) {
 
   // View-page tab data
   const [viewSubscriptions, setViewSubscriptions] = useState([]);
+  const [viewFeatureUsage, setViewFeatureUsage] = useState([]); // [{ subscription_id, plan_name, features: [...] }]
   const [viewLeads, setViewLeads] = useState(null);
   const [viewOrders, setViewOrders] = useState(null);
   const [viewPayments, setViewPayments] = useState(null);
@@ -495,6 +497,7 @@ function BusinessPage({ token, allowedActions }) {
       setViewProducts([]);
       setActiveTab('personal');
       setViewSubscriptions([]);
+      setViewFeatureUsage([]);
       setViewLeads(null);
       setViewOrders(null);
       setViewPayments(null);
@@ -813,18 +816,20 @@ function BusinessPage({ token, allowedActions }) {
     if (!userId) return;
     setIsTabDataLoading(true);
     try {
-      const [subResp, leadsResp, ordersResp, paymentsResp, scoreResp, addonResp] = await Promise.all([
+      const [subResp, leadsResp, ordersResp, paymentsResp, scoreResp, addonResp, featureUsageResp] = await Promise.all([
         listSubscriptionAssignments(token, { user_id: userId }),
         getBusinessLeadSummary(token, userId).catch(() => null),
         getBusinessOrderSummary(token, userId).catch(() => null),
         getBusinessPaymentSummary(token, userId).catch(() => null),
         getUserBusinessScore(token, userId).catch(() => null),
         getAddonHistory(token, userId).catch(() => null),
+        getBusinessFeatureUsage(token, userId).catch(() => null),
       ]);
       setViewSubscriptions(
         Array.isArray(subResp?.data?.subscriptions) ? subResp.data.subscriptions :
         Array.isArray(subResp?.data) ? subResp.data : []
       );
+      setViewFeatureUsage(Array.isArray(featureUsageResp?.data?.feature_usage) ? featureUsageResp.data.feature_usage : []);
       setViewLeads(leadsResp?.data || null);
       setViewOrders(ordersResp?.data || null);
       setViewPayments(paymentsResp?.data || null);
@@ -832,6 +837,7 @@ function BusinessPage({ token, allowedActions }) {
       setViewAddonHistory(Array.isArray(addonResp?.data) ? addonResp.data : []);
     } catch (_) {
       setViewSubscriptions([]);
+      setViewFeatureUsage([]);
       setViewLeads(null);
       setViewOrders(null);
       setViewPayments(null);
@@ -1681,6 +1687,12 @@ function BusinessPage({ token, allowedActions }) {
                             const planName = sub?.plan?.name || sub?.plan_name || sub?.planName || '—';
                             const planPrice = sub?.plan?.price ?? sub?.plan?.amount ?? sub?.price ?? null;
                             const isSubActive = sub?.status === 'ACTIVE';
+                            // match feature usage for this subscription
+                            const subId = sub?.id;
+                            const usageRecord = viewFeatureUsage.find(
+                              (u) => u.subscription_id === subId || u.subscription_id === sub?.subscription_id
+                            );
+                            const featureRows = Array.isArray(usageRecord?.features) ? usageRecord.features : [];
                             return (
                               <div key={sub?.id || i} className="bv-sub-card">
                                 <div className="bv-sub-card-head">
@@ -1720,6 +1732,70 @@ function BusinessPage({ token, allowedActions }) {
                                       <p className="user-detail-value">{sub.plan.description}</p>
                                     </div>
                                   ) : null}
+                                </div>
+
+                                {/* Feature Usage Table */}
+                                <div className="bv-feature-usage-section">
+                                  <p className="bv-feature-usage-title">
+                                    Feature Usage
+                                    {featureRows.length > 0 && (
+                                      <span className="bv-feature-usage-count">{featureRows.length} feature{featureRows.length !== 1 ? 's' : ''}</span>
+                                    )}
+                                  </p>
+                                  {featureRows.length === 0 ? (
+                                    <p className="bv-feature-usage-empty">No feature data available for this plan.</p>
+                                  ) : (
+                                    <div className="table-shell">
+                                      <table className="admin-table bv-feature-usage-table">
+                                        <thead>
+                                          <tr>
+                                            <th>#</th>
+                                            <th>Feature</th>
+                                            <th>Limit</th>
+                                            <th>Used</th>
+                                            <th>Remaining</th>
+                                            <th style={{ minWidth: 100 }}>Usage</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {featureRows.map((feat, fi) => {
+                                            const limit = feat.total_limit;
+                                            const used = feat.used_count ?? 0;
+                                            const remaining = feat.remaining_count;
+                                            const pct = limit != null && limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : null;
+                                            const barColor = pct == null ? '#8660ff' : pct >= 90 ? '#dc2626' : pct >= 70 ? '#d97706' : '#16a34a';
+                                            return (
+                                              <tr key={feat.feature_code || fi}>
+                                                <td>{fi + 1}</td>
+                                                <td>{feat.feature_name || feat.feature_code || '—'}</td>
+                                                <td>{limit != null ? limit : '∞'}</td>
+                                                <td>{used}</td>
+                                                <td>
+                                                  {remaining != null ? (
+                                                    <span style={{ color: remaining === 0 ? '#dc2626' : remaining <= (limit * 0.2) ? '#d97706' : 'inherit', fontWeight: remaining === 0 ? 700 : 400 }}>
+                                                      {remaining}
+                                                    </span>
+                                                  ) : '∞'}
+                                                </td>
+                                                <td>
+                                                  {pct != null ? (
+                                                    <div className="bv-feature-usage-bar-wrap">
+                                                      <div className="bv-feature-usage-bar-track">
+                                                        <div className="bv-feature-usage-bar" style={{ width: `${pct}%`, background: barColor }} />
+                                                      </div>
+                                                      <span className="bv-feature-usage-pct">{pct}%</span>
+                                                    </div>
+                                                  ) : (
+                                                    <span style={{ color: '#6b7280', fontSize: 12 }}>Unlimited</span>
+                                                  )}
+                                                </td>
+                                              </tr>
+                                            );
+                                          })}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             );
