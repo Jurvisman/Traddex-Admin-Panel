@@ -139,7 +139,18 @@ export const updateSubCategoryOrder = (token, id, position, categoryId) =>
   request(`/sub-categories/${id}/order`, { method: 'POST', body: { position, categoryId }, token });
 export const deleteSubCategory = (token, id) => request(`/sub-categories/${id}`, { method: 'DELETE', token });
 
-export const listProducts = (token) => request('/admin/product/getall', { token });
+export const listProducts = (token, filters = {}) => {
+  const params = new URLSearchParams();
+  if (filters.status) params.set('status', filters.status);
+  if (filters.query) params.set('query', filters.query);
+  if (filters.category) params.set('category', filters.category);
+  if (filters.business) params.set('business', filters.business);
+  if (filters.brand) params.set('brand', filters.brand);
+  if (filters.page !== null && filters.page !== undefined) params.set('page', String(filters.page));
+  if (filters.size !== null && filters.size !== undefined) params.set('size', String(filters.size));
+  const query = params.toString() ? `?${params.toString()}` : '';
+  return request(`/admin/product/getall${query}`, { token });
+};
 export const listProductsByUser = (token, userId) => request(`/admin/product/by-user?userId=${userId}`, { token });
 export const listProductsByBusinessUser = (token, userId) => request(`/admin/businesses/${userId}/products`, { token });
 export const getBusinessLeadSummary = (token, userId) => request(`/admin/businesses/${userId}/leads`, { token });

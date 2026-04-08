@@ -399,6 +399,8 @@ const PRODUCT_STATUS_FILTER_OPTIONS = [
   { value: 'REJECTED', label: 'Rejected' },
 ];
 
+const PRODUCT_PAGE_SIZE_OPTIONS = [10, 25, 50];
+
 const getProductRecordId = (product) => product?.id || product?.productId || null;
 const getProductCode = (product) => product?.sku || product?.productCode || `PRD-${getProductRecordId(product) || '-'}`;
 const getProductSellingPrice = (product) => product?.sellingPrice ?? product?.priceRange?.min ?? null;
@@ -476,6 +478,7 @@ function ProductPage({ token, adminUserId }) {
   const [message, setMessage] = useState({ type: 'info', text: '' });
   const [isLoading, setIsLoading] = useState(false);
   const [query, setQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [showColumnPicker, setShowColumnPicker] = useState(false);
@@ -490,6 +493,17 @@ function ProductPage({ token, adminUserId }) {
   const [showForm, setShowForm] = useState(false);
   const [showCreateSelector, setShowCreateSelector] = useState(false);
   const [showUomSection, setShowUomSection] = useState(false);
+  const [productListPage, setProductListPage] = useState(0);
+  const [productPageSize, setProductPageSize] = useState(25);
+  const [productListMeta, setProductListMeta] = useState({
+    page: 0,
+    size: 25,
+    totalElements: 0,
+    totalPages: 1,
+    hasNext: false,
+    hasPrevious: false,
+  });
+  const [categoryFilterOptions, setCategoryFilterOptions] = useState([]);
 
   const [businessAccounts, setBusinessAccounts] = useState([]);
   const [createSelectorForm, setCreateSelectorForm] = useState(() => createProductSelectorForm());
@@ -537,73 +551,41 @@ function ProductPage({ token, adminUserId }) {
     return mapping;
   }, [attributeDefinitions]);
 
-  const categoryFilterOptions = useMemo(() => {
-    const items = new Set();
-    products.forEach((product) => {
-      const name = String(buildProductCategoryPath(product?.category) || '').trim();
-      if (name) items.add(name);
-    });
-    return Array.from(items).sort((left, right) => left.localeCompare(right));
-  }, [products]);
-
   const businessFilterOptions = useMemo(() => {
     const items = new Set();
+    if (businessAccounts.length > 0) {
+      businessAccounts.forEach((account) => {
+        const name = String(account?.businessName || account?.companyName || getBusinessName(account) || '').trim();
+        if (name) items.add(name);
+      });
+    }
     products.forEach((product) => {
       const name = String(product?.businessName || '').trim();
       if (name) items.add(name);
     });
     return Array.from(items).sort((left, right) => left.localeCompare(right));
-  }, [products]);
+  }, [businessAccounts, products]);
 
   const brandFilterOptions = useMemo(() => {
     const items = new Set();
+    brandOptions.forEach((brand) => {
+      const name = String(brand?.brandName || '').trim();
+      if (name) items.add(name);
+    });
     products.forEach((product) => {
       const name = String(product?.brandName || 'Unbranded').trim();
       if (name) items.add(name);
     });
     return Array.from(items).sort((left, right) => left.localeCompare(right));
-  }, [products]);
+  }, [brandOptions, products]);
 
   const filteredProducts = useMemo(() => {
-    const term = normalize(query).trim();
-    const visibleProducts = products.filter((product) => {
-      const categoryParts = formatCategoryParts(product?.category);
-      const categoryPath = buildProductCategoryPath(product?.category);
-      const businessName = String(product?.businessName || '').trim();
-      const brandName = String(product?.brandName || 'Unbranded').trim();
-      const haystack = [
-        getProductCode(product),
-        product?.productName,
-        brandName,
-        businessName,
-        categoryParts.primary,
-        categoryParts.secondary,
-        categoryPath,
-        product?.category?.mainCategoryName,
-        product?.category?.categoryName,
-        product?.category?.subCategoryName,
-        product?.approvalStatus,
-        product?.hsnCode,
-        product?.productType,
-      ]
-        .map(normalize)
-        .join(' ');
-
-      if (term && !haystack.includes(term)) return false;
-      if (productFilters.status && String(product?.approvalStatus || '').toUpperCase() !== productFilters.status) return false;
-      if (productFilters.category && categoryPath !== productFilters.category) return false;
-      if (productFilters.business && businessName !== productFilters.business) return false;
-      if (productFilters.brand && brandName !== productFilters.brand) return false;
-
-      return true;
-    });
-
-    return [...visibleProducts].sort((left, right) => {
+    return [...products].sort((left, right) => {
       const timestampDiff = getProductSortTimestamp(right) - getProductSortTimestamp(left);
       if (timestampDiff !== 0) return timestampDiff;
       return getProductSortId(right) - getProductSortId(left);
     });
-  }, [products, query, productFilters]);
+  }, [products]);
 
   const brandSuggestions = useMemo(() => {
     const term = normalize(form.brandName).trim();
@@ -647,9 +629,32 @@ function ProductPage({ token, adminUserId }) {
     canApproveProduct || canRequestChangesProduct || canRejectProduct
   );
 
-  const loadProducts = async () => {
-    const response = await listProducts(token);
-    setProducts(response?.data?.products || []);
+  const loadProducts = async ({
+    page = productListPage,
+    size = productPageSize,
+    queryText = debouncedQuery,
+    filters = productFilters,
+  } = {}) => {
+    const response = await listProducts(token, {
+      page,
+      size,
+      query: queryText,
+      status: filters.status,
+      category: filters.category,
+      business: filters.business,
+      brand: filters.brand,
+    });
+    const nextProducts = response?.data?.products || [];
+    const pagination = response?.data?.pagination || {};
+    setProducts(nextProducts);
+    setProductListMeta({
+      page: Number(pagination.page ?? page) || 0,
+      size: Number(pagination.size ?? size) || size,
+      totalElements: Number(pagination.totalElements ?? nextProducts.length) || 0,
+      totalPages: Math.max(Number(pagination.totalPages ?? 1) || 1, 1),
+      hasNext: Boolean(pagination.hasNext),
+      hasPrevious: Boolean(pagination.hasPrevious),
+    });
     setSelectedIds(new Set());
   };
 
@@ -666,6 +671,41 @@ function ProductPage({ token, adminUserId }) {
   const loadMainCategories = async () => {
     const response = await listMainCategories(token);
     setMainCategories(response?.data || []);
+  };
+
+  const loadCategoryFilterOptions = async () => {
+    const mainResponse = await listMainCategories(token);
+    const mainItems = Array.isArray(mainResponse?.data) ? mainResponse.data : [];
+    const options = new Set(
+      mainItems
+        .map((item) => String(item?.name || '').trim())
+        .filter(Boolean)
+    );
+
+    const categoryResponses = await Promise.all(
+      mainItems.map((item) =>
+        listCategories(token, item?.id).catch(() => ({ data: [] }))
+      )
+    );
+    const categoryItems = categoryResponses.flatMap((response) => (Array.isArray(response?.data) ? response.data : []));
+    categoryItems.forEach((item) => {
+      const name = String(item?.name || '').trim();
+      if (name) options.add(name);
+    });
+
+    const subCategoryResponses = await Promise.all(
+      categoryItems.map((item) =>
+        listSubCategories(token, item?.id).catch(() => ({ data: [] }))
+      )
+    );
+    subCategoryResponses
+      .flatMap((response) => (Array.isArray(response?.data) ? response.data : []))
+      .forEach((item) => {
+        const name = String(item?.name || '').trim();
+        if (name) options.add(name);
+      });
+
+    setCategoryFilterOptions(Array.from(options).sort((left, right) => left.localeCompare(right)));
   };
 
   const loadBusinessAccounts = async (force = false) => {
@@ -903,17 +943,21 @@ function ProductPage({ token, adminUserId }) {
     }
   };
 
-  const isBusinessAccount = (user) =>
-    String(user?.userType || user?.type || user?.role || '').trim().toUpperCase() === 'BUSINESS';
+  function isBusinessAccount(user) {
+    return String(user?.userType || user?.type || user?.role || '').trim().toUpperCase() === 'BUSINESS';
+  }
 
-  const getBusinessName = (user) =>
-    user?.businessName ||
-    user?.companyName ||
-    user?.name ||
-    user?.full_name ||
-    user?.fullName ||
-    user?.mobile ||
-    `Business #${user?.id || ''}`;
+  function getBusinessName(user) {
+    return (
+      user?.businessName ||
+      user?.companyName ||
+      user?.name ||
+      user?.full_name ||
+      user?.fullName ||
+      user?.mobile ||
+      `Business #${user?.id || ''}`
+    );
+  }
 
   const formatUomLabel = (uom) => {
     if (!uom) return '';
@@ -947,6 +991,7 @@ function ProductPage({ token, adminUserId }) {
       brand: '',
       status: '',
     });
+    setProductListPage(0);
   };
 
   const activeProductFilterCount = Object.values(productFilters).filter(Boolean).length;
@@ -955,6 +1000,11 @@ function ProductPage({ token, adminUserId }) {
     (total, column) => total + (column.minWidth || 150),
     280
   );
+  const productPageStart = productListMeta.totalElements > 0 ? productListMeta.page * productListMeta.size + 1 : 0;
+  const productPageEnd =
+    productListMeta.totalElements > 0
+      ? Math.min(productPageStart + filteredProducts.length - 1, productListMeta.totalElements)
+      : 0;
   const selectedProducts = products.filter((product) => selectedIds.has(getProductRecordId(product)));
 
   const getProductTableCellValue = (product, key) => {
@@ -1485,11 +1535,18 @@ function ProductPage({ token, adminUserId }) {
   };
 
   useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedQuery(query.trim());
+    }, 300);
+    return () => window.clearTimeout(timeoutId);
+  }, [query]);
+
+  useEffect(() => {
     if (didInitRef.current) return;
     didInitRef.current = true;
     setIsLoading(true);
     setMessage({ type: 'info', text: '' });
-    const tasks = [loadProducts(), loadMainCategories(), loadAttributeDefinitions(), loadUoms()];
+    const tasks = [loadMainCategories(), loadAttributeDefinitions(), loadUoms(), loadBusinessAccounts(), loadCategoryFilterOptions()];
     if (canCreateProduct || canEditProduct || canApproveProduct) {
       tasks.push(loadBrandOptions());
     }
@@ -1502,6 +1559,23 @@ function ProductPage({ token, adminUserId }) {
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!didInitRef.current) return;
+    setIsLoading(true);
+    setMessage((prev) => (prev?.type === 'error' ? prev : { type: 'info', text: '' }));
+    loadProducts({
+      page: productListPage,
+      size: productPageSize,
+      queryText: debouncedQuery,
+      filters: productFilters,
+    })
+      .catch((error) => {
+        setMessage({ type: 'error', text: error.message || 'Failed to load products.' });
+      })
+      .finally(() => setIsLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, productListPage, productPageSize, debouncedQuery, productFilters]);
 
   useEffect(() => {
     if (!selectedProductId) {
@@ -1613,6 +1687,13 @@ function ProductPage({ token, adminUserId }) {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reviewForm.mainCategoryId, reviewForm.categoryId, reviewForm.subCategoryId]);
+
+  useEffect(() => {
+    const lastPage = Math.max((productListMeta.totalPages || 1) - 1, 0);
+    if (productListPage > lastPage) {
+      setProductListPage(lastPage);
+    }
+  }, [productListMeta.totalPages, productListPage]);
 
   useEffect(() => {
     if (!isEditRoute) {
@@ -5531,7 +5612,10 @@ function ProductPage({ token, adminUserId }) {
                   type="search"
                   placeholder="Search"
                   value={query}
-                  onChange={(event) => setQuery(event.target.value)}
+                  onChange={(event) => {
+                    setQuery(event.target.value);
+                    setProductListPage(0);
+                  }}
                   aria-label="Search products"
                 />
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 18, height: 18, color: '#6b7280', flexShrink: 0 }}>
@@ -5561,7 +5645,10 @@ function ProductPage({ token, adminUserId }) {
                   <span>Category</span>
                   <select
                     value={productFilters.category}
-                    onChange={(event) => setProductFilters((prev) => ({ ...prev, category: event.target.value }))}
+                    onChange={(event) => {
+                      setProductFilters((prev) => ({ ...prev, category: event.target.value }));
+                      setProductListPage(0);
+                    }}
                   >
                     <option value="">Select Category</option>
                     {categoryFilterOptions.map((option) => (
@@ -5576,7 +5663,10 @@ function ProductPage({ token, adminUserId }) {
                   <span>Brand</span>
                   <select
                     value={productFilters.brand}
-                    onChange={(event) => setProductFilters((prev) => ({ ...prev, brand: event.target.value }))}
+                    onChange={(event) => {
+                      setProductFilters((prev) => ({ ...prev, brand: event.target.value }));
+                      setProductListPage(0);
+                    }}
                   >
                     <option value="">Select Brand</option>
                     {brandFilterOptions.map((option) => (
@@ -5591,7 +5681,10 @@ function ProductPage({ token, adminUserId }) {
                   <span>Business</span>
                   <select
                     value={productFilters.business}
-                    onChange={(event) => setProductFilters((prev) => ({ ...prev, business: event.target.value }))}
+                    onChange={(event) => {
+                      setProductFilters((prev) => ({ ...prev, business: event.target.value }));
+                      setProductListPage(0);
+                    }}
                   >
                     <option value="">Select Business</option>
                     {businessFilterOptions.map((option) => (
@@ -5606,7 +5699,10 @@ function ProductPage({ token, adminUserId }) {
                   <span>Status</span>
                   <select
                     value={productFilters.status}
-                    onChange={(event) => setProductFilters((prev) => ({ ...prev, status: event.target.value }))}
+                    onChange={(event) => {
+                      setProductFilters((prev) => ({ ...prev, status: event.target.value }));
+                      setProductListPage(0);
+                    }}
                   >
                     {PRODUCT_STATUS_FILTER_OPTIONS.map((option) => (
                       <option key={option.value || 'all'} value={option.value}>
@@ -5653,181 +5749,225 @@ function ProductPage({ token, adminUserId }) {
           {filteredProducts.length === 0 ? (
             <p className="empty-state">No products found.</p>
           ) : (
-            <div className="table-shell product-table-shell">
-              <table className="admin-table users-table product-table" style={{ minWidth: `${productTableMinWidth}px` }}>
-                <thead>
-                  <tr>
-                    <th>
-                      <input
-                        type="checkbox"
-                        className="select-checkbox"
-                        checked={allSelected}
-                        onChange={toggleSelectAll}
-                        aria-label="Select all products"
-                      />
-                    </th>
-                    {visibleProductColumns.map((column) => (
-                      <th key={column.key} style={{ minWidth: column.minWidth }}>
-                        {column.label}
+            <>
+              <div className="table-shell product-table-shell">
+                <table className="admin-table users-table product-table" style={{ minWidth: `${productTableMinWidth}px` }}>
+                  <thead>
+                    <tr>
+                      <th>
+                        <input
+                          type="checkbox"
+                          className="select-checkbox"
+                          checked={allSelected}
+                          onChange={toggleSelectAll}
+                          aria-label="Select all products"
+                        />
                       </th>
-                    ))}
-                    <th className="table-actions">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredProducts.map((product) => {
-                    const statusValue = product?.approvalStatus || '';
-                    const hasFullCategoryPath = Boolean(
-                      product?.category?.mainCategoryId && product?.category?.categoryId && product?.category?.subCategoryId
-                    );
-                    const productId = getProductRecordId(product);
-                      return (
-                        <tr
-                          key={productId}
-                          className={canViewProduct ? 'table-row-clickable' : ''}
-                          onClick={canViewProduct ? () => handleViewProduct(productId) : undefined}
-                        >
-                        <td>
-                          <input
-                            type="checkbox"
-                            className="select-checkbox"
-                            checked={productId ? selectedIds.has(productId) : false}
-                            onClick={(event) => event.stopPropagation()}
-                            onChange={() => toggleSelect(productId)}
-                            aria-label={`Select ${product?.productName || 'product'}`}
-                          />
-                        </td>
-                        {visibleProductColumns.map((column) => (
-                          <td key={`${productId}-${column.key}`} style={{ minWidth: column.minWidth }}>
-                            {getProductTableCellValue(product, column.key)}
+                      {visibleProductColumns.map((column) => (
+                        <th key={column.key} style={{ minWidth: column.minWidth }}>
+                          {column.label}
+                        </th>
+                      ))}
+                      <th className="table-actions">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredProducts.map((product) => {
+                      const statusValue = product?.approvalStatus || '';
+                      const hasFullCategoryPath = Boolean(
+                        product?.category?.mainCategoryId && product?.category?.categoryId && product?.category?.subCategoryId
+                      );
+                      const productId = getProductRecordId(product);
+                        return (
+                          <tr
+                            key={productId}
+                            className={canViewProduct ? 'table-row-clickable' : ''}
+                            onClick={canViewProduct ? () => handleViewProduct(productId) : undefined}
+                          >
+                          <td>
+                            <input
+                              type="checkbox"
+                              className="select-checkbox"
+                              checked={productId ? selectedIds.has(productId) : false}
+                              onClick={(event) => event.stopPropagation()}
+                              onChange={() => toggleSelect(productId)}
+                              aria-label={`Select ${product?.productName || 'product'}`}
+                            />
                           </td>
-                        ))}
-                        <td className="table-actions" onClick={(e) => e.stopPropagation()}>
-                          {(() => {
-                            const statusCode = String(statusValue || '').toUpperCase();
-                            const canModerateRow = ['PENDING_REVIEW', 'CHANGES_REQUIRED'].includes(statusCode);
-                            const showApproveRow = canApproveProduct && canModerateRow;
-                            const showRequestChangesRow = canRequestChangesProduct && canModerateRow;
-                            const showRejectRow = canRejectProduct && canModerateRow;
-                            const hasRowActions =
-                              canViewProduct ||
-                              canEditProduct ||
-                              canDeleteProduct ||
-                              showApproveRow ||
-                              showRequestChangesRow ||
-                              showRejectRow;
+                          {visibleProductColumns.map((column) => (
+                            <td key={`${productId}-${column.key}`} style={{ minWidth: column.minWidth }}>
+                              {getProductTableCellValue(product, column.key)}
+                            </td>
+                          ))}
+                          <td className="table-actions" onClick={(e) => e.stopPropagation()}>
+                            {(() => {
+                              const statusCode = String(statusValue || '').toUpperCase();
+                              const canModerateRow = ['PENDING_REVIEW', 'CHANGES_REQUIRED'].includes(statusCode);
+                              const showApproveRow = canApproveProduct && canModerateRow;
+                              const showRequestChangesRow = canRequestChangesProduct && canModerateRow;
+                              const showRejectRow = canRejectProduct && canModerateRow;
+                              const hasRowActions =
+                                canViewProduct ||
+                                canEditProduct ||
+                                canDeleteProduct ||
+                                showApproveRow ||
+                                showRequestChangesRow ||
+                                showRejectRow;
 
-                            if (!hasRowActions || !hasProductListActions) {
-                              return null;
-                            }
+                              if (!hasRowActions || !hasProductListActions) {
+                                return null;
+                              }
 
-                            return (
-                              <div className="product-table-action-menu" ref={openProductActionId === productId ? productActionMenuRef : null}>
-                                <button
-                                  type="button"
-                                  className="icon-btn product-table-action-trigger"
-                                  aria-label="Actions"
-                                  aria-expanded={openProductActionId === productId}
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    setOpenProductActionId((prev) => (prev === productId ? null : productId));
-                                  }}
-                                >
-                                  {ACTION_ICONS.more}
-                                </button>
-                                {openProductActionId === productId ? (
-                                  <div className="product-table-action-dropdown">
-                                    {canViewProduct ? (
-                                      <button
-                                        type="button"
-                                        onClick={(event) => {
-                                          event.stopPropagation();
-                                          setOpenProductActionId(null);
-                                          handleViewProduct(productId);
-                                        }}
-                                      >
-                                        <span className="gsc-product-view-menu-icon view">{ACTION_ICONS.view}</span>
-                                        View
-                                      </button>
-                                    ) : null}
-                                    {canEditProduct ? (
-                                      <button
-                                        type="button"
-                                        onClick={(event) => {
-                                          event.stopPropagation();
-                                          setOpenProductActionId(null);
-                                          navigate(`/admin/products/${productId}/edit`);
-                                        }}
-                                      >
-                                        <span className="gsc-product-view-menu-icon edit">{ACTION_ICONS.edit}</span>
-                                        Edit
-                                      </button>
-                                    ) : null}
-                                    {canDeleteProduct ? (
-                                      <button
-                                        type="button"
-                                        onClick={(event) => {
-                                          event.stopPropagation();
-                                          setOpenProductActionId(null);
-                                          handleDelete(productId);
-                                        }}
-                                      >
-                                        <span className="gsc-product-view-menu-icon delete">{ACTION_ICONS.trash}</span>
-                                        Delete
-                                      </button>
-                                    ) : null}
-                                    {showApproveRow ? (
-                                      <button
-                                        type="button"
-                                        disabled={!hasFullCategoryPath}
-                                        onClick={(event) => {
-                                          event.stopPropagation();
-                                          setOpenProductActionId(null);
-                                          handleRowStatusUpdate(productId, 'APPROVED');
-                                        }}
-                                      >
-                                        <span className="gsc-product-view-menu-icon approve">{ACTION_ICONS.approve}</span>
-                                        Approve
-                                      </button>
-                                    ) : null}
-                                    {showRequestChangesRow ? (
-                                      <button
-                                        type="button"
-                                        onClick={(event) => {
-                                          event.stopPropagation();
-                                          setOpenProductActionId(null);
-                                          handleRowStatusUpdate(productId, 'CHANGES_REQUIRED');
-                                        }}
-                                      >
-                                        <span className="gsc-product-view-menu-icon request-changes">{ACTION_ICONS.requestChanges}</span>
-                                        Request changes
-                                      </button>
-                                    ) : null}
-                                    {showRejectRow ? (
-                                      <button
-                                        type="button"
-                                        onClick={(event) => {
-                                          event.stopPropagation();
-                                          setOpenProductActionId(null);
-                                          handleRowStatusUpdate(productId, 'REJECTED');
-                                        }}
-                                      >
-                                        <span className="gsc-product-view-menu-icon reject">{ACTION_ICONS.reject}</span>
-                                        Reject
-                                      </button>
-                                    ) : null}
-                                  </div>
-                                ) : null}
-                              </div>
-                            );
-                          })()}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                              return (
+                                <div className="product-table-action-menu" ref={openProductActionId === productId ? productActionMenuRef : null}>
+                                  <button
+                                    type="button"
+                                    className="icon-btn product-table-action-trigger"
+                                    aria-label="Actions"
+                                    aria-expanded={openProductActionId === productId}
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      setOpenProductActionId((prev) => (prev === productId ? null : productId));
+                                    }}
+                                  >
+                                    {ACTION_ICONS.more}
+                                  </button>
+                                  {openProductActionId === productId ? (
+                                    <div className="product-table-action-dropdown">
+                                      {canViewProduct ? (
+                                        <button
+                                          type="button"
+                                          onClick={(event) => {
+                                            event.stopPropagation();
+                                            setOpenProductActionId(null);
+                                            handleViewProduct(productId);
+                                          }}
+                                        >
+                                          <span className="gsc-product-view-menu-icon view">{ACTION_ICONS.view}</span>
+                                          View
+                                        </button>
+                                      ) : null}
+                                      {canEditProduct ? (
+                                        <button
+                                          type="button"
+                                          onClick={(event) => {
+                                            event.stopPropagation();
+                                            setOpenProductActionId(null);
+                                            navigate(`/admin/products/${productId}/edit`);
+                                          }}
+                                        >
+                                          <span className="gsc-product-view-menu-icon edit">{ACTION_ICONS.edit}</span>
+                                          Edit
+                                        </button>
+                                      ) : null}
+                                      {canDeleteProduct ? (
+                                        <button
+                                          type="button"
+                                          onClick={(event) => {
+                                            event.stopPropagation();
+                                            setOpenProductActionId(null);
+                                            handleDelete(productId);
+                                          }}
+                                        >
+                                          <span className="gsc-product-view-menu-icon delete">{ACTION_ICONS.trash}</span>
+                                          Delete
+                                        </button>
+                                      ) : null}
+                                      {showApproveRow ? (
+                                        <button
+                                          type="button"
+                                          disabled={!hasFullCategoryPath}
+                                          onClick={(event) => {
+                                            event.stopPropagation();
+                                            setOpenProductActionId(null);
+                                            handleRowStatusUpdate(productId, 'APPROVED');
+                                          }}
+                                        >
+                                          <span className="gsc-product-view-menu-icon approve">{ACTION_ICONS.approve}</span>
+                                          Approve
+                                        </button>
+                                      ) : null}
+                                      {showRequestChangesRow ? (
+                                        <button
+                                          type="button"
+                                          onClick={(event) => {
+                                            event.stopPropagation();
+                                            setOpenProductActionId(null);
+                                            handleRowStatusUpdate(productId, 'CHANGES_REQUIRED');
+                                          }}
+                                        >
+                                          <span className="gsc-product-view-menu-icon request-changes">{ACTION_ICONS.requestChanges}</span>
+                                          Request changes
+                                        </button>
+                                      ) : null}
+                                      {showRejectRow ? (
+                                        <button
+                                          type="button"
+                                          onClick={(event) => {
+                                            event.stopPropagation();
+                                            setOpenProductActionId(null);
+                                            handleRowStatusUpdate(productId, 'REJECTED');
+                                          }}
+                                        >
+                                          <span className="gsc-product-view-menu-icon reject">{ACTION_ICONS.reject}</span>
+                                          Reject
+                                        </button>
+                                      ) : null}
+                                    </div>
+                                  ) : null}
+                                </div>
+                              );
+                            })()}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="bv-table-footer">
+                <div className="table-record-count">
+                  Showing {productPageStart}-{productPageEnd} of {productListMeta.totalElements} products
+                </div>
+                <div className="product-pagination-controls">
+                  <label className="product-pagination-size">
+                    <span>Rows</span>
+                    <select
+                      value={productPageSize}
+                      onChange={(event) => {
+                        setProductPageSize(Number(event.target.value) || 25);
+                        setProductListPage(0);
+                      }}
+                    >
+                      {PRODUCT_PAGE_SIZE_OPTIONS.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <div className="bv-table-pagination">
+                    <button
+                      type="button"
+                      className="secondary-btn"
+                      disabled={productListPage === 0 || isLoading}
+                      onClick={() => setProductListPage((prev) => Math.max(prev - 1, 0))}
+                    >
+                      {'< Prev'}
+                    </button>
+                    <span>Page {productListMeta.page + 1} / {Math.max(productListMeta.totalPages, 1)}</span>
+                    <button
+                      type="button"
+                      className="secondary-btn"
+                      disabled={!productListMeta.hasNext || isLoading}
+                      onClick={() => setProductListPage((prev) => prev + 1)}
+                    >
+                      {'Next >'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </>
           )}
         </div>
       ) : null}
