@@ -401,6 +401,19 @@ const PRODUCT_STATUS_FILTER_OPTIONS = [
 
 const getProductRecordId = (product) => product?.id || product?.productId || null;
 const getProductCode = (product) => product?.sku || product?.productCode || `PRD-${getProductRecordId(product) || '-'}`;
+const getProductSellingPrice = (product) => product?.sellingPrice ?? product?.priceRange?.min ?? null;
+const getProductMrp = (product) => product?.mrp ?? product?.priceRange?.max ?? null;
+const getProductGstRate = (product) => product?.gstRate ?? product?.gst_rate ?? null;
+const getProductHsnCode = (product) => product?.hsnCode ?? product?.hsn_code ?? '';
+const getProductCountryOfOrigin = (product) => product?.countryOfOrigin ?? product?.country_of_origin ?? '';
+const getProductRatingCount = (product) => {
+  const count = Number(product?.ratingCount ?? product?.rating_count ?? 0);
+  return Number.isFinite(count) ? count : 0;
+};
+const getProductReviewCount = (product) => {
+  const count = Number(product?.reviewCount ?? product?.review_count ?? 0);
+  return Number.isFinite(count) ? count : 0;
+};
 const getProductVariantCount = (product) => {
   if (Array.isArray(product?.variants)) return product.variants.length;
   const count = Number(product?.variantCount ?? product?.variantsCount ?? 0);
@@ -984,21 +997,21 @@ function ProductPage({ token, adminUserId }) {
       case 'baseUom':
         return <span className="product-table-primary">{formatValue(product?.baseUomName || product?.baseUomCode)}</span>;
       case 'sellingPrice':
-        return <span className="product-price-main">{formatPrice(product?.sellingPrice, product?.currency)}</span>;
+        return <span className="product-price-main">{formatPrice(getProductSellingPrice(product), product?.currency)}</span>;
       case 'mrp':
-        return <span className="product-price-main">{formatPrice(product?.mrp, product?.currency)}</span>;
+        return <span className="product-price-main">{formatPrice(getProductMrp(product), product?.currency)}</span>;
       case 'gstRate':
-        return <span className="product-table-primary">{formatValue(product?.gstRate)}</span>;
+        return <span className="product-table-primary">{formatValue(getProductGstRate(product))}</span>;
       case 'hsnCode':
-        return <span className="product-table-primary">{formatValue(product?.hsnCode)}</span>;
+        return <span className="product-table-primary">{formatValue(getProductHsnCode(product))}</span>;
       case 'countryOfOrigin':
-        return <span className="product-table-primary">{formatValue(product?.countryOfOrigin)}</span>;
+        return <span className="product-table-primary">{formatValue(getProductCountryOfOrigin(product))}</span>;
       case 'variantCount':
         return <span className="product-table-primary">{formatValue(getProductVariantCount(product))}</span>;
       case 'ratingCount':
-        return <span className="product-table-primary">{formatValue(product?.ratingCount ?? 0)}</span>;
+        return <span className="product-table-primary">{formatValue(getProductRatingCount(product))}</span>;
       case 'reviewCount':
-        return <span className="product-table-primary">{formatValue(product?.reviewCount ?? 0)}</span>;
+        return <span className="product-table-primary">{formatValue(getProductReviewCount(product))}</span>;
       case 'status':
         return (
           <span className={`status-pill product-status-pill ${statusValue ? statusValue.toLowerCase().replace(/_/g, '-') : 'pending'}`}>
@@ -1063,14 +1076,14 @@ function ProductPage({ token, adminUserId }) {
         Boolean(product?.category?.categoryId)
       ) || '',
       'Base UOM': product?.baseUomName || product?.baseUomCode || '',
-      'Selling Price': product?.sellingPrice ?? '',
-      MRP: product?.mrp ?? '',
-      'GST Rate': product?.gstRate ?? '',
-      'HSN Code': product?.hsnCode || '',
-      'Country Of Origin': product?.countryOfOrigin || '',
+      'Selling Price': getProductSellingPrice(product) ?? '',
+      MRP: getProductMrp(product) ?? '',
+      'GST Rate': getProductGstRate(product) ?? '',
+      'HSN Code': getProductHsnCode(product) || '',
+      'Country Of Origin': getProductCountryOfOrigin(product) || '',
       Variants: getProductVariantCount(product),
-      Ratings: product?.ratingCount ?? 0,
-      Reviews: product?.reviewCount ?? 0,
+      Ratings: getProductRatingCount(product),
+      Reviews: getProductReviewCount(product),
       Status: formatStatus(product?.approvalStatus),
       'Created On': formatDateTime(product?.createdOn || product?.created_on),
       'Updated On': formatDateTime(product?.updatedOn || product?.updated_on || product?.createdOn),
