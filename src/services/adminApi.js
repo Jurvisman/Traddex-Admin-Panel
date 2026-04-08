@@ -76,6 +76,7 @@ export const updateBusinessProfileStatus = (token, profileId, status) =>
   request(`/admin/profile/${profileId}/status?status=${encodeURIComponent(status)}`, { method: 'POST', token });
 
 export const listIndustries = (token) => request('/industries', { token });
+export const getIndustry = (token, id) => request(`/industries/${id}`, { token });
 export const sendOtp    = (mobileNumber) => request('/users/send-otp',   { method: 'POST', body: { mobileNumber } });
 export const verifyOtp  = (mobileNumber, otpCode) => request('/users/verify-otp', { method: 'POST', body: { mobileNumber, otpCode } });
 export const sendBusinessCreateOtp = (token, mobileNumber) =>
@@ -97,6 +98,7 @@ export const updateIndustryOrder = (token, id, position) =>
 export const deleteIndustry = (token, id) => request(`/industries/${id}`, { method: 'DELETE', token });
 
 export const listMainCategories = (token) => request('/main-categories', { token });
+export const getMainCategory = (token, id) => request(`/main-categories/${id}`, { token });
 export const createMainCategory = (token, payload) =>
   request('/main-categories', { method: 'POST', body: payload, token });
 export const updateMainCategory = (token, id, payload) =>
@@ -109,6 +111,7 @@ export const listCategories = (token, mainCategoryId) => {
   const query = mainCategoryId ? `?mainCategoryId=${mainCategoryId}` : '';
   return request(`/categories${query}`, { token });
 };
+export const getCategory = (token, id) => request(`/categories/${id}`, { token });
 export const createCategory = (token, payload) => request('/categories', { method: 'POST', body: payload, token });
 export const updateCategory = (token, id, payload) =>
   request(`/categories/${id}`, { method: 'PUT', body: payload, token });
@@ -131,6 +134,7 @@ export const listSubCategories = (token, categoryId) => {
   const query = categoryId ? `?categoryId=${categoryId}` : '';
   return request(`/sub-categories${query}`, { token });
 };
+export const getSubCategory = (token, id) => request(`/sub-categories/${id}`, { token });
 export const createSubCategory = (token, payload) =>
   request('/sub-categories', { method: 'POST', body: payload, token });
 export const updateSubCategory = (token, id, payload) =>

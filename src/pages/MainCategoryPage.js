@@ -4,6 +4,7 @@ import { usePermissions } from '../shared/permissions';
 import {
   createMainCategory,
   deleteMainCategory,
+  getMainCategory,
   listIndustries,
   listMainCategories,
   updateMainCategory,
@@ -21,6 +22,19 @@ const initialForm = {
   active: '1',
 };
 
+const StatusBadge = ({ active }) => (
+  <span className={active === 1 ? 'status-active' : 'status-inactive'}>
+    {active === 1 ? 'Active' : 'Inactive'}
+  </span>
+);
+
+const DetailRow = ({ label, value }) => (
+  <div className="mv-detail-row">
+    <span className="mv-detail-label">{label}</span>
+    <span className="mv-detail-value">{value ?? '-'}</span>
+  </div>
+);
+
 function MainCategoryPage({ token }) {
   const [items, setItems] = useState([]);
   const [industries, setIndustries] = useState([]);
@@ -30,7 +44,15 @@ function MainCategoryPage({ token }) {
   const [showForm, setShowForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [editItem, setEditItem] = useState(null);
+  const [touched, setTouched] = useState({});
   const [openActionRowId, setOpenActionRowId] = useState(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+
+  // View panel state
+  const [viewItem, setViewItem] = useState(null);      // { mainCategory: {...}, categories: [...] }
+  const [isViewLoading, setIsViewLoading] = useState(false);
+
   const { hasPermission } = usePermissions();
   const canCreate = hasPermission(PRODUCT_MASTER_PERMISSIONS.mainCategory.create);
   const canUpdate = hasPermission(PRODUCT_MASTER_PERMISSIONS.mainCategory.update);
@@ -72,9 +94,7 @@ function MainCategoryPage({ token }) {
     const lookup = new Map();
     industries.forEach((industry) => {
       const id = industry.id ?? industry.industryId;
-      if (id != null) {
-        lookup.set(id, industry.name);
-      }
+      if (id != null) lookup.set(id, industry.name);
     });
     return lookup;
   }, [industries]);
@@ -101,9 +121,27 @@ function MainCategoryPage({ token }) {
   );
   const orderingWarning = buildOrderingWarning(requestedOrdering, orderingConflict, suggestedOrdering);
 
+  const validate = (f) => {
+    const errs = {};
+    if (!f.name.trim()) errs.name = 'Name is required.';
+    else if (f.name.trim().length < 2) errs.name = 'Name must be at least 2 characters.';
+    if (!f.industryId) errs.industryId = 'Industry is required.';
+    if (f.ordering !== '' && f.ordering !== null) {
+      const n = parseOrderingInput(f.ordering);
+      if (Number.isNaN(n)) errs.ordering = 'Must be a whole number ≥ 1.';
+    }
+    if (f.path && !f.path.startsWith('/')) errs.path = 'Path must start with /';
+    return errs;
+  };
+
+  const errors = validate(form);
+  const fieldErr = (key) => touched[key] && errors[key];
+
   const handleChange = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
+
+  const handleBlur = (key) => setTouched((prev) => ({ ...prev, [key]: true }));
 
   const handleEdit = (item) => {
     if (!canUpdate) {
@@ -120,6 +158,8 @@ function MainCategoryPage({ token }) {
       path: item.path || '',
       active: item.active === 1 ? '1' : '0',
     });
+    setTouched({});
+    setViewItem(null);
     setShowForm(true);
   };
 
@@ -127,10 +167,27 @@ function MainCategoryPage({ token }) {
     setShowForm(false);
     setEditItem(null);
     setForm(initialForm);
+    setTouched({});
+  };
+
+  const handleView = async (item) => {
+    setIsViewLoading(true);
+    setViewItem(null);
+    setShowForm(false);
+    try {
+      const response = await getMainCategory(token, item.id);
+      // response.data = { mainCategory: {...}, categories: [...] }
+      setViewItem(response?.data ?? { mainCategory: item, categories: [] });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to load main category details.' });
+    } finally {
+      setIsViewLoading(false);
+    }
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    setTouched({ name: true, industryId: true, ordering: true, path: true });
     if (editItem ? !canUpdate : !canCreate) {
       setMessage({
         type: 'error',
@@ -140,12 +197,9 @@ function MainCategoryPage({ token }) {
       });
       return;
     }
-    if (!form.name.trim() || !form.industryId) {
-      setMessage({ type: 'error', text: 'Name and industry are required.' });
-      return;
-    }
-    if (Number.isNaN(requestedOrdering)) {
-      setMessage({ type: 'error', text: 'Ordering must be a whole number greater than 0.' });
+    const submitErrors = validate(form);
+    if (Object.keys(submitErrors).length > 0) {
+      setMessage({ type: 'error', text: Object.values(submitErrors)[0] });
       return;
     }
     const payload = {
@@ -188,6 +242,7 @@ function MainCategoryPage({ token }) {
     try {
       setIsLoading(true);
       await deleteMainCategory(token, id);
+      if (viewItem?.mainCategory?.id === id) setViewItem(null);
       await loadData();
       setMessage({ type: 'success', text: 'Main category deleted.' });
     } catch (error) {
@@ -196,6 +251,129 @@ function MainCategoryPage({ token }) {
       setIsLoading(false);
     }
   };
+
+  /* ── view panel ── */
+  const renderViewPanel = () => {
+    if (isViewLoading) {
+      return (
+        <div className="mv-panel card">
+          <p className="mv-loading">Loading details…</p>
+        </div>
+      );
+    }
+    if (!viewItem) return null;
+
+    const mc = viewItem.mainCategory ?? {};
+    const categories = Array.isArray(viewItem.categories) ? viewItem.categories : [];
+    const industryName = mc.industryName || industryNameById.get(mc.industryId) || '-';
+
+    return (
+      <div className="mv-panel card">
+        {/* header */}
+        <div className="mv-panel-header">
+          <div className="mv-panel-title-row">
+            <button type="button" className="mv-back-btn" onClick={() => setViewItem(null)}>
+              ← Back
+            </button>
+            <h3 className="mv-panel-title">{mc.name}</h3>
+            <StatusBadge active={mc.active} />
+          </div>
+          {canUpdate && (
+            <button type="button" className="ghost-btn small" onClick={() => handleEdit(mc)}>
+              Edit
+            </button>
+          )}
+        </div>
+
+        {/* basic info */}
+        <div className="mv-section">
+          <p className="mv-section-label">Basic Info</p>
+          <div className="mv-detail-grid">
+            <DetailRow label="Name" value={mc.name} />
+            <DetailRow label="Industry" value={industryName} />
+            <DetailRow label="Path" value={mc.path} />
+            <DetailRow label="Order" value={mc.ordering} />
+            <DetailRow label="Status" value={mc.active === 1 ? 'Active' : 'Inactive'} />
+          </div>
+        </div>
+
+        {/* images */}
+        {(mc.mainCategoryIcon || mc.imageUrl) && (
+          <div className="mv-section">
+            <p className="mv-section-label">Media</p>
+            <div className="mv-media-row">
+              {mc.mainCategoryIcon && (
+                <div className="mv-media-item">
+                  <span className="mv-media-caption">Icon</span>
+                  <img src={mc.mainCategoryIcon} alt="icon" className="mv-thumb" onError={(e) => { e.target.style.display = 'none'; }} />
+                </div>
+              )}
+              {mc.imageUrl && (
+                <div className="mv-media-item">
+                  <span className="mv-media-caption">Banner</span>
+                  <img src={mc.imageUrl} alt="banner" className="mv-banner-img" onError={(e) => { e.target.style.display = 'none'; }} />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* categories */}
+        <div className="mv-section">
+          <p className="mv-section-label">
+            Categories
+            <span className="mv-count-badge">{categories.length}</span>
+          </p>
+          {categories.length === 0 ? (
+            <p className="mv-empty">No categories linked to this main category.</p>
+          ) : (
+            <table className="mv-child-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Name</th>
+                  <th>Order</th>
+                  <th>Sub-cat?</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...categories]
+                  .sort((a, b) => (a.ordering ?? Infinity) - (b.ordering ?? Infinity))
+                  .map((cat, idx) => (
+                    <tr key={cat.id}>
+                      <td>{idx + 1}</td>
+                      <td>{cat.name}</td>
+                      <td>{cat.ordering ?? '-'}</td>
+                      <td>{cat.hasSubCategory === 1 ? 'Yes' : 'No'}</td>
+                      <td><StatusBadge active={cat.active} /></td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const filteredItems = items
+    .filter((item) => {
+      const q = searchQuery.trim().toLowerCase();
+      if (!q) return true;
+      const haystack = `${item.name || ''} ${industryNameById.get(item.industryId) || item.industryName || ''}`.toLowerCase();
+      return haystack.includes(q);
+    })
+    .sort((a, b) => {
+      const orderA = a.ordering != null ? Number(a.ordering) : Infinity;
+      const orderB = b.ordering != null ? Number(b.ordering) : Infinity;
+      if (orderA !== orderB) return orderA - orderB;
+      return (a.id ?? 0) - (b.id ?? 0);
+    });
+
+  const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const pagedItems = filteredItems.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   return (
     <div>
@@ -214,22 +392,25 @@ function MainCategoryPage({ token }) {
               </button>
             </div>
             <div className="field-grid">
-              <label className="field">
-                <span>Name</span>
+              <label className={`field${fieldErr('name') ? ' field-error' : ''}`}>
+                <span>Name <span className="field-required">*</span></span>
                 <input
                   type="text"
                   value={form.name}
                   onChange={(event) => handleChange('name', event.target.value)}
+                  onBlur={() => handleBlur('name')}
+                  className={fieldErr('name') ? 'input-error' : ''}
                   placeholder="e.g. Machinery"
-                  required
                 />
+                {fieldErr('name') && <span className="field-error-msg">{errors.name}</span>}
               </label>
-              <label className="field">
-                <span>Industry</span>
+              <label className={`field${fieldErr('industryId') ? ' field-error' : ''}`}>
+                <span>Industry <span className="field-required">*</span></span>
                 <select
                   value={form.industryId}
                   onChange={(event) => handleChange('industryId', event.target.value)}
-                  required
+                  onBlur={() => handleBlur('industryId')}
+                  className={fieldErr('industryId') ? 'input-error' : ''}
                 >
                   <option value="">Select industry</option>
                   {industries.map((industry) => (
@@ -238,27 +419,35 @@ function MainCategoryPage({ token }) {
                     </option>
                   ))}
                 </select>
+                {fieldErr('industryId') && <span className="field-error-msg">{errors.industryId}</span>}
               </label>
-              <label className="field">
+              <label className={`field${fieldErr('ordering') ? ' field-error' : ''}`}>
                 <span>Ordering</span>
                 <input
                   type="number"
                   value={form.ordering}
                   onChange={(event) => handleChange('ordering', event.target.value)}
+                  onBlur={() => handleBlur('ordering')}
+                  className={fieldErr('ordering') ? 'input-error' : ''}
                   placeholder="1"
                   min="1"
                   step="1"
                 />
-                {orderingWarning ? <span className="field-help field-warning">{orderingWarning}</span> : null}
+                {fieldErr('ordering')
+                  ? <span className="field-error-msg">{errors.ordering}</span>
+                  : orderingWarning ? <span className="field-help field-warning">{orderingWarning}</span> : null}
               </label>
-              <label className="field">
+              <label className={`field${fieldErr('path') ? ' field-error' : ''}`}>
                 <span>Path</span>
                 <input
                   type="text"
                   value={form.path}
                   onChange={(event) => handleChange('path', event.target.value)}
+                  onBlur={() => handleBlur('path')}
+                  className={fieldErr('path') ? 'input-error' : ''}
                   placeholder="/machinery"
                 />
+                {fieldErr('path') && <span className="field-error-msg">{errors.path}</span>}
               </label>
               <label className="field">
                 <span>Active</span>
@@ -292,7 +481,9 @@ function MainCategoryPage({ token }) {
           </form>
         </div>
       ) : null}
-      <div className="panel-grid">
+
+      <div className={`mv-layout${viewItem || isViewLoading ? ' mv-layout--split' : ''}`}>
+        {/* ── List panel ── */}
         <div className="panel card users-table-card">
           <div className="panel-split">
             <div className="category-list-head-left">
@@ -304,19 +495,6 @@ function MainCategoryPage({ token }) {
                   </svg>
                   Filter
                 </button>
-                <button type="button" className="gsc-toolbar-btn" title="Columns">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="3" y="3" width="7" height="18" rx="1" />
-                    <rect x="14" y="3" width="7" height="18" rx="1" />
-                  </svg>
-                  Columns
-                </button>
-                <button type="button" className="gsc-toolbar-btn" title="Import/Export">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
-                  </svg>
-                  Import/Export
-                </button>
               </div>
             </div>
             <div className="gsc-datatable-toolbar-right">
@@ -325,16 +503,11 @@ function MainCategoryPage({ token }) {
                   type="search"
                   placeholder="Search"
                   value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
+                  onChange={(event) => { setSearchQuery(event.target.value); setPage(1); }}
                   aria-label="Search main categories"
                 />
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  style={{ width: 18, height: 18, color: '#6b7280', flexShrink: 0 }}
-                >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                  style={{ width: 18, height: 18, color: '#6b7280', flexShrink: 0 }}>
                   <circle cx="11" cy="11" r="8" />
                   <path d="m21 21-4.35-4.35" />
                 </svg>
@@ -347,20 +520,15 @@ function MainCategoryPage({ token }) {
                     if (!showForm) {
                       setEditItem(null);
                       setForm(initialForm);
+                      setViewItem(null);
                     }
                     setShowForm((prev) => !prev);
                   }}
                   title="Create main category"
                   aria-label="Create main category"
                 >
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"
+                    strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 5v14M5 12h14" />
                   </svg>
                 </button>
@@ -382,61 +550,62 @@ function MainCategoryPage({ token }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {(() => {
-                    const filtered = items
-                      .filter((item) => {
-                        const q = searchQuery.trim().toLowerCase();
-                        if (!q) return true;
-                        const haystack = `${item.name || ''} ${industryNameById.get(item.industryId) || item.industryName || ''}`.toLowerCase();
-                        return haystack.includes(q);
-                      })
-                      .sort((a, b) => {
-                        const orderA = a.ordering != null ? Number(a.ordering) : Infinity;
-                        const orderB = b.ordering != null ? Number(b.ordering) : Infinity;
-                        if (orderA !== orderB) return orderA - orderB;
-                        return (a.id ?? 0) - (b.id ?? 0);
-                      });
-                    return filtered.map((item, index) => (
-                      <tr key={item.id}>
-                        <td>{index + 1}</td>
-                        <td>{item.name}</td>
-                        <td>{industryNameById.get(item.industryId) || item.industryName || '-'}</td>
-                        <td>
-                          <span className={item.active === 1 ? 'status-active' : 'status-inactive'}>
-                            {item.active === 1 ? 'Active' : 'Inactive'}
-                          </span>
-                        </td>
-                        <td className="table-actions" onClick={(e) => e.stopPropagation()}>
-                          {(() => {
-                            const actions = [];
-                            if (canUpdate) {
-                              actions.push({ label: 'Edit', onClick: () => handleEdit(item) });
-                            }
-                            if (canDelete) {
-                              actions.push({ label: 'Delete', onClick: () => handleDelete(item.id), danger: true });
-                            }
-                            if (actions.length === 0) return null;
-                            return (
-                              <TableRowActionMenu
-                                rowId={item.id}
-                                openRowId={openActionRowId}
-                                onToggle={setOpenActionRowId}
-                                actions={actions}
-                              />
-                            );
-                          })()}
-                        </td>
-                      </tr>
-                    ));
-                  })()}
+                  {pagedItems.map((item, index) => (
+                    <tr
+                      key={item.id}
+                      className={viewItem?.mainCategory?.id === item.id ? 'mv-row-active' : ''}
+                      onClick={() => handleView(item)}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <td>{(safePage - 1) * pageSize + index + 1}</td>
+                      <td>{item.name}</td>
+                      <td>{industryNameById.get(item.industryId) || item.industryName || '-'}</td>
+                      <td><StatusBadge active={item.active} /></td>
+                      <td className="table-actions" onClick={(e) => e.stopPropagation()}>
+                        {(() => {
+                          const actions = [];
+                          actions.push({ label: 'View', onClick: () => handleView(item) });
+                          if (canUpdate) actions.push({ label: 'Edit', onClick: () => handleEdit(item) });
+                          if (canDelete) actions.push({ label: 'Delete', onClick: () => handleDelete(item.id), danger: true });
+                          if (actions.length === 0) return null;
+                          return (
+                            <TableRowActionMenu
+                              rowId={item.id}
+                              openRowId={openActionRowId}
+                              onToggle={setOpenActionRowId}
+                              actions={actions}
+                            />
+                          );
+                        })()}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
-              <div className="table-record-count">
-                <span>Showing {items.filter((item) => { const q = searchQuery.trim().toLowerCase(); if (!q) return true; return `${item.name || ''} ${industryNameById.get(item.industryId) || item.industryName || ''}`.toLowerCase().includes(q); }).length} of {items.length} records</span>
+              <div className="bv-table-footer">
+                <div className="table-record-count">
+                  <span>{filteredItems.length === 0 ? '0 records' : `Showing ${(safePage - 1) * pageSize + 1}–${Math.min(safePage * pageSize, filteredItems.length)} of ${filteredItems.length}`}</span>
+                </div>
+                <div className="product-pagination-controls">
+                  <label className="product-pagination-size">
+                    <span>Rows</span>
+                    <select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}>
+                      {[10, 20, 50, 100].map((n) => <option key={n} value={n}>{n}</option>)}
+                    </select>
+                  </label>
+                  <div className="bv-table-pagination">
+                    <button type="button" className="secondary-btn" disabled={safePage === 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>{'< Prev'}</button>
+                    <span>Page {safePage} / {totalPages}</span>
+                    <button type="button" className="secondary-btn" disabled={safePage === totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>{'Next >'}</button>
+                  </div>
+                </div>
               </div>
             </div>
           )}
         </div>
+
+        {/* ── View panel ── */}
+        {renderViewPanel()}
       </div>
     </div>
   );

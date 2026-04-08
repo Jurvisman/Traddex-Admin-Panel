@@ -4,6 +4,7 @@ import { usePermissions } from '../shared/permissions';
 import {
   createSubCategory,
   deleteSubCategory,
+  getSubCategory,
   listCategories,
   listSubCategories,
   updateSubCategory,
@@ -21,6 +22,12 @@ const initialForm = {
   active: '1',
 };
 
+const StatusBadge = ({ active }) => (
+  <span className={active === 1 ? 'status-active' : 'status-inactive'}>
+    {active === 1 ? 'Active' : 'Inactive'}
+  </span>
+);
+
 function SubCategoryPage({ token }) {
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -30,7 +37,15 @@ function SubCategoryPage({ token }) {
   const [showForm, setShowForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [editItem, setEditItem] = useState(null);
+  const [touched, setTouched] = useState({});
   const [openActionRowId, setOpenActionRowId] = useState(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+
+  // View panel state
+  const [viewItem, setViewItem] = useState(null);      // { subCategory, parentChain }
+  const [isViewLoading, setIsViewLoading] = useState(false);
+
   const { hasPermission } = usePermissions();
   const canCreate = hasPermission(PRODUCT_MASTER_PERMISSIONS.subCategory.create);
   const canUpdate = hasPermission(PRODUCT_MASTER_PERMISSIONS.subCategory.update);
@@ -83,9 +98,27 @@ function SubCategoryPage({ token }) {
   );
   const orderingWarning = buildOrderingWarning(requestedOrdering, orderingConflict, suggestedOrdering);
 
+  const validate = (f) => {
+    const errs = {};
+    if (!f.name.trim()) errs.name = 'Name is required.';
+    else if (f.name.trim().length < 2) errs.name = 'Name must be at least 2 characters.';
+    if (!f.categoryId) errs.categoryId = 'Category is required.';
+    if (f.ordering !== '' && f.ordering !== null) {
+      const n = parseOrderingInput(f.ordering);
+      if (Number.isNaN(n)) errs.ordering = 'Must be a whole number ≥ 1.';
+    }
+    if (f.path && !f.path.startsWith('/')) errs.path = 'Path must start with /';
+    return errs;
+  };
+
+  const errors = validate(form);
+  const fieldErr = (key) => touched[key] && errors[key];
+
   const handleChange = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
+
+  const handleBlur = (key) => setTouched((prev) => ({ ...prev, [key]: true }));
 
   const handleEdit = (item) => {
     if (!canUpdate) {
@@ -102,6 +135,8 @@ function SubCategoryPage({ token }) {
       path: item.path ?? '',
       active: item.active === 1 ? '1' : '0',
     });
+    setTouched({});
+    setViewItem(null);
     setShowForm(true);
   };
 
@@ -109,10 +144,27 @@ function SubCategoryPage({ token }) {
     setShowForm(false);
     setEditItem(null);
     setForm(initialForm);
+    setTouched({});
+  };
+
+  const handleView = async (item) => {
+    setIsViewLoading(true);
+    setViewItem(null);
+    setShowForm(false);
+    try {
+      const response = await getSubCategory(token, item.id);
+      // response.data = { subCategory: {...}, parentChain: { category, mainCategory, industry } }
+      setViewItem(response?.data ?? { subCategory: item, parentChain: {} });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to load sub-category details.' });
+    } finally {
+      setIsViewLoading(false);
+    }
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    setTouched({ name: true, categoryId: true, ordering: true, path: true });
     if (editItem ? !canUpdate : !canCreate) {
       setMessage({
         type: 'error',
@@ -122,12 +174,9 @@ function SubCategoryPage({ token }) {
       });
       return;
     }
-    if (!form.name.trim() || !form.categoryId) {
-      setMessage({ type: 'error', text: 'Name and category are required.' });
-      return;
-    }
-    if (Number.isNaN(requestedOrdering)) {
-      setMessage({ type: 'error', text: 'Ordering must be a whole number greater than 0.' });
+    const submitErrors = validate(form);
+    if (Object.keys(submitErrors).length > 0) {
+      setMessage({ type: 'error', text: Object.values(submitErrors)[0] });
       return;
     }
     const payload = {
@@ -170,6 +219,7 @@ function SubCategoryPage({ token }) {
     try {
       setIsLoading(true);
       await deleteSubCategory(token, id);
+      if (viewItem?.subCategory?.id === id) setViewItem(null);
       await loadData();
       setMessage({ type: 'success', text: 'Sub-category deleted.' });
     } catch (error) {
@@ -178,6 +228,143 @@ function SubCategoryPage({ token }) {
       setIsLoading(false);
     }
   };
+
+  /* ── view panel ── */
+  const renderViewPanel = () => {
+    if (isViewLoading) {
+      return (
+        <div className="mv-panel card">
+          <p className="mv-loading">Loading details…</p>
+        </div>
+      );
+    }
+    if (!viewItem) return null;
+
+    const sc = viewItem.subCategory ?? {};
+    const chain = viewItem.parentChain ?? {};
+
+    return (
+      <div className="mv-panel card">
+        {/* header */}
+        <div className="mv-panel-header">
+          <div className="mv-panel-title-row">
+            <button type="button" className="mv-back-btn" onClick={() => setViewItem(null)}>
+              ← Back
+            </button>
+            <h3 className="mv-panel-title">{sc.name}</h3>
+            <StatusBadge active={sc.active} />
+          </div>
+          {canUpdate && (
+            <button type="button" className="ghost-btn small" onClick={() => handleEdit(sc)}>
+              Edit
+            </button>
+          )}
+        </div>
+
+        {/* parent chain */}
+        <div className="mv-section">
+          <p className="mv-section-label">Location in Hierarchy</p>
+          <div className="mv-breadcrumb-chain">
+            {chain.industry && (
+              <>
+                <span className="mv-chain-node">{chain.industry.name}</span>
+                <span className="mv-chain-sep">›</span>
+              </>
+            )}
+            {chain.mainCategory && (
+              <>
+                <span className="mv-chain-node">{chain.mainCategory.name}</span>
+                <span className="mv-chain-sep">›</span>
+              </>
+            )}
+            {chain.category && (
+              <>
+                <span className="mv-chain-node">{chain.category.name}</span>
+                <span className="mv-chain-sep">›</span>
+              </>
+            )}
+            <span className="mv-chain-node mv-chain-current">{sc.name}</span>
+          </div>
+        </div>
+
+        {/* parent chain detail rows */}
+        <div className="mv-section">
+          <p className="mv-section-label">Parent Details</p>
+          <div className="mv-parent-chain-table">
+            {chain.industry && (
+              <div className="mv-chain-row">
+                <span className="mv-chain-row-label">Industry</span>
+                <span className="mv-chain-row-value">{chain.industry.name}</span>
+              </div>
+            )}
+            {chain.mainCategory && (
+              <div className="mv-chain-row">
+                <span className="mv-chain-row-label">Main Category</span>
+                <span className="mv-chain-row-value">{chain.mainCategory.name}</span>
+              </div>
+            )}
+            {chain.category && (
+              <div className="mv-chain-row">
+                <span className="mv-chain-row-label">Category</span>
+                <span className="mv-chain-row-value">{chain.category.name}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* basic info */}
+        <div className="mv-section">
+          <p className="mv-section-label">Basic Info</p>
+          <div className="mv-detail-grid">
+            <div className="mv-detail-row"><span className="mv-detail-label">Name</span><span className="mv-detail-value">{sc.name}</span></div>
+            <div className="mv-detail-row"><span className="mv-detail-label">Category</span><span className="mv-detail-value">{sc.categoryName || chain.category?.name || '-'}</span></div>
+            <div className="mv-detail-row"><span className="mv-detail-label">Path</span><span className="mv-detail-value">{sc.path || '-'}</span></div>
+            <div className="mv-detail-row"><span className="mv-detail-label">Order</span><span className="mv-detail-value">{sc.ordering ?? '-'}</span></div>
+            <div className="mv-detail-row"><span className="mv-detail-label">Status</span><span className="mv-detail-value">{sc.active === 1 ? 'Active' : 'Inactive'}</span></div>
+          </div>
+        </div>
+
+        {/* images */}
+        {(sc.subCategoryIcon || sc.imageUrl) && (
+          <div className="mv-section">
+            <p className="mv-section-label">Media</p>
+            <div className="mv-media-row">
+              {sc.subCategoryIcon && (
+                <div className="mv-media-item">
+                  <span className="mv-media-caption">Icon</span>
+                  <img src={sc.subCategoryIcon} alt="icon" className="mv-thumb" onError={(e) => { e.target.style.display = 'none'; }} />
+                </div>
+              )}
+              {sc.imageUrl && (
+                <div className="mv-media-item">
+                  <span className="mv-media-caption">Banner</span>
+                  <img src={sc.imageUrl} alt="banner" className="mv-banner-img" onError={(e) => { e.target.style.display = 'none'; }} />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const filteredItems = items
+    .filter((item) => {
+      const q = searchQuery.trim().toLowerCase();
+      if (!q) return true;
+      const haystack = `${item.name || ''} ${item.categoryName || item.category_name || ''}`.toLowerCase();
+      return haystack.includes(q);
+    })
+    .sort((a, b) => {
+      const orderA = a.ordering != null ? Number(a.ordering) : Infinity;
+      const orderB = b.ordering != null ? Number(b.ordering) : Infinity;
+      if (orderA !== orderB) return orderA - orderB;
+      return (a.id ?? 0) - (b.id ?? 0);
+    });
+
+  const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const pagedItems = filteredItems.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   return (
     <div>
@@ -196,22 +383,25 @@ function SubCategoryPage({ token }) {
               </button>
             </div>
             <div className="field-grid">
-              <label className="field">
-                <span>Name</span>
+              <label className={`field${fieldErr('name') ? ' field-error' : ''}`}>
+                <span>Name <span className="field-required">*</span></span>
                 <input
                   type="text"
                   value={form.name}
                   onChange={(event) => handleChange('name', event.target.value)}
+                  onBlur={() => handleBlur('name')}
+                  className={fieldErr('name') ? 'input-error' : ''}
                   placeholder="e.g. Diesel engines"
-                  required
                 />
+                {fieldErr('name') && <span className="field-error-msg">{errors.name}</span>}
               </label>
-              <label className="field">
-                <span>Category</span>
+              <label className={`field${fieldErr('categoryId') ? ' field-error' : ''}`}>
+                <span>Category <span className="field-required">*</span></span>
                 <select
                   value={form.categoryId}
                   onChange={(event) => handleChange('categoryId', event.target.value)}
-                  required
+                  onBlur={() => handleBlur('categoryId')}
+                  className={fieldErr('categoryId') ? 'input-error' : ''}
                 >
                   <option value="">Select category</option>
                   {categories.map((category) => (
@@ -220,27 +410,35 @@ function SubCategoryPage({ token }) {
                     </option>
                   ))}
                 </select>
+                {fieldErr('categoryId') && <span className="field-error-msg">{errors.categoryId}</span>}
               </label>
-              <label className="field">
+              <label className={`field${fieldErr('ordering') ? ' field-error' : ''}`}>
                 <span>Ordering</span>
                 <input
                   type="number"
                   value={form.ordering}
                   onChange={(event) => handleChange('ordering', event.target.value)}
+                  onBlur={() => handleBlur('ordering')}
+                  className={fieldErr('ordering') ? 'input-error' : ''}
                   placeholder="1"
                   min="1"
                   step="1"
                 />
-                {orderingWarning ? <span className="field-help field-warning">{orderingWarning}</span> : null}
+                {fieldErr('ordering')
+                  ? <span className="field-error-msg">{errors.ordering}</span>
+                  : orderingWarning ? <span className="field-help field-warning">{orderingWarning}</span> : null}
               </label>
-              <label className="field">
+              <label className={`field${fieldErr('path') ? ' field-error' : ''}`}>
                 <span>Path</span>
                 <input
                   type="text"
                   value={form.path}
                   onChange={(event) => handleChange('path', event.target.value)}
+                  onBlur={() => handleBlur('path')}
+                  className={fieldErr('path') ? 'input-error' : ''}
                   placeholder="/diesel-engines"
                 />
+                {fieldErr('path') && <span className="field-error-msg">{errors.path}</span>}
               </label>
               <label className="field">
                 <span>Active</span>
@@ -274,7 +472,9 @@ function SubCategoryPage({ token }) {
           </form>
         </div>
       ) : null}
-      <div className="panel-grid">
+
+      <div className={`mv-layout${viewItem || isViewLoading ? ' mv-layout--split' : ''}`}>
+        {/* ── List panel ── */}
         <div className="panel card users-table-card">
           <div className="panel-split">
             <div className="category-list-head-left">
@@ -286,19 +486,6 @@ function SubCategoryPage({ token }) {
                   </svg>
                   Filter
                 </button>
-                <button type="button" className="gsc-toolbar-btn" title="Columns">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="3" y="3" width="7" height="18" rx="1" />
-                    <rect x="14" y="3" width="7" height="18" rx="1" />
-                  </svg>
-                  Columns
-                </button>
-                <button type="button" className="gsc-toolbar-btn" title="Import/Export">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
-                  </svg>
-                  Import/Export
-                </button>
               </div>
             </div>
             <div className="gsc-datatable-toolbar-right">
@@ -307,16 +494,11 @@ function SubCategoryPage({ token }) {
                   type="search"
                   placeholder="Search"
                   value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
+                  onChange={(event) => { setSearchQuery(event.target.value); setPage(1); }}
                   aria-label="Search sub-categories"
                 />
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  style={{ width: 18, height: 18, color: '#6b7280', flexShrink: 0 }}
-                >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                  style={{ width: 18, height: 18, color: '#6b7280', flexShrink: 0 }}>
                   <circle cx="11" cy="11" r="8" />
                   <path d="m21 21-4.35-4.35" />
                 </svg>
@@ -329,20 +511,15 @@ function SubCategoryPage({ token }) {
                     if (!showForm) {
                       setEditItem(null);
                       setForm(initialForm);
+                      setViewItem(null);
                     }
                     setShowForm((prev) => !prev);
                   }}
                   title="Create sub-category"
                   aria-label="Create sub-category"
                 >
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"
+                    strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 5v14M5 12h14" />
                   </svg>
                 </button>
@@ -364,61 +541,62 @@ function SubCategoryPage({ token }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {(() => {
-                    const filtered = items
-                      .filter((item) => {
-                        const q = searchQuery.trim().toLowerCase();
-                        if (!q) return true;
-                        const haystack = `${item.name || ''} ${item.categoryName || item.category_name || ''}`.toLowerCase();
-                        return haystack.includes(q);
-                      })
-                      .sort((a, b) => {
-                        const orderA = a.ordering != null ? Number(a.ordering) : Infinity;
-                        const orderB = b.ordering != null ? Number(b.ordering) : Infinity;
-                        if (orderA !== orderB) return orderA - orderB;
-                        return (a.id ?? 0) - (b.id ?? 0);
-                      });
-                    return filtered.map((item, index) => (
-                      <tr key={item.id}>
-                        <td>{index + 1}</td>
-                        <td>{item.name}</td>
-                        <td>{item.categoryName || item.category_name || '-'}</td>
-                        <td>
-                          <span className={item.active === 1 ? 'status-active' : 'status-inactive'}>
-                            {item.active === 1 ? 'Active' : 'Inactive'}
-                          </span>
-                        </td>
-                        <td className="table-actions" onClick={(e) => e.stopPropagation()}>
-                          {(() => {
-                            const actions = [];
-                            if (canUpdate) {
-                              actions.push({ label: 'Edit', onClick: () => handleEdit(item) });
-                            }
-                            if (canDelete) {
-                              actions.push({ label: 'Delete', onClick: () => handleDelete(item.id), danger: true });
-                            }
-                            if (actions.length === 0) return null;
-                            return (
-                              <TableRowActionMenu
-                                rowId={item.id}
-                                openRowId={openActionRowId}
-                                onToggle={setOpenActionRowId}
-                                actions={actions}
-                              />
-                            );
-                          })()}
-                        </td>
-                      </tr>
-                    ));
-                  })()}
+                  {pagedItems.map((item, index) => (
+                    <tr
+                      key={item.id}
+                      className={viewItem?.subCategory?.id === item.id ? 'mv-row-active' : ''}
+                      onClick={() => handleView(item)}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <td>{(safePage - 1) * pageSize + index + 1}</td>
+                      <td>{item.name}</td>
+                      <td>{item.categoryName || item.category_name || '-'}</td>
+                      <td><StatusBadge active={item.active} /></td>
+                      <td className="table-actions" onClick={(e) => e.stopPropagation()}>
+                        {(() => {
+                          const actions = [];
+                          actions.push({ label: 'View', onClick: () => handleView(item) });
+                          if (canUpdate) actions.push({ label: 'Edit', onClick: () => handleEdit(item) });
+                          if (canDelete) actions.push({ label: 'Delete', onClick: () => handleDelete(item.id), danger: true });
+                          if (actions.length === 0) return null;
+                          return (
+                            <TableRowActionMenu
+                              rowId={item.id}
+                              openRowId={openActionRowId}
+                              onToggle={setOpenActionRowId}
+                              actions={actions}
+                            />
+                          );
+                        })()}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
-              <div className="table-record-count">
-                <span>Showing {items.filter((item) => { const q = searchQuery.trim().toLowerCase(); if (!q) return true; return `${item.name || ''} ${item.categoryName || item.category_name || ''}`.toLowerCase().includes(q); }).length} of {items.length} records</span>
+              <div className="bv-table-footer">
+                <div className="table-record-count">
+                  <span>{filteredItems.length === 0 ? '0 records' : `Showing ${(safePage - 1) * pageSize + 1}–${Math.min(safePage * pageSize, filteredItems.length)} of ${filteredItems.length}`}</span>
+                </div>
+                <div className="product-pagination-controls">
+                  <label className="product-pagination-size">
+                    <span>Rows</span>
+                    <select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}>
+                      {[10, 20, 50, 100].map((n) => <option key={n} value={n}>{n}</option>)}
+                    </select>
+                  </label>
+                  <div className="bv-table-pagination">
+                    <button type="button" className="secondary-btn" disabled={safePage === 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>{'< Prev'}</button>
+                    <span>Page {safePage} / {totalPages}</span>
+                    <button type="button" className="secondary-btn" disabled={safePage === totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>{'Next >'}</button>
+                  </div>
+                </div>
               </div>
             </div>
           )}
         </div>
+
+        {/* ── View panel ── */}
+        {renderViewPanel()}
       </div>
     </div>
   );

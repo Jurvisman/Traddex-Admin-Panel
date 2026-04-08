@@ -7,6 +7,7 @@ import {
   createCategory,
   deleteAttributeMapping,
   deleteCategory,
+  getCategory,
   listAttributeDefinitions,
   listAttributeMappings,
   listCategories,
@@ -106,6 +107,14 @@ function CategoryPage({ token }) {
   const [selectedExistingFieldId, setSelectedExistingFieldId] = useState('');
   const [categorySearchQuery, setCategorySearchQuery] = useState('');
   const [openActionRowId, setOpenActionRowId] = useState(null);
+  const [touched, setTouched] = useState({});
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+
+  // View panel state
+  const [viewItem, setViewItem] = useState(null);      // { category, subCategories, attributeMappings }
+  const [isViewLoading, setIsViewLoading] = useState(false);
+
   const { hasPermission } = usePermissions();
   const canCreate = hasPermission(PRODUCT_MASTER_PERMISSIONS.category.create);
   const canUpdate = hasPermission(PRODUCT_MASTER_PERMISSIONS.category.update);
@@ -253,9 +262,45 @@ function CategoryPage({ token }) {
   );
   const orderingWarning = buildOrderingWarning(requestedOrdering, orderingConflict, suggestedOrdering);
 
+  const filteredItems = items
+    .filter((item) => {
+      const q = categorySearchQuery.trim().toLowerCase();
+      if (!q) return true;
+      const haystack = `${item.name || ''} ${item.mainCategoryName || item.main_category_name || ''}`.toLowerCase();
+      return haystack.includes(q);
+    })
+    .sort((a, b) => {
+      const orderA = a.ordering != null ? Number(a.ordering) : Infinity;
+      const orderB = b.ordering != null ? Number(b.ordering) : Infinity;
+      if (orderA !== orderB) return orderA - orderB;
+      return (a.id ?? 0) - (b.id ?? 0);
+    });
+
+  const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const pagedItems = filteredItems.slice((safePage - 1) * pageSize, safePage * pageSize);
+
+  const validate = (f) => {
+    const errs = {};
+    if (!f.name.trim()) errs.name = 'Name is required.';
+    else if (f.name.trim().length < 2) errs.name = 'Name must be at least 2 characters.';
+    if (!f.mainCategoryId) errs.mainCategoryId = 'Main category is required.';
+    if (f.ordering !== '' && f.ordering !== null) {
+      const n = parseOrderingInput(f.ordering);
+      if (Number.isNaN(n)) errs.ordering = 'Must be a whole number ≥ 1.';
+    }
+    if (f.path && !f.path.startsWith('/')) errs.path = 'Path must start with /';
+    return errs;
+  };
+
+  const errors = validate(form);
+  const fieldErr = (key) => touched[key] && errors[key];
+
   const handleChange = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
+
+  const handleBlur = (key) => setTouched((prev) => ({ ...prev, [key]: true }));
 
   const handleEdit = (item) => {
     if (!canUpdate) {
@@ -273,6 +318,7 @@ function CategoryPage({ token }) {
       active: item.active != null ? String(Number(item.active) === 1 ? '1' : '0') : '1',
       hasSubCategory: item.hasSubCategory != null ? String(Number(item.hasSubCategory) === 1 ? '1' : '0') : '1',
     });
+    setTouched({});
     setShowForm(true);
   };
 
@@ -280,10 +326,12 @@ function CategoryPage({ token }) {
     setShowForm(false);
     setEditItem(null);
     setForm(initialForm);
+    setTouched({});
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    setTouched({ name: true, mainCategoryId: true, ordering: true, path: true });
     if (editItem ? !canUpdate : !canCreate) {
       setMessage({
         type: 'error',
@@ -291,12 +339,9 @@ function CategoryPage({ token }) {
       });
       return;
     }
-    if (!form.name.trim() || !form.mainCategoryId) {
-      setMessage({ type: 'error', text: 'Name and main category are required.' });
-      return;
-    }
-    if (Number.isNaN(requestedOrdering)) {
-      setMessage({ type: 'error', text: 'Ordering must be a whole number greater than 0.' });
+    const submitErrors = validate(form);
+    if (Object.keys(submitErrors).length > 0) {
+      setMessage({ type: 'error', text: Object.values(submitErrors)[0] });
       return;
     }
     const payload = {
@@ -566,6 +611,185 @@ function CategoryPage({ token }) {
     }
   };
 
+  const handleView = async (item) => {
+    setIsViewLoading(true);
+    setViewItem(null);
+    setShowForm(false);
+    try {
+      const [categoryResponse, mappingsResponse] = await Promise.allSettled([
+        getCategory(token, item.id),
+        listAttributeMappings(token, { categoryId: item.id }),
+      ]);
+      const baseData = categoryResponse.status === 'fulfilled'
+        ? (categoryResponse.value?.data ?? { category: item, subCategories: [] })
+        : { category: item, subCategories: [] };
+      const attributeMappings = mappingsResponse.status === 'fulfilled'
+        ? (mappingsResponse.value?.data?.mappings || [])
+        : [];
+      setViewItem({ ...baseData, attributeMappings });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to load category details.' });
+    } finally {
+      setIsViewLoading(false);
+    }
+  };
+
+  const renderViewPanel = () => {
+    if (isViewLoading) {
+      return (
+        <div className="mv-panel card">
+          <p className="mv-loading">Loading details…</p>
+        </div>
+      );
+    }
+    if (!viewItem) return null;
+
+    const cat = viewItem.category ?? {};
+    const subCategories = Array.isArray(viewItem.subCategories) ? viewItem.subCategories : [];
+    const attrMappings = Array.isArray(viewItem.attributeMappings) ? viewItem.attributeMappings : [];
+    const mainCatName = cat.mainCategoryName || mainCategories.find((mc) => mc.id === cat.mainCategoryId)?.name || '-';
+
+    return (
+      <div className="mv-panel card">
+        {/* header */}
+        <div className="mv-panel-header">
+          <div className="mv-panel-title-row">
+            <button type="button" className="mv-back-btn" onClick={() => setViewItem(null)}>
+              ← Back
+            </button>
+            <h3 className="mv-panel-title">{cat.name}</h3>
+            <span className={Number(cat.active) === 1 ? 'status-active' : 'status-inactive'}>
+              {Number(cat.active) === 1 ? 'Active' : 'Inactive'}
+            </span>
+          </div>
+          <div className="mv-panel-header-actions">
+            {canManageFields && (
+              <button type="button" className="ghost-btn small" onClick={() => { setViewItem(null); openFieldManager(cat); }}>
+                Manage Fields
+              </button>
+            )}
+            {canUpdate && (
+              <button type="button" className="ghost-btn small" onClick={() => { setViewItem(null); handleEdit(cat); }}>
+                Edit
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* parent chain */}
+        <div className="mv-section">
+          <p className="mv-section-label">Location in Hierarchy</p>
+          <div className="mv-breadcrumb-chain">
+            <span className="mv-chain-node">{mainCatName}</span>
+            <span className="mv-chain-sep">›</span>
+            <span className="mv-chain-node mv-chain-current">{cat.name}</span>
+          </div>
+        </div>
+
+        {/* basic info */}
+        <div className="mv-section">
+          <p className="mv-section-label">Basic Info</p>
+          <div className="mv-detail-grid">
+            <div className="mv-detail-row"><span className="mv-detail-label">Name</span><span className="mv-detail-value">{cat.name}</span></div>
+            <div className="mv-detail-row"><span className="mv-detail-label">Main Category</span><span className="mv-detail-value">{mainCatName}</span></div>
+            <div className="mv-detail-row"><span className="mv-detail-label">Path</span><span className="mv-detail-value">{cat.path || '-'}</span></div>
+            <div className="mv-detail-row"><span className="mv-detail-label">Order</span><span className="mv-detail-value">{cat.ordering ?? '-'}</span></div>
+            <div className="mv-detail-row"><span className="mv-detail-label">Has Sub-categories</span><span className="mv-detail-value">{cat.hasSubCategory === 1 ? 'Yes' : 'No'}</span></div>
+            <div className="mv-detail-row"><span className="mv-detail-label">Status</span><span className="mv-detail-value">{Number(cat.active) === 1 ? 'Active' : 'Inactive'}</span></div>
+          </div>
+        </div>
+
+        {/* images */}
+        {(cat.categoryIcon || cat.imageUrl) && (
+          <div className="mv-section">
+            <p className="mv-section-label">Media</p>
+            <div className="mv-media-row">
+              {cat.categoryIcon && (
+                <div className="mv-media-item">
+                  <span className="mv-media-caption">Icon</span>
+                  <img src={cat.categoryIcon} alt="icon" className="mv-thumb" onError={(e) => { e.target.style.display = 'none'; }} />
+                </div>
+              )}
+              {cat.imageUrl && (
+                <div className="mv-media-item">
+                  <span className="mv-media-caption">Banner</span>
+                  <img src={cat.imageUrl} alt="banner" className="mv-banner-img" onError={(e) => { e.target.style.display = 'none'; }} />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* sub-categories */}
+        <div className="mv-section">
+          <p className="mv-section-label">
+            Sub-Categories
+            <span className="mv-count-badge">{subCategories.length}</span>
+          </p>
+          {subCategories.length === 0 ? (
+            <p className="mv-empty">No sub-categories linked to this category.</p>
+          ) : (
+            <div className="mv-child-grid">
+              {[...subCategories]
+                .sort((a, b) => (a.ordering ?? Infinity) - (b.ordering ?? Infinity))
+                .map((sc) => (
+                  <div key={sc.id} className="mv-child-card">
+                    <div className="mv-child-name">{sc.name}</div>
+                    <div className="mv-child-meta">
+                      <span className={sc.active === 1 ? 'status-active' : 'status-inactive'}>
+                        {sc.active === 1 ? 'Active' : 'Inactive'}
+                      </span>
+                      {sc.ordering != null && <span className="mv-child-order">Order: {sc.ordering}</span>}
+                    </div>
+                  </div>
+                ))}
+            </div>
+          )}
+        </div>
+
+        {/* spec fields */}
+        <div className="mv-section">
+          <p className="mv-section-label">
+            Specification Fields
+            <span className="mv-count-badge">{attrMappings.length}</span>
+          </p>
+          {attrMappings.length === 0 ? (
+            <p className="mv-empty">No specification fields. Use <strong>Manage Fields</strong> to add fields.</p>
+          ) : (
+            <table className="admin-table mv-spec-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Field Name</th>
+                  <th>Type</th>
+                  <th>Required</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...attrMappings]
+                  .sort((a, b) => (a.sortOrder ?? Infinity) - (b.sortOrder ?? Infinity))
+                  .map((mapping, idx) => (
+                    <tr key={mapping.id ?? idx}>
+                      <td>{idx + 1}</td>
+                      <td>{mapping.label || mapping.attributeKey || '-'}</td>
+                      <td>{typeLabel(mapping.dataType)}</td>
+                      <td>{mapping.required ? 'Yes' : 'No'}</td>
+                      <td>
+                        <span className={mapping.active ? 'status-active' : 'status-inactive'}>
+                          {mapping.active ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="category-page">
       <Banner message={message} />
@@ -583,22 +807,25 @@ function CategoryPage({ token }) {
               </button>
             </div>
             <div className="field-grid">
-              <label className="field">
-                <span>Name</span>
+              <label className={`field${fieldErr('name') ? ' field-error' : ''}`}>
+                <span>Name <span className="field-required">*</span></span>
                 <input
                   type="text"
                   value={form.name}
                   onChange={(event) => handleChange('name', event.target.value)}
+                  onBlur={() => handleBlur('name')}
+                  className={fieldErr('name') ? 'input-error' : ''}
                   placeholder="e.g. Soft Drink"
-                  required
                 />
+                {fieldErr('name') && <span className="field-error-msg">{errors.name}</span>}
               </label>
-              <label className="field">
-                <span>Main category</span>
+              <label className={`field${fieldErr('mainCategoryId') ? ' field-error' : ''}`}>
+                <span>Main category <span className="field-required">*</span></span>
                 <select
                   value={form.mainCategoryId}
                   onChange={(event) => handleChange('mainCategoryId', event.target.value)}
-                  required
+                  onBlur={() => handleBlur('mainCategoryId')}
+                  className={fieldErr('mainCategoryId') ? 'input-error' : ''}
                 >
                   <option value="">Select main category</option>
                   {mainCategories.map((mainCategory) => (
@@ -607,6 +834,7 @@ function CategoryPage({ token }) {
                     </option>
                   ))}
                 </select>
+                {fieldErr('mainCategoryId') && <span className="field-error-msg">{errors.mainCategoryId}</span>}
               </label>
               <label className="field">
                 <span>Has sub-categories</span>
@@ -618,26 +846,33 @@ function CategoryPage({ token }) {
                   <option value="0">No</option>
                 </select>
               </label>
-              <label className="field">
+              <label className={`field${fieldErr('ordering') ? ' field-error' : ''}`}>
                 <span>Ordering</span>
                 <input
                   type="number"
                   value={form.ordering}
                   onChange={(event) => handleChange('ordering', event.target.value)}
+                  onBlur={() => handleBlur('ordering')}
+                  className={fieldErr('ordering') ? 'input-error' : ''}
                   placeholder="1"
                   min="1"
                   step="1"
                 />
-                {orderingWarning ? <span className="field-help field-warning">{orderingWarning}</span> : null}
+                {fieldErr('ordering')
+                  ? <span className="field-error-msg">{errors.ordering}</span>
+                  : orderingWarning ? <span className="field-help field-warning">{orderingWarning}</span> : null}
               </label>
-              <label className="field">
+              <label className={`field${fieldErr('path') ? ' field-error' : ''}`}>
                 <span>Path</span>
                 <input
                   type="text"
                   value={form.path}
                   onChange={(event) => handleChange('path', event.target.value)}
+                  onBlur={() => handleBlur('path')}
+                  className={fieldErr('path') ? 'input-error' : ''}
                   placeholder="/soft-drinks"
                 />
+                {fieldErr('path') && <span className="field-error-msg">{errors.path}</span>}
               </label>
               <label className="field">
                 <span>Active</span>
@@ -889,7 +1124,7 @@ function CategoryPage({ token }) {
           </div>
         </div>
       ) : null}
-      <div className="panel-grid">
+      <div className={`mv-layout${viewItem || isViewLoading ? ' mv-layout--split' : ''}`}>
         <div className="panel card users-table-card">
           <div className="panel-split">
             <div className="category-list-head-left">
@@ -922,7 +1157,7 @@ function CategoryPage({ token }) {
                   type="search"
                   placeholder="Search"
                   value={categorySearchQuery}
-                  onChange={(event) => setCategorySearchQuery(event.target.value)}
+                  onChange={(event) => { setCategorySearchQuery(event.target.value); setPage(1); }}
                   aria-label="Search categories"
                 />
                 <svg
@@ -979,64 +1214,73 @@ function CategoryPage({ token }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {(() => {
-                    const filtered = items
-                      .filter((item) => {
-                        const q = categorySearchQuery.trim().toLowerCase();
-                        if (!q) return true;
-                        const haystack = `${item.name || ''} ${item.mainCategoryName || item.main_category_name || ''}`.toLowerCase();
-                        return haystack.includes(q);
-                      })
-                      .sort((a, b) => {
-                        const orderA = a.ordering != null ? Number(a.ordering) : Infinity;
-                        const orderB = b.ordering != null ? Number(b.ordering) : Infinity;
-                        if (orderA !== orderB) return orderA - orderB;
-                        return (a.id ?? 0) - (b.id ?? 0);
-                      });
-                    return filtered.map((item, index) => (
-                      <tr key={item.id}>
-                        <td>{index + 1}</td>
-                        <td>{item.name}</td>
-                        <td>{item.mainCategoryName || item.main_category_name || '-'}</td>
-                        <td>
-                          <span className={Number(item.active) === 1 ? 'status-active' : 'status-inactive'}>
-                            {Number(item.active) === 1 ? 'Active' : 'Inactive'}
-                          </span>
-                        </td>
-                        <td className="table-actions" onClick={(e) => e.stopPropagation()}>
-                          {(() => {
-                            const actions = [];
-                            if (canManageFields) {
-                              actions.push({ label: 'Manage Fields', onClick: () => openFieldManager(item) });
-                            }
-                            if (canUpdate) {
-                              actions.push({ label: 'Edit', onClick: () => handleEdit(item) });
-                            }
-                            if (canDelete) {
-                              actions.push({ label: 'Delete', onClick: () => handleDelete(item.id), danger: true });
-                            }
-                            if (actions.length === 0) return null;
-                            return (
-                              <TableRowActionMenu
-                                rowId={item.id}
-                                openRowId={openActionRowId}
-                                onToggle={setOpenActionRowId}
-                                actions={actions}
-                              />
-                            );
-                          })()}
-                        </td>
-                      </tr>
-                    ));
-                  })()}
+                  {pagedItems.map((item, index) => (
+                    <tr
+                      key={item.id}
+                      className={viewItem?.category?.id === item.id ? 'mv-row-active' : ''}
+                      onClick={() => handleView(item)}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <td>{(safePage - 1) * pageSize + index + 1}</td>
+                      <td>{item.name}</td>
+                      <td>{item.mainCategoryName || item.main_category_name || '-'}</td>
+                      <td>
+                        <span className={Number(item.active) === 1 ? 'status-active' : 'status-inactive'}>
+                          {Number(item.active) === 1 ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                      <td className="table-actions" onClick={(e) => e.stopPropagation()}>
+                        {(() => {
+                          const actions = [];
+                          actions.push({ label: 'View', onClick: () => handleView(item) });
+                          if (canManageFields) {
+                            actions.push({ label: 'Manage Fields', onClick: () => openFieldManager(item) });
+                          }
+                          if (canUpdate) {
+                            actions.push({ label: 'Edit', onClick: () => handleEdit(item) });
+                          }
+                          if (canDelete) {
+                            actions.push({ label: 'Delete', onClick: () => handleDelete(item.id), danger: true });
+                          }
+                          if (actions.length === 0) return null;
+                          return (
+                            <TableRowActionMenu
+                              rowId={item.id}
+                              openRowId={openActionRowId}
+                              onToggle={setOpenActionRowId}
+                              actions={actions}
+                            />
+                          );
+                        })()}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
-              <div className="table-record-count">
-                <span>Showing {items.filter((item) => { const q = categorySearchQuery.trim().toLowerCase(); if (!q) return true; return `${item.name || ''} ${item.mainCategoryName || item.main_category_name || ''}`.toLowerCase().includes(q); }).length} of {items.length} records</span>
+              <div className="bv-table-footer">
+                <div className="table-record-count">
+                  <span>{filteredItems.length === 0 ? '0 records' : `Showing ${(safePage - 1) * pageSize + 1}–${Math.min(safePage * pageSize, filteredItems.length)} of ${filteredItems.length}`}</span>
+                </div>
+                <div className="product-pagination-controls">
+                  <label className="product-pagination-size">
+                    <span>Rows</span>
+                    <select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}>
+                      {[10, 20, 50, 100].map((n) => <option key={n} value={n}>{n}</option>)}
+                    </select>
+                  </label>
+                  <div className="bv-table-pagination">
+                    <button type="button" className="secondary-btn" disabled={safePage === 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>{'< Prev'}</button>
+                    <span>Page {safePage} / {totalPages}</span>
+                    <button type="button" className="secondary-btn" disabled={safePage === totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>{'Next >'}</button>
+                  </div>
+                </div>
               </div>
             </div>
           )}
         </div>
+
+        {/* ── View panel ── */}
+        {renderViewPanel()}
       </div>
     </div>
   );
