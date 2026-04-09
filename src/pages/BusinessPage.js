@@ -1104,9 +1104,6 @@ function BusinessPage({ token, allowedActions }) {
             <span className="status-chip login">{activeCount} Active</span>
             <span className="status-chip logout">{inactiveCount} Inactive</span>
             <span className="status-chip pending">{pendingCount} Pending Review</span>
-            <button type="button" className="primary-btn small bdt-add-btn" onClick={() => navigate('/admin/businesses/create')}>
-              + Add Business
-            </button>
           </div>
 
           <div className="panel card users-table-card">
@@ -1214,6 +1211,19 @@ function BusinessPage({ token, allowedActions }) {
                     <path d="m21 21-4.35-4.35" />
                   </svg>
                 </div>
+                {hasPermission(BUSINESS_PERMISSIONS.create) && (
+                  <button
+                    type="button"
+                    className="gsc-create-btn"
+                    onClick={() => navigate('/admin/businesses/create')}
+                    title="Add Business"
+                    aria-label="Add Business"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 5v14M5 12h14" />
+                    </svg>
+                  </button>
+                )}
               </div>
             </div>
 

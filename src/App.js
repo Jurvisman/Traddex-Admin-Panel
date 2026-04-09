@@ -1566,10 +1566,13 @@ function AppRoutes() {
           element={
             <PermissionGate
               isLoading={isPermissionLoading}
-              isAllowed={canAccessPath('/admin/support/kyc-assistance')}
+              isAllowed={
+                canAccessPath('/admin/support/kyc-assistance') &&
+                allowedActionCodes.has('ADMIN_KYC_ASSISTANCE_READ')
+              }
               fallbackPath={routeFallbackPath}
             >
-              <KycAssistancePage token={authToken} currentUser={authUserId} />
+              <KycAssistancePage token={authToken} currentUser={authUserId} allowedActions={allowedActionCodes} />
             </PermissionGate>
           }
         />

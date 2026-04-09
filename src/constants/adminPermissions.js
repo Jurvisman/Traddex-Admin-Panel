@@ -39,6 +39,7 @@ export const PRODUCT_MASTER_PERMISSIONS = {
 
 export const BUSINESS_PERMISSIONS = {
   read: 'ADMIN_BUSINESS_READ',
+  create: 'ADMIN_BUSINESS_CREATE',
   kycUpdate: 'ADMIN_BUSINESS_KYC_UPDATE',
   approve: 'ADMIN_BUSINESS_APPROVE',
 };
