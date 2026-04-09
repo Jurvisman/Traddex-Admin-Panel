@@ -12,7 +12,6 @@ import {
   listIndustries,
   listMainCategories,
   listSubCategories,
-  purgeAllAttributeDefinitions,
   updateAttributeDefinition,
   updateAttributeMapping,
 } from '../services/adminApi';
@@ -62,6 +61,17 @@ const filterInitial = {
   categoryId: '',
   subCategoryId: '',
   active: '',
+};
+
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+
+const paginateItems = (items, page, pageSize) => {
+  const totalItems = items.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const safePage = Math.min(Math.max(1, page), totalPages);
+  const start = (safePage - 1) * pageSize;
+  const end = Math.min(start + pageSize, totalItems);
+  return { items: items.slice(start, end), totalItems, totalPages, page: safePage, start, end };
 };
 
 const dataTypes = [
@@ -174,6 +184,8 @@ function ProductAttributePage({ token }) {
   const [subCategoryOptionsByCategory, setSubCategoryOptionsByCategory] = useState({});
   const [showMoreFilters, setShowMoreFilters] = useState(false);
   const [openActionRowId, setOpenActionRowId] = useState(null);
+  const [defPage, setDefPage] = useState(1);
+  const [defPageSize, setDefPageSize] = useState(25);
   const { hasPermission } = usePermissions();
 
   const definitionMap = useMemo(() => {
@@ -421,6 +433,11 @@ function ProductAttributePage({ token }) {
   const selectedLibraryDefinition = useMemo(
     () => definitionLibrary.find((definition) => definition.id === expandedLibraryFieldId) || null,
     [definitionLibrary, expandedLibraryFieldId]
+  );
+
+  const paginatedDefinitions = useMemo(
+    () => paginateItems(filteredDefinitionLibrary, defPage, defPageSize),
+    [filteredDefinitionLibrary, defPage, defPageSize]
   );
 
   const totalFields = mappings.length;
@@ -984,53 +1001,6 @@ function ProductAttributePage({ token }) {
     }
   };
 
-  const handlePurgeAllDefinitions = async () => {
-    if (!definitions.length) {
-      setMessage({ type: 'info', text: 'No reusable fields to delete.' });
-      return;
-    }
-
-    const shouldContinue = window.confirm(
-      `Delete all ${definitions.length} reusable field${definitions.length === 1 ? '' : 's'}? This will also remove linked values from products.`
-    );
-    if (!shouldContinue) {
-      return;
-    }
-
-    const finalConfirm = window.confirm(
-      'This cannot be undone from the admin panel. Continue with safe cleanup and delete?'
-    );
-    if (!finalConfirm) {
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      const response = await purgeAllAttributeDefinitions(token);
-      setDefinitionForm(definitionInitial);
-      setMappingForm(mappingInitial);
-      setEditingDefinitionId(null);
-      setEditingMappingId(null);
-      setShowDefinitionForm(false);
-      setShowMappingForm(false);
-      setShowDefinitionAdvanced(false);
-      setExpandedLibraryFieldId(null);
-      setDefinitionQuery('');
-      await Promise.all([loadDefinitions(), loadAllMappings(), loadMappings()]);
-
-      const summary = response?.data || {};
-      setMessage({
-        type: 'success',
-        text: `Deleted ${summary.definitionsDeleted ?? 0} fields, ${summary.mappingsDeleted ?? 0} category links, and cleaned ${summary.productsUpdated ?? 0} product${
-          summary.productsUpdated === 1 ? '' : 's'
-        }.`,
-      });
-    } catch (error) {
-      setMessage({ type: 'error', text: error.message || 'Failed to delete all reusable fields.' });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleDeleteMapping = async (id) => {
     try {
@@ -1169,26 +1139,6 @@ function ProductAttributePage({ token }) {
     loadMappings(filterInitial).catch(() => {});
   };
 
-  const handleRefresh = async () => {
-    setIsLoading(true);
-    setMessage({ type: 'info', text: '' });
-    try {
-      await Promise.all([
-        loadDefinitions(),
-        loadAllMappings(),
-        loadMappings(),
-        loadMainCategories(),
-        loadAllCategories(),
-        loadAllSubCategories(),
-        loadIndustries(),
-      ]);
-      setMessage({ type: 'success', text: 'Attribute data refreshed.' });
-    } catch (error) {
-      setMessage({ type: 'error', text: error.message || 'Failed to refresh attribute data.' });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const openDefinitionForm = () => {
     setDefinitionForm(definitionInitial);
@@ -1259,19 +1209,6 @@ function ProductAttributePage({ token }) {
         <div>
           <h2 className="panel-title">Reusable Fields</h2>
           <p className="panel-subtitle">Advanced cleanup and reusable field management for product categories.</p>
-        </div>
-        <div className="attribute-admin-head-actions">
-          <button type="button" className="ghost-btn" onClick={handleRefresh} disabled={isLoading}>
-            Refresh
-          </button>
-          <button
-            type="button"
-            className="ghost-btn danger"
-            onClick={handlePurgeAllDefinitions}
-            disabled={isLoading || definitions.length === 0}
-          >
-            Delete All Fields
-          </button>
         </div>
       </div>
       <Banner message={message} />
@@ -1872,7 +1809,8 @@ function ProductAttributePage({ token }) {
         </div>
       ) : null}
 
-      <div className="panel card users-table-card">
+      <div className={`mv-layout${selectedLibraryDefinition ? ' mv-layout--split' : ''}`}>
+        <div className="panel card users-table-card">
           <div className="gsc-datatable-toolbar">
             <div className="gsc-datatable-toolbar-left" />
             <div className="gsc-datatable-toolbar-right">
@@ -1880,7 +1818,7 @@ function ProductAttributePage({ token }) {
               <input
                 type="search"
                 value={definitionQuery}
-                onChange={(event) => setDefinitionQuery(event.target.value)}
+                onChange={(event) => { setDefinitionQuery(event.target.value); setDefPage(1); }}
                 placeholder="Search"
               />
               <svg
@@ -1932,40 +1870,39 @@ function ProductAttributePage({ token }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredDefinitionLibrary.map((definition, index) => {
+                    {paginatedDefinitions.items.map((definition, index) => {
                       const scopeLabel = `${definition.scopeCount || 0} ${
                         (definition.scopeCount || 0) === 1 ? 'place' : 'places'
                       }`;
                       return (
                         <tr
                           key={definition.id}
-                          className={expandedLibraryFieldId === definition.id ? 'is-selected-row' : ''}
+                          className={expandedLibraryFieldId === definition.id ? 'mv-row-active' : ''}
+                          onClick={() =>
+                            setExpandedLibraryFieldId((prev) =>
+                              prev === definition.id ? null : definition.id
+                            )
+                          }
+                          style={{ cursor: 'pointer' }}
                         >
-                          <td>{index + 1}</td>
-                          <td>
-                            <button
-                              type="button"
-                              className="attribute-library-link"
-                              onClick={() =>
-                                setExpandedLibraryFieldId((prev) =>
-                                  prev === definition.id ? null : definition.id
-                                )
-                              }
-                            >
-                              {definition.label || '-'}
-                            </button>
-                          </td>
+                          <td>{paginatedDefinitions.start + index + 1}</td>
+                          <td>{definition.label || '-'}</td>
                           <td>{typeLabel(definition.dataType)}</td>
                           <td>{definition.key || '-'}</td>
                           <td>{scopeLabel}</td>
                           <td>
-                            <span className={definition.active !== false ? 'status-active' : 'status-inactive'}>
+                            <span className={definition.active !== false ? 'status-verified' : 'status-inactive'}>
                               {definition.active !== false ? 'Active' : 'Inactive'}
                             </span>
                           </td>
                           <td className="table-actions" onClick={(event) => event.stopPropagation()}>
                             {(() => {
-                              const actions = [];
+                              const actions = [
+                                {
+                                  label: 'View',
+                                  onClick: () => setExpandedLibraryFieldId((prev) => prev === definition.id ? null : definition.id),
+                                },
+                              ];
                               if (hasPermission('ADMIN_DYNAMIC_FIELDS_UPDATE')) {
                                 actions.push({
                                   label: 'Edit',
@@ -1979,7 +1916,6 @@ function ProductAttributePage({ token }) {
                                   danger: true,
                                 });
                               }
-                              if (actions.length === 0) return null;
                               return (
                                 <TableRowActionMenu
                                   rowId={definition.id}
@@ -1996,121 +1932,114 @@ function ProductAttributePage({ token }) {
                   </tbody>
                 </table>
               </div>
-              <div className="table-record-count">
-                <span>
-                  Showing {filteredDefinitionLibrary.length} of {definitions.length} records
-                </span>
+              <div className="bv-table-footer">
+                <div className="table-record-count">
+                  <span>
+                    {paginatedDefinitions.totalItems === 0
+                      ? '0 records'
+                      : `Showing ${paginatedDefinitions.start + 1}–${paginatedDefinitions.end} of ${paginatedDefinitions.totalItems}`}
+                  </span>
+                </div>
+                <div className="product-pagination-controls">
+                  <label className="product-pagination-size">
+                    <span>Rows</span>
+                    <select value={defPageSize} onChange={(e) => { setDefPageSize(Number(e.target.value)); setDefPage(1); }}>
+                      {PAGE_SIZE_OPTIONS.map((n) => <option key={n} value={n}>{n}</option>)}
+                    </select>
+                  </label>
+                  <div className="bv-table-pagination">
+                    <button type="button" className="secondary-btn" disabled={paginatedDefinitions.page <= 1} onClick={() => setDefPage((p) => p - 1)}>{'< Prev'}</button>
+                    <span>Page {paginatedDefinitions.page} / {paginatedDefinitions.totalPages}</span>
+                    <button type="button" className="secondary-btn" disabled={paginatedDefinitions.page >= paginatedDefinitions.totalPages} onClick={() => setDefPage((p) => p + 1)}>{'Next >'}</button>
+                  </div>
+                </div>
               </div>
             </>
           )}
         </div>
-    </div>
 
-      {selectedLibraryDefinition ? (
-        <div className="admin-modal-backdrop" onClick={() => setExpandedLibraryFieldId(null)}>
-          <div
-            className="admin-modal"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="admin-modal-header">
-              <h3 className="admin-modal-title">Field details</h3>
-              <button
-                type="button"
-                className="ghost-btn small"
-                onClick={() => setExpandedLibraryFieldId(null)}
-              >
-                Close
-              </button>
-            </div>
-
-            <div className="admin-modal-body">
-            <div className="attribute-detail-section">
-              <table className="admin-table compact attribute-detail-table">
-                <thead>
-                  <tr>
-                    <th style={{ width: 140 }}>Field info</th>
-                    <th>Value</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td className="attribute-detail-label-cell">Field name</td>
-                    <td>{selectedLibraryDefinition.label || '-'}</td>
-                  </tr>
-                  <tr>
-                    <td className="attribute-detail-label-cell">Key</td>
-                    <td>
-                      <code>{selectedLibraryDefinition.key || '-'}</code>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="attribute-detail-label-cell">Type</td>
-                    <td>{typeLabel(selectedLibraryDefinition.dataType)}</td>
-                  </tr>
-                  <tr>
-                    <td className="attribute-detail-label-cell">Options</td>
-                    <td>
-                      {Array.isArray(selectedLibraryDefinition.options?.values)
-                        ? `${selectedLibraryDefinition.options.values.length} option${
-                            selectedLibraryDefinition.options.values.length === 1 ? '' : 's'
-                          }`
-                        : 'No options'}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="attribute-detail-label-cell">Usage</td>
-                    <td>
-                      Used in {selectedLibraryDefinition.scopeCount || 0}{' '}
-                      {(selectedLibraryDefinition.scopeCount || 0) === 1 ? 'place' : 'places'} ·{' '}
-                      {selectedLibraryDefinition.activeMappingCount || 0} active mapping
-                      {(selectedLibraryDefinition.activeMappingCount || 0) === 1 ? '' : 's'}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="attribute-detail-label-cell">Status</td>
-                    <td>{selectedLibraryDefinition.active !== false ? 'Active' : 'Inactive'}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div className="attribute-detail-section" style={{ marginTop: 16 }}>
-              <p className="attribute-detail-label">Assigned in</p>
-              {selectedLibraryDefinition.locations?.length ? (
-                <div className="table-shell attribute-location-table">
-                  <table className="admin-table compact">
-                    <thead>
-                      <tr>
-                        <th>Category path</th>
-                        <th>Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {selectedLibraryDefinition.locations.map((location) => (
-                        <tr key={`${selectedLibraryDefinition.id}-${location.scopeKey}`}>
-                          <td>{location.label}</td>
-                          <td>
-                            <span
-                              className={`attribute-badge ${
-                                location.active ? ' is-active' : ' is-inactive'
-                              }`}
-                            >
-                              {location.active ? 'Active' : 'Inactive'}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="attribute-detail-meta">Not assigned to any category yet.</p>
+        {selectedLibraryDefinition ? (
+          <div className="mv-panel card">
+            {/* Header */}
+            <div className="mv-panel-header">
+              <div className="mv-panel-title-row">
+                <button type="button" className="mv-back-btn" onClick={() => setExpandedLibraryFieldId(null)}>
+                  ← Back
+                </button>
+                <h3 className="mv-panel-title">{selectedLibraryDefinition.label}</h3>
+                <span className={selectedLibraryDefinition.active !== false ? 'status-active' : 'status-inactive'}>
+                  {selectedLibraryDefinition.active !== false ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+              {hasPermission('ADMIN_DYNAMIC_FIELDS_UPDATE') && (
+                <button type="button" className="ghost-btn small" onClick={() => handleEditDefinition(selectedLibraryDefinition)}>
+                  Edit
+                </button>
               )}
             </div>
+
+            {/* Field Details */}
+            <div className="mv-section">
+              <p className="mv-section-label">Field Details</p>
+              <div className="mv-detail-grid">
+                <span className="mv-detail-label">Field Name</span>
+                <span className="mv-detail-value">{selectedLibraryDefinition.label || '-'}</span>
+                <span className="mv-detail-label">Key</span>
+                <span className="mv-detail-value" style={{ fontFamily: 'monospace', fontSize: 12 }}>{selectedLibraryDefinition.key || '-'}</span>
+                <span className="mv-detail-label">Data Type</span>
+                <span className="mv-detail-value">{typeLabel(selectedLibraryDefinition.dataType)}</span>
+                <span className="mv-detail-label">Used In</span>
+                <span className="mv-detail-value">
+                  {selectedLibraryDefinition.scopeCount || 0} {(selectedLibraryDefinition.scopeCount || 0) === 1 ? 'place' : 'places'} · {selectedLibraryDefinition.activeMappingCount || 0} active
+                </span>
+              </div>
+              {Array.isArray(selectedLibraryDefinition.options?.values) && selectedLibraryDefinition.options.values.length > 0 ? (
+                <div style={{ marginTop: 10 }}>
+                  <span className="mv-detail-label">Options</span>
+                  <div className="mv-child-grid" style={{ marginTop: 6 }}>
+                    {selectedLibraryDefinition.options.values.map((opt) => (
+                      <div key={opt} className="mv-child-card" style={{ minWidth: 'auto', padding: '4px 10px' }}>
+                        <span className="mv-child-name" style={{ fontSize: 12, marginBottom: 0 }}>{opt}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            {/* Assigned in categories */}
+            <div className="mv-section">
+              <p className="mv-section-label">
+                Assigned in categories
+                {selectedLibraryDefinition.locations?.length > 0 && (
+                  <span className="mv-count-badge">{selectedLibraryDefinition.locations.length}</span>
+                )}
+              </p>
+              {selectedLibraryDefinition.locations?.length ? (
+                <div className="mv-child-grid">
+                  {selectedLibraryDefinition.locations.map((location) => (
+                    <div
+                      key={`${selectedLibraryDefinition.id}-${location.scopeKey}`}
+                      className="mv-child-card"
+                      style={{ flexBasis: '100%', minWidth: 0 }}
+                    >
+                      <div className="mv-child-name" style={{ fontSize: 12, marginBottom: 4 }}>{location.label}</div>
+                      <div className="mv-child-meta">
+                        <span className={location.active ? 'status-active' : 'status-inactive'}>
+                          {location.active ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mv-empty">Not assigned to any category yet.</p>
+              )}
             </div>
           </div>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
+    </div>
     </>
   );
 }

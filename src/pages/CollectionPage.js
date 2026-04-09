@@ -15,6 +15,17 @@ import { PRODUCT_MASTER_PERMISSIONS } from '../constants/adminPermissions';
 
 const ADMIN_API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:8080';
 
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+
+const paginateItems = (items, page, pageSize) => {
+  const totalItems = items.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const safePage = Math.min(Math.max(1, page), totalPages);
+  const start = (safePage - 1) * pageSize;
+  const end = Math.min(start + pageSize, totalItems);
+  return { items: items.slice(start, end), totalItems, totalPages, page: safePage, start, end };
+};
+
 const initialForm = {
   title: '',
   slug: '',
@@ -154,6 +165,11 @@ function CollectionPage({ token }) {
   const [isProductOptionsLoading, setIsProductOptionsLoading] = useState(false);
   const [productOptionsError, setProductOptionsError] = useState('');
 
+  // Side view panel
+  const [viewItem, setViewItem] = useState(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+
   const isCurated = form.sourceType === 'CURATED';
   const selectedProductIds = useMemo(() => parseIdList(form.productIds), [form.productIds]);
   const selectedProductIdSet = useMemo(() => new Set(selectedProductIds), [selectedProductIds]);
@@ -186,6 +202,11 @@ function CollectionPage({ token }) {
       return haystack.includes(search);
     });
   }, [items, searchQuery]);
+
+  const paginated = useMemo(
+    () => paginateItems(filteredItems, page, pageSize),
+    [filteredItems, page, pageSize]
+  );
 
   const selectableProducts = useMemo(
     () => productOptions.filter((product) => String(product?.approvalStatus || '').toUpperCase() === 'APPROVED'),
@@ -345,6 +366,7 @@ function CollectionPage({ token }) {
       return;
     }
     setEditItem(null);
+    setViewItem(null);
     setForm(initialForm);
     setIsSlugDirty(false);
     setProductPickerQuery('');
@@ -490,6 +512,7 @@ function CollectionPage({ token }) {
     try {
       setIsLoading(true);
       await deleteProductCollection(token, id);
+      if (viewItem?.id === id) setViewItem(null);
       await loadData();
       setMessage({ type: 'success', text: 'Collection deleted.' });
     } catch (error) {
@@ -497,6 +520,207 @@ function CollectionPage({ token }) {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleView = (item) => {
+    setViewItem(item);
+    setShowForm(false);
+    // If curated, load products so we can show them in the panel
+    if (item.sourceType === 'CURATED') {
+      ensureProductOptionsLoaded();
+    }
+  };
+
+  /* ── View panel products (for CURATED collections) ──────────── */
+  const viewProductList = useMemo(() => {
+    if (!viewItem || viewItem.sourceType !== 'CURATED') return [];
+    const ids = Array.isArray(viewItem.productIds) ? viewItem.productIds : parseIdList(String(viewItem.productIds || ''));
+    return ids.map((pid) => {
+      const p = productOptionsById.get(Number(pid));
+      return p || { id: pid, productName: `Product #${pid}`, _missing: true };
+    });
+  }, [viewItem, productOptionsById]);
+
+  /* ── Side view panel renderer ───────────────────────────────── */
+  const renderViewPanel = () => {
+    if (!viewItem) return null;
+    const col = viewItem;
+    const isCuratedCol = col.sourceType === 'CURATED';
+    const productIds = Array.isArray(col.productIds) ? col.productIds : parseIdList(String(col.productIds || ''));
+    const scopeParts = [col.industryLabel, col.mainCategoryName, col.categoryName].filter(Boolean);
+    const heroUrl = col.heroImage ? resolveMediaUrl(col.heroImage) : '';
+
+    return (
+      <div className="mv-panel card">
+        {/* Header */}
+        <div className="mv-panel-header">
+          <div className="mv-panel-title-row">
+            <button type="button" className="mv-back-btn" onClick={() => setViewItem(null)}>
+              ← Back
+            </button>
+            <h3 className="mv-panel-title">{col.title || 'Collection'}</h3>
+            <span className={`status-pill ${Number(col.active) === 1 ? 'status-verified' : 'status-inactive'}`}>
+              {Number(col.active) === 1 ? 'Active' : 'Inactive'}
+            </span>
+          </div>
+          {canUpdate && (
+            <button type="button" className="ghost-btn small" onClick={() => handleEdit(col)}>
+              Edit
+            </button>
+          )}
+        </div>
+
+        {/* Hero image */}
+        {heroUrl ? (
+          <div className="mv-section">
+            <img
+              src={heroUrl}
+              alt={col.title}
+              className="mv-banner-img"
+              onError={(e) => { e.target.style.display = 'none'; }}
+            />
+          </div>
+        ) : null}
+
+        {/* Basic Info */}
+        <div className="mv-section">
+          <p className="mv-section-label">Collection Details</p>
+          <div className="mv-detail-grid">
+            <span className="mv-detail-label">Title</span>
+            <span className="mv-detail-value">{col.title || '-'}</span>
+            {col.subtitle ? (
+              <>
+                <span className="mv-detail-label">Subtitle</span>
+                <span className="mv-detail-value">{col.subtitle}</span>
+              </>
+            ) : null}
+            <span className="mv-detail-label">Slug</span>
+            <span className="mv-detail-value" style={{ fontFamily: 'monospace', fontSize: 12 }}>{col.slug || '-'}</span>
+            <span className="mv-detail-label">Source</span>
+            <span className="mv-detail-value">
+              {isCuratedCol
+                ? `Curated (${productIds.length} product${productIds.length !== 1 ? 's' : ''})`
+                : `Product Feed`}
+            </span>
+            {!isCuratedCol && col.feedType ? (
+              <>
+                <span className="mv-detail-label">Feed Type</span>
+                <span className="mv-detail-value">
+                  {FEED_OPTIONS.find((f) => f.value === col.feedType)?.label || formatStatusLabel(col.feedType)}
+                </span>
+              </>
+            ) : null}
+            <span className="mv-detail-label">Product Limit</span>
+            <span className="mv-detail-value">{col.productLimit ?? 12}</span>
+          </div>
+        </div>
+
+        {/* Scope (where this collection applies) */}
+        <div className="mv-section">
+          <p className="mv-section-label">Scope / Applied To</p>
+          {scopeParts.length > 0 ? (
+            <div className="mv-detail-grid">
+              {col.industryLabel ? (
+                <>
+                  <span className="mv-detail-label">Industry</span>
+                  <span className="mv-detail-value">{col.industryLabel}</span>
+                </>
+              ) : null}
+              {col.mainCategoryName ? (
+                <>
+                  <span className="mv-detail-label">Main Category</span>
+                  <span className="mv-detail-value">{col.mainCategoryName}</span>
+                </>
+              ) : null}
+              {col.categoryName ? (
+                <>
+                  <span className="mv-detail-label">Category</span>
+                  <span className="mv-detail-value">{col.categoryName}</span>
+                </>
+              ) : null}
+            </div>
+          ) : (
+            <p className="mv-empty">No scope filter — applies to all products.</p>
+          )}
+        </div>
+
+        {/* Description */}
+        {col.description ? (
+          <div className="mv-section">
+            <p className="mv-section-label">Description</p>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary, #6b7280)', lineHeight: 1.5, margin: 0 }}>
+              {col.description}
+            </p>
+          </div>
+        ) : null}
+
+        {/* Curated products list */}
+        {isCuratedCol ? (
+          <div className="mv-section">
+            <p className="mv-section-label">
+              Products in this Collection
+              <span className="mv-count-badge">{productIds.length}</span>
+            </p>
+            {isProductOptionsLoading ? (
+              <p className="mv-loading">Loading products…</p>
+            ) : viewProductList.length === 0 ? (
+              <p className="mv-empty">No products added to this collection yet.</p>
+            ) : (
+              <div className="mv-child-grid">
+                {viewProductList.map((p) => {
+                  const imgUrl = resolveMediaUrl(getPrimaryProductImage(p));
+                  return (
+                    <div key={p.id} className="mv-child-card mv-product-card">
+                      {imgUrl ? (
+                        <img
+                          src={imgUrl}
+                          alt={p.productName || `Product #${p.id}`}
+                          className="mv-product-thumb"
+                          onError={(e) => { e.target.style.display = 'none'; }}
+                        />
+                      ) : (
+                        <div className="mv-product-thumb mv-product-no-img">No img</div>
+                      )}
+                      <div className="mv-child-name">
+                        {p._missing
+                          ? <span style={{ color: 'var(--text-secondary)' }}>Product #{p.id}</span>
+                          : p.productName || `Product #${p.id}`}
+                      </div>
+                      {!p._missing && (
+                        <div className="mv-child-meta">
+                          <span className="mv-child-order">#{p.id}</span>
+                          {p.sellingPrice != null && (
+                            <span className="mv-child-cats">{formatPrice(p.sellingPrice, p.currency)}</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ) : (
+          /* Feed-type: explain how it works */
+          <div className="mv-section">
+            <p className="mv-section-label">How this Feed Works</p>
+            <div className="mv-child-grid">
+              <div className="mv-child-card" style={{ gridColumn: '1 / -1' }}>
+                <div className="mv-child-name">
+                  {FEED_OPTIONS.find((f) => f.value === col.feedType)?.label || formatStatusLabel(col.feedType || 'BESTSELLER')} Feed
+                </div>
+                <div className="mv-child-meta">
+                  <span className="mv-child-cats">
+                    Automatically shows up to {col.productLimit ?? 12} products
+                    {scopeParts.length > 0 ? ` from ${scopeParts.join(' › ')}` : ' across all categories'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -813,7 +1037,7 @@ function CollectionPage({ token }) {
         </div>
       ) : null}
 
-      <div className="panel-grid">
+      <div className={`mv-layout${viewItem ? ' mv-layout--split' : ''}`}>
         <div className="panel card users-table-card">
           <div className="panel-split">
             <div className="category-list-head-left">
@@ -879,9 +1103,14 @@ function CollectionPage({ token }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredItems.map((item, index) => (
-                    <tr key={item.id}>
-                      <td>{index + 1}</td>
+                  {paginated.items.map((item, index) => (
+                    <tr
+                      key={item.id}
+                      className={viewItem?.id === item.id ? 'mv-row-active' : ''}
+                      onClick={() => handleView(item)}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <td>{paginated.start + index + 1}</td>
                       <td>
                         <div className="user-name">
                           <strong>{item.title}</strong>
@@ -892,7 +1121,7 @@ function CollectionPage({ token }) {
                       <td>
                         {item.sourceType === 'PRODUCT_FEED'
                           ? `Feed · ${String(item.feedType || 'BESTSELLER').replaceAll('_', ' ')}`
-                          : `Curated · ${Array.isArray(item.productIds) ? item.productIds.length : 0} ids`}
+                          : `Curated · ${Array.isArray(item.productIds) ? item.productIds.length : 0} products`}
                       </td>
                       <td>
                         {[item.industryLabel, item.mainCategoryName, item.categoryName]
@@ -900,20 +1129,19 @@ function CollectionPage({ token }) {
                           .join(' / ') || '-'}
                       </td>
                       <td>
-                        <span className={Number(item.active) === 1 ? 'status-active' : 'status-inactive'}>
+                        <span className={`status-pill ${Number(item.active) === 1 ? 'status-verified' : 'status-inactive'}`}>
                           {Number(item.active) === 1 ? 'Active' : 'Inactive'}
                         </span>
                       </td>
                       <td className="table-actions" onClick={(e) => e.stopPropagation()}>
                         {(() => {
-                          const actions = [];
+                          const actions = [{ label: 'View', onClick: () => handleView(item) }];
                           if (canUpdate) {
                             actions.push({ label: 'Edit', onClick: () => handleEdit(item) });
                           }
                           if (canDelete) {
                             actions.push({ label: 'Delete', onClick: () => handleDelete(item.id), danger: true });
                           }
-                          if (actions.length === 0) return null;
                           return (
                             <TableRowActionMenu
                               rowId={item.id}
@@ -928,14 +1156,34 @@ function CollectionPage({ token }) {
                   ))}
                 </tbody>
               </table>
-              <div className="table-record-count">
-                <span>
-                  Showing {filteredItems.length} of {items.length} records
-                </span>
+              <div className="bv-table-footer">
+                <div className="table-record-count">
+                  <span>
+                    {paginated.totalItems === 0
+                      ? '0 records'
+                      : `Showing ${paginated.start + 1}–${paginated.end} of ${paginated.totalItems}`}
+                  </span>
+                </div>
+                <div className="product-pagination-controls">
+                  <label className="product-pagination-size">
+                    <span>Rows</span>
+                    <select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}>
+                      {PAGE_SIZE_OPTIONS.map((n) => <option key={n} value={n}>{n}</option>)}
+                    </select>
+                  </label>
+                  <div className="bv-table-pagination">
+                    <button type="button" className="secondary-btn" disabled={paginated.page <= 1} onClick={() => setPage((p) => p - 1)}>{'< Prev'}</button>
+                    <span>Page {paginated.page} / {paginated.totalPages}</span>
+                    <button type="button" className="secondary-btn" disabled={paginated.page >= paginated.totalPages} onClick={() => setPage((p) => p + 1)}>{'Next >'}</button>
+                  </div>
+                </div>
               </div>
             </div>
           )}
         </div>
+
+        {/* Side view panel */}
+        {renderViewPanel()}
       </div>
     </div>
   );
