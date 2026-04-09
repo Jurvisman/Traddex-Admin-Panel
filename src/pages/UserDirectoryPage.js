@@ -80,7 +80,6 @@ function CreateUserModal({ token, onClose, onSuccess }) {
     }, 1000);
   };
 
-  // cleanup timer on unmount
   useEffect(() => () => clearInterval(timerRef.current), []);
 
   const handleSendOtp = async () => {
@@ -116,7 +115,6 @@ function CreateUserModal({ token, onClose, onSuccess }) {
     setStep(OTP_STEP.VERIFYING);
     let verifiedUser = null;
     try {
-      // verifyOtp creates/verifies the user and returns the user record
       const resp = await verifyOtp(phone.trim(), otp.trim());
       verifiedUser = resp?.data || resp;
       setVerified(true);
@@ -126,25 +124,22 @@ function CreateUserModal({ token, onClose, onSuccess }) {
       setStep(OTP_STEP.IDLE);
       return;
     }
-    // After OTP verified, update the user's name (sendOtp creates a placeholder with name "User")
     setStep(OTP_STEP.CREATING);
     try {
       const userId = verifiedUser?.id || verifiedUser?.user_id || verifiedUser?.userId;
       if (userId && name.trim() && name.trim().toLowerCase() !== 'user') {
-        const updatePayload = {
+        await updateUser(token, userId, {
           name: name.trim(),
           number: phone.trim(),
           verify: 1,
           active: 1,
           logout: 0,
           timeZone: null,
-        };
-        await updateUser(token, userId, updatePayload);
+        });
       }
       setStep(OTP_STEP.DONE);
       onSuccess(`User "${name.trim()}" created successfully.`);
     } catch (err) {
-      // Name update failed — user is still created and verified, just with placeholder name
       setStep(OTP_STEP.DONE);
       onSuccess(`User "${phone.trim()}" created (name update failed — edit from the list).`);
     }
@@ -160,51 +155,105 @@ function CreateUserModal({ token, onClose, onSuccess }) {
 
   const isBusy = step === OTP_STEP.SENDING || step === OTP_STEP.VERIFYING || step === OTP_STEP.CREATING;
 
+  const STEPS = ['Details', 'Verify OTP', 'Done'];
+
   return (
     <div className="admin-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="create-user-title">
-      <div className="admin-modal confirm-modal" style={{ maxWidth: 480 }}>
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-          <h3 className="panel-subheading" id="create-user-title" style={{ margin: 0 }}>Create New User</h3>
+      <div
+        className="admin-modal"
+        style={{ maxWidth: 460, width: '100%', padding: 0, borderRadius: 16, overflow: 'hidden' }}
+      >
+        {/* ── Header ─────────────────────────────────────────── */}
+        <div style={{
+          padding: '20px 24px 16px',
+          borderBottom: '1px solid #f1f5f9',
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          gap: 12,
+        }}>
+          <div>
+            <h3
+              id="create-user-title"
+              style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#1e293b' }}
+            >
+              Create New User
+            </h3>
+            <p style={{ margin: '3px 0 0', fontSize: 12, color: '#94a3b8' }}>
+              Verify mobile number via OTP to create account
+            </p>
+          </div>
           <button
             type="button"
             onClick={onClose}
             disabled={isBusy}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: '#94a3b8', lineHeight: 1 }}
             aria-label="Close"
+            style={{
+              background: '#f1f5f9', border: 'none', borderRadius: 8,
+              width: 32, height: 32, cursor: isBusy ? 'not-allowed' : 'pointer',
+              color: '#64748b', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', fontSize: 14, flexShrink: 0,
+            }}
           >
             ✕
           </button>
         </div>
 
-        {/* Step indicator */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 24, alignItems: 'center' }}>
-          {['Details', 'Verify OTP', 'Done'].map((label, i) => {
+        {/* ── Step indicator ──────────────────────────────────── */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          padding: '13px 24px',
+          background: '#fafafa',
+          borderBottom: '1px solid #f1f5f9',
+        }}>
+          {STEPS.map((label, i) => {
             const active = i === 0 ? !otpSent : i === 1 ? otpSent && !verified : verified;
             const done   = i === 0 ? otpSent : i === 1 ? verified : false;
             return (
-              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <div style={{
-                  width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 11, fontWeight: 700,
-                  background: done ? '#16a34a' : active ? 'var(--primary, #4f46e5)' : '#e2e8f0',
-                  color: done || active ? '#fff' : '#94a3b8',
-                  transition: 'background 0.2s',
-                }}>
-                  {done ? '✓' : i + 1}
+              <div key={label} style={{ display: 'flex', alignItems: 'center', flex: i < 2 ? 1 : 'none' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                  <div style={{
+                    width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 11, fontWeight: 700,
+                    background: done ? '#16a34a' : active ? '#6e46ff' : '#e2e8f0',
+                    color: done || active ? '#fff' : '#94a3b8',
+                    boxShadow: active ? '0 0 0 3px rgba(110,70,255,0.15)' : 'none',
+                    transition: 'all 0.2s',
+                  }}>
+                    {done ? '✓' : i + 1}
+                  </div>
+                  <span style={{
+                    fontSize: 12,
+                    fontWeight: active || done ? 600 : 400,
+                    color: active ? '#6e46ff' : done ? '#16a34a' : '#94a3b8',
+                    whiteSpace: 'nowrap',
+                  }}>
+                    {label}
+                  </span>
                 </div>
-                <span style={{ fontSize: 12, color: active || done ? '#1e293b' : '#94a3b8', fontWeight: active ? 600 : 400 }}>{label}</span>
-                {i < 2 && <div style={{ width: 24, height: 1, background: '#e2e8f0' }} />}
+                {i < 2 && (
+                  <div style={{
+                    flex: 1, height: 1.5, margin: '0 8px',
+                    background: done ? '#16a34a' : '#e2e8f0',
+                    borderRadius: 2, transition: 'background 0.3s',
+                  }} />
+                )}
               </div>
             );
           })}
         </div>
 
-        {/* Fields */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {/* Name */}
+        {/* ── Body ────────────────────────────────────────────── */}
+        <div style={{ padding: '22px 24px 4px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+          {/* Full Name */}
           <div>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+            <label style={{
+              display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280',
+              textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 7,
+            }}>
               Full Name <span style={{ color: '#ef4444' }}>*</span>
             </label>
             <input
@@ -213,98 +262,184 @@ function CreateUserModal({ token, onClose, onSuccess }) {
               onChange={(e) => { setName(e.target.value); setError(''); }}
               placeholder="Enter user's full name"
               disabled={isBusy || verified}
-              style={{ width: '100%', boxSizing: 'border-box' }}
+              style={{
+                width: '100%', boxSizing: 'border-box', padding: '10px 13px',
+                border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 14,
+                outline: 'none', color: '#111827',
+                background: isBusy || verified ? '#f8fafc' : '#fff',
+              }}
               aria-label="Full name"
             />
           </div>
 
-          {/* Phone + Send OTP */}
+          {/* Mobile + Send OTP */}
           <div>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+            <label style={{
+              display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280',
+              textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 7,
+            }}>
               Mobile Number <span style={{ color: '#ef4444' }}>*</span>
             </label>
             <div style={{ display: 'flex', gap: 8 }}>
-              <input
-                type="tel"
-                value={phone}
-                onChange={(e) => handlePhoneChange(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                placeholder="10-digit mobile number"
-                maxLength={10}
-                disabled={isBusy || verified}
-                style={{ flex: 1 }}
-                aria-label="Mobile number"
-              />
+              {/* Phone input with +91 prefix */}
+              <div style={{
+                display: 'flex', alignItems: 'center', flex: 1,
+                border: '1.5px solid #e2e8f0', borderRadius: 8,
+                overflow: 'hidden',
+                background: isBusy || verified ? '#f8fafc' : '#fff',
+              }}>
+                <span style={{
+                  padding: '0 10px', fontSize: 13, color: '#64748b', fontWeight: 600,
+                  borderRight: '1.5px solid #e2e8f0', background: '#f8fafc',
+                  alignSelf: 'stretch', display: 'flex', alignItems: 'center', flexShrink: 0,
+                }}>
+                  +91
+                </span>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => handlePhoneChange(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  placeholder="10-digit number"
+                  maxLength={10}
+                  disabled={isBusy || verified}
+                  style={{
+                    flex: 1, border: 'none', outline: 'none',
+                    padding: '10px 12px', fontSize: 14,
+                    background: 'transparent', color: '#111827',
+                  }}
+                  aria-label="Mobile number"
+                />
+              </div>
+              {/* Send OTP button */}
               <button
                 type="button"
-                className="primary-btn"
                 onClick={handleSendOtp}
                 disabled={isBusy || verified || (otpSent && resendTimer > 0)}
-                style={{ whiteSpace: 'nowrap', minWidth: 110 }}
+                style={{
+                  whiteSpace: 'nowrap', minWidth: 108, padding: '0 14px', height: 44,
+                  border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 13,
+                  cursor: (isBusy || verified || (otpSent && resendTimer > 0)) ? 'not-allowed' : 'pointer',
+                  background: (isBusy || verified || (otpSent && resendTimer > 0))
+                    ? '#e2e8f0'
+                    : 'linear-gradient(135deg, #6e46ff 0%, #8b5cf6 100%)',
+                  color: (isBusy || verified || (otpSent && resendTimer > 0)) ? '#9ca3af' : '#fff',
+                  boxShadow: (isBusy || verified || (otpSent && resendTimer > 0))
+                    ? 'none' : '0 4px 12px rgba(110,70,255,0.25)',
+                  transition: 'all 0.15s',
+                }}
               >
-                {step === OTP_STEP.SENDING ? 'Sending…' : otpSent ? (resendTimer > 0 ? `Resend (${resendTimer}s)` : 'Resend OTP') : 'Send OTP'}
+                {step === OTP_STEP.SENDING
+                  ? 'Sending…'
+                  : otpSent
+                    ? (resendTimer > 0 ? `Resend (${resendTimer}s)` : 'Resend OTP')
+                    : 'Send OTP'}
               </button>
             </div>
           </div>
 
-          {/* OTP input (shown after send) */}
+          {/* OTP input — shown after send */}
           {otpSent && !verified && (
-            <div>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
-                Enter OTP <span style={{ color: '#ef4444' }}>*</span>
-              </label>
-              <p style={{ margin: '0 0 8px', fontSize: 12, color: '#64748b' }}>
-                OTP sent to <strong>+91 {phone}</strong>. Enter the code below.
+            <div style={{
+              background: '#faf5ff', border: '1.5px solid #e9d5ff',
+              borderRadius: 10, padding: '16px',
+            }}>
+              <p style={{ margin: '0 0 12px', fontSize: 12, color: '#7c3aed', fontWeight: 500, lineHeight: 1.5 }}>
+                OTP sent to <strong>+91 {phone}</strong> — enter the code below
               </p>
               <div style={{ display: 'flex', gap: 8 }}>
                 <input
                   type="text"
                   value={otp}
                   onChange={(e) => { setOtp(e.target.value.replace(/\D/g, '').slice(0, 6)); setError(''); }}
-                  placeholder="Enter OTP"
+                  placeholder="— — — — — —"
                   maxLength={6}
                   disabled={isBusy}
-                  style={{ flex: 1, letterSpacing: 4, fontSize: 18, textAlign: 'center', fontWeight: 700 }}
+                  style={{
+                    flex: 1, letterSpacing: 10, fontSize: 22, textAlign: 'center',
+                    fontWeight: 700, padding: '10px 8px', borderRadius: 8,
+                    border: '1.5px solid #c4b5fd', outline: 'none',
+                    background: '#fff', color: '#4c1d95',
+                  }}
                   aria-label="OTP code"
                   autoFocus
                 />
                 <button
                   type="button"
-                  className="primary-btn"
                   onClick={handleVerifyOtp}
                   disabled={isBusy || otp.length < 4}
-                  style={{ minWidth: 110 }}
+                  style={{
+                    minWidth: 128, padding: '0 14px', height: 48, borderRadius: 8,
+                    border: 'none', fontWeight: 600, fontSize: 13,
+                    cursor: (isBusy || otp.length < 4) ? 'not-allowed' : 'pointer',
+                    background: (isBusy || otp.length < 4)
+                      ? '#e2e8f0'
+                      : 'linear-gradient(135deg, #6e46ff 0%, #8b5cf6 100%)',
+                    color: (isBusy || otp.length < 4) ? '#9ca3af' : '#fff',
+                    boxShadow: (isBusy || otp.length < 4) ? 'none' : '0 4px 12px rgba(110,70,255,0.3)',
+                    transition: 'all 0.15s',
+                  }}
                 >
-                  {step === OTP_STEP.VERIFYING ? 'Verifying…' : step === OTP_STEP.CREATING ? 'Creating…' : 'Verify & Create'}
+                  {step === OTP_STEP.VERIFYING
+                    ? 'Verifying…'
+                    : step === OTP_STEP.CREATING
+                      ? 'Creating…'
+                      : 'Verify & Create'}
                 </button>
               </div>
             </div>
           )}
 
-          {/* Verified success state */}
+          {/* Success state */}
           {verified && step === OTP_STEP.DONE && (
             <div style={{
-              padding: '12px 16px', borderRadius: 8, background: '#f0fdf4', border: '1px solid #bbf7d0',
-              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '14px 16px', borderRadius: 10, background: '#f0fdf4',
+              border: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', gap: 12,
             }}>
-              <span style={{ fontSize: 20 }}>✅</span>
-              <span style={{ fontSize: 14, color: '#166534', fontWeight: 500 }}>User created successfully!</span>
+              <div style={{
+                width: 36, height: 36, borderRadius: '50%', background: '#16a34a', flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#fff', fontSize: 18, fontWeight: 700,
+              }}>
+                ✓
+              </div>
+              <div>
+                <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#15803d' }}>User created successfully!</p>
+                <p style={{ margin: '2px 0 0', fontSize: 12, color: '#166534' }}>They can now log in to the Traddex app.</p>
+              </div>
             </div>
           )}
 
           {/* Error */}
           {error && (
             <div style={{
-              padding: '10px 14px', borderRadius: 8, background: '#fef2f2', border: '1px solid #fecaca',
-              fontSize: 13, color: '#b91c1c',
+              padding: '10px 14px', borderRadius: 8, background: '#fef2f2',
+              border: '1px solid #fecaca', display: 'flex', alignItems: 'center', gap: 10,
             }}>
-              {error}
+              <span style={{ color: '#ef4444', fontSize: 16, flexShrink: 0 }}>⚠</span>
+              <span style={{ fontSize: 13, color: '#b91c1c' }}>{error}</span>
             </div>
           )}
         </div>
 
-        {/* Footer */}
-        <div className="form-actions" style={{ marginTop: 24 }}>
-          <button type="button" className="ghost-btn" onClick={onClose} disabled={step === OTP_STEP.CREATING}>
+        {/* ── Footer ──────────────────────────────────────────── */}
+        <div style={{
+          padding: '16px 24px',
+          borderTop: '1px solid #f1f5f9',
+          display: 'flex',
+          justifyContent: 'flex-end',
+          background: '#fafafa',
+          marginTop: 18,
+        }}>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={step === OTP_STEP.CREATING}
+            style={{
+              padding: '9px 22px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+              border: '1.5px solid #e2e8f0', background: '#fff', color: '#64748b',
+              cursor: step === OTP_STEP.CREATING ? 'not-allowed' : 'pointer',
+            }}
+          >
             {step === OTP_STEP.DONE ? 'Close' : 'Cancel'}
           </button>
         </div>
@@ -312,7 +447,6 @@ function CreateUserModal({ token, onClose, onSuccess }) {
     </div>
   );
 }
-
 
 /* ── Small reusable helpers for view panel ──────────────── */
 const UserStatusBadge = ({ isActive }) => (
@@ -344,9 +478,7 @@ function UserDirectoryPage({ token, allowedActions }) {
     const source = allowedActions instanceof Set ? Array.from(allowedActions) : Array.isArray(allowedActions) ? allowedActions : [];
     source.forEach((code) => {
       const normalizedCode = String(code || '').trim().toUpperCase();
-      if (normalizedCode) {
-        next.add(normalizedCode);
-      }
+      if (normalizedCode) next.add(normalizedCode);
     });
     return next;
   }, [allowedActions]);
@@ -362,7 +494,6 @@ function UserDirectoryPage({ token, allowedActions }) {
       setMessage({ type: 'error', text: 'You do not have permission to view users.' });
       return;
     }
-
     setIsLoading(true);
     setMessage({ type: 'info', text: '' });
     try {
@@ -406,10 +537,10 @@ function UserDirectoryPage({ token, allowedActions }) {
     });
   }, [query, users]);
 
-  const activeCount = useMemo(() => users.filter((user) => Number(user?.active) === 1).length, [users]);
+  const activeCount   = useMemo(() => users.filter((u) => Number(u?.active) === 1).length, [users]);
   const inactiveCount = Math.max(0, users.length - activeCount);
-  const verifiedCount = useMemo(() => users.filter((user) => Number(user?.verify) === 1).length, [users]);
-  const pendingCount = Math.max(0, users.length - verifiedCount);
+  const verifiedCount = useMemo(() => users.filter((u) => Number(u?.verify) === 1).length, [users]);
+  const pendingCount  = Math.max(0, users.length - verifiedCount);
 
   const handleToggleActive = async (user) => {
     if (!canUserUpdate) {
@@ -417,14 +548,12 @@ function UserDirectoryPage({ token, allowedActions }) {
       return;
     }
     if (!user?.id) return;
-
     const nextActive = Number(user?.active) === 1 ? 0 : 1;
     const payload = buildUserUpdatePayload(user, nextActive);
     if (!payload.name || !payload.number) {
       setMessage({ type: 'error', text: 'User is missing required name or phone fields for update.' });
       return;
     }
-
     setActiveUserId(user.id);
     setMessage({ type: 'info', text: '' });
     try {
@@ -449,18 +578,18 @@ function UserDirectoryPage({ token, allowedActions }) {
 
   const renderViewPanel = () => {
     if (!viewUser) return null;
-    const u = viewUser;
-    const name      = getUserName(u);
-    const email     = getUserEmail(u);
-    const phone     = u?.number || u?.mobile || u?.phone || null;
-    const userType  = getUserType(u);
-    const initials  = getInitials(u);
-    const verif     = resolveVerification(u);
-    const isActive  = Number(u?.active) === 1;
-    const joined    = u?.created_at || u?.createdAt || u?.joined_at;
-    const lastAct   = u?.last_active || u?.lastActive || u?.updatedAt || u?.updated_at;
-    const timeZone  = u?.timeZone || u?.time_zone || null;
-    const userId    = u?.id || u?.user_id;
+    const u        = viewUser;
+    const name     = getUserName(u);
+    const email    = getUserEmail(u);
+    const phone    = u?.number || u?.mobile || u?.phone || null;
+    const userType = getUserType(u);
+    const initials = getInitials(u);
+    const verif    = resolveVerification(u);
+    const isActive = Number(u?.active) === 1;
+    const joined   = u?.created_at || u?.createdAt || u?.joined_at;
+    const lastAct  = u?.last_active || u?.lastActive || u?.updatedAt || u?.updated_at;
+    const timeZone = u?.timeZone || u?.time_zone || null;
+    const userId   = u?.id || u?.user_id;
 
     return (
       <div className="mv-panel card">
@@ -484,8 +613,10 @@ function UserDirectoryPage({ token, allowedActions }) {
             <strong>{name}</strong>
             <span>{phone || email || '—'}</span>
             <span style={{ marginTop: 4 }}>
-              <span className={verif.className === 'verified' ? 'status-active' : 'status-inactive'}
-                style={{ fontSize: 11, padding: '2px 8px' }}>
+              <span
+                className={verif.className === 'verified' ? 'status-active' : 'status-inactive'}
+                style={{ fontSize: 11, padding: '2px 8px' }}
+              >
                 {verif.label}
               </span>
             </span>
@@ -496,11 +627,11 @@ function UserDirectoryPage({ token, allowedActions }) {
         <div className="mv-section">
           <p className="mv-section-label">Basic Info</p>
           <div className="mv-detail-grid">
-            <UserDetailRow label="User ID" value={String(userId ?? '—')} />
-            <UserDetailRow label="Phone" value={phone} />
-            <UserDetailRow label="Email" value={email !== '-' ? email : null} />
-            <UserDetailRow label="User Type" value={userType} />
-            <UserDetailRow label="Timezone" value={timeZone} />
+            <UserDetailRow label="User ID"      value={String(userId ?? '—')} />
+            <UserDetailRow label="Phone"        value={phone} />
+            <UserDetailRow label="Email"        value={email !== '-' ? email : null} />
+            <UserDetailRow label="User Type"    value={userType} />
+            <UserDetailRow label="Timezone"     value={timeZone} />
             <UserDetailRow label="Verification" value={verif.label} />
           </div>
         </div>
@@ -600,7 +731,7 @@ function UserDirectoryPage({ token, allowedActions }) {
                         checked={selectedRows.size === filteredUsers.length && filteredUsers.length > 0}
                         onChange={(event) => {
                           if (event.target.checked) {
-                            setSelectedRows(new Set(filteredUsers.map((user) => user?.id || user?.user_id)));
+                            setSelectedRows(new Set(filteredUsers.map((u) => u?.id || u?.user_id)));
                           } else {
                             setSelectedRows(new Set());
                           }
@@ -655,7 +786,12 @@ function UserDirectoryPage({ token, allowedActions }) {
                         <td>
                           <div className="user-cell">
                             <div>
-                              <span className="bdt-name-link" style={{ color: 'var(--gsc-primary, #6e46ff)', fontWeight: 600, cursor: 'pointer' }}>{getUserName(user)}</span>
+                              <span
+                                className="bdt-name-link"
+                                style={{ color: 'var(--gsc-primary, #6e46ff)', fontWeight: 600, cursor: 'pointer' }}
+                              >
+                                {getUserName(user)}
+                              </span>
                               <p className="user-email">{getUserEmail(user)}</p>
                             </div>
                           </div>
@@ -681,10 +817,7 @@ function UserDirectoryPage({ token, allowedActions }) {
                                 openRowId={openActionRowId}
                                 onToggle={setOpenActionRowId}
                                 actions={[
-                                  {
-                                    label: 'View',
-                                    onClick: () => setViewUser(user),
-                                  },
+                                  { label: 'View', onClick: () => setViewUser(user) },
                                   {
                                     label: isActive ? 'Deactivate' : 'Activate',
                                     onClick: () => handleToggleActive(user),
