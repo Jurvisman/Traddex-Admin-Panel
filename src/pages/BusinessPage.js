@@ -543,16 +543,15 @@ function BusinessPage({ token, allowedActions }) {
     const term = normalize(query);
     return businesses.filter((user) => {
       if (term) {
-        const bp = user?.businessProfile || user;
+        const bp = user?.businessProfile || user?.business_profile;
         const haystack = [
           getUserName(user),
-          getUserEmail(user),
           user?.number,
           user?.mobile,
           user?.phone,
-          bp?.businessName,
-          bp?.email,
-          bp?.ownerName,
+          user?.businessName || bp?.businessName,
+          user?.businessEmail || bp?.email,
+          user?.ownerName || bp?.ownerName,
           bp?.serviceArea,
         ]
           .map(normalize)
@@ -1303,7 +1302,7 @@ function BusinessPage({ token, allowedActions }) {
                       const unifiedStatus = resolveUnifiedStatus(user);
                       const isActive = Number(user?.active) === 1;
                       return (
-                        <tr key={rowId || getUserEmail(user)} className={selectedRows.has(rowId) ? 'bdt-row-selected' : ''}>
+                        <tr key={rowId || user?.number} className={selectedRows.has(rowId) ? 'bdt-row-selected' : ''}>
                           <td className="bdt-checkbox-col">
                             <input
                               type="checkbox"
@@ -1324,14 +1323,14 @@ function BusinessPage({ token, allowedActions }) {
                             <td>
                               <span className="bdt-name-link" onClick={() => handleView(user)} role="button" tabIndex={0}
                                 onKeyDown={(e) => e.key === 'Enter' && handleView(user)}>
-                                {bp?.businessName || getUserName(user)}
+                                {user?.businessName || bp?.businessName || getUserName(user)}
                               </span>
                             </td>
                           )}
-                          {columnVisibility.businessEmail && <td className="bdt-email-cell">{bp?.email || '-'}</td>}
-                          {columnVisibility.ownerName && <td>{bp?.ownerName || getUserName(user)}</td>}
+                          {columnVisibility.businessEmail && <td className="bdt-email-cell">{user?.businessEmail || bp?.email || '-'}</td>}
+                          {columnVisibility.ownerName && <td>{user?.ownerName || bp?.ownerName || getUserName(user)}</td>}
                           {columnVisibility.phone && <td>{user?.number || user?.mobile || user?.phone || '-'}</td>}
-                          {columnVisibility.personalEmail && <td className="bdt-email-cell">{getUserEmail(user)}</td>}
+                          {columnVisibility.personalEmail && <td className="bdt-email-cell">{user?.number || '-'}</td>}
                           {columnVisibility.status && (
                             <td>
                               <span className={`status-pill ${unifiedStatus.className}`}>{unifiedStatus.label}</span>

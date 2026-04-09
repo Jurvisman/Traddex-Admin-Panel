@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Banner } from '../components';
 import {
   createUserAccount,
+  listBusinessTypes,
   listCities,
   listCountries,
   listIndustries,
@@ -15,6 +16,7 @@ import {
 
 /* ── Validation regexes ──────────────────────────────────────── */
 const RE_PHONE  = /^[6-9][0-9]{9}$/;
+const RE_EMAIL  = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const RE_GST    = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
 const RE_PAN    = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
 const RE_IFSC   = /^[A-Z]{4}0[A-Z0-9]{6}$/;
@@ -43,7 +45,7 @@ const TABS = [
 ];
 
 const INITIAL_FORM = {
-  ownerName: '', phone: '', roleId: '',
+  ownerName: '', phone: '', roleId: '', email: '',
   businessName: '', industry: '', segment: '', gstNumber: '', businessPan: '',
   udyam: '', website: '', description: '', experience: '', hours: '', businessType: '',
   address: '', plotNo: '', landmark: '', postalCode: '', cityCode: '', stateCode: '',
@@ -52,7 +54,7 @@ const INITIAL_FORM = {
 };
 
 const FIELD_TAB_MAP = {
-  ownerName: 'account', phone: 'account', roleId: 'account',
+  ownerName: 'account', phone: 'account', roleId: 'account', email: 'account',
   businessName: 'business', industry: 'business', segment: 'business',
   gstNumber: 'business', businessPan: 'business', udyam: 'business',
   website: 'business', description: 'business', experience: 'business',
@@ -69,6 +71,7 @@ function validateField(key, value) {
   switch (key) {
     case 'ownerName':    return !v ? 'Owner name is required.' : v.length < 2 ? 'Min 2 characters.' : null;
     case 'phone':        return !v ? 'Phone number is required.' : !RE_PHONE.test(v) ? 'Enter a valid 10-digit Indian mobile number.' : null;
+    case 'email':        return v && !RE_EMAIL.test(v) ? 'Enter a valid email address.' : null;
     case 'businessName': return !v ? 'Business name is required.' : v.length < 2 ? 'Min 2 characters.' : null;
     case 'industry':     return !v ? 'Industry is required.' : null;
     case 'segment':      return !v ? 'Segment is required.' : null;
@@ -331,8 +334,9 @@ function BusinessCreatePage({ token }) {
   const [form, setForm]           = useState(INITIAL_FORM);
   const [errors, setErrors]       = useState({});
   const [touched, setTouched]     = useState({});
-  const [roles, setRoles]         = useState([]);
+  const [roles, setRoles]             = useState([]);
   const [industries, setIndustries]   = useState([]);
+  const [businessTypes, setBusinessTypes] = useState([]);
   const [countries, setCountries]     = useState([]);
   const [states, setStates]           = useState([]);
   const [cities, setCities]           = useState([]);
@@ -400,6 +404,18 @@ function BusinessCreatePage({ token }) {
     }).catch(() => setCities([]));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.stateCode]);
+
+  // When segment changes → reload business types & clear selected type
+  useEffect(() => {
+    if (!form.segment) { setBusinessTypes([]); return; }
+    listBusinessTypes(token, form.segment).then((res) => {
+      const list = Array.isArray(res?.data) ? res.data : [];
+      setBusinessTypes(list);
+    }).catch(() => setBusinessTypes([]));
+    // Clear businessType when segment changes
+    setForm((prev) => ({ ...prev, businessType: '' }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.segment]);
 
   /* ── Field change / blur ────────────────────────────────────── */
   const handleChange = useCallback((key, value) => {
@@ -677,6 +693,7 @@ function BusinessCreatePage({ token }) {
       await updateBusinessProfile(token, newUserId, {
         businessName: form.businessName.trim(),
         ownerName: form.ownerName.trim(),
+        email: form.email.trim() || null,
         industry: form.industry || null,
         businessType: form.businessType || null,
         gstNumber: form.gstNumber.trim().toUpperCase() || null,
@@ -868,7 +885,11 @@ function BusinessCreatePage({ token }) {
                   </div>
                 ) : null}
 
-                <Field label="Role" error={errors.roleId} touched={touched.roleId} span2>
+                <Field label="Business Email" error={errors.email} touched={touched.email} hint="Business contact email address">
+                  <input type="email" placeholder="business@example.com" {...inp('email')} />
+                </Field>
+
+                <Field label="Role" error={errors.roleId} touched={touched.roleId}>
                   <select {...inp('roleId')}>
                     <option value="">— Default role —</option>
                     {roles.map((r) => {
@@ -935,13 +956,20 @@ function BusinessCreatePage({ token }) {
                     onBlur={() => handleBlur('businessPan')} />
                 </Field>
 
-                <Field label="Business Type" required error={errors.businessType} touched={touched.businessType}>
-                  <select {...inp('businessType')}>
+                <Field label="Business Type" required error={errors.businessType} touched={touched.businessType}
+                  hint={!form.segment ? 'Select a segment first to load business types' : ''}>
+                  <select {...inp('businessType')} disabled={!form.segment}>
                     <option value="">— Select type —</option>
-                    {['Manufacturer', 'Trader / Distributor', 'Retailer', 'Service Provider',
-                      'Wholesaler', 'Importer / Exporter', 'Consultant', 'Other'].map((n) => (
-                      <option key={n} value={n}>{n}</option>
-                    ))}
+                    {businessTypes.length > 0
+                      ? businessTypes.map((t) => {
+                          const name = t?.typeName || t?.name || t?.type || String(t);
+                          return <option key={name} value={name}>{name}</option>;
+                        })
+                      : ['Manufacturer', 'Trader / Distributor', 'Retailer', 'Service Provider',
+                          'Wholesaler', 'Importer / Exporter', 'Consultant', 'Other'].map((n) => (
+                          <option key={n} value={n}>{n}</option>
+                        ))
+                    }
                   </select>
                 </Field>
 
