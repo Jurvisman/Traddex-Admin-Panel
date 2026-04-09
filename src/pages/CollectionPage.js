@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Banner, TableRowActionMenu } from '../components';
+import { Banner, TableRowActionMenu, ToggleSwitch } from '../components';
 import { usePermissions } from '../shared/permissions';
 import {
   createProductCollection,
@@ -201,7 +201,8 @@ function CollectionPage({ token }) {
         .join(' ');
       return haystack.includes(search);
     });
-  }, [items, searchQuery]);
+  }, [items, searchQuery])
+  .sort((a, b) => (b.id ?? 0) - (a.id ?? 0));
 
   const paginated = useMemo(
     () => paginateItems(filteredItems, page, pageSize),
@@ -728,312 +729,398 @@ function CollectionPage({ token }) {
       <Banner message={message} />
 
       {showForm ? (
-        <div className="admin-modal-backdrop" onClick={closeFormModal}>
-          <form
-            className="admin-modal category-create-modal"
-            onSubmit={handleSubmit}
-            onClick={(event) => event.stopPropagation()}
+        <div className="admin-modal-backdrop" role="dialog" aria-modal="true" onClick={closeFormModal}>
+          <div
+            className="admin-modal cat-unified-modal"
+            style={isCurated ? { maxWidth: 960, width: '100%' } : {}}
+            onClick={(e) => e.stopPropagation()}
           >
-            <div className="panel-split">
-              <h3 className="panel-subheading">{editItem ? 'Edit collection' : 'Create collection'}</h3>
-              <button type="button" className="ghost-btn small" onClick={closeFormModal}>
-                Close
+            {/* Modal Header */}
+            <div style={{
+              padding: '18px 24px 14px',
+              borderBottom: '1px solid #f1f5f9',
+              display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12,
+            }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#1e293b' }}>
+                  {editItem ? 'Edit Collection' : 'Create Collection'}
+                </h3>
+                <p style={{ margin: '2px 0 0', fontSize: 12, color: '#94a3b8' }}>
+                  {form.sourceType === 'CURATED' ? 'Curated Collection' : 'Smart Feed Collection'} › {form.title || '...'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeFormModal}
+                aria-label="Close"
+                style={{
+                  background: '#f1f5f9', border: 'none', borderRadius: 8,
+                  width: 32, height: 32, cursor: 'pointer', color: '#64748b',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0,
+                }}
+              >
+                ✕
               </button>
             </div>
-            <div className="field-grid">
-              <label className="field">
-                <span>Title</span>
-                <input
-                  type="text"
-                  value={form.title}
-                  onChange={(event) => handleChange('title', event.target.value)}
-                  placeholder="e.g. Summer Serums"
-                  required
-                />
-              </label>
-              <label className="field">
-                <span>Slug</span>
-                <input
-                  type="text"
-                  value={form.slug}
-                  onChange={(event) => {
-                    setIsSlugDirty(true);
-                    handleChange('slug', event.target.value);
-                  }}
-                  placeholder="summer-serums"
-                  required
-                />
-              </label>
-              <label className="field">
-                <span>Source type</span>
-                <select value={form.sourceType} onChange={(event) => handleChange('sourceType', event.target.value)}>
-                  <option value="CURATED">Curated products</option>
-                  <option value="PRODUCT_FEED">Product feed</option>
-                </select>
-              </label>
-              <label className="field">
-                <span>Initial visible products</span>
-                <input
-                  type="number"
-                  min="1"
-                  max="60"
-                  value={form.productLimit}
-                  onChange={(event) => handleChange('productLimit', event.target.value)}
-                  placeholder="12"
-                />
-              </label>
-              <label className="field">
-                <span>Subtitle</span>
-                <input
-                  type="text"
-                  value={form.subtitle}
-                  onChange={(event) => handleChange('subtitle', event.target.value)}
-                  placeholder="Top glow picks"
-                />
-              </label>
-              <label className="field">
-                <span>Active</span>
-                <select value={form.active} onChange={(event) => handleChange('active', event.target.value)}>
-                  <option value="1">Active</option>
-                  <option value="0">Inactive</option>
-                </select>
-              </label>
-              <label className="field field-span">
-                <span>Description</span>
-                <input
-                  type="text"
-                  value={form.description}
-                  onChange={(event) => handleChange('description', event.target.value)}
-                  placeholder="Optional helper text for the landing page"
-                />
-              </label>
-              <label className="field field-span">
-                <span>Hero image URL</span>
-                <input
-                  type="text"
-                  value={form.heroImage}
-                  onChange={(event) => handleChange('heroImage', event.target.value)}
-                  placeholder="https://..."
-                />
-              </label>
 
-              {isCurated ? (
-                <div className="field field-span">
-                  <div className="collection-picker">
-                    <div className="collection-picker-head">
-                      <div>
-                        <span>Curated products</span>
-                        <p>Select approved products, then adjust their order for live display.</p>
+            {/* Modal Body */}
+            <form onSubmit={handleSubmit}>
+              <div style={{ padding: '24px', maxHeight: 'calc(85vh - 120px)', overflowY: 'auto' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isCurated ? '1.2fr 1fr' : '1fr', gap: 32 }}>
+                  
+                  {/* Left Column: Collection Configuration */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                    
+                    {/* Basic Info Group */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                      <div className="field">
+                        <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                          Collection Title <span style={{ color: '#ef4444' }}>*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={form.title}
+                          onChange={(event) => handleChange('title', event.target.value)}
+                          placeholder="e.g. Weekend Steals"
+                          required
+                          style={{ width: '100%', boxSizing: 'border-box' }}
+                        />
                       </div>
-                      <div className="collection-picker-actions">
-                        <button
-                          type="button"
-                          className="ghost-btn small"
-                          onClick={() => ensureProductOptionsLoaded(true)}
-                          disabled={isProductOptionsLoading}
-                        >
-                          {isProductOptionsLoading ? 'Refreshing...' : 'Refresh'}
-                        </button>
-                        <button
-                          type="button"
-                          className="ghost-btn small"
-                          onClick={() => updateSelectedProductIds([])}
-                          disabled={selectedProductIds.length === 0}
-                        >
-                          Clear all
-                        </button>
+                      <div className="field">
+                        <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                          Slug (URL Path) <span style={{ color: '#ef4444' }}>*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={form.slug}
+                          onChange={(event) => {
+                            setIsSlugDirty(true);
+                            handleChange('slug', event.target.value);
+                          }}
+                          placeholder="weekend-steals"
+                          required
+                          style={{ width: '100%', boxSizing: 'border-box' }}
+                        />
                       </div>
                     </div>
 
-                    <div className="users-search collection-picker-search">
-                      <span className="icon-search" aria-hidden="true" />
+                    <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 16 }}>
+                      <div className="field">
+                        <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                          Source Type
+                        </label>
+                        <select 
+                          value={form.sourceType} 
+                          onChange={(event) => handleChange('sourceType', event.target.value)}
+                          style={{ width: '100%', boxSizing: 'border-box' }}
+                        >
+                          <option value="CURATED">Curated List</option>
+                          <option value="PRODUCT_FEED">Dynamic Feed</option>
+                        </select>
+                      </div>
+                      <div className="field">
+                        <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                          Max Items
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="60"
+                          value={form.productLimit}
+                          onChange={(event) => handleChange('productLimit', event.target.value)}
+                          placeholder="12"
+                          style={{ width: '100%', boxSizing: 'border-box' }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="field">
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                        Subtitle / Catchphrase
+                      </label>
                       <input
-                        type="search"
-                        value={productPickerQuery}
-                        onChange={(event) => setProductPickerQuery(event.target.value)}
-                        placeholder="Search products by id, name, brand, SKU, or category"
-                        aria-label="Search products for curated collection"
+                        type="text"
+                        value={form.subtitle}
+                        onChange={(event) => handleChange('subtitle', event.target.value)}
+                        placeholder="Grab them before they are gone!"
+                        style={{ width: '100%', boxSizing: 'border-box' }}
                       />
                     </div>
 
-                    <p className="collection-picker-note">
-                      Only approved products appear on the live collection page. Selected order is preserved.
-                    </p>
-
-                    {productOptionsError ? <p className="collection-picker-error">{productOptionsError}</p> : null}
-
-                    <div className="collection-picker-section">
-                      <div className="collection-picker-section-head">
-                        <strong>Selected products ({selectedProductIds.length})</strong>
-                        {selectedProductIds.length > 0 ? <span>Top item appears first.</span> : null}
-                      </div>
-
-                      {selectedProducts.length === 0 ? (
-                        <p className="collection-picker-empty">No products selected yet.</p>
-                      ) : (
-                        <div className="collection-selected-list">
-                          {selectedProducts.map((product, index) => {
-                            const imageUrl = resolveMediaUrl(getPrimaryProductImage(product));
-                            return (
-                              <div
-                                key={`selected-${product.id}`}
-                                className={`collection-selected-card ${product._missing ? 'is-missing' : ''}`}
-                              >
-                                <div className="collection-selected-thumb">
-                                  {imageUrl ? <img src={imageUrl} alt={product.productName || 'Product'} /> : <span>No image</span>}
-                                </div>
-                                <div className="collection-selected-copy">
-                                  <strong>{product.productName || `Product #${product.id}`}</strong>
-                                  <span>ID #{product.id}</span>
-                                  <span>{getProductScope(product)}</span>
-                                  <span>
-                                    {formatPrice(product?.sellingPrice, product?.currency)} ·{' '}
-                                    {product?._missing
-                                      ? 'Missing from admin product list'
-                                      : formatStatusLabel(product?.approvalStatus || 'UNKNOWN')}
-                                  </span>
-                                </div>
-                                <div className="collection-selected-controls">
-                                  <button
-                                    type="button"
-                                    className="ghost-btn small"
-                                    onClick={() => moveSelectedProduct(product.id, 'up')}
-                                    disabled={index === 0}
-                                    aria-label={`Move ${product.productName || product.id} up`}
-                                  >
-                                    Up
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="ghost-btn small"
-                                    onClick={() => moveSelectedProduct(product.id, 'down')}
-                                    disabled={index === selectedProducts.length - 1}
-                                    aria-label={`Move ${product.productName || product.id} down`}
-                                  >
-                                    Down
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="ghost-btn small"
-                                    onClick={() => removeSelectedProduct(product.id)}
-                                    aria-label={`Remove ${product.productName || product.id}`}
-                                  >
-                                    Remove
-                                  </button>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
+                    {/* Active Toggle Group */}
+                    <div style={{ padding: '12px 16px', borderRadius: 12, background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                      <ToggleSwitch
+                        id="collection-status-toggle"
+                        checked={Number(form.active) === 1}
+                        onChange={(val) => handleChange('active', val ? '1' : '0')}
+                        label="Publish Collection"
+                      />
                     </div>
 
-                    <div className="collection-picker-section">
-                      <div className="collection-picker-section-head">
-                        <strong>Search results</strong>
-                        <span>
-                          {isProductOptionsLoading
-                            ? 'Loading products...'
-                            : `${filteredProductOptions.length} approved products shown`}
-                        </span>
-                      </div>
-
-                      {isProductOptionsLoading ? (
-                        <p className="collection-picker-empty">Loading product options...</p>
-                      ) : filteredProductOptions.length === 0 ? (
-                        <p className="collection-picker-empty">No approved products match your search.</p>
-                      ) : (
-                        <div className="collection-product-results">
-                          {filteredProductOptions.map((product) => {
-                            const imageUrl = resolveMediaUrl(getPrimaryProductImage(product));
-                            const isSelected = selectedProductIdSet.has(Number(product.id));
-                            return (
-                              <div key={`option-${product.id}`} className="collection-product-row">
-                                <div className="collection-product-thumb">
-                                  {imageUrl ? <img src={imageUrl} alt={product.productName || 'Product'} /> : <span>No image</span>}
-                                </div>
-                                <div className="collection-product-copy">
-                                  <strong>{product.productName || `Product #${product.id}`}</strong>
-                                  <span>ID #{product.id}</span>
-                                  <span>{getProductScope(product)}</span>
-                                  <span>{product.brandName || product.businessName || 'No brand/business info'}</span>
-                                </div>
-                                <div className="collection-product-meta">
-                                  <span className="collection-product-price">
-                                    {formatPrice(product?.sellingPrice, product?.currency)}
-                                  </span>
-                                  <button
-                                    type="button"
-                                    className={`ghost-btn small ${isSelected ? 'is-selected' : ''}`}
-                                    onClick={() => addSelectedProduct(product.id)}
-                                    disabled={isSelected}
-                                  >
-                                    {isSelected ? 'Added' : 'Add'}
-                                  </button>
-                                </div>
-                              </div>
-                            );
-                          })}
+                    {/* Feed specific configuration */}
+                    {!isCurated && (
+                      <div style={{ background: '#f1f5f9', borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                        <div className="field">
+                          <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                            Feed Strategy
+                          </label>
+                          <select 
+                            value={form.feedType} 
+                            onChange={(event) => handleChange('feedType', event.target.value)}
+                            style={{ width: '100%', boxSizing: 'border-box' }}
+                          >
+                            {FEED_OPTIONS.map((opt) => (
+                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                          </select>
                         </div>
-                      )}
+                        
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                          <div className="field">
+                            <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>
+                              Industry Filter
+                            </label>
+                            <select 
+                              value={form.industryId} 
+                              onChange={(event) => handleChange('industryId', event.target.value)}
+                              style={{ width: '100%', boxSizing: 'border-box', fontSize: 13 }}
+                            >
+                              <option value="">All Industries</option>
+                              {industries.map((ind) => (
+                                <option key={ind.industryId || ind.id} value={ind.industryId || ind.id}>{ind.name}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="field">
+                            <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>
+                              Main Category
+                            </label>
+                            <select 
+                              value={form.mainCategoryId} 
+                              onChange={(event) => handleChange('mainCategoryId', event.target.value)}
+                              style={{ width: '100%', boxSizing: 'border-box', fontSize: 13 }}
+                            >
+                              <option value="">All Main Categories</option>
+                              {visibleMainCategories.map((mc) => (
+                                <option key={mc.id} value={mc.id}>{mc.name}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                        
+                        <div className="field">
+                          <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>
+                            Category Filter
+                          </label>
+                          <select 
+                            value={form.categoryId} 
+                            onChange={(event) => handleChange('categoryId', event.target.value)}
+                            style={{ width: '100%', boxSizing: 'border-box', fontSize: 13 }}
+                          >
+                            <option value="">All Categories</option>
+                            {categories.map((cat) => (
+                              <option key={cat.id} value={cat.id}>{cat.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Media & SEO */}
+                    <div className="field">
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                        Hero Image URL
+                      </label>
+                      <input
+                        type="text"
+                        value={form.heroImage}
+                        onChange={(event) => handleChange('heroImage', event.target.value)}
+                        placeholder="https://..."
+                        style={{ width: '100%', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                    <div className="field">
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                        Detailed Description
+                      </label>
+                      <textarea
+                        rows="4"
+                        value={form.description}
+                        onChange={(event) => handleChange('description', event.target.value)}
+                        placeholder="Explain the vibe of this collection..."
+                        style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontFamily: 'inherit', fontSize: 14 }}
+                      />
                     </div>
                   </div>
+
+                  {/* Right Column: Curated Products Selection */}
+                  {isCurated && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, borderLeft: '1px solid #f1f5f9', paddingLeft: 32 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                          Selection ({selectedProductIds.length})
+                        </label>
+                        <button 
+                          type="button" 
+                          onClick={() => ensureProductOptionsLoaded(true)}
+                          className="ghost-btn small"
+                          style={{ padding: '4px 8px', fontSize: 11 }}
+                        >
+                          Refresh
+                        </button>
+                      </div>
+
+                      {/* Search & Add */}
+                      <div className="gsc-toolbar-search" style={{ width: '100%', margin: 0, border: '2px solid #6e46ff20', borderRadius: 12, transition: 'all 0.2s' }}>
+                        <input
+                          type="search"
+                          placeholder="Search items to add..."
+                          value={productPickerQuery}
+                          onChange={(e) => setProductPickerQuery(e.target.value)}
+                          style={{ border: 'none', background: 'transparent', height: 40 }}
+                        />
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16, color: '#6e46ff' }}>
+                          <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+                        </svg>
+                      </div>
+
+                      {/* Floating Results Panel */}
+                      {productPickerQuery.trim() && (
+                        <div style={{ 
+                          maxHeight: 280, overflowY: 'auto', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12,
+                          boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', zIndex: 50, marginTop: -8
+                        }}>
+                          {isProductOptionsLoading ? (
+                            <p style={{ padding: 20, textAlign: 'center', fontSize: 13, color: '#64748b' }}>Finding items...</p>
+                          ) : filteredProductOptions.length === 0 ? (
+                            <p style={{ padding: 20, textAlign: 'center', fontSize: 13, color: '#64748b' }}>No items found</p>
+                          ) : (
+                            filteredProductOptions.map((p) => {
+                              const isAdded = selectedProductIdSet.has(Number(p.id));
+                              const imgSrc = resolveMediaUrl(getPrimaryProductImage(p));
+                              return (
+                                <div 
+                                  key={p.id} 
+                                  onClick={() => !isAdded && addSelectedProduct(p.id)}
+                                  style={{ 
+                                    padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 12, cursor: isAdded ? 'default' : 'pointer',
+                                    background: isAdded ? '#f8fafc' : 'transparent', borderBottom: '1px solid #f1f5f9'
+                                  }}
+                                  className="picker-hover-item"
+                                >
+                                  <div style={{ width: 36, height: 36, borderRadius: 6, background: '#f1f5f9', overflow: 'hidden', flexShrink: 0 }}>
+                                    {imgSrc && <img src={imgSrc} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" onError={(e) => { e.target.style.display = 'none'; }} />}
+                                  </div>
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: isAdded ? '#94a3b8' : '#1e293b' }}>
+                                      {p.productName}
+                                    </div>
+                                    <div style={{ fontSize: 11, color: '#94a3b8' }}>#{p.id} • {p.brandName || 'Unbranded'}</div>
+                                  </div>
+                                  {isAdded ? (
+                                    <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" style={{ width: 12, height: 12 }}><path d="M20 6 9 17l-5-5"/></svg>
+                                    </div>
+                                  ) : (
+                                    <span style={{ fontSize: 11, fontWeight: 700, color: '#6e46ff' }}>+ Add</span>
+                                  )}
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+                      )}
+
+                      {/* Vertical Selected List (Scrollable) */}
+                      <div style={{ 
+                        flex: 1, maxHeight: 420, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10,
+                        padding: '4px', margin: '-4px' 
+                      }}>
+                        {selectedProducts.length === 0 ? (
+                          <div style={{ 
+                            padding: '60px 20px', textAlign: 'center', color: '#94a3b8', fontSize: 13, 
+                            background: '#f8fafc', borderRadius: 16, border: '2px dashed #e2e8f0',
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12
+                          }}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: 40, height: 40, opacity: 0.5 }}>
+                              <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M12 8v8M8 12h8"/>
+                            </svg>
+                            Your collection is empty
+                          </div>
+                        ) : (
+                          selectedProducts.map((p, idx) => {
+                            const imgSrc = resolveMediaUrl(getPrimaryProductImage(p));
+                            return (
+                              <div key={p.id} style={{ 
+                                padding: '12px', display: 'flex', alignItems: 'center', gap: 12, 
+                                background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, 
+                                boxShadow: '0 1px 3px rgba(0,0,0,0.04)', position: 'relative'
+                              }}>
+                                <div style={{ 
+                                  width: 44, height: 44, borderRadius: 8, background: '#f8fafc', 
+                                  overflow: 'hidden', flexShrink: 0, border: '1px solid #f1f5f9' 
+                                }}>
+                                  {imgSrc && <img src={imgSrc} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" onError={(e) => { e.target.style.display = 'none'; }} />}
+                                </div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ fontSize: 13, fontWeight: 700, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {p.productName}
+                                  </div>
+                                  <div style={{ fontSize: 11, color: '#64748b', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <span>#{p.id}</span>
+                                    <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 4, background: '#f1f5f9' }}>Pos {idx + 1}</span>
+                                  </div>
+                                </div>
+                                <div style={{ display: 'flex', gap: 4 }}>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                    <button type="button" onClick={() => moveSelectedProduct(p.id, 'up')} disabled={idx === 0} style={{ padding: 4, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, cursor: 'pointer', opacity: idx === 0 ? 0.3 : 1 }}>
+                                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ width: 12, height: 12 }}><path d="m18 15-6-6-6 6"/></svg>
+                                    </button>
+                                    <button type="button" onClick={() => moveSelectedProduct(p.id, 'down')} disabled={idx === selectedProducts.length - 1} style={{ padding: 4, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, cursor: 'pointer', opacity: idx === selectedProducts.length - 1 ? 0.3 : 1 }}>
+                                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ width: 12, height: 12 }}><path d="m6 9 6 6 6-6"/></svg>
+                                    </button>
+                                  </div>
+                                  <button type="button" onClick={() => removeSelectedProduct(p.id)} style={{ padding: '0 8px', background: '#fff1f1', border: '1px solid #fee2e2', borderRadius: 8, cursor: 'pointer', color: '#ef4444' }}>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: 14, height: 14 }}><path d="M18 6 6 18M6 6l12 12"/></svg>
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                 </div>
-              ) : (
-                <>
-                  <label className="field">
-                    <span>Feed type</span>
-                    <select value={form.feedType} onChange={(event) => handleChange('feedType', event.target.value)}>
-                      {FEED_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="field">
-                    <span>Industry</span>
-                    <select value={form.industryId} onChange={(event) => handleChange('industryId', event.target.value)}>
-                      <option value="">All industries</option>
-                      {industries.map((industry) => (
-                        <option key={industry.id ?? industry.industryId} value={industry.id ?? industry.industryId}>
-                          {industry.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="field">
-                    <span>Main category</span>
-                    <select
-                      value={form.mainCategoryId}
-                      onChange={(event) => handleChange('mainCategoryId', event.target.value)}
-                    >
-                      <option value="">All main categories</option>
-                      {visibleMainCategories.map((mainCategory) => (
-                        <option key={mainCategory.id} value={mainCategory.id}>
-                          {mainCategory.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="field">
-                    <span>Category</span>
-                    <select value={form.categoryId} onChange={(event) => handleChange('categoryId', event.target.value)}>
-                      <option value="">All categories</option>
-                      {categories.map((category) => (
-                        <option key={category.id} value={category.id}>
-                          {category.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </>
-              )}
-            </div>
-            <button type="submit" className="primary-btn full" disabled={isLoading}>
-              {isLoading ? 'Saving...' : editItem ? 'Update collection' : 'Save collection'}
-            </button>
-          </form>
+              </div>
+
+              {/* Modal Footer */}
+              <div style={{
+                padding: '16px 24px',
+                borderTop: '1px solid #f1f5f9',
+                display: 'flex', justifyContent: 'flex-end', gap: 12,
+                background: '#fafafa',
+              }}>
+                <button
+                  type="button"
+                  className="ghost-btn"
+                  onClick={closeFormModal}
+                  style={{ minWidth: 100 }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="primary-btn"
+                  disabled={isLoading}
+                  style={{ minWidth: 140 }}
+                >
+                  {isLoading ? 'Saving...' : editItem ? 'Update Collection' : 'Create Collection'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       ) : null}
 

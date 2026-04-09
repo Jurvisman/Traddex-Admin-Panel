@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Banner, TableRowActionMenu } from '../components';
+import { Banner, TableRowActionMenu, ToggleSwitch } from '../components';
 import { usePermissions } from '../shared/permissions';
 import { createBrand, deleteBrand, listBrands, listProducts, updateBrand } from '../services/adminApi';
 import { PRODUCT_MASTER_PERMISSIONS } from '../constants/adminPermissions';
@@ -100,12 +100,7 @@ function BrandPage({ token }) {
         })
       : items;
 
-    return [...visible].sort((left, right) => {
-      const leftPending = String(left?.approvalStatus || '').toUpperCase() === 'PENDING_REVIEW' ? 0 : 1;
-      const rightPending = String(right?.approvalStatus || '').toUpperCase() === 'PENDING_REVIEW' ? 0 : 1;
-      if (leftPending !== rightPending) return leftPending - rightPending;
-      return String(left?.brandName || '').localeCompare(String(right?.brandName || ''));
-    });
+    return [...visible].sort((left, right) => (right.id ?? 0) - (left.id ?? 0));
   }, [items, searchQuery]);
 
   const paginated = useMemo(
@@ -376,87 +371,167 @@ function BrandPage({ token }) {
     <div>
       <Banner message={message} />
       {showForm ? (
-        <div className="admin-modal-backdrop" onClick={handleCloseModal}>
-          <form
-            className="admin-modal industry-create-modal"
-            onSubmit={handleSubmit}
-            onClick={(event) => event.stopPropagation()}
+        <div className="admin-modal-backdrop" role="dialog" aria-modal="true" onClick={handleCloseModal}>
+          <div
+            className="admin-modal cat-unified-modal"
+            onClick={(e) => e.stopPropagation()}
           >
-            <div className="panel-split">
-              <h3 className="panel-subheading">{editItem ? 'Edit brand master' : 'Create brand master'}</h3>
-              <button type="button" className="ghost-btn small" onClick={handleCloseModal}>
-                Close
+            {/* Modal Header */}
+            <div style={{
+              padding: '18px 24px 14px',
+              borderBottom: '1px solid #f1f5f9',
+              display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12,
+            }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#1e293b' }}>
+                  {editItem ? 'Edit Brand Master' : 'Create Brand Master'}
+                </h3>
+                {form.brandName && (
+                  <p style={{ margin: '2px 0 0', fontSize: 12, color: '#94a3b8' }}>
+                    Brand › {form.brandName}
+                  </p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={handleCloseModal}
+                aria-label="Close"
+                style={{
+                  background: '#f1f5f9', border: 'none', borderRadius: 8,
+                  width: 32, height: 32, cursor: 'pointer', color: '#64748b',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0,
+                }}
+              >
+                ✕
               </button>
             </div>
-            <div className="field-grid">
-              <label className="field">
-                <span>Brand name</span>
-                <input
-                  type="text"
-                  value={form.brandName}
-                  onChange={(event) => handleChange('brandName', event.target.value)}
-                  placeholder="e.g. Bosch"
-                  required
-                />
-              </label>
-              <label className="field">
-                <span>Approval status</span>
-                <select
-                  value={form.approvalStatus}
-                  onChange={(event) => handleChange('approvalStatus', event.target.value)}
+
+            {/* Modal Body */}
+            <form onSubmit={handleSubmit}>
+              <div style={{ padding: '24px', maxHeight: 'calc(85vh - 120px)', overflowY: 'auto' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                  
+                  {/* Row 1: Brand Name + Approval Status + Country */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 0.8fr) minmax(0, 1fr)', gap: 16 }}>
+                    <div className="field">
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                        Brand Name <span style={{ color: '#ef4444' }}>*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={form.brandName}
+                        onChange={(event) => handleChange('brandName', event.target.value)}
+                        placeholder="e.g. Bosch"
+                        required
+                        style={{ width: '100%', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                    <div className="field">
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                        Approval Status
+                      </label>
+                      <select
+                        value={form.approvalStatus}
+                        onChange={(event) => handleChange('approvalStatus', event.target.value)}
+                        style={{ width: '100%', boxSizing: 'border-box' }}
+                      >
+                        <option value="APPROVED">Approved</option>
+                        <option value="PENDING_REVIEW">Pending Review</option>
+                      </select>
+                    </div>
+                    <div className="field">
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                        Origin Country
+                      </label>
+                      <input
+                        type="text"
+                        value={form.countryOfOrigin}
+                        onChange={(event) => handleChange('countryOfOrigin', event.target.value)}
+                        placeholder="e.g. Germany"
+                        style={{ width: '100%', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Row 2: Website + Logo + Status Toggle */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.8fr', gap: 16, alignItems: 'end' }}>
+                    <div className="field">
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                        Website
+                      </label>
+                      <input
+                        type="url"
+                        value={form.website}
+                        onChange={(event) => handleChange('website', event.target.value)}
+                        placeholder="https://brand.com"
+                        style={{ width: '100%', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                    <div className="field">
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                        Logo Image URL
+                      </label>
+                      <input
+                        type="url"
+                        value={form.logoUrl}
+                        onChange={(event) => handleChange('logoUrl', event.target.value)}
+                        placeholder="https://..."
+                        style={{ width: '100%', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                    <div style={{ paddingBottom: 8 }}>
+                      <ToggleSwitch
+                        id="brand-active-toggle"
+                        checked={form.isActive === 'true'}
+                        onChange={(val) => handleChange('isActive', val ? 'true' : 'false')}
+                        label="Active Status"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Row 4: Description */}
+                  <div className="field">
+                    <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                      Description
+                    </label>
+                    <textarea
+                      rows="3"
+                      value={form.description}
+                      onChange={(event) => handleChange('description', event.target.value)}
+                      placeholder="Short note about this brand"
+                      style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontFamily: 'inherit', fontSize: 14 }}
+                    />
+                  </div>
+
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div style={{
+                padding: '16px 24px',
+                borderTop: '1px solid #f1f5f9',
+                display: 'flex', justifyContent: 'flex-end', gap: 12,
+                background: '#fafafa',
+              }}>
+                <button
+                  type="button"
+                  className="ghost-btn"
+                  onClick={handleCloseModal}
+                  style={{ minWidth: 100 }}
                 >
-                  <option value="APPROVED">Approved</option>
-                  <option value="PENDING_REVIEW">Pending Review</option>
-                </select>
-              </label>
-              <label className="field">
-                <span>Active</span>
-                <select value={form.isActive} onChange={(event) => handleChange('isActive', event.target.value)}>
-                  <option value="true">Active</option>
-                  <option value="false">Inactive</option>
-                </select>
-              </label>
-              <label className="field">
-                <span>Country of origin</span>
-                <input
-                  type="text"
-                  value={form.countryOfOrigin}
-                  onChange={(event) => handleChange('countryOfOrigin', event.target.value)}
-                  placeholder="e.g. Germany"
-                />
-              </label>
-              <label className="field">
-                <span>Website</span>
-                <input
-                  type="url"
-                  value={form.website}
-                  onChange={(event) => handleChange('website', event.target.value)}
-                  placeholder="https://brand.com"
-                />
-              </label>
-              <label className="field">
-                <span>Logo URL</span>
-                <input
-                  type="url"
-                  value={form.logoUrl}
-                  onChange={(event) => handleChange('logoUrl', event.target.value)}
-                  placeholder="https://..."
-                />
-              </label>
-              <label className="field field-span">
-                <span>Description</span>
-                <textarea
-                  rows="4"
-                  value={form.description}
-                  onChange={(event) => handleChange('description', event.target.value)}
-                  placeholder="Short note about this brand"
-                />
-              </label>
-            </div>
-            <button type="submit" className="primary-btn full" disabled={isLoading}>
-              {isLoading ? (editItem ? 'Updating...' : 'Saving...') : editItem ? 'Update brand' : 'Save brand'}
-            </button>
-          </form>
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="primary-btn"
+                  disabled={isLoading}
+                  style={{ minWidth: 140 }}
+                >
+                  {isLoading ? (editItem ? 'Updating...' : 'Saving...') : editItem ? 'Update Brand' : 'Save Brand'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       ) : null}
 

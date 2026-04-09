@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Banner, TableRowActionMenu } from '../components';
+import { Banner, TableRowActionMenu, ToggleSwitch } from '../components';
 import CatalogBulkImportModal from '../components/CatalogBulkImportModal';
 import { usePermissions } from '../shared/permissions';
 import { createIndustry, deleteIndustry, getIndustry, listIndustries, updateIndustry } from '../services/adminApi';
@@ -317,12 +317,7 @@ function IndustryPage({ token }) {
       if (!q) return true;
       return String(item.name || '').toLowerCase().includes(q);
     })
-    .sort((a, b) => {
-      const orderA = a.ordering != null ? Number(a.ordering) : Infinity;
-      const orderB = b.ordering != null ? Number(b.ordering) : Infinity;
-      if (orderA !== orderB) return orderA - orderB;
-      return (a.id ?? 0) - (b.id ?? 0);
-    });
+    .sort((a, b) => (b.id ?? 0) - (a.id ?? 0));
 
   const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
   const safePage = Math.min(page, totalPages);
@@ -332,89 +327,160 @@ function IndustryPage({ token }) {
     <div>
       <Banner message={message} />
       {showForm ? (
-        <div className="admin-modal-backdrop" onClick={handleCloseModal}>
-          <form
-            className="admin-modal industry-create-modal"
-            onSubmit={handleSubmit}
-            onClick={(event) => event.stopPropagation()}
+        <div className="admin-modal-backdrop" role="dialog" aria-modal="true" onClick={handleCloseModal}>
+          <div
+            className="admin-modal cat-unified-modal"
+            onClick={(e) => e.stopPropagation()}
           >
-            <div className="panel-split">
-              <h3 className="panel-subheading">{editItem ? 'Edit industry' : 'Create industry'}</h3>
-              <button type="button" className="ghost-btn small" onClick={handleCloseModal}>
-                Close
+            {/* Modal Header */}
+            <div style={{
+              padding: '18px 24px 14px',
+              borderBottom: '1px solid #f1f5f9',
+              display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12,
+            }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#1e293b' }}>
+                  {editItem ? 'Edit Industry' : 'Create Industry'}
+                </h3>
+                {form.name && (
+                  <p style={{ margin: '2px 0 0', fontSize: 12, color: '#94a3b8' }}>
+                    Industry › {form.name}
+                  </p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={handleCloseModal}
+                aria-label="Close"
+                style={{
+                  background: '#f1f5f9', border: 'none', borderRadius: 8,
+                  width: 32, height: 32, cursor: 'pointer', color: '#64748b',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0,
+                }}
+              >
+                ✕
               </button>
             </div>
-            <div className="field-grid">
-              <label className={`field${fieldErr('name') ? ' field-error' : ''}`}>
-                <span>Industry name <span className="field-required">*</span></span>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(event) => handleChange('name', event.target.value)}
-                  onBlur={() => handleBlur('name')}
-                  className={fieldErr('name') ? 'input-error' : ''}
-                  placeholder="e.g. Agriculture"
-                />
-                {fieldErr('name') && <span className="field-error-msg">{errors.name}</span>}
-              </label>
-              <label className={`field${fieldErr('ordering') ? ' field-error' : ''}`}>
-                <span>Ordering</span>
-                <input
-                  type="number"
-                  value={form.ordering}
-                  onChange={(event) => handleChange('ordering', event.target.value)}
-                  onBlur={() => handleBlur('ordering')}
-                  className={fieldErr('ordering') ? 'input-error' : ''}
-                  placeholder="1"
-                  min="1"
-                  step="1"
-                />
-                {fieldErr('ordering')
-                  ? <span className="field-error-msg">{errors.ordering}</span>
-                  : orderingWarning ? <span className="field-help field-warning">{orderingWarning}</span> : null}
-              </label>
-              <label className={`field${fieldErr('path') ? ' field-error' : ''}`}>
-                <span>Path</span>
-                <input
-                  type="text"
-                  value={form.path}
-                  onChange={(event) => handleChange('path', event.target.value)}
-                  onBlur={() => handleBlur('path')}
-                  className={fieldErr('path') ? 'input-error' : ''}
-                  placeholder="/agriculture"
-                />
-                {fieldErr('path') && <span className="field-error-msg">{errors.path}</span>}
-              </label>
-              <label className="field">
-                <span>Active</span>
-                <select value={form.active} onChange={(event) => handleChange('active', event.target.value)}>
-                  <option value="1">Active</option>
-                  <option value="0">Inactive</option>
-                </select>
-              </label>
-              <label className="field">
-                <span>Icon URL</span>
-                <input
-                  type="text"
-                  value={form.industryIcon}
-                  onChange={(event) => handleChange('industryIcon', event.target.value)}
-                  placeholder="https://..."
-                />
-              </label>
-              <label className="field">
-                <span>Image URL</span>
-                <input
-                  type="text"
-                  value={form.industryImage}
-                  onChange={(event) => handleChange('industryImage', event.target.value)}
-                  placeholder="https://..."
-                />
-              </label>
-            </div>
-            <button type="submit" className="primary-btn full" disabled={isLoading}>
-              {isLoading ? (editItem ? 'Updating...' : 'Saving...') : (editItem ? 'Update industry' : 'Save industry')}
-            </button>
-          </form>
+
+            {/* Modal Body */}
+            <form onSubmit={handleSubmit}>
+              <div style={{ padding: '24px', maxHeight: 'calc(85vh - 120px)', overflowY: 'auto' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                  
+                  {/* Row 1: Name + Ordering + Path */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.6fr 1.2fr', gap: 16 }}>
+                    <div className={`field${fieldErr('name') ? ' field-error' : ''}`}>
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                        Industry Name <span style={{ color: '#ef4444' }}>*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={form.name}
+                        onChange={(event) => handleChange('name', event.target.value)}
+                        onBlur={() => handleBlur('name')}
+                        className={fieldErr('name') ? 'input-error' : ''}
+                        placeholder="e.g. Agriculture"
+                        style={{ width: '100%', boxSizing: 'border-box' }}
+                      />
+                      {fieldErr('name') && <span className="field-error-msg">{errors.name}</span>}
+                    </div>
+                    <div className={`field${fieldErr('ordering') ? ' field-error' : ''}`}>
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                        Ordering
+                      </label>
+                      <input
+                        type="number"
+                        value={form.ordering}
+                        onChange={(event) => handleChange('ordering', event.target.value)}
+                        onBlur={() => handleBlur('ordering')}
+                        className={fieldErr('ordering') ? 'input-error' : ''}
+                        placeholder="1"
+                        min="1"
+                        step="1"
+                        style={{ width: '100%', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                    <div className={`field${fieldErr('path') ? ' field-error' : ''}`}>
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                        Path
+                      </label>
+                      <input
+                        type="text"
+                        value={form.path}
+                        onChange={(event) => handleChange('path', event.target.value)}
+                        onBlur={() => handleBlur('path')}
+                        className={fieldErr('path') ? 'input-error' : ''}
+                        placeholder="/agriculture"
+                        style={{ width: '100%', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Row 2: Status + URLs */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '0.8fr 1.1fr 1.1fr', gap: 16, alignItems: 'end' }}>
+                    <div style={{ paddingBottom: 8 }}>
+                      <ToggleSwitch
+                        id="industry-active-toggle"
+                        checked={Number(form.active) === 1}
+                        onChange={(val) => handleChange('active', val ? '1' : '0')}
+                        label="Active Status"
+                      />
+                    </div>
+                    <div className="field">
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                        Icon URL
+                      </label>
+                      <input
+                        type="text"
+                        value={form.industryIcon}
+                        onChange={(event) => handleChange('industryIcon', event.target.value)}
+                        placeholder="https://..."
+                        style={{ width: '100%', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                    <div className="field">
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                        Banner URL
+                      </label>
+                      <input
+                        type="text"
+                        value={form.industryImage}
+                        onChange={(event) => handleChange('industryImage', event.target.value)}
+                        placeholder="https://..."
+                        style={{ width: '100%', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div style={{
+                padding: '16px 24px',
+                borderTop: '1px solid #f1f5f9',
+                display: 'flex', justifyContent: 'flex-end', gap: 12,
+                background: '#fafafa',
+              }}>
+                <button
+                  type="button"
+                  className="ghost-btn"
+                  onClick={handleCloseModal}
+                  style={{ minWidth: 100 }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="primary-btn"
+                  disabled={isLoading}
+                  style={{ minWidth: 140 }}
+                >
+                  {isLoading ? (editItem ? 'Updating...' : 'Saving...') : (editItem ? 'Update Industry' : 'Save Industry')}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       ) : null}
 

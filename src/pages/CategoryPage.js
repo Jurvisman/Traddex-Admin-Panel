@@ -280,12 +280,7 @@ function CategoryPage({ token }) {
       if (!q) return true;
       return `${item.name || ''} ${item.mainCategoryName || item.main_category_name || ''}`.toLowerCase().includes(q);
     })
-    .sort((a, b) => {
-      const oa = a.ordering != null ? Number(a.ordering) : Infinity;
-      const ob = b.ordering != null ? Number(b.ordering) : Infinity;
-      if (oa !== ob) return oa - ob;
-      return (a.id ?? 0) - (b.id ?? 0);
-    });
+    .sort((a, b) => (b.id ?? 0) - (a.id ?? 0));
 
   const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
   const safePage   = Math.min(page, totalPages);
@@ -688,7 +683,6 @@ function CategoryPage({ token }) {
       <div className="admin-modal-backdrop" role="dialog" aria-modal="true" onClick={closeModal}>
         <div
           className="admin-modal cat-unified-modal"
-          style={{ padding: 0, borderRadius: 16, overflow: 'hidden', maxWidth: 640, width: '100%' }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* ── Modal Header ── */}
@@ -811,8 +805,8 @@ function CategoryPage({ token }) {
                   </div>
                 </div>
 
-                {/* Row 2: Ordering + Path */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                {/* Row 2: Ordering + Path + Status Toggles */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 0.6fr) minmax(0, 1.4fr) minmax(0, 1fr)', gap: 16, alignItems: 'end' }}>
                   <div className={`field${fieldErr('ordering') ? ' field-error' : ''}`}>
                     <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
                       Ordering
@@ -846,10 +840,18 @@ function CategoryPage({ token }) {
                     />
                     {fieldErr('path') && <span className="field-error-msg">{errors.path}</span>}
                   </div>
+                  <div style={{ paddingBottom: 6 }}>
+                    <ToggleSwitch
+                      id="cat-active"
+                      checked={form.active === '1'}
+                      onChange={(v) => setForm((p) => ({ ...p, active: v ? '1' : '0' }))}
+                      label={form.active === '1' ? 'Active' : 'Inactive'}
+                    />
+                  </div>
                 </div>
 
-                {/* Row 3: Icon URL + Image URL */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                {/* Row 3: Icon URL + Banner URL + SubCat Toggle */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, alignItems: 'end' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
                       Icon URL
@@ -874,30 +876,12 @@ function CategoryPage({ token }) {
                       style={{ width: '100%', boxSizing: 'border-box' }}
                     />
                   </div>
-                </div>
-
-                {/* Row 4: Toggles */}
-                <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', padding: '4px 0' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
-                      Status
-                    </label>
-                    <ToggleSwitch
-                      id="cat-active"
-                      checked={form.active === '1'}
-                      onChange={(v) => setForm((p) => ({ ...p, active: v ? '1' : '0' }))}
-                      label={form.active === '1' ? 'Active' : 'Inactive'}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
-                      Has Sub-categories
-                    </label>
+                  <div style={{ paddingBottom: 6 }}>
                     <ToggleSwitch
                       id="cat-subcategory"
                       checked={form.hasSubCategory === '1'}
                       onChange={(v) => setForm((p) => ({ ...p, hasSubCategory: v ? '1' : '0' }))}
-                      label={form.hasSubCategory === '1' ? 'Yes' : 'No'}
+                      label={form.hasSubCategory === '1' ? 'Sub-categories: Yes' : 'Sub-categories: No'}
                     />
                   </div>
                 </div>

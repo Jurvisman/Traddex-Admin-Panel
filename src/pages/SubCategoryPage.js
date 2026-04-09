@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Banner, TableRowActionMenu } from '../components';
+import { Banner, TableRowActionMenu, ToggleSwitch } from '../components';
 import { usePermissions } from '../shared/permissions';
 import {
   createSubCategory,
@@ -355,12 +355,7 @@ function SubCategoryPage({ token }) {
       const haystack = `${item.name || ''} ${item.categoryName || item.category_name || ''}`.toLowerCase();
       return haystack.includes(q);
     })
-    .sort((a, b) => {
-      const orderA = a.ordering != null ? Number(a.ordering) : Infinity;
-      const orderB = b.ordering != null ? Number(b.ordering) : Infinity;
-      if (orderA !== orderB) return orderA - orderB;
-      return (a.id ?? 0) - (b.id ?? 0);
-    });
+    .sort((a, b) => (b.id ?? 0) - (a.id ?? 0));
 
   const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
   const safePage = Math.min(page, totalPages);
@@ -370,106 +365,186 @@ function SubCategoryPage({ token }) {
     <div>
       <Banner message={message} />
       {showForm ? (
-        <div className="admin-modal-backdrop" onClick={handleCloseForm}>
-          <form
-            className="admin-modal sub-category-create-modal"
-            onSubmit={handleSubmit}
-            onClick={(event) => event.stopPropagation()}
+        <div className="admin-modal-backdrop" role="dialog" aria-modal="true" onClick={handleCloseForm}>
+          <div
+            className="admin-modal cat-unified-modal"
+            onClick={(e) => e.stopPropagation()}
           >
-            <div className="panel-split">
-              <h3 className="panel-subheading">{editItem ? 'Edit sub-category' : 'Create sub-category'}</h3>
-              <button type="button" className="ghost-btn small" onClick={handleCloseForm}>
-                Close
+            {/* Modal Header */}
+            <div style={{
+              padding: '18px 24px 14px',
+              borderBottom: '1px solid #f1f5f9',
+              display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12,
+            }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#1e293b' }}>
+                  {editItem ? 'Edit Sub-Category' : 'Create Sub-Category'}
+                </h3>
+                <p style={{ margin: '2px 0 0', fontSize: 12, color: '#94a3b8' }}>
+                  {form.categoryId ? categories.find(c => String(c.id) === String(form.categoryId))?.name || 'Category' : 'Category'} › {form.name || '...'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleCloseForm}
+                aria-label="Close"
+                style={{
+                  background: '#f1f5f9', border: 'none', borderRadius: 8,
+                  width: 32, height: 32, cursor: 'pointer', color: '#64748b',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0,
+                }}
+              >
+                ✕
               </button>
             </div>
-            <div className="field-grid">
-              <label className={`field${fieldErr('name') ? ' field-error' : ''}`}>
-                <span>Name <span className="field-required">*</span></span>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(event) => handleChange('name', event.target.value)}
-                  onBlur={() => handleBlur('name')}
-                  className={fieldErr('name') ? 'input-error' : ''}
-                  placeholder="e.g. Diesel engines"
-                />
-                {fieldErr('name') && <span className="field-error-msg">{errors.name}</span>}
-              </label>
-              <label className={`field${fieldErr('categoryId') ? ' field-error' : ''}`}>
-                <span>Category <span className="field-required">*</span></span>
-                <select
-                  value={form.categoryId}
-                  onChange={(event) => handleChange('categoryId', event.target.value)}
-                  onBlur={() => handleBlur('categoryId')}
-                  className={fieldErr('categoryId') ? 'input-error' : ''}
+
+            {/* Modal Body */}
+            <form onSubmit={handleSubmit}>
+              <div style={{ padding: '24px', maxHeight: 'calc(85vh - 120px)', overflowY: 'auto' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                  
+                  {/* Row 1: Name + Category */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                    <div className={`field${fieldErr('name') ? ' field-error' : ''}`}>
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                        Name <span style={{ color: '#ef4444' }}>*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={form.name}
+                        onChange={(event) => handleChange('name', event.target.value)}
+                        onBlur={() => handleBlur('name')}
+                        className={fieldErr('name') ? 'input-error' : ''}
+                        placeholder="e.g. Diesel engines"
+                        style={{ width: '100%', boxSizing: 'border-box' }}
+                      />
+                      {fieldErr('name') && <span className="field-error-msg">{errors.name}</span>}
+                    </div>
+                    <div className={`field${fieldErr('categoryId') ? ' field-error' : ''}`}>
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                        Category <span style={{ color: '#ef4444' }}>*</span>
+                      </label>
+                      <select
+                        value={form.categoryId}
+                        onChange={(event) => handleChange('categoryId', event.target.value)}
+                        onBlur={() => handleBlur('categoryId')}
+                        className={fieldErr('categoryId') ? 'input-error' : ''}
+                        style={{ width: '100%', boxSizing: 'border-box' }}
+                      >
+                        <option value="">Select category</option>
+                        {categories.map((category) => (
+                          <option key={category.id} value={category.id}>
+                            {category.name}
+                          </option>
+                        ))}
+                      </select>
+                      {fieldErr('categoryId') && <span className="field-error-msg">{errors.categoryId}</span>}
+                    </div>
+                  </div>
+
+                  {/* Row 2: Ordering + Path + Status */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr 1fr', gap: 16, alignItems: 'end' }}>
+                    <div className={`field${fieldErr('ordering') ? ' field-error' : ''}`}>
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                        Ordering
+                      </label>
+                      <input
+                        type="number"
+                        value={form.ordering}
+                        onChange={(event) => handleChange('ordering', event.target.value)}
+                        onBlur={() => handleBlur('ordering')}
+                        className={fieldErr('ordering') ? 'input-error' : ''}
+                        placeholder="1"
+                        min="1"
+                        step="1"
+                        style={{ width: '100%', boxSizing: 'border-box' }}
+                      />
+                      {fieldErr('ordering')
+                        ? <span className="field-error-msg">{errors.ordering}</span>
+                        : orderingWarning ? <span className="field-help field-warning">{orderingWarning}</span> : null}
+                    </div>
+                    <div className={`field${fieldErr('path') ? ' field-error' : ''}`}>
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                        Path
+                      </label>
+                      <input
+                        type="text"
+                        value={form.path}
+                        onChange={(event) => handleChange('path', event.target.value)}
+                        onBlur={() => handleBlur('path')}
+                        className={fieldErr('path') ? 'input-error' : ''}
+                        placeholder="/diesel-engines"
+                        style={{ width: '100%', boxSizing: 'border-box' }}
+                      />
+                      {fieldErr('path') && <span className="field-error-msg">{errors.path}</span>}
+                    </div>
+                    <div style={{ paddingBottom: 8 }}>
+                      <ToggleSwitch
+                        id="sc-active-toggle"
+                        checked={Number(form.active) === 1}
+                        onChange={(val) => handleChange('active', val ? '1' : '0')}
+                        label="Active Status"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Row 3: Icon URL + Banner Image URL */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                    <div className="field">
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                        Icon URL
+                      </label>
+                      <input
+                        type="text"
+                        value={form.subCategoryIcon}
+                        onChange={(event) => handleChange('subCategoryIcon', event.target.value)}
+                        placeholder="https://..."
+                        style={{ width: '100%', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                    <div className="field">
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                        Banner Image URL
+                      </label>
+                      <input
+                        type="text"
+                        value={form.imageUrl}
+                        onChange={(event) => handleChange('imageUrl', event.target.value)}
+                        placeholder="https://..."
+                        style={{ width: '100%', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div style={{
+                padding: '16px 24px',
+                borderTop: '1px solid #f1f5f9',
+                display: 'flex', justifyContent: 'flex-end', gap: 12,
+                background: '#fafafa',
+              }}>
+                <button
+                  type="button"
+                  className="ghost-btn"
+                  onClick={handleCloseForm}
+                  style={{ minWidth: 100 }}
                 >
-                  <option value="">Select category</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-                {fieldErr('categoryId') && <span className="field-error-msg">{errors.categoryId}</span>}
-              </label>
-              <label className={`field${fieldErr('ordering') ? ' field-error' : ''}`}>
-                <span>Ordering</span>
-                <input
-                  type="number"
-                  value={form.ordering}
-                  onChange={(event) => handleChange('ordering', event.target.value)}
-                  onBlur={() => handleBlur('ordering')}
-                  className={fieldErr('ordering') ? 'input-error' : ''}
-                  placeholder="1"
-                  min="1"
-                  step="1"
-                />
-                {fieldErr('ordering')
-                  ? <span className="field-error-msg">{errors.ordering}</span>
-                  : orderingWarning ? <span className="field-help field-warning">{orderingWarning}</span> : null}
-              </label>
-              <label className={`field${fieldErr('path') ? ' field-error' : ''}`}>
-                <span>Path</span>
-                <input
-                  type="text"
-                  value={form.path}
-                  onChange={(event) => handleChange('path', event.target.value)}
-                  onBlur={() => handleBlur('path')}
-                  className={fieldErr('path') ? 'input-error' : ''}
-                  placeholder="/diesel-engines"
-                />
-                {fieldErr('path') && <span className="field-error-msg">{errors.path}</span>}
-              </label>
-              <label className="field">
-                <span>Active</span>
-                <select value={form.active} onChange={(event) => handleChange('active', event.target.value)}>
-                  <option value="1">Active</option>
-                  <option value="0">Inactive</option>
-                </select>
-              </label>
-              <label className="field">
-                <span>Icon URL</span>
-                <input
-                  type="text"
-                  value={form.subCategoryIcon}
-                  onChange={(event) => handleChange('subCategoryIcon', event.target.value)}
-                  placeholder="https://..."
-                />
-              </label>
-              <label className="field">
-                <span>Image URL</span>
-                <input
-                  type="text"
-                  value={form.imageUrl}
-                  onChange={(event) => handleChange('imageUrl', event.target.value)}
-                  placeholder="https://..."
-                />
-              </label>
-            </div>
-            <button type="submit" className="primary-btn full" disabled={isLoading}>
-              {isLoading ? 'Saving...' : editItem ? 'Update sub-category' : 'Save sub-category'}
-            </button>
-          </form>
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="primary-btn"
+                  disabled={isLoading}
+                  style={{ minWidth: 140 }}
+                >
+                  {isLoading ? 'Saving...' : editItem ? 'Update Sub-Category' : 'Save Sub-Category'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       ) : null}
 
