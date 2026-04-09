@@ -45,6 +45,7 @@ import {
   AdvertisementViewPage,
   AdPricingConfigPage,
   AuditLogsPage,
+  KycAssistancePage,
 } from './pages';
 import { fetchMyPermissions } from './services/adminApi';
 import { PermissionsContext } from './shared/permissions';
@@ -684,7 +685,16 @@ function AppRoutes() {
               { path: '/admin/orders/reviews', label: 'Review Moderation', icon: ICONS.settingsRole, tone: NAV_TONES.orders },
             ],
           },
-          { path: '/admin/support', label: 'Support', icon: ICONS.support, tone: NAV_TONES.support },
+          {
+            key: 'support-root',
+            label: 'Support',
+            icon: ICONS.support,
+            tone: NAV_TONES.support,
+            children: [
+              { path: '/admin/support', label: 'Tickets', icon: ICONS.support, tone: NAV_TONES.support },
+              { path: '/admin/support/kyc-assistance', label: 'KYC Assistance', icon: ICONS.support, tone: NAV_TONES.support },
+            ],
+          },
         ],
       },
     ],
@@ -1548,6 +1558,18 @@ function AppRoutes() {
               fallbackPath={routeFallbackPath}
             >
               <SupportPage token={authToken} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="support/kyc-assistance"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={canAccessPath('/admin/support/kyc-assistance')}
+              fallbackPath={routeFallbackPath}
+            >
+              <KycAssistancePage token={authToken} currentUser={authUserId} />
             </PermissionGate>
           }
         />

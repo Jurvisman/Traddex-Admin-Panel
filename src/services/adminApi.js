@@ -498,3 +498,12 @@ export const updateAdminBusinessReviewStatus = (token, reviewId, status) =>
 
 export const updateAdminReviewReportStatus = (token, reportId, status) =>
   request(`/admin/reviews/reports/${reportId}`, { method: 'PATCH', body: { status }, token });
+
+export const fetchKycAssistanceRequests = (token) =>
+  request('/admin/support/kyc-assistance', { token });
+
+export const updateKycAssistanceStatus = (token, id, status, adminNote = null) =>
+  request(`/admin/support/kyc-assistance/${id}/status`, { method: 'PATCH', body: { status, adminNote }, token });
+
+export const assignKycAssistanceRequest = (token, id, adminId) =>
+  request(`/admin/support/kyc-assistance/${id}/assign`, { method: 'PATCH', body: { adminId }, token });
