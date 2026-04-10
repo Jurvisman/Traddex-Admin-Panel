@@ -101,7 +101,7 @@ function IndustryPage({ token }) {
       const n = parseOrderingInput(f.ordering);
       if (Number.isNaN(n)) errs.ordering = 'Must be a whole number ≥ 1.';
     }
-    if (f.path && !f.path.startsWith('/')) errs.path = 'Path must start with /';
+    if (f.path && !f.path.startsWith('/')) f.path = '/' + f.path;
     return errs;
   };
 

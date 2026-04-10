@@ -451,6 +451,19 @@ function ProductTableThumbnail({ imageUrl, alt }) {
     </div>
   );
 }
+function ProductEditorField({ label, required = false, span2 = false, hint = '', children }) {
+  return (
+    <div className={`bc-field${span2 ? ' bc-span2' : ''}`}>
+      <label className="bc-field-label">
+        {label}
+        {required ? <span className="bc-required"> *</span> : null}
+      </label>
+      {children}
+      {hint ? <span className="bc-hint">{hint}</span> : null}
+    </div>
+  );
+}
+
 
 function ProductPage({ token, adminUserId }) {
   const { hasPermission } = usePermissions();
@@ -816,19 +829,6 @@ function ProductPage({ token, adminUserId }) {
       return next;
     });
 };
-
-function ProductEditorField({ label, required = false, span2 = false, hint = '', children }) {
-  return (
-    <div className={`bc-field${span2 ? ' bc-span2' : ''}`}>
-      <label className="bc-field-label">
-        {label}
-        {required ? <span className="bc-required"> *</span> : null}
-      </label>
-      {children}
-      {hint ? <span className="bc-hint">{hint}</span> : null}
-    </div>
-  );
-}
 
   const loadViewAttributeMappings = async (mainCategoryId, categoryId, subCategoryId) => {
     if (!mainCategoryId && !categoryId && !subCategoryId) {

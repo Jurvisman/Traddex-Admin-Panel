@@ -1340,7 +1340,7 @@ function ProductCreatePage({ token }) {
               </div>
             ) : null}
           </div>
-          <button type="submit" className="primary-btn" disabled={isSaving}>
+          <button type="submit" className="primary-btn hidden-submit" disabled={isSaving}>
             {isSaving ? 'Creating…' : 'Save'}
           </button>
         </div>
