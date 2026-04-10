@@ -208,7 +208,7 @@ function AuditLogsPage({ token }) {
       <div className="panel-head">
         <div>
           <h2 className="panel-title">Audit Sentinel</h2>
-          <p className="panel-subtitle">Activity monitoring and security auditing for TradeX.</p>
+          <p className="panel-subtitle">Activity monitoring and security auditing for Deal 360.</p>
         </div>
       </div>
 

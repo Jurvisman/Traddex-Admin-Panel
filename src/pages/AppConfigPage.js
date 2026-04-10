@@ -207,7 +207,7 @@ const parseNavigationTarget = (value, explicitType, explicitValue) => {
     return { type: 'EXTERNAL_URL', value: current, raw: current };
   }
   const normalizedPath =
-    lower.startsWith('app://') || lower.startsWith('traddex://')
+    lower.startsWith('app://') || lower.startsWith('deal360://')
       ? current.replace(/^[a-z]+:\/\//i, '').replace(/^\/+/, '')
       : current.startsWith('/')
         ? current.replace(/^\/+/, '')

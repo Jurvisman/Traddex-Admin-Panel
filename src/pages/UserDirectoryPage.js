@@ -404,7 +404,7 @@ function CreateUserModal({ token, onClose, onSuccess }) {
               </div>
               <div>
                 <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#15803d' }}>User created successfully!</p>
-                <p style={{ margin: '2px 0 0', fontSize: 12, color: '#166534' }}>They can now log in to the Traddex app.</p>
+                <p style={{ margin: '2px 0 0', fontSize: 12, color: '#166534' }}>They can now log in to the Deal 360 app.</p>
               </div>
             </div>
           )}

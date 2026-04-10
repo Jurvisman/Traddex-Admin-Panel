@@ -243,7 +243,7 @@ const NAV_TONES = {
 
 const DEFAULT_ADMIN_META = {
   title: 'Dashboard',
-  // subtitle: 'Track core counts and activity across Traddex.',
+  // subtitle: 'Track core counts and activity across Deal 360.',
 };
 
 const ADMIN_META = [
