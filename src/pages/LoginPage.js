@@ -52,7 +52,11 @@ function LoginPage({ initialPhone = '', onOtpSent }) {
     <AuthLayout>
       <div className="login-panel">
         <header className="login-panel-header">
-          <h1 className="login-panel-title">Welcome To Deal 360</h1>
+          <h1 className="login-panel-title">
+            Welcome To{" "}
+            <span style={{ color: "#1B2870" }}>Deal </span>
+            <span style={{ color: "#7B5EA7" }}>360</span>
+          </h1>
           <p className="login-panel-subtitle">Sign in to your account</p>
         </header>
 

@@ -89,17 +89,17 @@ textarea {
 }
 
 .login-logo-center-group {
-  margin-bottom: 10px;
+  margin-bottom: 0px;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
 .login-logo-image-center {
-  height: 140px;
+  height: 300px;
   width: auto;
-  margin-bottom: 0;
-  filter: none; /* Removed shadow/box effect */
+  margin-bottom: -100px;
+  filter: none;
 }
 
 .login-logo-subtitle-center {
