@@ -4,10 +4,10 @@ function AuthLayout({ children }) {
       <div className="login-layout">
         <aside className="login-illustration-pane">
           <div className="login-illustration-content">
-            <div className="login-logo-block">
-              <span className="login-logo-main">Traddex</span>
-              <p className="login-logo-subtitle">Admin Universe</p>
+            <div className="login-logo-center-group">
+              <img src="/Deal360.svg" alt="Deal 360 Logo" className="login-logo-image-center" />
             </div>
+            <img src="/login-illustration.png" alt="Portal Illustration" className="login-main-illustration" />
           </div>
         </aside>
         <main className="login-form-pane">

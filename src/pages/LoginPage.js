@@ -52,8 +52,8 @@ function LoginPage({ initialPhone = '', onOtpSent }) {
     <AuthLayout>
       <div className="login-panel">
         <header className="login-panel-header">
-          <h1 className="login-panel-title">Login</h1>
-          <p className="login-panel-subtitle">Sign in to access the Traddex admin panel.</p>
+          <h1 className="login-panel-title">Welcome To Deal 360</h1>
+          <p className="login-panel-subtitle">Sign in to your account</p>
         </header>
 
         <Banner message={message} />
