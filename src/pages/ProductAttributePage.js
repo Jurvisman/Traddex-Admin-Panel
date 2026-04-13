@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Banner, TableRowActionMenu } from '../components';
+import { Banner, TableRowActionMenu, ToggleSwitch } from '../components';
 import { usePermissions } from '../shared/permissions';
 import {
   createAttributeDefinition,
@@ -12,7 +12,6 @@ import {
   listIndustries,
   listMainCategories,
   listSubCategories,
-  purgeAllAttributeDefinitions,
   updateAttributeDefinition,
   updateAttributeMapping,
 } from '../services/adminApi';
@@ -62,6 +61,17 @@ const filterInitial = {
   categoryId: '',
   subCategoryId: '',
   active: '',
+};
+
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+
+const paginateItems = (items, page, pageSize) => {
+  const totalItems = items.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const safePage = Math.min(Math.max(1, page), totalPages);
+  const start = (safePage - 1) * pageSize;
+  const end = Math.min(start + pageSize, totalItems);
+  return { items: items.slice(start, end), totalItems, totalPages, page: safePage, start, end };
 };
 
 const dataTypes = [
@@ -174,6 +184,8 @@ function ProductAttributePage({ token }) {
   const [subCategoryOptionsByCategory, setSubCategoryOptionsByCategory] = useState({});
   const [showMoreFilters, setShowMoreFilters] = useState(false);
   const [openActionRowId, setOpenActionRowId] = useState(null);
+  const [defPage, setDefPage] = useState(1);
+  const [defPageSize, setDefPageSize] = useState(25);
   const { hasPermission } = usePermissions();
 
   const definitionMap = useMemo(() => {
@@ -395,7 +407,7 @@ function ProductAttributePage({ token }) {
           ),
         };
       })
-      .sort((left, right) => (left.label || '').localeCompare(right.label || ''));
+      .sort((left, right) => (right.id ?? 0) - (left.id ?? 0));
   }, [
     allCategoryMap,
     allSubCategoryMap,
@@ -421,6 +433,11 @@ function ProductAttributePage({ token }) {
   const selectedLibraryDefinition = useMemo(
     () => definitionLibrary.find((definition) => definition.id === expandedLibraryFieldId) || null,
     [definitionLibrary, expandedLibraryFieldId]
+  );
+
+  const paginatedDefinitions = useMemo(
+    () => paginateItems(filteredDefinitionLibrary, defPage, defPageSize),
+    [filteredDefinitionLibrary, defPage, defPageSize]
   );
 
   const totalFields = mappings.length;
@@ -984,53 +1001,6 @@ function ProductAttributePage({ token }) {
     }
   };
 
-  const handlePurgeAllDefinitions = async () => {
-    if (!definitions.length) {
-      setMessage({ type: 'info', text: 'No reusable fields to delete.' });
-      return;
-    }
-
-    const shouldContinue = window.confirm(
-      `Delete all ${definitions.length} reusable field${definitions.length === 1 ? '' : 's'}? This will also remove linked values from products.`
-    );
-    if (!shouldContinue) {
-      return;
-    }
-
-    const finalConfirm = window.confirm(
-      'This cannot be undone from the admin panel. Continue with safe cleanup and delete?'
-    );
-    if (!finalConfirm) {
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      const response = await purgeAllAttributeDefinitions(token);
-      setDefinitionForm(definitionInitial);
-      setMappingForm(mappingInitial);
-      setEditingDefinitionId(null);
-      setEditingMappingId(null);
-      setShowDefinitionForm(false);
-      setShowMappingForm(false);
-      setShowDefinitionAdvanced(false);
-      setExpandedLibraryFieldId(null);
-      setDefinitionQuery('');
-      await Promise.all([loadDefinitions(), loadAllMappings(), loadMappings()]);
-
-      const summary = response?.data || {};
-      setMessage({
-        type: 'success',
-        text: `Deleted ${summary.definitionsDeleted ?? 0} fields, ${summary.mappingsDeleted ?? 0} category links, and cleaned ${summary.productsUpdated ?? 0} product${
-          summary.productsUpdated === 1 ? '' : 's'
-        }.`,
-      });
-    } catch (error) {
-      setMessage({ type: 'error', text: error.message || 'Failed to delete all reusable fields.' });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleDeleteMapping = async (id) => {
     try {
@@ -1169,26 +1139,6 @@ function ProductAttributePage({ token }) {
     loadMappings(filterInitial).catch(() => {});
   };
 
-  const handleRefresh = async () => {
-    setIsLoading(true);
-    setMessage({ type: 'info', text: '' });
-    try {
-      await Promise.all([
-        loadDefinitions(),
-        loadAllMappings(),
-        loadMappings(),
-        loadMainCategories(),
-        loadAllCategories(),
-        loadAllSubCategories(),
-        loadIndustries(),
-      ]);
-      setMessage({ type: 'success', text: 'Attribute data refreshed.' });
-    } catch (error) {
-      setMessage({ type: 'error', text: error.message || 'Failed to refresh attribute data.' });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const openDefinitionForm = () => {
     setDefinitionForm(definitionInitial);
@@ -1260,619 +1210,526 @@ function ProductAttributePage({ token }) {
           <h2 className="panel-title">Reusable Fields</h2>
           <p className="panel-subtitle">Advanced cleanup and reusable field management for product categories.</p>
         </div>
-        <div className="attribute-admin-head-actions">
-          <button type="button" className="ghost-btn" onClick={handleRefresh} disabled={isLoading}>
-            Refresh
-          </button>
-          <button
-            type="button"
-            className="ghost-btn danger"
-            onClick={handlePurgeAllDefinitions}
-            disabled={isLoading || definitions.length === 0}
-          >
-            Delete All Fields
-          </button>
-        </div>
       </div>
       <Banner message={message} />
 
       {showDefinitionForm ? (
-        <div className="admin-modal-backdrop" onClick={() => setShowDefinitionForm(false)}>
-          <form
-            className="admin-modal attribute-definition-modal"
-            onSubmit={handleDefinitionSubmit}
-            onClick={(event) => event.stopPropagation()}
+        <div className="admin-modal-backdrop" role="dialog" aria-modal="true" onClick={() => setShowDefinitionForm(false)}>
+          <div
+            className="admin-modal cat-unified-modal"
+            onClick={(e) => e.stopPropagation()}
           >
-            <div className="panel-split">
-              <h3 className="panel-subheading">
-                {editingDefinitionId ? 'Edit attribute definition' : 'Add Dynamic Field'}
-              </h3>
-              <button type="button" className="ghost-btn small" onClick={() => setShowDefinitionForm(false)}>
-                Close
+            {/* Modal Header */}
+            <div style={{
+              padding: '18px 24px 14px',
+              borderBottom: '1px solid #f1f5f9',
+              display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12,
+            }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#1e293b' }}>
+                  {editingDefinitionId ? 'Edit Library Field' : 'Create Library Field'}
+                </h3>
+                {definitionForm.label && (
+                  <p style={{ margin: '2px 0 0', fontSize: 12, color: '#94a3b8' }}>
+                    Field Library › {definitionForm.label}
+                  </p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowDefinitionForm(false)}
+                aria-label="Close"
+                style={{
+                  background: '#f1f5f9', border: 'none', borderRadius: 8,
+                  width: 32, height: 32, cursor: 'pointer', color: '#64748b',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0,
+                }}
+              >
+                ✕
               </button>
             </div>
-            <div className="field-grid">
-              <label className="field">
-                <span>Label</span>
-                <input
-                  type="text"
-                  value={definitionForm.label}
-                  onChange={(event) => {
-                    const value = event.target.value;
-                    setDefinitionForm((prev) => ({
-                      ...prev,
-                      label: value,
-                      key: keyEdited ? prev.key : toKey(value),
-                    }));
-                  }}
-                  placeholder="e.g. Crop type"
-                  required
-                />
-              </label>
-              <label className="field">
-                <span>Data type</span>
-                <select
-                  value={definitionForm.dataType}
-                  onChange={(event) =>
-                    setDefinitionForm((prev) => ({ ...prev, dataType: event.target.value }))
-                  }
-                >
-                  {dataTypes.map((type) => (
-                    <option key={type.value} value={type.value}>
-                      {type.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="field field-span">
-                <span>Key</span>
-                <div className="inline-row">
-                  <input
-                    type="text"
-                    value={definitionForm.key}
-                    onChange={(event) => {
-                      setDefinitionForm((prev) => ({ ...prev, key: event.target.value }));
-                      setKeyEdited(true);
-                    }}
-                    placeholder="e.g. crop_type"
-                  />
-                  <button
-                    type="button"
-                    className="ghost-btn small"
-                    onClick={() => {
-                      setDefinitionForm((prev) => ({ ...prev, key: toKey(prev.label || '') }));
-                      setKeyEdited(false);
-                    }}
-                  >
-                    Auto
-                  </button>
-                </div>
-                <p className="field-help">Auto-generated from label. Use lowercase and underscore.</p>
-              </label>
-              {definitionForm.dataType === 'NUMBER' ? (
-                <label className="field">
-                  <span>Unit</span>
-                  <input
-                    type="text"
-                    value={definitionForm.unit}
-                    onChange={(event) =>
-                      setDefinitionForm((prev) => ({ ...prev, unit: event.target.value }))
-                    }
-                    placeholder="kg, L, cm"
-                  />
-                </label>
-              ) : null}
-              <label className="field field-span">
-                <span>Description</span>
-                <input
-                  type="text"
-                  value={definitionForm.description}
-                  onChange={(event) =>
-                    setDefinitionForm((prev) => ({ ...prev, description: event.target.value }))
-                  }
-                  placeholder="Explain what this attribute captures"
-                />
-              </label>
-              {definitionForm.dataType === 'ENUM' ? (
-                <div className="field field-span">
-                  <span>Dropdown options</span>
-                  <div className="inline-row">
-                    <input
-                      type="text"
-                      value={optionDraft}
-                      onChange={(event) => setOptionDraft(event.target.value)}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter') {
-                          event.preventDefault();
-                          addEnumOption();
-                        }
-                      }}
-                      placeholder="Add options separated by commas"
-                    />
-                    <button type="button" className="ghost-btn small" onClick={addEnumOption}>
-                      Add
-                    </button>
-                  </div>
-                  {definitionForm.enumOptions.length ? (
-                    <div className="tag-row">
-                      {definitionForm.enumOptions.map((option) => (
-                        <span className="tag" key={option}>
-                          {option}
-                          <button type="button" onClick={() => removeEnumOption(option)}>
-                            x
-                          </button>
-                        </span>
-                      ))}
+
+            {/* Modal Body */}
+            <form onSubmit={handleDefinitionSubmit}>
+              <div style={{ padding: '24px', maxHeight: 'calc(85vh - 120px)', overflowY: 'auto' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                  
+                  {/* Row 1: Label + Data Type + Internal Key */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1.2fr', gap: 16 }}>
+                    <div className="field">
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                        Field Label <span style={{ color: '#ef4444' }}>*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={definitionForm.label}
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          setDefinitionForm((prev) => ({
+                            ...prev,
+                            label: value,
+                            key: keyEdited ? prev.key : toKey(value),
+                          }));
+                        }}
+                        placeholder="e.g. Battery Capacity"
+                        required
+                        style={{ width: '100%', boxSizing: 'border-box' }}
+                      />
                     </div>
-                  ) : (
-                    <p className="field-help">Options will show as a dropdown in the product form.</p>
+                    <div className="field">
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                        Data Type <span style={{ color: '#ef4444' }}>*</span>
+                      </label>
+                      <select
+                        value={definitionForm.dataType}
+                        onChange={(event) => setDefinitionForm((prev) => ({ ...prev, dataType: event.target.value }))}
+                        style={{ width: '100%', boxSizing: 'border-box' }}
+                      >
+                        {dataTypes.map((type) => (
+                          <option key={type.value} value={type.value}>{type.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="field">
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                        Internal Key
+                      </label>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <input
+                          type="text"
+                          value={definitionForm.key}
+                          onChange={(event) => { setDefinitionForm(p => ({ ...p, key: event.target.value })); setKeyEdited(true); }}
+                          placeholder="key_name"
+                          style={{ flex: 1, minWidth: 0 }}
+                        />
+                        <button type="button" className="ghost-btn" style={{ flexShrink: 0, padding: '0 8px', fontSize: 10, height: 38 }} onClick={() => { setDefinitionForm(p => ({ ...p, key: toKey(p.label || '') })); setKeyEdited(false); }}>Auto</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Row 2: Basic Controls */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 2fr)', gap: 16, alignItems: 'center' }}>
+                    <ToggleSwitch
+                      id="def-active-toggle"
+                      checked={definitionForm.active}
+                      onChange={(val) => setDefinitionForm(p => ({ ...p, active: val }))}
+                      label="Available in Library"
+                    />
+                    {definitionForm.dataType === 'NUMBER' && (
+                      <div className="field" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <label style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0, whiteSpace: 'nowrap' }}>Unit:</label>
+                        <input
+                          type="text"
+                          value={definitionForm.unit}
+                          onChange={(event) => setDefinitionForm((prev) => ({ ...prev, unit: event.target.value }))}
+                          placeholder="e.g. mAh"
+                          style={{ width: '120px' }}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {definitionForm.dataType === 'ENUM' && (
+                    <div style={{ padding: '16px', borderRadius: 12, background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
+                        Dropdown Values
+                      </label>
+                      <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+                        <input
+                          type="text"
+                          value={optionDraft}
+                          onChange={(event) => setOptionDraft(event.target.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter') {
+                              event.preventDefault();
+                              addEnumOption();
+                            }
+                          }}
+                          placeholder="Type option and press Enter..."
+                          style={{ flex: 1, minWidth: 0 }}
+                        />
+                        <button type="button" className="primary-btn" style={{ flexShrink: 0, padding: '0 16px' }} onClick={addEnumOption}>
+                          Add
+                        </button>
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                        {definitionForm.enumOptions.length > 0 ? (
+                          definitionForm.enumOptions.map((option) => (
+                            <span key={option} style={{ 
+                              display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 10px', 
+                              background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 13, color: '#1e293b' 
+                            }}>
+                              {option}
+                              <button 
+                                type="button" 
+                                onClick={() => removeEnumOption(option)}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: 14, padding: 0, display: 'flex' }}
+                              >
+                                ✕
+                              </button>
+                            </span>
+                          ))
+                        ) : (
+                          <p style={{ margin: 0, fontSize: 13, color: '#94a3b8', fontStyle: 'italic' }}>No values defined.</p>
+                        )}
+                      </div>
+                    </div>
                   )}
+
+                  {/* Advanced Validation Group */}
+                  <div style={{ border: '1px solid #e2e8f0', borderRadius: 12, overflow: 'hidden' }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowDefinitionAdvanced(!showDefinitionAdvanced)}
+                      style={{ 
+                        width: '100%', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
+                        background: '#f8fafc', border: 'none', cursor: 'pointer', textAlign: 'left' 
+                      }}
+                    >
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#475569' }}>Validation Rules</span>
+                      <span style={{ fontSize: 12, color: '#94a3b8' }}>{showDefinitionAdvanced ? 'Collapse' : 'Expand'}</span>
+                    </button>
+                    {showDefinitionAdvanced && (
+                      <div style={{ padding: '20px', borderTop: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: 16 }}>
+                        {definitionForm.dataType === 'STRING' && (
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                            <div className="field">
+                              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', marginBottom: 6 }}>Min Length</label>
+                              <input type="number" value={definitionForm.minLength} onChange={(e) => setDefinitionForm(p => ({ ...p, minLength: e.target.value }))} placeholder="0" />
+                            </div>
+                            <div className="field">
+                              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', marginBottom: 6 }}>Max Length</label>
+                              <input type="number" value={definitionForm.maxLength} onChange={(e) => setDefinitionForm(p => ({ ...p, maxLength: e.target.value }))} placeholder="255" />
+                            </div>
+                          </div>
+                        )}
+                        {definitionForm.dataType === 'NUMBER' && (
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                            <div className="field">
+                              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', marginBottom: 6 }}>Min Value</label>
+                              <input type="number" value={definitionForm.minValue} onChange={(e) => setDefinitionForm(p => ({ ...p, minValue: e.target.value }))} placeholder="0" />
+                            </div>
+                            <div className="field">
+                              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', marginBottom: 6 }}>Max Value</label>
+                              <input type="number" value={definitionForm.maxValue} onChange={(e) => setDefinitionForm(p => ({ ...p, maxValue: e.target.value }))} placeholder="9999" />
+                            </div>
+                          </div>
+                        )}
+                        {definitionForm.dataType === 'STRING' && (
+                          <div className="field">
+                            <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', marginBottom: 6 }}>Regex Pattern</label>
+                            <input type="text" value={definitionForm.pattern} onChange={(e) => setDefinitionForm(p => ({ ...p, pattern: e.target.value }))} placeholder="e.g. ^[A-Z0-9]+$" />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+
+                  {/* Description */}
+                  <div className="field">
+                    <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                      Internal Description
+                    </label>
+                    <textarea
+                      rows="3"
+                      value={definitionForm.description}
+                      onChange={(event) => setDefinitionForm((prev) => ({ ...prev, description: event.target.value }))}
+                      placeholder="Brief note about this field for other admins..."
+                      style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontFamily: 'inherit', fontSize: 14 }}
+                    />
+                  </div>
+
                 </div>
-              ) : null}
-              {definitionForm.dataType === 'STRING' ? (
-                <>
-                  <label className="field">
-                    <span>Min length</span>
-                    <input
-                      type="number"
-                      value={definitionForm.minLength}
-                      onChange={(event) =>
-                        setDefinitionForm((prev) => ({ ...prev, minLength: event.target.value }))
-                      }
-                      placeholder="0"
-                    />
-                  </label>
-                  <label className="field">
-                    <span>Max length</span>
-                    <input
-                      type="number"
-                      value={definitionForm.maxLength}
-                      onChange={(event) =>
-                        setDefinitionForm((prev) => ({ ...prev, maxLength: event.target.value }))
-                      }
-                      placeholder="120"
-                    />
-                  </label>
-                </>
-              ) : null}
-              {definitionForm.dataType === 'NUMBER' ? (
-                <>
-                  <label className="field">
-                    <span>Minimum value</span>
-                    <input
-                      type="number"
-                      value={definitionForm.minValue}
-                      onChange={(event) =>
-                        setDefinitionForm((prev) => ({ ...prev, minValue: event.target.value }))
-                      }
-                      placeholder="0"
-                    />
-                  </label>
-                  <label className="field">
-                    <span>Maximum value</span>
-                    <input
-                      type="number"
-                      value={definitionForm.maxValue}
-                      onChange={(event) =>
-                        setDefinitionForm((prev) => ({ ...prev, maxValue: event.target.value }))
-                      }
-                      placeholder="9999"
-                    />
-                  </label>
-                </>
-              ) : null}
-              {definitionForm.dataType === 'LIST' ? (
-                <>
-                  <label className="field">
-                    <span>Minimum items</span>
-                    <input
-                      type="number"
-                      value={definitionForm.minItems}
-                      onChange={(event) =>
-                        setDefinitionForm((prev) => ({ ...prev, minItems: event.target.value }))
-                      }
-                      placeholder="0"
-                    />
-                  </label>
-                  <label className="field">
-                    <span>Maximum items</span>
-                    <input
-                      type="number"
-                      value={definitionForm.maxItems}
-                      onChange={(event) =>
-                        setDefinitionForm((prev) => ({ ...prev, maxItems: event.target.value }))
-                      }
-                      placeholder="10"
-                    />
-                  </label>
-                </>
-              ) : null}
-              <label className="field">
-                <span>Status</span>
-                <select
-                  value={definitionForm.active ? 'true' : 'false'}
-                  onChange={(event) =>
-                    setDefinitionForm((prev) => ({
-                      ...prev,
-                      active: event.target.value === 'true',
-                    }))
-                  }
-                >
-                  <option value="true">Active</option>
-                  <option value="false">Inactive</option>
-                </select>
-              </label>
-              <div className="field field-span">
-                <div className="inline-row">
-                  <span>Advanced</span>
-                  <button
-                    type="button"
-                    className="ghost-btn small"
-                    onClick={() => setShowDefinitionAdvanced((prev) => !prev)}
-                  >
-                    {showDefinitionAdvanced ? 'Hide' : 'Show'}
-                  </button>
-                </div>
-                {showDefinitionAdvanced && definitionForm.dataType === 'STRING' ? (
-                  <label className="field field-span">
-                    <span>Pattern (regex)</span>
-                    <input
-                      type="text"
-                      value={definitionForm.pattern}
-                      onChange={(event) =>
-                        setDefinitionForm((prev) => ({ ...prev, pattern: event.target.value }))
-                      }
-                      placeholder="e.g. ^[A-Za-z0-9]+$"
-                    />
-                    <p className="field-help">Use only if you need a strict format.</p>
-                  </label>
-                ) : null}
-                {!showDefinitionAdvanced ? (
-                  <p className="field-help">
-                    {definitionForm.dataType === 'STRING'
-                      ? 'Optional: add a regex for text validation.'
-                      : 'Optional advanced settings.'}
-                  </p>
-                ) : null}
               </div>
-            </div>
-            <button type="submit" className="primary-btn full" disabled={isLoading}>
-              {isLoading ? 'Saving...' : 'Save attribute'}
-            </button>
-          </form>
+
+              {/* Modal Footer */}
+              <div style={{
+                padding: '16px 24px',
+                borderTop: '1px solid #f1f5f9',
+                display: 'flex', justifyContent: 'flex-end', gap: 12,
+                background: '#fafafa',
+              }}>
+                <button
+                  type="button"
+                  className="ghost-btn"
+                  onClick={() => setShowDefinitionForm(false)}
+                  style={{ minWidth: 100 }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="primary-btn"
+                  disabled={isLoading}
+                  style={{ minWidth: 140 }}
+                >
+                  {isLoading ? 'Saving...' : editingDefinitionId ? 'Update Library Field' : 'Create Library Field'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       ) : null}
 
       {showMappingForm ? (
-        <div className="admin-modal-backdrop" onClick={() => setShowMappingForm(false)}>
-          <form
-            className="admin-modal"
-            onSubmit={handleMappingSubmit}
-            onClick={(event) => event.stopPropagation()}
+        <div className="admin-modal-backdrop" role="dialog" aria-modal="true" onClick={() => setShowMappingForm(false)}>
+          <div
+            className="admin-modal cat-unified-modal"
+            onClick={(e) => e.stopPropagation()}
           >
-            <div className="panel-split">
-              <h3 className="panel-subheading">
-                {editingMappingId ? 'Edit field' : 'Add field'}
-              </h3>
-              <button type="button" className="ghost-btn small" onClick={() => setShowMappingForm(false)}>
-                Close
+            {/* Modal Header */}
+            <div style={{
+              padding: '18px 24px 14px',
+              borderBottom: '1px solid #f1f5f9',
+              display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12,
+            }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#1e293b' }}>
+                  {editingMappingId ? 'Edit Field Assignment' : 'Assign Field to Category'}
+                </h3>
+                <p style={{ margin: '2px 0 0', fontSize: 12, color: '#94a3b8' }}>
+                   {mappingForm.label || 'New Assignment'} › {selectedScopeLabel || 'No scope selected'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowMappingForm(false)}
+                aria-label="Close"
+                style={{
+                  background: '#f1f5f9', border: 'none', borderRadius: 8,
+                  width: 32, height: 32, cursor: 'pointer', color: '#64748b',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0,
+                }}
+              >
+                ✕
               </button>
             </div>
-            <div className="field-grid">
-              <div className="field field-span">
-                <span>Field source</span>
-                <div className="inline-row">
-                  <button
-                    type="button"
-                    className={`ghost-btn small${isUsingExistingDefinition ? ' is-selected' : ''}`}
-                    onClick={() => {
-                      setMappingDefinitionMode('existing');
-                      clearMappingDefinitionSelection();
-                    }}
-                  >
-                    Use existing field
-                  </button>
-                  <button
-                    type="button"
-                    className={`ghost-btn small${!isUsingExistingDefinition ? ' is-selected' : ''}`}
-                    onClick={() => {
-                      setMappingDefinitionMode('new');
-                      clearMappingDefinitionSelection();
-                    }}
-                  >
-                    Create new field
-                  </button>
-                </div>
-                <p className="field-help">
-                  Reuse existing fields like Shelf Life across multiple categories. Create new only when the meaning is
-                  genuinely different.
-                </p>
-              </div>
-              {isUsingExistingDefinition ? (
-                <label className="field field-span">
-                  <span>Field library</span>
-                  <select
-                    value={mappingForm.attributeId}
-                    onChange={(event) => {
-                      const nextId = event.target.value;
-                      if (!nextId) {
-                        clearMappingDefinitionSelection();
-                        return;
-                      }
-                      const definition = definitionMap.get(Number(nextId));
-                      if (!definition) return;
-                      applyDefinitionToMappingForm(definition);
-                    }}
-                    required
-                  >
-                    <option value="">Select existing field</option>
-                    {definitionLibrary.map((definition) => (
-                      <option key={definition.id} value={definition.id}>
-                        {definition.label} - {typeLabel(definition.dataType)} - Used in {definition.scopeCount || 0}{' '}
-                        {(definition.scopeCount || 0) === 1 ? 'place' : 'places'}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="field-help">
-                    {selectedDefinition
-                      ? `${selectedDefinition.label} is already used in ${
-                          selectedDefinitionUsage?.scopeKeys?.size || 0
-                        } ${(selectedDefinitionUsage?.scopeKeys?.size || 0) === 1 ? 'category scope' : 'category scopes'}.`
-                      : 'Pick a field from the library to assign it to this category.'}
-                  </p>
-                </label>
-              ) : null}
-              <label className="field">
-                <span>Label</span>
-                <input
-                  type="text"
-                  value={mappingForm.label}
-                  onChange={(event) => {
-                    const value = event.target.value;
-                    setMappingForm((prev) => ({
-                      ...prev,
-                      label: value,
-                      key: mappingKeyEdited ? prev.key : toKey(value),
-                    }));
-                  }}
-                  placeholder="e.g. Shelf Life"
-                  disabled={isUsingExistingDefinition}
-                  required
-                />
-              </label>
-              <label className="field">
-                <span>Field name</span>
-                <div className="inline-row">
-                  <input
-                    type="text"
-                    value={mappingForm.key}
-                    onChange={(event) => {
-                      setMappingKeyEdited(true);
-                      setMappingForm((prev) => ({ ...prev, key: event.target.value }));
-                    }}
-                    placeholder="e.g. shelf_life"
-                    disabled={isUsingExistingDefinition}
-                    required
-                  />
-                  <button
-                    type="button"
-                    className="ghost-btn small"
-                    onClick={() => {
-                      setMappingForm((prev) => ({ ...prev, key: toKey(prev.label || '') }));
-                      setMappingKeyEdited(false);
-                    }}
-                    disabled={isUsingExistingDefinition}
-                  >
-                    Auto
-                  </button>
-                </div>
-                <p className="field-help">
-                  {isUsingExistingDefinition
-                    ? 'Field name comes from the shared library field. Edit it from Field Library if needed.'
-                    : 'Used as the key in product data.'}
-                </p>
-              </label>
-              <label className="field">
-                <span>Type</span>
-                <select
-                  value={selectedType}
-                  onChange={(event) =>
-                    setMappingForm((prev) => ({ ...prev, dataType: event.target.value }))
-                  }
-                  disabled={isUsingExistingDefinition}
-                >
-                  {dataTypes.map((type) => (
-                    <option key={type.value} value={type.value}>
-                      {type.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {selectedType === 'ENUM' ? (
-                <div className="field field-span">
-                  <span>Dropdown options</span>
-                  {!isUsingExistingDefinition ? (
-                    <div className="inline-row">
+
+            {/* Modal Body */}
+            <form onSubmit={handleMappingSubmit}>
+              <div style={{ padding: '24px', maxHeight: 'calc(85vh - 120px)', overflowY: 'auto' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
+                  
+                  {/* Left Column: Field Selection & Basic Info */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                    
+                    <div className="field">
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
+                        Field Source
+                      </label>
+                      <div style={{ display: 'flex', gap: 8, background: '#f1f5f9', padding: 4, borderRadius: 10 }}>
+                        <button
+                          type="button"
+                          onClick={() => { setMappingDefinitionMode('existing'); clearMappingDefinitionSelection(); }}
+                          style={{ 
+                            flex: 1, padding: '8px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer',
+                            background: isUsingExistingDefinition ? '#fff' : 'transparent',
+                            boxShadow: isUsingExistingDefinition ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                            color: isUsingExistingDefinition ? '#1e293b' : '#64748b'
+                          }}
+                        >
+                          Reuse from Library
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setMappingDefinitionMode('new'); clearMappingDefinitionSelection(); }}
+                          style={{ 
+                            flex: 1, padding: '8px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer',
+                            background: !isUsingExistingDefinition ? '#fff' : 'transparent',
+                            boxShadow: !isUsingExistingDefinition ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                            color: !isUsingExistingDefinition ? '#1e293b' : '#64748b'
+                          }}
+                        >
+                          Create Specific
+                        </button>
+                      </div>
+                    </div>
+
+                    {isUsingExistingDefinition && (
+                      <div className="field">
+                        <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                          Pick Library Field <span style={{ color: '#ef4444' }}>*</span>
+                        </label>
+                        <select
+                          value={mappingForm.attributeId}
+                          onChange={(event) => {
+                            const nextId = event.target.value;
+                            if (!nextId) { clearMappingDefinitionSelection(); return; }
+                            const definition = definitionMap.get(Number(nextId));
+                            if (definition) applyDefinitionToMappingForm(definition);
+                          }}
+                          required
+                          style={{ width: '100%' }}
+                        >
+                          <option value="">-- Choose Field --</option>
+                          {definitionLibrary.map((def) => (
+                            <option key={def.id} value={def.id}>{def.label} ({def.dataType})</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    <div className="field">
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                        Display Label <span style={{ color: '#ef4444' }}>*</span>
+                      </label>
                       <input
                         type="text"
-                        value={optionDraft}
-                        onChange={(event) => setOptionDraft(event.target.value)}
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter') {
-                            event.preventDefault();
-                            addMappingOption();
-                          }
+                        value={mappingForm.label}
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          setMappingForm((prev) => ({
+                            ...prev,
+                            label: value,
+                            key: mappingKeyEdited ? prev.key : toKey(value),
+                          }));
                         }}
-                        placeholder="Add options separated by commas"
+                        disabled={isUsingExistingDefinition}
+                        placeholder="e.g. Dimensions"
+                        required
+                        style={{ width: '100%' }}
                       />
-                      <button type="button" className="ghost-btn small" onClick={addMappingOption}>
-                        Add
-                      </button>
                     </div>
-                  ) : null}
-                  {selectedOptions && selectedOptions.length ? (
-                    <div className="tag-row">
-                      {selectedOptions.map((option) => (
-                        <span className="tag" key={option}>
-                          {option}
-                          {!isUsingExistingDefinition ? (
-                            <button type="button" onClick={() => removeMappingOption(option)}>
-                              x
-                            </button>
-                          ) : null}
-                        </span>
-                      ))}
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                      <div className="field">
+                        <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Field Key</label>
+                        <input type="text" value={mappingForm.key} disabled={isUsingExistingDefinition} placeholder="dimensions" style={{ width: '100%', background: isUsingExistingDefinition ? '#f8fafc' : 'transparent' }} />
+                      </div>
+                      <div className="field">
+                        <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Type</label>
+                        <input type="text" value={typeLabel(selectedType)} disabled style={{ width: '100%', background: '#f8fafc' }} />
+                      </div>
                     </div>
-                  ) : (
-                    <p className="field-help">
-                      {isUsingExistingDefinition
-                        ? 'This shared field does not have any dropdown options configured yet.'
-                        : 'Options will show as a dropdown in the product form.'}
-                    </p>
-                  )}
-                </div>
-              ) : null}
-              <label className="field">
-                <span>Category group</span>
-                <select
-                  value={mappingForm.mainCategoryId}
-                  onChange={(event) =>
-                    setMappingForm((prev) => ({
-                      ...prev,
-                      mainCategoryId: event.target.value,
-                      categoryId: '',
-                      subCategoryId: '',
-                    }))
-                  }
-                  required
-                >
-                  <option value="">Select category group</option>
-                  {filteredMainCategories.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name}
-                    </option>
-                  ))}
-                </select>
-                <p className="field-help">Used only to load categories.</p>
-              </label>
-              <label className="field">
-                <span>Category</span>
-                <select
-                  value={mappingForm.categoryId}
-                  onChange={(event) =>
-                    setMappingForm((prev) => ({
-                      ...prev,
-                      categoryId: event.target.value,
-                      subCategoryId: '',
-                    }))
-                  }
-                  disabled={!mappingForm.mainCategoryId}
-                  required
-                >
-                  <option value="">Select category</option>
-                  {mappingCategories.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="field">
-                <span>Sub-category</span>
-                <select
-                  value={mappingForm.subCategoryId}
-                  onChange={(event) =>
-                    setMappingForm((prev) => ({
-                      ...prev,
-                      subCategoryId: event.target.value,
-                    }))
-                  }
-                  disabled={!mappingForm.categoryId}
-                >
-                  <option value="">All sub-categories</option>
-                  {mappingSubCategories.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="field">
-                <span>Display order</span>
-                <input
-                  type="number"
-                  value={mappingForm.sortOrder}
-                  onChange={(event) =>
-                    setMappingForm((prev) => ({ ...prev, sortOrder: event.target.value }))
-                  }
-                  placeholder="1"
-                />
-              </label>
-              <label className="field">
-                <span>Placeholder</span>
-                <input
-                  type="text"
-                  value={mappingForm.placeholder}
-                  onChange={(event) =>
-                    setMappingForm((prev) => ({ ...prev, placeholder: event.target.value }))
-                  }
-                  placeholder="Optional placeholder text"
-                />
-              </label>
-              <div className="field field-span">
-                <span>Visibility</span>
-                <div className="checkbox-grid">
-                  <label className="checkbox-row">
-                    <input
-                      type="checkbox"
-                      checked={mappingForm.required}
-                      onChange={(event) =>
-                        setMappingForm((prev) => ({ ...prev, required: event.target.checked }))
-                      }
-                    />
-                    Must fill in product form
-                  </label>
-                  <label className="checkbox-row">
-                    <input
-                      type="checkbox"
-                      checked={mappingForm.filterable}
-                      onChange={(event) =>
-                        setMappingForm((prev) => ({ ...prev, filterable: event.target.checked }))
-                      }
-                    />
-                    Show in filters
-                  </label>
-                  <label className="checkbox-row">
-                    <input
-                      type="checkbox"
-                      checked={mappingForm.searchable}
-                      onChange={(event) =>
-                        setMappingForm((prev) => ({ ...prev, searchable: event.target.checked }))
-                      }
-                    />
-                    Searchable
-                  </label>
-                  <label className="checkbox-row">
-                    <input
-                      type="checkbox"
-                      checked={mappingForm.active}
-                      onChange={(event) =>
-                        setMappingForm((prev) => ({ ...prev, active: event.target.checked }))
-                      }
-                    />
-                    Active
-                  </label>
+
+                    <div className="field">
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Placeholder Text</label>
+                      <input
+                        type="text"
+                        value={mappingForm.placeholder}
+                        onChange={(e) => setMappingForm(p => ({ ...p, placeholder: e.target.value }))}
+                        placeholder="e.g. Length x Width x Height"
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Right Column: Scope & Visibility */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                    
+                    <div style={{ padding: '16px', borderRadius: 12, background: '#f1f5f9', border: '1px solid #e2e8f0' }}>
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
+                        Scope (Assign To)
+                      </label>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        <select 
+                          value={mappingForm.mainCategoryId} 
+                          onChange={(e) => setMappingForm(p => ({ ...p, mainCategoryId: e.target.value, categoryId: '', subCategoryId: '' }))}
+                          style={{ width: '100%', fontSize: 13 }}
+                        >
+                          <option value="">Category Group...</option>
+                          {filteredMainCategories.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
+                        </select>
+                        <select 
+                          value={mappingForm.categoryId} 
+                          disabled={!mappingForm.mainCategoryId}
+                          onChange={(e) => setMappingForm(p => ({ ...p, categoryId: e.target.value, subCategoryId: '' }))}
+                          style={{ width: '100%', fontSize: 13 }}
+                        >
+                          <option value="">Category...</option>
+                          {mappingCategories.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
+                        </select>
+                        <select 
+                          value={mappingForm.subCategoryId} 
+                          disabled={!mappingForm.categoryId}
+                          onChange={(e) => setMappingForm(p => ({ ...p, subCategoryId: e.target.value }))}
+                          style={{ width: '100%', fontSize: 13 }}
+                        >
+                          <option value="">All Sub-categories</option>
+                          {mappingSubCategories.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        Field Settings
+                      </label>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <ToggleSwitch
+                          id="map-required-toggle"
+                          checked={mappingForm.required}
+                          onChange={(val) => setMappingForm(p => ({ ...p, required: val }))}
+                          label="Required (Must fill)"
+                        />
+                        <ToggleSwitch
+                          id="map-filterable-toggle"
+                          checked={mappingForm.filterable}
+                          onChange={(val) => setMappingForm(p => ({ ...p, filterable: val }))}
+                          label="Visible in App Filters"
+                        />
+                        <ToggleSwitch
+                          id="map-searchable-toggle"
+                          checked={mappingForm.searchable}
+                          onChange={(val) => setMappingForm(p => ({ ...p, searchable: val }))}
+                          label="Searchable in App"
+                        />
+                        <ToggleSwitch
+                          id="map-active-toggle"
+                          checked={mappingForm.active}
+                          onChange={(val) => setMappingForm(p => ({ ...p, active: val }))}
+                          label="Active Status"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="field">
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Display Order</label>
+                      <input
+                        type="number"
+                        value={mappingForm.sortOrder}
+                        onChange={(e) => setMappingForm(p => ({ ...p, sortOrder: e.target.value }))}
+                        placeholder="1"
+                        style={{ width: '80px' }}
+                      />
+                    </div>
+                  </div>
+
                 </div>
               </div>
-            </div>
-            <button type="submit" className="primary-btn full" disabled={isLoading}>
-              {isLoading ? 'Saving...' : 'Save field'}
-            </button>
-          </form>
+
+              {/* Modal Footer */}
+              <div style={{
+                padding: '16px 24px',
+                borderTop: '1px solid #f1f5f9',
+                display: 'flex', justifyContent: 'flex-end', gap: 12,
+                background: '#fafafa',
+              }}>
+                <button
+                  type="button"
+                  className="ghost-btn"
+                  onClick={() => setShowMappingForm(false)}
+                  style={{ minWidth: 100 }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="primary-btn"
+                  disabled={isLoading}
+                  style={{ minWidth: 140 }}
+                >
+                  {isLoading ? 'Saving...' : editingMappingId ? 'Update Assignment' : 'Assign Field'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       ) : null}
 
-      <div className="panel card users-table-card">
+      <div className={`mv-layout${selectedLibraryDefinition ? ' mv-layout--split' : ''}`}>
+        <div className="panel card users-table-card">
           <div className="gsc-datatable-toolbar">
             <div className="gsc-datatable-toolbar-left" />
             <div className="gsc-datatable-toolbar-right">
@@ -1880,7 +1737,7 @@ function ProductAttributePage({ token }) {
               <input
                 type="search"
                 value={definitionQuery}
-                onChange={(event) => setDefinitionQuery(event.target.value)}
+                onChange={(event) => { setDefinitionQuery(event.target.value); setDefPage(1); }}
                 placeholder="Search"
               />
               <svg
@@ -1932,40 +1789,39 @@ function ProductAttributePage({ token }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredDefinitionLibrary.map((definition, index) => {
+                    {paginatedDefinitions.items.map((definition, index) => {
                       const scopeLabel = `${definition.scopeCount || 0} ${
                         (definition.scopeCount || 0) === 1 ? 'place' : 'places'
                       }`;
                       return (
                         <tr
                           key={definition.id}
-                          className={expandedLibraryFieldId === definition.id ? 'is-selected-row' : ''}
+                          className={expandedLibraryFieldId === definition.id ? 'mv-row-active' : ''}
+                          onClick={() =>
+                            setExpandedLibraryFieldId((prev) =>
+                              prev === definition.id ? null : definition.id
+                            )
+                          }
+                          style={{ cursor: 'pointer' }}
                         >
-                          <td>{index + 1}</td>
-                          <td>
-                            <button
-                              type="button"
-                              className="attribute-library-link"
-                              onClick={() =>
-                                setExpandedLibraryFieldId((prev) =>
-                                  prev === definition.id ? null : definition.id
-                                )
-                              }
-                            >
-                              {definition.label || '-'}
-                            </button>
-                          </td>
+                          <td>{paginatedDefinitions.start + index + 1}</td>
+                          <td>{definition.label || '-'}</td>
                           <td>{typeLabel(definition.dataType)}</td>
                           <td>{definition.key || '-'}</td>
                           <td>{scopeLabel}</td>
                           <td>
-                            <span className={definition.active !== false ? 'status-active' : 'status-inactive'}>
+                            <span className={definition.active !== false ? 'status-verified' : 'status-inactive'}>
                               {definition.active !== false ? 'Active' : 'Inactive'}
                             </span>
                           </td>
                           <td className="table-actions" onClick={(event) => event.stopPropagation()}>
                             {(() => {
-                              const actions = [];
+                              const actions = [
+                                {
+                                  label: 'View',
+                                  onClick: () => setExpandedLibraryFieldId((prev) => prev === definition.id ? null : definition.id),
+                                },
+                              ];
                               if (hasPermission('ADMIN_DYNAMIC_FIELDS_UPDATE')) {
                                 actions.push({
                                   label: 'Edit',
@@ -1979,7 +1835,6 @@ function ProductAttributePage({ token }) {
                                   danger: true,
                                 });
                               }
-                              if (actions.length === 0) return null;
                               return (
                                 <TableRowActionMenu
                                   rowId={definition.id}
@@ -1996,121 +1851,114 @@ function ProductAttributePage({ token }) {
                   </tbody>
                 </table>
               </div>
-              <div className="table-record-count">
-                <span>
-                  Showing {filteredDefinitionLibrary.length} of {definitions.length} records
-                </span>
+              <div className="bv-table-footer">
+                <div className="table-record-count">
+                  <span>
+                    {paginatedDefinitions.totalItems === 0
+                      ? '0 records'
+                      : `Showing ${paginatedDefinitions.start + 1}–${paginatedDefinitions.end} of ${paginatedDefinitions.totalItems}`}
+                  </span>
+                </div>
+                <div className="product-pagination-controls">
+                  <label className="product-pagination-size">
+                    <span>Rows</span>
+                    <select value={defPageSize} onChange={(e) => { setDefPageSize(Number(e.target.value)); setDefPage(1); }}>
+                      {PAGE_SIZE_OPTIONS.map((n) => <option key={n} value={n}>{n}</option>)}
+                    </select>
+                  </label>
+                  <div className="bv-table-pagination">
+                    <button type="button" className="secondary-btn" disabled={paginatedDefinitions.page <= 1} onClick={() => setDefPage((p) => p - 1)}>{'< Prev'}</button>
+                    <span>Page {paginatedDefinitions.page} / {paginatedDefinitions.totalPages}</span>
+                    <button type="button" className="secondary-btn" disabled={paginatedDefinitions.page >= paginatedDefinitions.totalPages} onClick={() => setDefPage((p) => p + 1)}>{'Next >'}</button>
+                  </div>
+                </div>
               </div>
             </>
           )}
         </div>
-    </div>
 
-      {selectedLibraryDefinition ? (
-        <div className="admin-modal-backdrop" onClick={() => setExpandedLibraryFieldId(null)}>
-          <div
-            className="admin-modal"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="admin-modal-header">
-              <h3 className="admin-modal-title">Field details</h3>
-              <button
-                type="button"
-                className="ghost-btn small"
-                onClick={() => setExpandedLibraryFieldId(null)}
-              >
-                Close
-              </button>
-            </div>
-
-            <div className="admin-modal-body">
-            <div className="attribute-detail-section">
-              <table className="admin-table compact attribute-detail-table">
-                <thead>
-                  <tr>
-                    <th style={{ width: 140 }}>Field info</th>
-                    <th>Value</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td className="attribute-detail-label-cell">Field name</td>
-                    <td>{selectedLibraryDefinition.label || '-'}</td>
-                  </tr>
-                  <tr>
-                    <td className="attribute-detail-label-cell">Key</td>
-                    <td>
-                      <code>{selectedLibraryDefinition.key || '-'}</code>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="attribute-detail-label-cell">Type</td>
-                    <td>{typeLabel(selectedLibraryDefinition.dataType)}</td>
-                  </tr>
-                  <tr>
-                    <td className="attribute-detail-label-cell">Options</td>
-                    <td>
-                      {Array.isArray(selectedLibraryDefinition.options?.values)
-                        ? `${selectedLibraryDefinition.options.values.length} option${
-                            selectedLibraryDefinition.options.values.length === 1 ? '' : 's'
-                          }`
-                        : 'No options'}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="attribute-detail-label-cell">Usage</td>
-                    <td>
-                      Used in {selectedLibraryDefinition.scopeCount || 0}{' '}
-                      {(selectedLibraryDefinition.scopeCount || 0) === 1 ? 'place' : 'places'} ·{' '}
-                      {selectedLibraryDefinition.activeMappingCount || 0} active mapping
-                      {(selectedLibraryDefinition.activeMappingCount || 0) === 1 ? '' : 's'}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="attribute-detail-label-cell">Status</td>
-                    <td>{selectedLibraryDefinition.active !== false ? 'Active' : 'Inactive'}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div className="attribute-detail-section" style={{ marginTop: 16 }}>
-              <p className="attribute-detail-label">Assigned in</p>
-              {selectedLibraryDefinition.locations?.length ? (
-                <div className="table-shell attribute-location-table">
-                  <table className="admin-table compact">
-                    <thead>
-                      <tr>
-                        <th>Category path</th>
-                        <th>Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {selectedLibraryDefinition.locations.map((location) => (
-                        <tr key={`${selectedLibraryDefinition.id}-${location.scopeKey}`}>
-                          <td>{location.label}</td>
-                          <td>
-                            <span
-                              className={`attribute-badge ${
-                                location.active ? ' is-active' : ' is-inactive'
-                              }`}
-                            >
-                              {location.active ? 'Active' : 'Inactive'}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="attribute-detail-meta">Not assigned to any category yet.</p>
+        {selectedLibraryDefinition ? (
+          <div className="mv-panel card">
+            {/* Header */}
+            <div className="mv-panel-header">
+              <div className="mv-panel-title-row">
+                <button type="button" className="mv-back-btn" onClick={() => setExpandedLibraryFieldId(null)}>
+                  ← Back
+                </button>
+                <h3 className="mv-panel-title">{selectedLibraryDefinition.label}</h3>
+                <span className={selectedLibraryDefinition.active !== false ? 'status-active' : 'status-inactive'}>
+                  {selectedLibraryDefinition.active !== false ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+              {hasPermission('ADMIN_DYNAMIC_FIELDS_UPDATE') && (
+                <button type="button" className="ghost-btn small" onClick={() => handleEditDefinition(selectedLibraryDefinition)}>
+                  Edit
+                </button>
               )}
             </div>
+
+            {/* Field Details */}
+            <div className="mv-section">
+              <p className="mv-section-label">Field Details</p>
+              <div className="mv-detail-grid">
+                <span className="mv-detail-label">Field Name</span>
+                <span className="mv-detail-value">{selectedLibraryDefinition.label || '-'}</span>
+                <span className="mv-detail-label">Key</span>
+                <span className="mv-detail-value" style={{ fontFamily: 'monospace', fontSize: 12 }}>{selectedLibraryDefinition.key || '-'}</span>
+                <span className="mv-detail-label">Data Type</span>
+                <span className="mv-detail-value">{typeLabel(selectedLibraryDefinition.dataType)}</span>
+                <span className="mv-detail-label">Used In</span>
+                <span className="mv-detail-value">
+                  {selectedLibraryDefinition.scopeCount || 0} {(selectedLibraryDefinition.scopeCount || 0) === 1 ? 'place' : 'places'} · {selectedLibraryDefinition.activeMappingCount || 0} active
+                </span>
+              </div>
+              {Array.isArray(selectedLibraryDefinition.options?.values) && selectedLibraryDefinition.options.values.length > 0 ? (
+                <div style={{ marginTop: 10 }}>
+                  <span className="mv-detail-label">Options</span>
+                  <div className="mv-child-grid" style={{ marginTop: 6 }}>
+                    {selectedLibraryDefinition.options.values.map((opt) => (
+                      <div key={opt} className="mv-child-card" style={{ minWidth: 'auto', padding: '4px 10px' }}>
+                        <span className="mv-child-name" style={{ fontSize: 12, marginBottom: 0 }}>{opt}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            {/* Assigned in categories */}
+            <div className="mv-section">
+              <p className="mv-section-label">
+                Assigned in categories
+                {selectedLibraryDefinition.locations?.length > 0 && (
+                  <span className="mv-count-badge">{selectedLibraryDefinition.locations.length}</span>
+                )}
+              </p>
+              {selectedLibraryDefinition.locations?.length ? (
+                <div className="mv-child-grid">
+                  {selectedLibraryDefinition.locations.map((location) => (
+                    <div
+                      key={`${selectedLibraryDefinition.id}-${location.scopeKey}`}
+                      className="mv-child-card"
+                      style={{ flexBasis: '100%', minWidth: 0 }}
+                    >
+                      <div className="mv-child-name" style={{ fontSize: 12, marginBottom: 4 }}>{location.label}</div>
+                      <div className="mv-child-meta">
+                        <span className={location.active ? 'status-active' : 'status-inactive'}>
+                          {location.active ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mv-empty">Not assigned to any category yet.</p>
+              )}
             </div>
           </div>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
+    </div>
     </>
   );
 }

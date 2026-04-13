@@ -103,10 +103,10 @@ function OtpVerifyPage({ phone = '', onEditNumber, onVerified }) {
 
   return (
     <AuthLayout>
-      <header className="otp-hero">
-        <h2 className="otp-heading">Enter OTP</h2>
-        <p className="muted-text">
-          We have sent a verification code to <span className="highlight">{maskedPhone}</span>
+      <header className="login-panel-header">
+        <h2 className="login-panel-title">Verification Code</h2>
+        <p className="login-panel-subtitle">
+          Enter the code we sent to <span className="highlight">{maskedPhone}</span>
         </p>
       </header>
       <Banner message={message} />

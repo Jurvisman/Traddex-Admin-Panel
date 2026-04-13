@@ -39,6 +39,7 @@ export const PRODUCT_MASTER_PERMISSIONS = {
 
 export const BUSINESS_PERMISSIONS = {
   read: 'ADMIN_BUSINESS_READ',
+  create: 'ADMIN_BUSINESS_CREATE',
   kycUpdate: 'ADMIN_BUSINESS_KYC_UPDATE',
   approve: 'ADMIN_BUSINESS_APPROVE',
 };
@@ -51,4 +52,9 @@ export const PRODUCT_PERMISSIONS = {
   approve: 'ADMIN_PRODUCTS_APPROVE',
   requestChanges: 'ADMIN_PRODUCTS_REQUEST_CHANGES',
   reject: 'ADMIN_PRODUCTS_REJECT',
+};
+
+export const REVIEW_MODERATION_PERMISSIONS = {
+  read: 'ADMIN_REVIEWS_READ',
+  moderate: 'ADMIN_REVIEWS_MODERATE',
 };

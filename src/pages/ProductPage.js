@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMatch, useNavigate, useParams } from 'react-router-dom';
 import { Banner } from '../components';
-import { PRODUCT_PERMISSIONS } from '../constants/adminPermissions';
+import { PRODUCT_PERMISSIONS, REVIEW_MODERATION_PERMISSIONS } from '../constants/adminPermissions';
 import { usePermissions } from '../shared/permissions';
 import {
   createProduct,
@@ -10,6 +10,7 @@ import {
   deleteUom,
   fetchUsers,
   getProduct,
+  listAdminProductReviews,
   listAttributeDefinitions,
   listAttributeMappings,
   listBrandOptions,
@@ -20,6 +21,7 @@ import {
   listUoms,
   reviewProductBrand,
   uploadBannerImages,
+  updateAdminProductReviewStatus,
   updateUom,
   updateProduct,
   updateProductVariantStatus,
@@ -43,6 +45,12 @@ const createVariantEntry = () => ({
   galleryImagesText: '',
   attributes: [createVariantAttributeEntry()],
 });
+
+const PRODUCT_EDITOR_TABS = [
+  { key: 'general', label: 'General Details' },
+  { key: 'pricing', label: 'Pricing Details' },
+  { key: 'media', label: 'Media' },
+];
 
 const ADMIN_API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:8080';
 
@@ -157,6 +165,31 @@ const buildMirroredUomLists = (rows, baseUomId, defaultStockInUomId, defaultStoc
 const getPrimaryProductImage = (product) => product?.thumbnailImage || getProductGalleryUrls(product)[0] || '';
 const getVariantGalleryUrls = (variant) => extractImageUrls(variant?.images);
 const getPrimaryVariantImage = (variant) => variant?.thumbnailImage || getVariantGalleryUrls(variant)[0] || '';
+const formatVariantAttributeValue = (value) => {
+  if (value === null || value === undefined || value === '') return '-';
+  if (Array.isArray(value)) return value.join(', ');
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  if (typeof value === 'object') {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return '[Object]';
+    }
+  }
+  return String(value);
+};
+const getVariantAttributeLabels = (variant) => {
+  if (!Array.isArray(variant?.attributes)) return [];
+  return variant.attributes
+    .map((attribute) => {
+      const key = String(attribute?.key || '').trim();
+      const value = attribute?.value;
+      if (!key && (value === null || value === undefined || value === '')) return '';
+      const formattedValue = formatVariantAttributeValue(value);
+      return key ? `${key}: ${formattedValue}` : formattedValue;
+    })
+    .filter(Boolean);
+};
 const getProductSortTimestamp = (product) => {
   const candidates = [product?.updatedOn, product?.updated_on, product?.createdOn, product?.created_on];
   for (const value of candidates) {
@@ -254,7 +287,7 @@ const ACTION_ICONS = {
   more: (
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path
-        d="M12 7a1.75 1.75 0 1 1 0-3.5A1.75 1.75 0 0 1 12 7Zm0 6.75a1.75 1.75 0 1 1 0-3.5 1.75 1.75 0 0 1 0 3.5Zm0 6.75a1.75 1.75 0 1 1 0-3.5 1.75 1.75 0 0 1 0 3.5Z"
+        d="M5 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm9 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm9 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z"
         fill="currentColor"
       />
     </svg>
@@ -315,6 +348,93 @@ const CHANGE_REQUEST_OPTIONS = [
   { key: 'compliance', label: 'Compliance', hint: 'HSN, country of origin, certifications, or policy details are missing.' },
 ];
 
+const PRODUCT_TABLE_COLUMN_OPTIONS = [
+  { key: 'image', label: 'Image', minWidth: 88 },
+  { key: 'code', label: 'Code', minWidth: 140 },
+  { key: 'name', label: 'Name', minWidth: 220 },
+  { key: 'business', label: 'Business', minWidth: 220 },
+  { key: 'mainCategory', label: 'Main Category', minWidth: 180 },
+  { key: 'category', label: 'Category', minWidth: 180 },
+  { key: 'subCategory', label: 'Sub-Category', minWidth: 180 },
+  { key: 'brand', label: 'Brand', minWidth: 180 },
+  { key: 'productType', label: 'Product Type', minWidth: 150 },
+  { key: 'baseUom', label: 'Base UOM', minWidth: 140 },
+  { key: 'sellingPrice', label: 'Selling Price', minWidth: 130 },
+  { key: 'mrp', label: 'MRP', minWidth: 130 },
+  { key: 'gstRate', label: 'GST Rate', minWidth: 110 },
+  { key: 'hsnCode', label: 'HSN Code', minWidth: 130 },
+  { key: 'countryOfOrigin', label: 'Country Of Origin', minWidth: 160 },
+  { key: 'variantCount', label: 'Variants', minWidth: 100 },
+  { key: 'ratingCount', label: 'Ratings', minWidth: 100 },
+  { key: 'reviewCount', label: 'Reviews', minWidth: 100 },
+  { key: 'status', label: 'Status', minWidth: 170 },
+  { key: 'createdOn', label: 'Created On', minWidth: 155 },
+  { key: 'updatedOn', label: 'Updated On', minWidth: 155 },
+];
+
+const INITIAL_PRODUCT_COLUMN_VISIBILITY = {
+  image: true,
+  code: true,
+  name: true,
+  business: true,
+  mainCategory: true,
+  category: true,
+  subCategory: false,
+  brand: true,
+  productType: false,
+  baseUom: true,
+  sellingPrice: true,
+  mrp: true,
+  gstRate: false,
+  hsnCode: false,
+  countryOfOrigin: false,
+  variantCount: false,
+  ratingCount: false,
+  reviewCount: false,
+  status: true,
+  createdOn: false,
+  updatedOn: true,
+};
+
+const PRODUCT_STATUS_FILTER_OPTIONS = [
+  { value: '', label: 'All Statuses' },
+  { value: 'DRAFT', label: 'Draft' },
+  { value: 'PENDING_REVIEW', label: 'Pending Review' },
+  { value: 'APPROVED', label: 'Approved' },
+  { value: 'CHANGES_REQUIRED', label: 'Changes Required' },
+  { value: 'REJECTED', label: 'Rejected' },
+];
+
+const PRODUCT_PAGE_SIZE_OPTIONS = [10, 25, 50];
+
+const getProductRecordId = (product) => product?.id || product?.productId || null;
+const getProductCode = (product) => product?.sku || product?.productCode || `PRD-${getProductRecordId(product) || '-'}`;
+const getProductSellingPrice = (product) => product?.sellingPrice ?? product?.priceRange?.min ?? null;
+const getProductMrp = (product) => product?.mrp ?? product?.priceRange?.max ?? null;
+const getProductGstRate = (product) => product?.gstRate ?? product?.gst_rate ?? null;
+const getProductHsnCode = (product) => product?.hsnCode ?? product?.hsn_code ?? '';
+const getProductCountryOfOrigin = (product) => product?.countryOfOrigin ?? product?.country_of_origin ?? '';
+const getProductRatingCount = (product) => {
+  const count = Number(product?.ratingCount ?? product?.rating_count ?? 0);
+  return Number.isFinite(count) ? count : 0;
+};
+const getProductReviewCount = (product) => {
+  const count = Number(product?.reviewCount ?? product?.review_count ?? 0);
+  return Number.isFinite(count) ? count : 0;
+};
+const getProductVariantCount = (product) => {
+  if (Array.isArray(product?.variants)) return product.variants.length;
+  const count = Number(product?.variantCount ?? product?.variantsCount ?? 0);
+  return Number.isFinite(count) ? count : 0;
+};
+const buildProductCategoryPath = (category) => {
+  if (!category) return '';
+  const subCategoryLabel = getScopedSubCategoryLabel(category.categoryName, category.subCategoryName, true);
+  return [category.mainCategoryName, category.categoryName, subCategoryLabel]
+    .filter((part) => String(part || '').trim())
+    .join(' / ');
+};
+
 function ProductTableThumbnail({ imageUrl, alt }) {
   const [hasError, setHasError] = useState(false);
   const resolvedImage = hasError ? '' : resolveMediaUrl(imageUrl);
@@ -331,6 +451,19 @@ function ProductTableThumbnail({ imageUrl, alt }) {
     </div>
   );
 }
+function ProductEditorField({ label, required = false, span2 = false, hint = '', children }) {
+  return (
+    <div className={`bc-field${span2 ? ' bc-span2' : ''}`}>
+      <label className="bc-field-label">
+        {label}
+        {required ? <span className="bc-required"> *</span> : null}
+      </label>
+      {children}
+      {hint ? <span className="bc-hint">{hint}</span> : null}
+    </div>
+  );
+}
+
 
 function ProductPage({ token, adminUserId }) {
   const { hasPermission } = usePermissions();
@@ -364,10 +497,33 @@ function ProductPage({ token, adminUserId }) {
   const [message, setMessage] = useState({ type: 'info', text: '' });
   const [isLoading, setIsLoading] = useState(false);
   const [query, setQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [showColumnPicker, setShowColumnPicker] = useState(false);
+  const [showImportExportMenu, setShowImportExportMenu] = useState(false);
+  const [columnVisibility, setColumnVisibility] = useState(INITIAL_PRODUCT_COLUMN_VISIBILITY);
+  const [productFilters, setProductFilters] = useState({
+    category: '',
+    business: '',
+    brand: '',
+    status: '',
+  });
   const [showForm, setShowForm] = useState(false);
   const [showCreateSelector, setShowCreateSelector] = useState(false);
-  const [showCreateUomModal, setShowCreateUomModal] = useState(false);
+  const [showUomSection, setShowUomSection] = useState(false);
+  const [productListPage, setProductListPage] = useState(0);
+  const [productPageSize, setProductPageSize] = useState(25);
+  const [productListMeta, setProductListMeta] = useState({
+    page: 0,
+    size: 25,
+    totalElements: 0,
+    totalPages: 1,
+    hasNext: false,
+    hasPrevious: false,
+  });
+  const [categoryFilterOptions, setCategoryFilterOptions] = useState([]);
+
   const [businessAccounts, setBusinessAccounts] = useState([]);
   const [createSelectorForm, setCreateSelectorForm] = useState(() => createProductSelectorForm());
   const [createSelectorCategories, setCreateSelectorCategories] = useState([]);
@@ -380,7 +536,9 @@ function ProductPage({ token, adminUserId }) {
   const [openProductActionId, setOpenProductActionId] = useState(null);
   const didInitRef = useRef(false);
   const mediaInputRef = useRef(null);
+  const productImportInputRef = useRef(null);
   const uomSectionRef = useRef(null);
+  const productToolbarRef = useRef(null);
   const viewActionMenuRef = useRef(null);
   const productActionMenuRef = useRef(null);
   const navigate = useNavigate();
@@ -388,6 +546,11 @@ function ProductPage({ token, adminUserId }) {
   const editMatch = useMatch('/admin/products/:id/edit');
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const [mediaTarget, setMediaTarget] = useState(null);
+  const [productReviews, setProductReviews] = useState([]);
+  const [reviewsFilter, setReviewsFilter] = useState('ALL');
+  const [isLoadingReviews, setIsLoadingReviews] = useState(false);
+  const [reviewsBusyId, setReviewsBusyId] = useState(null);
+  const [reviewsLoaded, setReviewsLoaded] = useState(false);
 
   const definitionById = useMemo(() => {
     const mapping = new Map();
@@ -407,31 +570,41 @@ function ProductPage({ token, adminUserId }) {
     return mapping;
   }, [attributeDefinitions]);
 
-  const filteredProducts = useMemo(() => {
-    const term = normalize(query);
-    const visibleProducts = term
-      ? products.filter((product) => {
-          const haystack = [
-            product?.productName,
-            product?.brandName,
-            product?.businessName,
-            product?.category?.subCategoryName,
-            product?.category?.categoryName,
-            product?.category?.mainCategoryName,
-            product?.approvalStatus,
-          ]
-            .map(normalize)
-            .join(' ');
-          return haystack.includes(term);
-        })
-      : products;
+  const businessFilterOptions = useMemo(() => {
+    const items = new Set();
+    if (businessAccounts.length > 0) {
+      businessAccounts.forEach((account) => {
+        const name = String(account?.businessName || account?.companyName || getBusinessName(account) || '').trim();
+        if (name) items.add(name);
+      });
+    }
+    products.forEach((product) => {
+      const name = String(product?.businessName || '').trim();
+      if (name) items.add(name);
+    });
+    return Array.from(items).sort((left, right) => left.localeCompare(right));
+  }, [businessAccounts, products]);
 
-    return [...visibleProducts].sort((left, right) => {
+  const brandFilterOptions = useMemo(() => {
+    const items = new Set();
+    brandOptions.forEach((brand) => {
+      const name = String(brand?.brandName || '').trim();
+      if (name) items.add(name);
+    });
+    products.forEach((product) => {
+      const name = String(product?.brandName || 'Unbranded').trim();
+      if (name) items.add(name);
+    });
+    return Array.from(items).sort((left, right) => left.localeCompare(right));
+  }, [brandOptions, products]);
+
+  const filteredProducts = useMemo(() => {
+    return [...products].sort((left, right) => {
       const timestampDiff = getProductSortTimestamp(right) - getProductSortTimestamp(left);
       if (timestampDiff !== 0) return timestampDiff;
       return getProductSortId(right) - getProductSortId(left);
     });
-  }, [products, query]);
+  }, [products]);
 
   const brandSuggestions = useMemo(() => {
     const term = normalize(form.brandName).trim();
@@ -461,6 +634,7 @@ function ProductPage({ token, adminUserId }) {
   const canApproveProduct = hasPermission(PRODUCT_PERMISSIONS.approve);
   const canRequestChangesProduct = hasPermission(PRODUCT_PERMISSIONS.requestChanges);
   const canRejectProduct = hasPermission(PRODUCT_PERMISSIONS.reject);
+  const canViewReviewModeration = hasPermission(REVIEW_MODERATION_PERMISSIONS.read);
   const hasProductListActions = Boolean(
     canViewProduct ||
       canEditProduct ||
@@ -474,9 +648,32 @@ function ProductPage({ token, adminUserId }) {
     canApproveProduct || canRequestChangesProduct || canRejectProduct
   );
 
-  const loadProducts = async () => {
-    const response = await listProducts(token);
-    setProducts(response?.data?.products || []);
+  const loadProducts = async ({
+    page = productListPage,
+    size = productPageSize,
+    queryText = debouncedQuery,
+    filters = productFilters,
+  } = {}) => {
+    const response = await listProducts(token, {
+      page,
+      size,
+      query: queryText,
+      status: filters.status,
+      category: filters.category,
+      business: filters.business,
+      brand: filters.brand,
+    });
+    const nextProducts = response?.data?.products || [];
+    const pagination = response?.data?.pagination || {};
+    setProducts(nextProducts);
+    setProductListMeta({
+      page: Number(pagination.page ?? page) || 0,
+      size: Number(pagination.size ?? size) || size,
+      totalElements: Number(pagination.totalElements ?? nextProducts.length) || 0,
+      totalPages: Math.max(Number(pagination.totalPages ?? 1) || 1, 1),
+      hasNext: Boolean(pagination.hasNext),
+      hasPrevious: Boolean(pagination.hasPrevious),
+    });
     setSelectedIds(new Set());
   };
 
@@ -493,6 +690,41 @@ function ProductPage({ token, adminUserId }) {
   const loadMainCategories = async () => {
     const response = await listMainCategories(token);
     setMainCategories(response?.data || []);
+  };
+
+  const loadCategoryFilterOptions = async () => {
+    const mainResponse = await listMainCategories(token);
+    const mainItems = Array.isArray(mainResponse?.data) ? mainResponse.data : [];
+    const options = new Set(
+      mainItems
+        .map((item) => String(item?.name || '').trim())
+        .filter(Boolean)
+    );
+
+    const categoryResponses = await Promise.all(
+      mainItems.map((item) =>
+        listCategories(token, item?.id).catch(() => ({ data: [] }))
+      )
+    );
+    const categoryItems = categoryResponses.flatMap((response) => (Array.isArray(response?.data) ? response.data : []));
+    categoryItems.forEach((item) => {
+      const name = String(item?.name || '').trim();
+      if (name) options.add(name);
+    });
+
+    const subCategoryResponses = await Promise.all(
+      categoryItems.map((item) =>
+        listSubCategories(token, item?.id).catch(() => ({ data: [] }))
+      )
+    );
+    subCategoryResponses
+      .flatMap((response) => (Array.isArray(response?.data) ? response.data : []))
+      .forEach((item) => {
+        const name = String(item?.name || '').trim();
+        if (name) options.add(name);
+      });
+
+    setCategoryFilterOptions(Array.from(options).sort((left, right) => left.localeCompare(right)));
   };
 
   const loadBusinessAccounts = async (force = false) => {
@@ -596,7 +828,7 @@ function ProductPage({ token, adminUserId }) {
       });
       return next;
     });
-  };
+};
 
   const loadViewAttributeMappings = async (mainCategoryId, categoryId, subCategoryId) => {
     if (!mainCategoryId && !categoryId && !subCategoryId) {
@@ -696,7 +928,7 @@ function ProductPage({ token, adminUserId }) {
       .join(' ');
   };
 
-  const formatCategoryParts = (category) => {
+  function formatCategoryParts(category) {
     if (!category) return { primary: '-', secondary: '' };
     const subCategoryLabel = getScopedSubCategoryLabel(category.categoryName, category.subCategoryName, true);
     const primary =
@@ -705,7 +937,7 @@ function ProductPage({ token, adminUserId }) {
       .filter((part) => part && part !== primary)
       .join(' / ');
     return { primary, secondary };
-  };
+  }
 
   const formatPrice = (value, currency = 'INR') => {
     if (value === null || value === undefined || value === '') return '-';
@@ -730,17 +962,21 @@ function ProductPage({ token, adminUserId }) {
     }
   };
 
-  const isBusinessAccount = (user) =>
-    String(user?.userType || user?.type || user?.role || '').trim().toUpperCase() === 'BUSINESS';
+  function isBusinessAccount(user) {
+    return String(user?.userType || user?.type || user?.role || '').trim().toUpperCase() === 'BUSINESS';
+  }
 
-  const getBusinessName = (user) =>
-    user?.businessName ||
-    user?.companyName ||
-    user?.name ||
-    user?.full_name ||
-    user?.fullName ||
-    user?.mobile ||
-    `Business #${user?.id || ''}`;
+  function getBusinessName(user) {
+    return (
+      user?.businessName ||
+      user?.companyName ||
+      user?.name ||
+      user?.full_name ||
+      user?.fullName ||
+      user?.mobile ||
+      `Business #${user?.id || ''}`
+    );
+  }
 
   const formatUomLabel = (uom) => {
     if (!uom) return '';
@@ -761,6 +997,248 @@ function ProductPage({ token, adminUserId }) {
         ? ` • Price: ${entry.pricePerUom}`
         : '';
     return `${name || 'UOM'}${factorText}${priceText}`;
+  };
+
+  const toggleColumn = (key) => {
+    setColumnVisibility((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const clearProductFilters = () => {
+    setProductFilters({
+      category: '',
+      business: '',
+      brand: '',
+      status: '',
+    });
+    setProductListPage(0);
+  };
+
+  const activeProductFilterCount = Object.values(productFilters).filter(Boolean).length;
+  const visibleProductColumns = PRODUCT_TABLE_COLUMN_OPTIONS.filter((column) => columnVisibility[column.key]);
+  const productTableMinWidth = visibleProductColumns.reduce(
+    (total, column) => total + (column.minWidth || 150),
+    280
+  );
+  const productPageStart = productListMeta.totalElements > 0 ? productListMeta.page * productListMeta.size + 1 : 0;
+  const productPageEnd =
+    productListMeta.totalElements > 0
+      ? Math.min(productPageStart + filteredProducts.length - 1, productListMeta.totalElements)
+      : 0;
+  const selectedProducts = products.filter((product) => selectedIds.has(getProductRecordId(product)));
+
+  const getProductTableCellValue = (product, key) => {
+    const categoryParts = formatCategoryParts(product?.category);
+    const subCategoryLabel = getScopedSubCategoryLabel(
+      product?.category?.categoryName,
+      product?.category?.subCategoryName,
+      Boolean(product?.category?.categoryId)
+    );
+    const updatedAt = product?.updatedOn || product?.updated_on || product?.createdOn;
+    const createdAt = product?.createdOn || product?.created_on;
+    const statusValue = product?.approvalStatus || '';
+
+    switch (key) {
+      case 'image':
+        return (
+          <div className="product-image-cell">
+            <ProductTableThumbnail
+              imageUrl={getPrimaryProductImage(product)}
+              alt={product?.productName || 'Product'}
+            />
+          </div>
+        );
+      case 'code':
+        return <span className="product-table-code">{getProductCode(product)}</span>;
+      case 'name':
+        return <p className="user-name">{product?.productName || '-'}</p>;
+      case 'business':
+        return <span className="product-table-primary">{product?.businessName || '-'}</span>;
+      case 'mainCategory':
+        return <span className="product-table-primary">{formatValue(product?.category?.mainCategoryName)}</span>;
+      case 'category':
+        return <span className="product-table-primary">{formatValue(product?.category?.categoryName || categoryParts.primary)}</span>;
+      case 'subCategory':
+        return <span className="product-table-secondary">{formatValue(subCategoryLabel)}</span>;
+      case 'brand':
+        return <span className="product-table-primary">{product?.brandName || 'Unbranded'}</span>;
+      case 'productType':
+        return <span className="product-table-primary">{formatValue(product?.productType)}</span>;
+      case 'baseUom':
+        return <span className="product-table-primary">{formatValue(product?.baseUomName || product?.baseUomCode)}</span>;
+      case 'sellingPrice':
+        return <span className="product-price-main">{formatPrice(getProductSellingPrice(product), product?.currency)}</span>;
+      case 'mrp':
+        return <span className="product-price-main">{formatPrice(getProductMrp(product), product?.currency)}</span>;
+      case 'gstRate':
+        return <span className="product-table-primary">{formatValue(getProductGstRate(product))}</span>;
+      case 'hsnCode':
+        return <span className="product-table-primary">{formatValue(getProductHsnCode(product))}</span>;
+      case 'countryOfOrigin':
+        return <span className="product-table-primary">{formatValue(getProductCountryOfOrigin(product))}</span>;
+      case 'variantCount':
+        return <span className="product-table-primary">{formatValue(getProductVariantCount(product))}</span>;
+      case 'ratingCount':
+        return <span className="product-table-primary">{formatValue(getProductRatingCount(product))}</span>;
+      case 'reviewCount':
+        return <span className="product-table-primary">{formatValue(getProductReviewCount(product))}</span>;
+      case 'status':
+        return (
+          <span className={`status-pill product-status-pill ${statusValue ? statusValue.toLowerCase().replace(/_/g, '-') : 'pending'}`}>
+            {formatStatus(statusValue)}
+          </span>
+        );
+      case 'createdOn':
+        return <span className="product-table-primary">{formatDateTime(createdAt)}</span>;
+      case 'updatedOn':
+        return <span className="product-table-primary">{formatDateTime(updatedAt)}</span>;
+      default:
+        return <span className="product-table-primary">{formatValue(product?.[key])}</span>;
+    }
+  };
+
+  const createCsvCell = (value) => {
+    const normalizedValue =
+      value === null || value === undefined
+        ? ''
+        : typeof value === 'string'
+          ? value
+          : Array.isArray(value)
+            ? value.join(', ')
+            : String(value);
+    return `"${normalizedValue.replace(/"/g, '""')}"`;
+  };
+
+  const downloadCsv = (rows, fileName) => {
+    if (!Array.isArray(rows) || rows.length === 0) {
+      setMessage({ type: 'info', text: 'No product rows available for export.' });
+      return;
+    }
+    const headers = Object.keys(rows[0]);
+    const csv = [
+      headers.map(createCsvCell).join(','),
+      ...rows.map((row) => headers.map((header) => createCsvCell(row[header])).join(',')),
+    ].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', fileName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  };
+
+  const buildProductExportRows = (items) =>
+    items.map((product) => ({
+      'Product ID': getProductRecordId(product) || '',
+      'Product Code': getProductCode(product),
+      'Product Name': product?.productName || '',
+      'Product Type': product?.productType || '',
+      Business: product?.businessName || '',
+      Brand: product?.brandName || '',
+      'Main Category': product?.category?.mainCategoryName || '',
+      Category: product?.category?.categoryName || '',
+      'Sub Category': getScopedSubCategoryLabel(
+        product?.category?.categoryName,
+        product?.category?.subCategoryName,
+        Boolean(product?.category?.categoryId)
+      ) || '',
+      'Base UOM': product?.baseUomName || product?.baseUomCode || '',
+      'Selling Price': getProductSellingPrice(product) ?? '',
+      MRP: getProductMrp(product) ?? '',
+      'GST Rate': getProductGstRate(product) ?? '',
+      'HSN Code': getProductHsnCode(product) || '',
+      'Country Of Origin': getProductCountryOfOrigin(product) || '',
+      Variants: getProductVariantCount(product),
+      Ratings: getProductRatingCount(product),
+      Reviews: getProductReviewCount(product),
+      Status: formatStatus(product?.approvalStatus),
+      'Created On': formatDateTime(product?.createdOn || product?.created_on),
+      'Updated On': formatDateTime(product?.updatedOn || product?.updated_on || product?.createdOn),
+    }));
+
+  const handleExportFilteredProducts = () => {
+    if (filteredProducts.length === 0) {
+      setShowImportExportMenu(false);
+      setMessage({ type: 'info', text: 'No filtered product rows available for export.' });
+      return;
+    }
+    downloadCsv(buildProductExportRows(filteredProducts), `products-filtered-${Date.now()}.csv`);
+    setShowImportExportMenu(false);
+    setMessage({ type: 'success', text: `Exported ${filteredProducts.length} filtered product rows.` });
+  };
+
+  const handleExportSelectedProducts = () => {
+    if (selectedProducts.length === 0) {
+      setShowImportExportMenu(false);
+      setMessage({ type: 'info', text: 'Select at least one product to export selected rows.' });
+      return;
+    }
+    downloadCsv(buildProductExportRows(selectedProducts), `products-selected-${Date.now()}.csv`);
+    setShowImportExportMenu(false);
+    setMessage({ type: 'success', text: `Exported ${selectedProducts.length} selected product rows.` });
+  };
+
+  const handleDownloadProductImportTemplate = () => {
+    downloadCsv(
+      [
+        {
+          businessUserId: '',
+          mainCategoryId: '',
+          categoryId: '',
+          subCategoryId: '',
+          productName: '',
+          productType: '',
+          brandName: '',
+          shortDescription: '',
+          longDescription: '',
+          sellingPrice: '',
+          mrp: '',
+          gstRate: '',
+          hsnCode: '',
+          countryOfOrigin: '',
+          baseUomId: '',
+          minimumOrderQuantity: '',
+          stockQuantity: '',
+          lowStockAlert: '',
+          modelVariant: '',
+          keywords: '',
+          productLabel: '',
+          certifications: '',
+          warrantyPeriod: '',
+          attributes: '',
+          specifications: '',
+          videoLink: '',
+          internalNotes: '',
+        },
+      ],
+      'product-import-template.csv'
+    );
+    setShowImportExportMenu(false);
+    setMessage({ type: 'success', text: 'Product CSV template downloaded.' });
+  };
+
+  const handleImportProductCsv = () => {
+    setShowImportExportMenu(false);
+    if (productImportInputRef.current) {
+      productImportInputRef.current.value = '';
+      productImportInputRef.current.click();
+    }
+  };
+
+  const handleProductImportFileChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!/\.csv$/i.test(file.name)) {
+      setMessage({ type: 'error', text: 'Upload a CSV file for product import.' });
+      return;
+    }
+    setMessage({
+      type: 'info',
+      text:
+        `Received ${file.name}. Product bulk import still needs a dedicated backend preview/commit API for row validation, duplicate SKU checks, image mapping, and rollback. Export and template download are ready now.`,
+    });
   };
 
   const hasReviewValue = (value) => {
@@ -988,8 +1466,8 @@ function ProductPage({ token, adminUserId }) {
     if (type === 'BOOLEAN') {
       const boolValue = value === true ? 'true' : value === false ? 'false' : '';
       return (
-        <label className="field" key={mapping.id || mapping.attributeKey}>
-          <span>{label}</span>
+        <div className="bc-field" key={mapping.id || mapping.attributeKey}>
+          <label className="bc-field-label">{label}</label>
           <select
             value={boolValue}
             onChange={(event) => handleDynamicChange(mapping.attributeKey, event.target.value)}
@@ -999,15 +1477,15 @@ function ProductPage({ token, adminUserId }) {
             <option value="true">Yes</option>
             <option value="false">No</option>
           </select>
-          {description ? <span className="field-help">{description}</span> : null}
-        </label>
+          {description ? <span className="bc-hint">{description}</span> : null}
+        </div>
       );
     }
 
     if (type === 'ENUM' && Array.isArray(options)) {
       return (
-        <label className="field" key={mapping.id || mapping.attributeKey}>
-          <span>{label}</span>
+        <div className="bc-field" key={mapping.id || mapping.attributeKey}>
+          <label className="bc-field-label">{label}</label>
           <select
             value={value}
             onChange={(event) => handleDynamicChange(mapping.attributeKey, event.target.value)}
@@ -1020,15 +1498,15 @@ function ProductPage({ token, adminUserId }) {
               </option>
             ))}
           </select>
-          {description ? <span className="field-help">{description}</span> : null}
-        </label>
+          {description ? <span className="bc-hint">{description}</span> : null}
+        </div>
       );
     }
 
     if (type === 'LIST') {
       return (
-        <label className="field field-span" key={mapping.id || mapping.attributeKey}>
-          <span>{label}</span>
+        <div className="bc-field bc-span2" key={mapping.id || mapping.attributeKey}>
+          <label className="bc-field-label">{label}</label>
           <input
             type="text"
             value={normalizeListValue(value)}
@@ -1036,16 +1514,16 @@ function ProductPage({ token, adminUserId }) {
             placeholder="e.g. red, blue"
             required={mapping.required}
           />
-          <span className="field-help">Enter comma-separated values.</span>
-          {description ? <span className="field-help">{description}</span> : null}
-        </label>
+          <span className="bc-hint">Enter comma-separated values.</span>
+          {description ? <span className="bc-hint">{description}</span> : null}
+        </div>
       );
     }
 
     if (type === 'OBJECT') {
       return (
-        <label className="field field-span" key={mapping.id || mapping.attributeKey}>
-          <span>{label}</span>
+        <div className="bc-field bc-span2" key={mapping.id || mapping.attributeKey}>
+          <label className="bc-field-label">{label}</label>
           <textarea
             rows={3}
             value={normalizeObjectValue(value)}
@@ -1053,15 +1531,15 @@ function ProductPage({ token, adminUserId }) {
             placeholder='{"key":"value"}'
             required={mapping.required}
           />
-          <span className="field-help">Advanced JSON field.</span>
-          {description ? <span className="field-help">{description}</span> : null}
-        </label>
+          <span className="bc-hint">Advanced JSON field.</span>
+          {description ? <span className="bc-hint">{description}</span> : null}
+        </div>
       );
     }
 
     return (
-      <label className="field" key={mapping.id || mapping.attributeKey}>
-        <span>{label}</span>
+      <div className="bc-field" key={mapping.id || mapping.attributeKey}>
+        <label className="bc-field-label">{label}</label>
         <input
           type={type === 'NUMBER' ? 'number' : type === 'DATE' ? 'date' : 'text'}
           value={value}
@@ -1069,18 +1547,25 @@ function ProductPage({ token, adminUserId }) {
           placeholder={mapping.attributeKey}
           required={mapping.required}
         />
-        {description ? <span className="field-help">{description}</span> : null}
-        {unitText ? <span className="field-help">{unitText}</span> : null}
-      </label>
+        {description ? <span className="bc-hint">{description}</span> : null}
+        {unitText ? <span className="bc-hint">{unitText}</span> : null}
+      </div>
     );
   };
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedQuery(query.trim());
+    }, 300);
+    return () => window.clearTimeout(timeoutId);
+  }, [query]);
 
   useEffect(() => {
     if (didInitRef.current) return;
     didInitRef.current = true;
     setIsLoading(true);
     setMessage({ type: 'info', text: '' });
-    const tasks = [loadProducts(), loadMainCategories(), loadAttributeDefinitions(), loadUoms()];
+    const tasks = [loadMainCategories(), loadAttributeDefinitions(), loadUoms(), loadBusinessAccounts(), loadCategoryFilterOptions()];
     if (canCreateProduct || canEditProduct || canApproveProduct) {
       tasks.push(loadBrandOptions());
     }
@@ -1093,6 +1578,23 @@ function ProductPage({ token, adminUserId }) {
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!didInitRef.current) return;
+    setIsLoading(true);
+    setMessage((prev) => (prev?.type === 'error' ? prev : { type: 'info', text: '' }));
+    loadProducts({
+      page: productListPage,
+      size: productPageSize,
+      queryText: debouncedQuery,
+      filters: productFilters,
+    })
+      .catch((error) => {
+        setMessage({ type: 'error', text: error.message || 'Failed to load products.' });
+      })
+      .finally(() => setIsLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, productListPage, productPageSize, debouncedQuery, productFilters]);
 
   useEffect(() => {
     if (!selectedProductId) {
@@ -1122,8 +1624,11 @@ function ProductPage({ token, adminUserId }) {
 
   useEffect(() => {
     if (!showViewOnly) return;
-    setActiveProductViewTab('general');
+    setActiveProductViewTab('overview');
     setShowViewActionMenu(false);
+    setProductReviews([]);
+    setReviewsLoaded(false);
+    setReviewsFilter('ALL');
   }, [showViewOnly, selectedProductId]);
 
   useEffect(() => {
@@ -1151,6 +1656,19 @@ function ProductPage({ token, adminUserId }) {
     document.addEventListener('mousedown', handlePointerDown);
     return () => document.removeEventListener('mousedown', handlePointerDown);
   }, [openProductActionId]);
+
+  useEffect(() => {
+    if (!showFilterPanel && !showColumnPicker && !showImportExportMenu) return undefined;
+    const handlePointerDown = (event) => {
+      if (productToolbarRef.current && !productToolbarRef.current.contains(event.target)) {
+        setShowFilterPanel(false);
+        setShowColumnPicker(false);
+        setShowImportExportMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => document.removeEventListener('mousedown', handlePointerDown);
+  }, [showFilterPanel, showColumnPicker, showImportExportMenu]);
 
   useEffect(() => {
     if (!selectedProduct) {
@@ -1188,6 +1706,13 @@ function ProductPage({ token, adminUserId }) {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reviewForm.mainCategoryId, reviewForm.categoryId, reviewForm.subCategoryId]);
+
+  useEffect(() => {
+    const lastPage = Math.max((productListMeta.totalPages || 1) - 1, 0);
+    if (productListPage > lastPage) {
+      setProductListPage(lastPage);
+    }
+  }, [productListMeta.totalPages, productListPage]);
 
   useEffect(() => {
     if (!isEditRoute) {
@@ -1279,6 +1804,36 @@ function ProductPage({ token, adminUserId }) {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.mainCategoryId, form.categoryId, form.subCategoryId]);
+
+  useEffect(() => {
+    if (activeProductViewTab !== 'rating' || !selectedProductId || reviewsLoaded) return;
+    setIsLoadingReviews(true);
+    listAdminProductReviews(token, { limit: 50, productId: selectedProductId })
+      .then((res) => {
+        const all = Array.isArray(res?.data) ? res.data : (res?.data?.reviews || res?.data?.data || []);
+        const filtered = all.filter((review) => String(review?.productId ?? review?.product_id ?? '') === String(selectedProductId));
+        setProductReviews(filtered);
+        setReviewsLoaded(true);
+      })
+      .catch(() => { setProductReviews([]); setReviewsLoaded(true); })
+      .finally(() => setIsLoadingReviews(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeProductViewTab, selectedProductId]);
+
+  const handleReviewStatusUpdate = async (reviewId, status) => {
+    if (!reviewId) return;
+    setReviewsBusyId(reviewId);
+    try {
+      await updateAdminProductReviewStatus(token, reviewId, status);
+      setProductReviews((prev) =>
+        prev.map((r) => (String(r?.id || r?.reviewId) === String(reviewId) ? { ...r, status } : r))
+      );
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message || 'Failed to update review.' });
+    } finally {
+      setReviewsBusyId(null);
+    }
+  };
 
   const handleChange = (key, value) => {
     if (
@@ -1726,7 +2281,6 @@ function ProductPage({ token, adminUserId }) {
     setDynamicValues({});
     setProductFormTab('general');
     setIsBrandAutocompleteOpen(false);
-    setShowCreateUomModal(false);
     setShowForm(false);
     openCreateSelector(false).catch(() => {
       // loadBusinessAccounts already surfaces the error banner
@@ -1748,7 +2302,6 @@ function ProductPage({ token, adminUserId }) {
   const handleCloseForm = () => {
     setShowForm(false);
     setShowCreateSelector(false);
-    setShowCreateUomModal(false);
     setEditingProductId(null);
     setIsBrandAutocompleteOpen(false);
     if (isEditRoute && selectedProductId) {
@@ -2133,7 +2686,7 @@ function ProductPage({ token, adminUserId }) {
   };
 
   const toggleSelectAll = () => {
-    const selectableIds = filteredProducts.map((product) => product?.id).filter(Boolean);
+    const selectableIds = filteredProducts.map((product) => getProductRecordId(product)).filter(Boolean);
     if (selectableIds.length === 0) return;
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -2456,7 +3009,7 @@ function ProductPage({ token, adminUserId }) {
     hasBrandAttached && String(selectedProduct?.brandApprovalStatus || '').trim().toUpperCase() === 'PENDING_REVIEW';
   const brandStatusLabel =
     selectedProduct?.brandApprovalStatus
-      ? String(selectedProduct.brandApprovalStatus).replaceAll('_', ' ')
+      ? formatStatus(selectedProduct.brandApprovalStatus)
       : hasBrandAttached
         ? 'Legacy / Unknown'
         : 'No brand';
@@ -2558,6 +3111,26 @@ function ProductPage({ token, adminUserId }) {
       .map((group) => groups.get(group.id))
       .filter((group) => group && group.items.length > 0);
   }, [selectedProduct?.dynamicAttributes, viewAttributeMappings, definitionById, definitionByKey]);
+  const dynamicGeneralViewFields = [
+    ...dynamicViewGroups.flatMap((group) =>
+      group.items
+        .filter((entry) => !['attributes', 'specifications'].includes(normalizeDynamicKey(entry.label)))
+        .map((entry, entryIndex) => {
+          const hasUnit =
+            entry.unit &&
+            entry.label &&
+            !String(entry.label).toLowerCase().includes(String(entry.unit).toLowerCase());
+          const label = hasUnit ? `${entry.label} (${entry.unit})` : entry.label;
+          const valueText = String(entry.value ?? '');
+          return {
+            key: `${group.id}-${normalizeDynamicKey(label)}-${entryIndex}`,
+            label,
+            value: entry.value,
+            spanFull: valueText.includes('\n') || valueText.length > 120,
+          };
+        })
+    ),
+  ];
   const variants = Array.isArray(selectedProduct?.variants) ? selectedProduct.variants : [];
   const disableApprove =
     isLoading || !selectedProduct || !canApproveProduct || statusValue === 'APPROVED' || brandNeedsReview;
@@ -2570,16 +3143,17 @@ function ProductPage({ token, adminUserId }) {
     statusValue === 'REJECTED';
   const disableEdit = isLoading || !selectedProduct || !canEditProduct;
   const productViewTabs = [
-    { key: 'general', label: 'General Details' },
-    { key: 'classification', label: 'Classification' },
-    { key: 'pricing', label: 'Pricing Details' },
-    { key: 'company', label: 'Company Mapping' },
-    { key: 'variants', label: `Variants (${variants.length})` },
+    { key: 'overview',  label: 'Product Detail' },
+    { key: 'media',     label: 'Media' },
+    { key: 'uom',       label: 'UOM' },
+    { key: 'variants',  label: 'Variants', badgeCount: variants.length > 0 ? variants.length : null },
+    { key: 'pricing',   label: 'Pricing & Inventory' },
     {
       key: 'review',
       label: 'Review Workspace',
       visible: Boolean(canEditProduct || canApproveProduct || canRequestChangesProduct || canRejectProduct),
     },
+    { key: 'rating',    label: 'Rating', visible: canViewReviewModeration },
   ].filter((tab) => tab.visible !== false);
   const resolvedProductViewTab = productViewTabs.some((tab) => tab.key === activeProductViewTab)
     ? activeProductViewTab
@@ -2592,6 +3166,725 @@ function ProductPage({ token, adminUserId }) {
     selectedSubCategory?.name ||
     getScopedSubCategoryLabel(selectedCategory?.name, '', Boolean(form.useAllSubCategories)) ||
     '-';
+  const resolvedEditorTab = PRODUCT_EDITOR_TABS.some((tab) => tab.key === productFormTab)
+    ? productFormTab
+    : 'general';
+  const renderProductEditorForm = () => (
+    <div className="pcc-page">
+      <div className="pcc-topbar">
+        <span className="pcc-breadcrumb">Inventory / Products / Edit Product</span>
+        <button type="button" className="pcc-back-btn" onClick={handleCloseForm}>
+          ‹ Back
+        </button>
+      </div>
+      <Banner message={message} />
+      <form className="pcc-form-card" onSubmit={handleSubmit} noValidate>
+        <div className="pcc-tab-bar">
+          {PRODUCT_EDITOR_TABS.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              className={`pcc-tab-btn${resolvedEditorTab === tab.key ? ' active' : ''}`}
+              onClick={() => setProductFormTab(tab.key)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        <div className="pcc-form-body">
+          {resolvedEditorTab === 'general' ? (
+            <>
+              <div className="pcc-top-card pcc-top-card-setup">
+                <div className="pcc-top-card-head">
+                  <div>
+                    <h3 className="pcc-subsection-title">Setup Basics</h3>
+                    <p className="pcc-specs-sub">
+                      Business ownership stays fixed on edit. Category-specific fields load below in this same tab.
+                    </p>
+                  </div>
+                </div>
+                <div className="pcc-fgrid pcc-fgrid-setup">
+                  <ProductEditorField label="Business Account" span2 hint="Business mapping is read-only on edit.">
+                    <div className="field-static">
+                      {selectedBusinessAccount ? getBusinessName(selectedBusinessAccount) : selectedProduct?.businessName || 'No business linked'}
+                    </div>
+                  </ProductEditorField>
+                  <ProductEditorField label="Main Category" required>
+                    <select value={form.mainCategoryId} onChange={(event) => handleChange('mainCategoryId', event.target.value)}>
+                      <option value="">Select main category</option>
+                      {mainCategories.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.name}
+                        </option>
+                      ))}
+                    </select>
+                  </ProductEditorField>
+                  <ProductEditorField label="Category" required>
+                    <select
+                      value={form.categoryId}
+                      onChange={(event) => handleChange('categoryId', event.target.value)}
+                      disabled={!form.mainCategoryId}
+                    >
+                      <option value="">{form.mainCategoryId ? 'Select category' : 'Select main category first'}</option>
+                      {categories.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.name}
+                        </option>
+                      ))}
+                    </select>
+                  </ProductEditorField>
+                  <ProductEditorField
+                    label="Sub-category"
+                    hint={form.useAllSubCategories ? 'This product applies to all sub-categories under the selected category.' : ''}
+                  >
+                    <select
+                      value={form.subCategoryId}
+                      onChange={(event) => handleChange('subCategoryId', event.target.value)}
+                      disabled={!form.categoryId}
+                    >
+                      <option value="">{form.categoryId ? 'All sub-categories (optional)' : 'Select category first'}</option>
+                      {subCategories.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.name}
+                        </option>
+                      ))}
+                    </select>
+                  </ProductEditorField>
+                </div>
+              </div>
+
+              <div className="pcc-setup-summary" style={{ marginTop: 16 }}>
+                <div className="pcc-setup-pill">
+                  <span className="pcc-setup-pill-label">Business</span>
+                  <span className="pcc-setup-pill-value">
+                    {selectedBusinessAccount ? getBusinessName(selectedBusinessAccount) : selectedProduct?.businessName || 'No business linked'}
+                  </span>
+                </div>
+                <div className="pcc-setup-pill">
+                  <span className="pcc-setup-pill-label">Category Path</span>
+                  <span className="pcc-setup-pill-value">
+                    {[selectedMainCategory?.name, selectedCategory?.name, selectedSubCategoryLabel]
+                      .filter((part) => part && part !== '-')
+                      .join(' / ') || 'Complete category selection'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="pcc-fgrid" style={{ marginTop: 20 }}>
+                <ProductEditorField label="Product Name" required span2>
+                  <input
+                    type="text"
+                    value={form.productName}
+                    onChange={(event) => handleChange('productName', event.target.value)}
+                    placeholder="Enter product name"
+                  />
+                </ProductEditorField>
+                <ProductEditorField label="Product Type">
+                  <select value={form.productType} onChange={(event) => handleChange('productType', event.target.value)}>
+                    <option value="Physical">Physical</option>
+                    <option value="Digital">Digital</option>
+                  </select>
+                </ProductEditorField>
+                <ProductEditorField label="Brand Name">
+                  <div className="brand-autocomplete">
+                    <input
+                      type="text"
+                      value={form.brandName}
+                      onChange={(event) => handleBrandInputChange(event.target.value)}
+                      onFocus={() => setIsBrandAutocompleteOpen(true)}
+                      onBlur={() => {
+                        window.setTimeout(() => setIsBrandAutocompleteOpen(false), 120);
+                      }}
+                      placeholder="Type brand name"
+                    />
+                    {isBrandAutocompleteOpen && brandSuggestions.length > 0 ? (
+                      <div className="brand-suggestion-menu">
+                        {brandSuggestions.map((brand) => (
+                          <button
+                            key={brand.id}
+                            type="button"
+                            className="brand-suggestion-item"
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={() => handleBrandSuggestionSelect(brand)}
+                          >
+                            <span className="brand-suggestion-title">{brand.brandName}</span>
+                            {brand.website ? <span className="brand-suggestion-meta">{brand.website}</span> : null}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                </ProductEditorField>
+                <ProductEditorField label="HSN Code">
+                  <input
+                    type="text"
+                    value={form.hsnCode}
+                    onChange={(event) => handleChange('hsnCode', event.target.value)}
+                    placeholder="e.g. 61091000"
+                  />
+                </ProductEditorField>
+                <ProductEditorField label="Country Of Origin">
+                  <input
+                    type="text"
+                    value={form.countryOfOrigin}
+                    onChange={(event) => handleChange('countryOfOrigin', event.target.value)}
+                    placeholder="e.g. India"
+                  />
+                </ProductEditorField>
+                <ProductEditorField label="Short Description" span2>
+                  <input
+                    type="text"
+                    value={form.shortDescription}
+                    onChange={(event) => handleChange('shortDescription', event.target.value)}
+                    placeholder="One-line summary"
+                  />
+                </ProductEditorField>
+                <ProductEditorField label="Long Description" span2>
+                  <textarea
+                    rows={3}
+                    value={form.longDescription}
+                    onChange={(event) => handleChange('longDescription', event.target.value)}
+                    placeholder="Detailed product description..."
+                  />
+                </ProductEditorField>
+                <ProductEditorField label="Model Variant">
+                  <input
+                    type="text"
+                    value={form.modelVariant}
+                    onChange={(event) => handleChange('modelVariant', event.target.value)}
+                    placeholder="e.g. CT-212"
+                  />
+                </ProductEditorField>
+                <ProductEditorField label="Keywords" span2>
+                  <input
+                    type="text"
+                    value={form.keywords}
+                    onChange={(event) => handleChange('keywords', event.target.value)}
+                    placeholder="e.g. tyre, durable, ceat"
+                  />
+                </ProductEditorField>
+                <ProductEditorField label="Product Label">
+                  <input
+                    type="text"
+                    value={form.productLabel}
+                    onChange={(event) => handleChange('productLabel', event.target.value)}
+                    placeholder="e.g. Premium"
+                  />
+                </ProductEditorField>
+                <ProductEditorField label="Certifications">
+                  <input
+                    type="text"
+                    value={form.certifications}
+                    onChange={(event) => handleChange('certifications', event.target.value)}
+                    placeholder="e.g. ISO 9001"
+                  />
+                </ProductEditorField>
+                <ProductEditorField label="Warranty Period">
+                  <input
+                    type="text"
+                    value={form.warrantyPeriod}
+                    onChange={(event) => handleChange('warrantyPeriod', event.target.value)}
+                    placeholder="e.g. 1 year"
+                  />
+                </ProductEditorField>
+                <ProductEditorField label="Attributes" span2>
+                  <textarea
+                    rows={2}
+                    value={form.attributes}
+                    onChange={(event) => handleChange('attributes', event.target.value)}
+                    placeholder="General product attributes"
+                  />
+                </ProductEditorField>
+                <ProductEditorField label="Specifications" span2>
+                  <textarea
+                    rows={2}
+                    value={form.specifications}
+                    onChange={(event) => handleChange('specifications', event.target.value)}
+                    placeholder="General product specifications"
+                  />
+                </ProductEditorField>
+                <ProductEditorField label="Video Link" span2>
+                  <input
+                    type="text"
+                    value={form.videoLink}
+                    onChange={(event) => handleChange('videoLink', event.target.value)}
+                    placeholder="https://..."
+                  />
+                </ProductEditorField>
+                <ProductEditorField label="Account Code">
+                  <input
+                    type="text"
+                    value={form.accountCode}
+                    onChange={(event) => handleChange('accountCode', event.target.value)}
+                    placeholder="Enter account code"
+                  />
+                </ProductEditorField>
+                <ProductEditorField label="License Certificate ID">
+                  <input
+                    type="text"
+                    value={form.licenseCertificateId}
+                    onChange={(event) => handleChange('licenseCertificateId', event.target.value)}
+                    placeholder="Enter certificate ID"
+                  />
+                </ProductEditorField>
+                <ProductEditorField label="License Documents" span2>
+                  <textarea
+                    rows={2}
+                    value={form.licenseDocumentsText}
+                    onChange={(event) => handleChange('licenseDocumentsText', event.target.value)}
+                    placeholder="Paste license document URLs separated by comma or new line"
+                  />
+                </ProductEditorField>
+                <ProductEditorField label="Internal Notes" span2>
+                  <textarea
+                    rows={2}
+                    value={form.internalNotes}
+                    onChange={(event) => handleChange('internalNotes', event.target.value)}
+                    placeholder="Internal admin note"
+                  />
+                </ProductEditorField>
+                {attributeMappings.map((mapping) => renderDynamicFieldInput(mapping))}
+              </div>
+            </>
+          ) : null}
+          {resolvedEditorTab === 'pricing' ? (
+            <>
+              <p className="pcc-section-label">Base Pricing</p>
+              <div className="pcc-fgrid">
+                <ProductEditorField label="Selling Price (Rs)" required>
+                  <input
+                    type="number"
+                    value={form.sellingPrice}
+                    onChange={(event) => handleChange('sellingPrice', event.target.value)}
+                    placeholder="0.00"
+                    min="0"
+                    step="0.01"
+                  />
+                </ProductEditorField>
+                <ProductEditorField label="MRP (Rs)" required>
+                  <input
+                    type="number"
+                    value={form.mrp}
+                    onChange={(event) => handleChange('mrp', event.target.value)}
+                    placeholder="0.00"
+                    min="0"
+                    step="0.01"
+                  />
+                </ProductEditorField>
+                <ProductEditorField label="GST Rate (%)" required>
+                  <input
+                    type="number"
+                    value={form.gstRate}
+                    onChange={(event) => handleChange('gstRate', event.target.value)}
+                    placeholder="18"
+                    min="0"
+                    step="0.01"
+                  />
+                </ProductEditorField>
+                <ProductEditorField label="Minimum Order Qty">
+                  <input
+                    type="number"
+                    value={form.minimumOrderQuantity}
+                    onChange={(event) => handleChange('minimumOrderQuantity', event.target.value)}
+                    placeholder="e.g. 1"
+                    min="1"
+                  />
+                </ProductEditorField>
+              </div>
+
+              <div className="pcc-section-label-row">
+                <span className="pcc-section-label" style={{ marginBottom: 0 }}>Unit of Measure (UOM)</span>
+                <button
+                  type="button"
+                  className="ghost-btn small"
+                  onClick={() => handleAddUomEntry('generic')}
+                  disabled={!form.baseUomId || (form.uomConversions || []).length >= 3 || uoms.length === 0}
+                >
+                  + Add UOM Conversion
+                </button>
+              </div>
+              <div className="pcc-fgrid">
+                <ProductEditorField label="Base UOM" required hint="Selling price is interpreted per 1 unit of this UOM.">
+                  <select value={form.baseUomId} onChange={(event) => handleChange('baseUomId', event.target.value)}>
+                    <option value="">{uoms.length === 0 ? 'No UOMs available' : 'Select base UOM'}</option>
+                    {uoms.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {formatUomLabel(item)}
+                      </option>
+                    ))}
+                  </select>
+                </ProductEditorField>
+              </div>
+              {form.baseUomId ? (
+                <div className="pcc-uom-table-wrap">
+                  {form.uomConversions.length > 0 ? (
+                    <table className="pcc-uom-table">
+                      <thead>
+                        <tr>
+                          <th>UOM</th>
+                          <th>Qty</th>
+                          <th style={{ width: 30 }} />
+                          <th>Base UOM</th>
+                          <th>Factor <span className="bc-required">*</span></th>
+                          <th style={{ width: 40 }} />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {form.uomConversions.map((entry, index) => (
+                          <tr key={entry.rowId || `uom-row-${index}`}>
+                            <td>
+                              <select
+                                value={entry.uomId}
+                                onChange={(event) => handleUomConversionChange(index, 'uomId', event.target.value)}
+                              >
+                                <option value="">Select UOM</option>
+                                {uoms
+                                  .filter((item) => String(item.id) !== String(form.baseUomId || ''))
+                                  .map((item) => (
+                                    <option key={item.id} value={item.id}>
+                                      {formatUomLabel(item)}
+                                    </option>
+                                  ))}
+                              </select>
+                            </td>
+                            <td><input type="number" value="1" readOnly className="pcc-uom-fixed" /></td>
+                            <td className="pcc-uom-eq">=</td>
+                            <td><div className="pcc-uom-base-label">{selectedBaseUomLabel}</div></td>
+                            <td>
+                              <input
+                                type="number"
+                                step="0.000001"
+                                value={entry.conversionFactor}
+                                onChange={(event) => handleUomConversionChange(index, 'conversionFactor', event.target.value)}
+                                placeholder="e.g. 1000"
+                              />
+                            </td>
+                            <td>
+                              <button
+                                type="button"
+                                className="pcc-uom-remove"
+                                onClick={() => handleRemoveUomEntry('generic', index)}
+                                title="Remove"
+                              >
+                                ✕
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <div className="pcc-variants-empty">No conversion rows added yet.</div>
+                  )}
+                  {form.uomConversions.length > 0 ? (
+                    <div className="pcc-fgrid" style={{ marginTop: 16 }}>
+                      <ProductEditorField label="Default UOM for Stock In" required>
+                        <select
+                          value={form.defaultStockInUomId}
+                          onChange={(event) => handleUomDefaultChange('defaultStockInUomId', event.target.value)}
+                        >
+                          <option value="">Select UOM</option>
+                          {combinedDefaultOptions.map((option) => (
+                            <option key={`default-stock-in-${option.value}`} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </ProductEditorField>
+                      <ProductEditorField label="Default UOM for Stock Out" required>
+                        <select
+                          value={form.defaultStockOutUomId}
+                          onChange={(event) => handleUomDefaultChange('defaultStockOutUomId', event.target.value)}
+                        >
+                          <option value="">Select UOM</option>
+                          {combinedDefaultOptions.map((option) => (
+                            <option key={`default-stock-out-${option.value}`} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </ProductEditorField>
+                    </div>
+                  ) : null}
+                </div>
+              ) : (
+                <p className="pcc-hint-text">Select a base UOM first to configure conversion rows.</p>
+              )}
+
+              <div className="pcc-section-label-row" style={{ marginTop: 8 }}>
+                <span className="pcc-section-label" style={{ marginBottom: 0 }}>Variants ({form.variants.length})</span>
+                <button
+                  type="button"
+                  className="primary-btn small"
+                  onClick={handleAddVariant}
+                  disabled={form.variants.length >= 20}
+                >
+                  + Add Variant
+                </button>
+              </div>
+              {form.variants.length === 0 ? (
+                <div className="pcc-variants-empty">No variants added. Click "+ Add Variant" to begin.</div>
+              ) : (
+                <div className="pcc-variants-list">
+                  {form.variants.map((variant, index) => {
+                    const variantThumbnail = resolveMediaUrl(getPrimaryVariantImage(variant));
+                    const variantGallery = parseList(variant.galleryImagesText).map(resolveMediaUrl).filter(Boolean);
+                    return (
+                      <div className="pcc-variant-card" key={`variant-${index}`}>
+                        <div className="pcc-variant-card-head">
+                          <span className="pcc-variant-index">{variant.variantName || variant.sku || `Variant ${index + 1}`}</span>
+                          <button type="button" className="ghost-btn small" onClick={() => handleRemoveVariant(index)}>
+                            Remove
+                          </button>
+                        </div>
+                        <div className="pcc-fgrid">
+                          <ProductEditorField label="Variant Name">
+                            <input
+                              type="text"
+                              value={variant.variantName}
+                              onChange={(event) => handleVariantChange(index, 'variantName', event.target.value)}
+                              placeholder="e.g. Black / 256GB"
+                            />
+                          </ProductEditorField>
+                          <ProductEditorField label="SKU">
+                            <input
+                              type="text"
+                              value={variant.sku}
+                              onChange={(event) => handleVariantChange(index, 'sku', event.target.value)}
+                              placeholder="Variant SKU"
+                            />
+                          </ProductEditorField>
+                          <ProductEditorField label="Barcode">
+                            <input
+                              type="text"
+                              value={variant.barcode}
+                              onChange={(event) => handleVariantChange(index, 'barcode', event.target.value)}
+                              placeholder="Barcode"
+                            />
+                          </ProductEditorField>
+                          <ProductEditorField label="Selling Price (Rs)">
+                            <input
+                              type="number"
+                              value={variant.sellingPrice}
+                              onChange={(event) => handleVariantChange(index, 'sellingPrice', event.target.value)}
+                              placeholder="0.00"
+                            />
+                          </ProductEditorField>
+                          <ProductEditorField label="MRP (Rs)">
+                            <input
+                              type="number"
+                              value={variant.mrp}
+                              onChange={(event) => handleVariantChange(index, 'mrp', event.target.value)}
+                              placeholder="0.00"
+                            />
+                          </ProductEditorField>
+                          <ProductEditorField label="Stock Quantity">
+                            <input
+                              type="number"
+                              value={variant.stockQuantity}
+                              onChange={(event) => handleVariantChange(index, 'stockQuantity', event.target.value)}
+                              placeholder="0"
+                            />
+                          </ProductEditorField>
+                          <ProductEditorField label="Low Stock Alert">
+                            <input
+                              type="number"
+                              value={variant.lowStockAlert}
+                              onChange={(event) => handleVariantChange(index, 'lowStockAlert', event.target.value)}
+                              placeholder="0"
+                            />
+                          </ProductEditorField>
+                        </div>
+                        <div className="pcc-variant-media">
+                          <div className="pcc-variant-thumb-box">
+                            {variantThumbnail ? <img src={variantThumbnail} alt={variant.variantName || `Variant ${index + 1}`} /> : <span>No image</span>}
+                          </div>
+                          <div className="pcc-variant-media-actions">
+                            <button
+                              type="button"
+                              className="ghost-btn small"
+                              onClick={() => openMediaUpload({ kind: 'variant', index, field: 'thumbnailImage' })}
+                              disabled={isUploadingMedia}
+                            >
+                              {isUploadingMedia &&
+                              mediaTarget?.kind === 'variant' &&
+                              mediaTarget?.index === index &&
+                              mediaTarget?.field === 'thumbnailImage'
+                                ? 'Uploading...'
+                                : 'Upload Thumbnail'}
+                            </button>
+                            <button
+                              type="button"
+                              className="ghost-btn small"
+                              onClick={() => openMediaUpload({ kind: 'variant', index, field: 'galleryImagesText' })}
+                              disabled={isUploadingMedia}
+                            >
+                              {isUploadingMedia &&
+                              mediaTarget?.kind === 'variant' &&
+                              mediaTarget?.index === index &&
+                              mediaTarget?.field === 'galleryImagesText'
+                                ? 'Uploading...'
+                                : '+ Gallery'}
+                            </button>
+                            {variantGallery.length > 0 ? (
+                              <div className="pcc-gallery-grid pcc-variant-gallery">
+                                {variantGallery.map((image, imageIndex) => (
+                                  <div className="pcc-gallery-thumb" key={`${image}-${imageIndex}`}>
+                                    <img src={image} alt="" />
+                                    <button
+                                      type="button"
+                                      className="pcc-gallery-remove"
+                                      onClick={() => {
+                                        const urls = parseList(variant.galleryImagesText);
+                                        urls.splice(imageIndex, 1);
+                                        handleVariantChange(index, 'galleryImagesText', urls.join(', '));
+                                      }}
+                                      title="Remove image"
+                                    >
+                                      ×
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+                        <div className="pcc-variant-attrs">
+                          <div className="pcc-variant-attrs-head">
+                            <span className="pcc-media-label">Attributes</span>
+                            <button type="button" className="ghost-btn small" onClick={() => handleAddVariantAttribute(index)}>
+                              + Add
+                            </button>
+                          </div>
+                          {(variant.attributes || []).map((attr, attrIndex) => (
+                            <div className="pcc-attr-row" key={`variant-${index}-attr-${attrIndex}`}>
+                              <input
+                                type="text"
+                                value={attr.key}
+                                onChange={(event) => handleVariantAttributeChange(index, attrIndex, 'key', event.target.value)}
+                                placeholder="Key (e.g. color)"
+                              />
+                              <input
+                                type="text"
+                                value={attr.value}
+                                onChange={(event) => handleVariantAttributeChange(index, attrIndex, 'value', event.target.value)}
+                                placeholder="Value (e.g. Black)"
+                              />
+                              <button
+                                type="button"
+                                className="ghost-btn small"
+                                onClick={() => handleRemoveVariantAttribute(index, attrIndex)}
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          ) : null}
+          {resolvedEditorTab === 'media' ? (
+            <>
+              <p className="pcc-section-label">Thumbnail Image</p>
+              <div className="pcc-media-row">
+                <div className="pcc-thumb-box">
+                  {productPreviewUrl ? (
+                    <img src={productPreviewUrl} alt={form.productName || 'Product preview'} className="pcc-thumb-img" />
+                  ) : (
+                    <div className="pcc-thumb-empty"><span>No thumbnail</span></div>
+                  )}
+                </div>
+                <div className="pcc-thumb-actions">
+                  <p className="pcc-media-hint">Shown in product cards and listings. Square image recommended.</p>
+                  <div className="pcc-media-btns">
+                    <button
+                      type="button"
+                      className="primary-btn small"
+                      onClick={() => openMediaUpload({ kind: 'product', field: 'thumbnailImage' })}
+                      disabled={isUploadingMedia}
+                    >
+                      {isUploadingMedia && mediaTarget?.kind === 'product' && mediaTarget?.field === 'thumbnailImage'
+                        ? 'Uploading...'
+                        : 'Upload Thumbnail'}
+                    </button>
+                    {form.thumbnailImage ? (
+                      <button
+                        type="button"
+                        className="ghost-btn small"
+                        onClick={() => clearMediaField({ kind: 'product', field: 'thumbnailImage' })}
+                      >
+                        Clear
+                      </button>
+                    ) : null}
+                  </div>
+                  <div className="bc-field" style={{ marginTop: 10 }}>
+                    <label className="bc-field-label">Or paste URL</label>
+                    <input
+                      type="text"
+                      value={form.thumbnailImage}
+                      onChange={(event) => handleChange('thumbnailImage', event.target.value)}
+                      placeholder="https://..."
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="pcc-section-label-row" style={{ marginTop: 20 }}>
+                <span className="pcc-section-label" style={{ marginBottom: 0 }}>
+                  Gallery Images ({productGalleryPreview.length})
+                </span>
+                <button
+                  type="button"
+                  className="primary-btn small"
+                  onClick={() => openMediaUpload({ kind: 'product', field: 'galleryImagesText' })}
+                  disabled={isUploadingMedia}
+                >
+                  {isUploadingMedia && mediaTarget?.kind === 'product' && mediaTarget?.field === 'galleryImagesText'
+                    ? 'Uploading...'
+                    : '+ Add Images'}
+                </button>
+              </div>
+              {productGalleryPreview.length > 0 ? (
+                <div className="pcc-gallery-grid">
+                  {productGalleryPreview.map((image, index) => (
+                    <div className="pcc-gallery-thumb" key={`${image}-${index}`}>
+                      <img src={image} alt="" />
+                      <button
+                        type="button"
+                        className="pcc-gallery-remove"
+                        onClick={() => {
+                          const urls = parseList(form.galleryImagesText);
+                          urls.splice(index, 1);
+                          handleChange('galleryImagesText', urls.join(', '));
+                        }}
+                        title="Remove image"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="pcc-gallery-empty">No gallery images added yet.</div>
+              )}
+            </>
+          ) : null}
+        </div>
+        <div className="pcc-form-actions">
+          <button type="button" className="ghost-btn" onClick={handleCloseForm} disabled={isLoading}>
+            Cancel
+          </button>
+          <button type="submit" className="primary-btn" disabled={isLoading}>
+            {isLoading ? 'Updating...' : 'Update Product'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
   const selectorBusinessAccount =
     businessAccounts.find((item) => String(item?.id || '') === String(createSelectorForm.userId || '')) || null;
   const selectorMainCategory =
@@ -2604,7 +3897,7 @@ function ProductPage({ token, adminUserId }) {
     selectorSubCategory?.name ||
     getScopedSubCategoryLabel(selectorCategory?.name, '', Boolean(createSelectorForm.categoryId)) ||
     '';
-  const selectableIds = filteredProducts.map((product) => product?.id).filter(Boolean);
+  const selectableIds = filteredProducts.map((product) => getProductRecordId(product)).filter(Boolean);
   const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selectedIds.has(id));
   const selectedProductPrimaryImage = selectedProduct
     ? resolveMediaUrl(getPrimaryProductImage(selectedProduct))
@@ -2747,13 +4040,35 @@ function ProductPage({ token, adminUserId }) {
           uomCode: selectedProduct.baseUomCode,
         })
       : '-';
-  const uomViewRows = [...purchaseUomRows, ...salesUomRows].map((entry) => ({
-    type: entry.type,
-    leftUom: entry.uom,
-    leftQty: '1',
-    rightUom: baseUomLabel,
-    rightQty: formatValue(entry.factor),
-  }));
+  const uomViewRows = (() => {
+    const mergedEntries = [
+      ...(Array.isArray(selectedProduct?.purchaseUoms)
+        ? selectedProduct.purchaseUoms.map((entry) => ({ ...entry, type: 'Purchase' }))
+        : []),
+      ...(Array.isArray(selectedProduct?.salesUoms)
+        ? selectedProduct.salesUoms.map((entry) => ({ ...entry, type: 'Sales' }))
+        : []),
+    ];
+    const seen = new Set();
+    return mergedEntries.reduce((rows, entry) => {
+      const factor =
+        entry?.effectiveConversionFactor !== null && entry?.effectiveConversionFactor !== undefined
+          ? entry.effectiveConversionFactor
+          : entry?.conversionFactor;
+      const label = formatUomLabel(entry) || 'UOM';
+      const dedupeKey = `${String(entry?.uomId || label)}__${String(factor ?? '')}`;
+      if (seen.has(dedupeKey)) return rows;
+      seen.add(dedupeKey);
+      rows.push({
+        type: entry?.type || 'UOM',
+        leftUom: label,
+        leftQty: '1',
+        rightUom: baseUomLabel,
+        rightQty: formatValue(factor),
+      });
+      return rows;
+    }, []);
+  })();
   const uomDisplayRows =
     uomViewRows.length > 0
       ? uomViewRows
@@ -2795,6 +4110,7 @@ function ProductPage({ token, adminUserId }) {
     { label: 'Business', value: formatValue(selectedProduct?.businessName) },
     { label: 'HSN Code', value: formatValue(selectedProduct?.hsnCode) },
     { label: 'Country Of Origin', value: formatValue(selectedProduct?.countryOfOrigin) },
+    ...dynamicGeneralViewFields,
   ];
   const descriptionViewFields = [
     { label: 'Short Description', value: formatValue(selectedProduct?.shortDescription), spanFull: true },
@@ -2853,6 +4169,18 @@ function ProductPage({ token, adminUserId }) {
     { label: 'Internal Notes', value: formatValue(selectedProduct?.internalNotes), spanFull: true },
     { label: 'Review Note', value: formatValue(selectedProduct?.reviewRemarks), spanFull: true },
   ];
+  const productReviewSummaryCards = [
+    {
+      label: 'Average Rating',
+      value:
+        selectedProduct?.rating !== null && selectedProduct?.rating !== undefined
+          ? Number(selectedProduct.rating).toFixed(1)
+          : '0.0',
+    },
+    { label: 'Ratings', value: formatValue(selectedProduct?.ratingCount ?? 0) },
+    { label: 'Reviews', value: formatValue(selectedProduct?.reviewCount ?? 0) },
+    { label: 'Photo Reviews', value: formatValue(selectedProduct?.photoReviewCount ?? 0) },
+  ];
   const renderViewDetailGrid = (items, className = '') => (
     <div className={`product-view-detail-grid${className ? ` ${className}` : ''}`}>
       {items.map((item) => (
@@ -2871,467 +4199,424 @@ function ProductPage({ token, adminUserId }) {
       return <p className="empty-state">No variants submitted.</p>;
     }
 
-    return (
-      <div className="variant-grid">
-        {variants.map((variant, index) => {
-          const variantStatus = variant?.approvalStatus || '';
-          const variantStatusClass = `status-pill ${
-            variantStatus ? variantStatus.toLowerCase().replace(/_/g, '-') : 'pending'
-          }`;
-          const variantTitle = variant?.variantName || variant?.sku || `Variant ${index + 1}`;
-          const disableVariantApprove = isLoading || variantStatus === 'APPROVED';
-          const disableVariantReject = isLoading || variantStatus === 'REJECTED';
-          const showVariantApprove = canApproveProduct;
-          const showVariantReject = canRejectProduct;
-          const attributes = Array.isArray(variant?.attributes) ? variant.attributes : [];
+    const showVariantActions = canApproveProduct || canRejectProduct;
 
-          return (
-            <div
-              className="variant-card"
-              key={variant?.variantId || variant?.sku || `variant-${index}`}
-            >
-              <div className="panel-split">
-                <div>
-                  <p className="variant-title">{variantTitle}</p>
-                  <p className="muted">SKU: {formatValue(variant?.sku)}</p>
-                </div>
-                <span className={variantStatusClass}>{formatStatus(variantStatus)}</span>
-              </div>
-              <div className="field-grid variant-fields">
-                {resolveMediaUrl(getPrimaryVariantImage(variant)) ? (
-                  <div className="field field-span variant-view-media">
-                    <span>Image</span>
-                    <div className="variant-media-preview">
-                      <img
-                        src={resolveMediaUrl(getPrimaryVariantImage(variant))}
-                        alt={variantTitle}
-                      />
-                    </div>
-                  </div>
-                ) : null}
-                <div className="field">
-                  <span>Selling price</span>
-                  <p className="field-value">{formatPrice(variant?.sellingPrice, selectedProduct?.currency)}</p>
-                </div>
-                <div className="field">
-                  <span>MRP</span>
-                  <p className="field-value">{formatPrice(variant?.mrp, selectedProduct?.currency)}</p>
-                </div>
-                <div className="field">
-                  <span>Stock qty</span>
-                  <p className="field-value">{formatValue(variant?.stockQuantity)}</p>
-                </div>
-                <div className="field">
-                  <span>Low stock alert</span>
-                  <p className="field-value">{formatValue(variant?.lowStockAlert)}</p>
-                </div>
-              </div>
-              {attributes.length > 0 ? (
-                <div className="variant-attributes">
-                  <span className="field-label">Attributes</span>
-                  <div className="tag-row">
-                    {attributes.map((attr, attrIndex) => (
-                      <span className="tag" key={`${attr?.key || 'attr'}-${attrIndex}`}>
-                        {attr?.key ? `${attr.key}: ` : ''}
-                        {formatValue(attr?.value)}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-              {showVariantApprove || showVariantReject ? (
-                <div className="inline-row variant-actions">
-                  {showVariantApprove ? (
-                    <button
-                      type="button"
-                      className="primary-btn compact"
-                      onClick={() => handleVariantStatusUpdate(variant?.variantId, 'APPROVED')}
-                      disabled={disableVariantApprove || !variant?.variantId}
-                    >
-                      Approve
-                    </button>
-                  ) : null}
-                  {showVariantReject ? (
-                    <button
-                      type="button"
-                      className="ghost-btn small"
-                      onClick={() => handleVariantStatusUpdate(variant?.variantId, 'REJECTED')}
-                      disabled={disableVariantReject || !variant?.variantId}
-                    >
-                      Reject
-                    </button>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-          );
-        })}
+    return (
+      <div className="pvr-section">
+        <div className="panel-split">
+          <p className="pvr-section-title">Variant Table</p>
+          <span className="muted">
+            {variants.length} variant{variants.length === 1 ? '' : 's'}
+          </span>
+        </div>
+        <div className="pvr-table-shell pvr-variant-table-shell">
+          <table className="pvr-table pvr-variant-table">
+            <thead>
+              <tr>
+                <th>Variant</th>
+                <th>Image</th>
+                <th>Pricing</th>
+                <th>Inventory</th>
+                <th>Attributes</th>
+                <th>Status</th>
+                {showVariantActions ? <th className="table-actions">Actions</th> : null}
+              </tr>
+            </thead>
+            <tbody>
+              {variants.map((variant, index) => {
+                const variantStatus = variant?.approvalStatus || '';
+                const variantStatusClass = `status-pill ${
+                  variantStatus ? variantStatus.toLowerCase().replace(/_/g, '-') : 'pending'
+                }`;
+                const variantTitle = variant?.variantName || variant?.sku || `Variant ${index + 1}`;
+                const disableVariantApprove = isLoading || variantStatus === 'APPROVED';
+                const disableVariantReject = isLoading || variantStatus === 'REJECTED';
+                const imageUrl = resolveMediaUrl(getPrimaryVariantImage(variant));
+                const attributeLabels = getVariantAttributeLabels(variant);
+
+                return (
+                  <tr key={variant?.variantId || variant?.sku || `variant-${index}`}>
+                    <td>
+                      <div className="product-table-stack">
+                        <span className="product-table-primary">{variantTitle}</span>
+                        <span className="product-table-secondary">SKU: {formatValue(variant?.sku)}</span>
+                        <span className="product-table-secondary">Barcode: {formatValue(variant?.barcode)}</span>
+                      </div>
+                    </td>
+                    <td>
+                      {imageUrl ? (
+                        <div className="pvr-variant-thumb">
+                          <img src={imageUrl} alt={variantTitle} />
+                        </div>
+                      ) : (
+                        <span className="product-table-secondary">No image</span>
+                      )}
+                    </td>
+                    <td>
+                      <div className="product-table-stack">
+                        <span className="product-table-primary">
+                          {formatPrice(variant?.sellingPrice, selectedProduct?.currency)}
+                        </span>
+                        <span className="product-table-secondary">
+                          MRP: {formatPrice(variant?.mrp, selectedProduct?.currency)}
+                        </span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="product-table-stack">
+                        <span className="product-table-primary">{formatValue(variant?.stockQuantity)}</span>
+                        <span className="product-table-secondary">
+                          Low alert: {formatValue(variant?.lowStockAlert)}
+                        </span>
+                      </div>
+                    </td>
+                    <td>
+                      {attributeLabels.length > 0 ? (
+                        <div className="product-table-stack pvr-variant-attrs">
+                          {attributeLabels.map((label, attrIndex) => (
+                            <span
+                              className="product-table-secondary"
+                              key={`${variant?.variantId || variantTitle}-attr-${attrIndex}`}
+                            >
+                              {label}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="product-table-secondary">-</span>
+                      )}
+                    </td>
+                    <td>
+                      <span className={variantStatusClass}>{formatStatus(variantStatus)}</span>
+                    </td>
+                    {showVariantActions ? (
+                      <td className="table-actions">
+                        <div className="table-action-group pvr-variant-actions">
+                          {canApproveProduct ? (
+                            <button
+                              type="button"
+                              className="primary-btn compact"
+                              onClick={() => handleVariantStatusUpdate(variant?.variantId, 'APPROVED')}
+                              disabled={disableVariantApprove || !variant?.variantId}
+                            >
+                              Approve
+                            </button>
+                          ) : null}
+                          {canRejectProduct ? (
+                            <button
+                              type="button"
+                              className="ghost-btn small"
+                              onClick={() => handleVariantStatusUpdate(variant?.variantId, 'REJECTED')}
+                              disabled={disableVariantReject || !variant?.variantId}
+                            >
+                              Reject
+                            </button>
+                          ) : null}
+                        </div>
+                      </td>
+                    ) : null}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
     );
   };
-  const renderReviewWorkspace = () => (
-    <div className="gsc-product-review-grid">
-      <div className="gsc-product-view-section">
-        <div className="panel-split">
-          <div>
-            <h4 className="gsc-product-view-section-title">Category Assignment</h4>
-            <p className="product-review-section-text">
-              Assign the final catalog path before approval or change request.
-            </p>
-          </div>
-          {reviewCategoryDirty ? <span className="review-dirty-badge">Unsaved</span> : null}
-        </div>
-        <div className="product-review-select-grid">
-          <label className="field">
-            <span>Main category</span>
-            <select
-              value={reviewForm.mainCategoryId}
-              onChange={(event) => handleReviewCategoryChange('mainCategoryId', event.target.value)}
-              disabled={!canEditProduct}
-            >
-              <option value="">Select main category</option>
-              {mainCategories.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>Category</span>
-            <select
-              value={reviewForm.categoryId}
-              onChange={(event) => handleReviewCategoryChange('categoryId', event.target.value)}
-              disabled={!canEditProduct || !reviewForm.mainCategoryId}
-            >
-              <option value="">Select category</option>
-              {reviewCategories.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>Sub-category</span>
-            <select
-              value={reviewForm.subCategoryId}
-              onChange={(event) => handleReviewCategoryChange('subCategoryId', event.target.value)}
-              disabled={!canEditProduct || !reviewForm.categoryId}
-            >
-              <option value="">{reviewForm.categoryId ? 'All sub-categories' : 'Select category first'}</option>
-              {reviewSubCategories.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        {canEditProduct ? (
-          <button
-            type="button"
-            className="ghost-btn small"
-            onClick={handleSaveReviewCategory}
-            disabled={isLoading || !reviewCategoryDirty || !reviewCategoryComplete}
-          >
-            Save Category Assignment
-          </button>
-        ) : null}
-      </div>
+  const renderReviewWorkspace = () => {
+    const sv = statusValue.toUpperCase();
+    const isApproved  = sv === 'APPROVED';
+    const isRejected  = sv === 'REJECTED';
+    const isFinalized = isApproved || isRejected;
+    const allReady    = reviewChecklist.every((c) => c.status === 'ready');
+    const readyCount  = reviewChecklist.filter((c) => c.status === 'ready').length;
 
-      <div className="gsc-product-view-section">
-        <h4 className="gsc-product-view-section-title">Review Checklist</h4>
-        <div className="review-checklist">
-          {reviewChecklist.map((item) => (
-            <div
-              key={item.label}
-              className={`review-checklist-item ${item.status === 'ready' ? 'ready' : 'warning'}`}
-            >
-              <div>
-                <p className="review-checklist-label">{item.label}</p>
-                <p className="review-checklist-detail">{item.detail}</p>
-              </div>
-              <span className={`review-checklist-dot ${item.status}`} />
+    return (
+      <div className="rws-wrap">
+
+        {/* ── Step 1: Decision Banner ─────────────────────────── */}
+        <div className={`rws-decision-banner${isApproved ? ' approved' : isRejected ? ' rejected' : ''}`}>
+          <div className="rws-decision-left">
+            <div className={`rws-decision-icon${isApproved ? ' approved' : isRejected ? ' rejected' : ''}`}>
+              {isApproved ? '✓' : isRejected ? '✕' : '?'}
             </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="gsc-product-view-section">
-        <div className="brand-review-head">
-          <div>
-            <h4 className="gsc-product-view-section-title">Brand Verification</h4>
-            <p className="product-review-section-text">
-              Approve this brand as a master brand, or merge it into an existing approved brand.
-            </p>
+            <div>
+              <p className="rws-decision-status">
+                {isApproved ? 'Product Approved' : isRejected ? 'Product Rejected' : `Status: ${statusLabel}`}
+              </p>
+              <p className="rws-decision-hint">
+                {isFinalized
+                  ? `This product has been ${statusLabel.toLowerCase()}. No further action needed.`
+                  : brandNeedsReview
+                  ? 'Complete Brand Verification below before approving this product.'
+                  : !allReady
+                  ? `${readyCount} of ${reviewChecklist.length} checklist items ready. Review items below.`
+                  : 'All checklist items are ready. You can approve or take action.'}
+              </p>
+            </div>
           </div>
-          {selectedProduct?.brandLogoUrl ? (
-            <div className="brand-review-logo">
-              <img src={resolveMediaUrl(selectedProduct.brandLogoUrl)} alt={selectedProduct?.brandName || 'Brand'} />
+          {hasProductReviewActions && !isFinalized ? (
+            <div className="rws-decision-actions">
+              {canApproveProduct ? (
+                <button
+                  type="button"
+                  className="rws-btn-approve"
+                  onClick={() => handleStatusUpdate('APPROVED')}
+                  disabled={disableApprove}
+                >
+                  ✓ Approve
+                </button>
+              ) : null}
+              {canRequestChangesProduct ? (
+                <button
+                  type="button"
+                  className="rws-btn-changes"
+                  onClick={openChangeRequestModal}
+                  disabled={disableRequestChanges}
+                >
+                  Request Changes
+                </button>
+              ) : null}
+              {canRejectProduct ? (
+                <button
+                  type="button"
+                  className="rws-btn-reject"
+                  onClick={() => handleStatusUpdate('REJECTED')}
+                  disabled={disableReject}
+                >
+                  ✕ Reject
+                </button>
+              ) : null}
             </div>
           ) : null}
         </div>
 
-        {hasBrandAttached ? (
-          <>
-            <div className="product-view-detail-grid brand-review-detail-grid">
-              <div className="product-view-detail-item">
-                <span className="product-view-detail-label">Current brand</span>
-                <p className="product-view-detail-value">{formatValue(selectedProduct?.brandName)}</p>
-              </div>
-              <div className="product-view-detail-item">
-                <span className="product-view-detail-label">Brand status</span>
-                <p className="product-view-detail-value">{brandStatusLabel}</p>
-              </div>
-              <div className="product-view-detail-item">
-                <span className="product-view-detail-label">Brand ID</span>
-                <p className="product-view-detail-value">{formatValue(selectedProduct?.brandId)}</p>
-              </div>
-            </div>
+        {/* ── Step 2: Review Checklist ────────────────────────── */}
+        <div className="rws-card">
+          <div className="rws-card-head">
+            <p className="rws-card-title">Review Checklist</p>
+            <span className={`rws-badge${allReady ? ' green' : ' amber'}`}>
+              {readyCount}/{reviewChecklist.length} Ready
+            </span>
+          </div>
+          <div className="rws-checklist">
+            {reviewChecklist.map((item) => {
+              const ok = item.status === 'ready';
+              return (
+                <div key={item.label} className={`rws-checklist-row${ok ? ' ok' : ' warn'}`}>
+                  <div className={`rws-check-icon${ok ? ' ok' : ' warn'}`}>{ok ? '✓' : '!'}</div>
+                  <div className="rws-check-body">
+                    <p className="rws-check-label">{item.label}</p>
+                    <p className="rws-check-detail">{item.detail}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
 
-            {canReviewBrand ? (
-              <>
-                <div className="product-review-select-grid brand-review-form-grid">
-                  <label className="field">
-                    <span>Brand name</span>
-                    <input
-                      type="text"
-                      value={brandReviewForm.brandName}
-                      onChange={(event) =>
-                        setBrandReviewForm((prev) => ({ ...prev, brandName: event.target.value }))
-                      }
-                      placeholder="Brand name"
-                    />
-                  </label>
-                  <label className="field">
-                    <span>Logo URL</span>
-                    <input
-                      type="url"
-                      value={brandReviewForm.logoUrl}
-                      onChange={(event) =>
-                        setBrandReviewForm((prev) => ({ ...prev, logoUrl: event.target.value }))
-                      }
-                      placeholder="https://..."
-                    />
-                  </label>
-                  <label className="field">
-                    <span>Website</span>
-                    <input
-                      type="url"
-                      value={brandReviewForm.website}
-                      onChange={(event) =>
-                        setBrandReviewForm((prev) => ({ ...prev, website: event.target.value }))
-                      }
-                      placeholder="https://brand.com"
-                    />
-                  </label>
-                  <label className="field">
-                    <span>Merge target</span>
-                    <select
-                      value={brandReviewForm.targetBrandId}
-                      onChange={(event) =>
-                        setBrandReviewForm((prev) => ({ ...prev, targetBrandId: event.target.value }))
-                      }
-                    >
-                      <option value="">Select approved brand</option>
-                      {mergeBrandOptions.map((brand) => (
-                        <option key={brand.id} value={brand.id}>
-                          {brand.brandName}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
-                <div className="product-review-actions brand-review-actions">
-                  <button
-                    type="button"
-                    className="primary-btn compact"
-                    onClick={() => handleBrandReview('APPROVE')}
-                    disabled={isLoading}
-                  >
-                    Save & Approve Brand
-                  </button>
-                  <button
-                    type="button"
-                    className="ghost-btn small"
-                    onClick={() => handleBrandReview('MERGE_INTO_EXISTING')}
-                    disabled={isLoading || !mergeBrandOptions.length}
-                  >
-                    Merge Into Existing
-                  </button>
-                </div>
-              </>
+        {/* ── Step 3: Category Assignment ─────────────────────── */}
+        <div className="rws-card">
+          <div className="rws-card-head">
+            <p className="rws-card-title">Category Assignment</p>
+            {reviewCategoryDirty ? <span className="rws-badge amber">Unsaved changes</span> : null}
+          </div>
+          <p className="rws-card-desc">Confirm or correct the catalog path before finalising the review.</p>
+          <div className="rws-fields-row">
+            <label className="rws-field">
+              <span>Main category</span>
+              <select
+                value={reviewForm.mainCategoryId}
+                onChange={(e) => handleReviewCategoryChange('mainCategoryId', e.target.value)}
+                disabled={!canEditProduct}
+              >
+                <option value="">Select main category</option>
+                {mainCategories.map((item) => (
+                  <option key={item.id} value={item.id}>{item.name}</option>
+                ))}
+              </select>
+            </label>
+            <label className="rws-field">
+              <span>Category</span>
+              <select
+                value={reviewForm.categoryId}
+                onChange={(e) => handleReviewCategoryChange('categoryId', e.target.value)}
+                disabled={!canEditProduct || !reviewForm.mainCategoryId}
+              >
+                <option value="">Select category</option>
+                {reviewCategories.map((item) => (
+                  <option key={item.id} value={item.id}>{item.name}</option>
+                ))}
+              </select>
+            </label>
+            <label className="rws-field">
+              <span>Sub-category</span>
+              <select
+                value={reviewForm.subCategoryId}
+                onChange={(e) => handleReviewCategoryChange('subCategoryId', e.target.value)}
+                disabled={!canEditProduct || !reviewForm.categoryId}
+              >
+                <option value="">{reviewForm.categoryId ? 'All sub-categories' : 'Select category first'}</option>
+                {reviewSubCategories.map((item) => (
+                  <option key={item.id} value={item.id}>{item.name}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+          {canEditProduct ? (
+            <button
+              type="button"
+              className="rws-save-btn"
+              onClick={handleSaveReviewCategory}
+              disabled={isLoading || !reviewCategoryDirty || !reviewCategoryComplete}
+            >
+              Save Category
+            </button>
+          ) : null}
+        </div>
+
+        {/* ── Step 4: Brand Verification ───────────────────────── */}
+        <div className="rws-card">
+          <div className="rws-card-head">
+            <p className="rws-card-title">Brand Verification</p>
+            {hasBrandAttached ? (
+              <span className={`rws-badge${brandStatusLabel === 'Approved' ? ' green' : ' amber'}`}>
+                {brandStatusLabel}
+              </span>
             ) : (
-              <div className="review-note-box">
-                <p>You can review this brand from this workspace once edit or approve access is available.</p>
-              </div>
+              <span className="rws-badge">Unbranded</span>
             )}
-          </>
-        ) : (
-          <div className="review-note-box">
-            <p>This product is currently unbranded. No brand verification is required.</p>
           </div>
-        )}
-      </div>
-
-      <div className="gsc-product-view-section">
-        <h4 className="gsc-product-view-section-title">Current Review Note</h4>
-        <div className="review-note-box">
-          {selectedProduct?.reviewRemarks ? (
-            <pre>{selectedProduct.reviewRemarks}</pre>
-          ) : (
-            <p>No review note has been sent to the business yet.</p>
-          )}
-        </div>
-      </div>
-
-      {hasProductReviewActions ? (
-        <div className="gsc-product-view-section">
-          <h4 className="gsc-product-view-section-title">Moderation Actions</h4>
-          {brandNeedsReview ? (
-            <p className="product-review-inline-note">
-              Product approval is locked until the brand decision is completed in the Brand Verification card.
-            </p>
-          ) : null}
-          <div className="product-review-actions">
-            {canApproveProduct ? (
-              <button
-                type="button"
-                className="primary-btn compact"
-                onClick={() => handleStatusUpdate('APPROVED')}
-                disabled={disableApprove}
-              >
-                Approve Product
-              </button>
-            ) : null}
-            {canRequestChangesProduct ? (
-              <button
-                type="button"
-                className="ghost-btn small warning"
-                onClick={openChangeRequestModal}
-                disabled={disableRequestChanges}
-              >
-                Request Changes
-              </button>
-            ) : null}
-            {canRejectProduct ? (
-              <button
-                type="button"
-                className="ghost-btn small"
-                onClick={() => handleStatusUpdate('REJECTED')}
-                disabled={disableReject}
-              >
-                Reject Product
-              </button>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
-    </div>
-  );
-  const renderProductViewBody = () => {
-    if (resolvedProductViewTab === 'general') {
-      return (
-        <>
-          <div className="gsc-product-view-hero">
-            <div className="gsc-product-view-hero-media">
-              {selectedProductPrimaryImage ? (
-                <div className="gsc-product-view-main-image">
-                  <img src={selectedProductPrimaryImage} alt={selectedProduct?.productName || 'Product'} />
+          {hasBrandAttached ? (
+            <>
+              <div className="rws-brand-info-row">
+                {selectedProduct?.brandLogoUrl ? (
+                  <img
+                    src={resolveMediaUrl(selectedProduct.brandLogoUrl)}
+                    alt={selectedProduct?.brandName || 'Brand'}
+                    className="rws-brand-logo"
+                  />
+                ) : (
+                  <div className="rws-brand-logo-empty">
+                    {(selectedProduct?.brandName || 'B').charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div>
+                  <p className="rws-brand-name">{formatValue(selectedProduct?.brandName)}</p>
+                  <p className="rws-brand-sub">ID: {formatValue(selectedProduct?.brandId)} · {brandStatusLabel}</p>
+                </div>
+              </div>
+              {canReviewBrand ? (
+                <div className="rws-brand-form">
+                  <div className="rws-fields-row">
+                    <label className="rws-field">
+                      <span>Brand name</span>
+                      <input type="text" value={brandReviewForm.brandName}
+                        onChange={(e) => setBrandReviewForm((prev) => ({ ...prev, brandName: e.target.value }))}
+                        placeholder="Brand name" />
+                    </label>
+                    <label className="rws-field">
+                      <span>Logo URL</span>
+                      <input type="url" value={brandReviewForm.logoUrl}
+                        onChange={(e) => setBrandReviewForm((prev) => ({ ...prev, logoUrl: e.target.value }))}
+                        placeholder="https://..." />
+                    </label>
+                    <label className="rws-field">
+                      <span>Website</span>
+                      <input type="url" value={brandReviewForm.website}
+                        onChange={(e) => setBrandReviewForm((prev) => ({ ...prev, website: e.target.value }))}
+                        placeholder="https://brand.com" />
+                    </label>
+                    <label className="rws-field">
+                      <span>Merge into existing brand</span>
+                      <select value={brandReviewForm.targetBrandId}
+                        onChange={(e) => setBrandReviewForm((prev) => ({ ...prev, targetBrandId: e.target.value }))}
+                      >
+                        <option value="">Select approved brand</option>
+                        {mergeBrandOptions.map((brand) => (
+                          <option key={brand.id} value={brand.id}>{brand.brandName}</option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                  <div className="rws-brand-actions">
+                    {brandStatusLabel !== 'Approved' ? (
+                      <button type="button" className="rws-btn-approve"
+                        onClick={() => handleBrandReview('APPROVE')} disabled={isLoading}>
+                        Approve Brand
+                      </button>
+                    ) : null}
+                    <button type="button" className="rws-btn-secondary"
+                      onClick={() => handleBrandReview('MERGE_INTO_EXISTING')}
+                      disabled={isLoading || !mergeBrandOptions.length}>
+                      Merge Into Existing
+                    </button>
+                  </div>
                 </div>
               ) : (
-                <div className="gsc-product-view-main-image empty">
-                  <span>No product image</span>
-                </div>
+                <p className="rws-note">Edit or approve access required to take brand action.</p>
               )}
-            </div>
-            {renderViewDetailGrid(generalViewFields, 'gsc-product-view-general-grid')}
-          </div>
+            </>
+          ) : (
+            <p className="rws-note">This product is unbranded — no brand verification required.</p>
+          )}
+        </div>
 
-          <div className="gsc-product-view-section">
-            <h4 className="gsc-product-view-section-title">Product Description</h4>
-            {renderViewDetailGrid(descriptionViewFields)}
+        {/* ── Step 5: Review Note ──────────────────────────────── */}
+        <div className="rws-card">
+          <p className="rws-card-title">Review Note to Business</p>
+          <p className="rws-card-desc">This message was sent to the business along with the last status update.</p>
+          <div className={`rws-note-box${selectedProduct?.reviewRemarks ? '' : ' empty'}`}>
+            {selectedProduct?.reviewRemarks
+              ? <pre className="rws-note-pre">{selectedProduct.reviewRemarks}</pre>
+              : <p className="rws-note-empty">No review note has been sent yet.</p>}
           </div>
+        </div>
 
-          <div className="gsc-product-view-section">
-            <h4 className="gsc-product-view-section-title">Unit Mapping</h4>
-            {uomDisplayRows.length > 0 ? (
-              <div className="gsc-product-view-table-shell">
-                <table className="gsc-product-view-table">
-                  <thead>
-                    <tr>
-                      <th>UOM</th>
-                      <th>Qty</th>
-                      <th className="uom-equals-column" aria-label="Equals" />
-                      <th>UOM</th>
-                      <th>Qty</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {uomDisplayRows.map((row, index) => (
-                      <tr key={`${row.type}-${row.leftUom}-${index}`}>
-                        <td>{row.leftUom || '-'}</td>
-                        <td>{row.leftQty}</td>
-                        <td className="uom-equals-column">=</td>
-                        <td>{row.rightUom || '-'}</td>
-                        <td>{row.rightQty}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <p className="empty-state">No UOM mappings added.</p>
-            )}
-            {renderViewDetailGrid(uomSummaryFields, 'gsc-product-view-uom-summary')}
+      </div>
+    );
+  };
+
+  const renderPvDetailSection = (title, fields) => (
+    <div className="pvr-section">
+      <p className="pvr-section-title">{title}</p>
+      <div className="user-detail-grid">
+        {fields.map((f) => (
+          <div key={f.key || f.label} className={`user-detail-card${f.spanFull ? ' pvr-span-full' : ''}`}>
+            <p className="user-detail-label">{f.label}</p>
+            <p className="user-detail-value">{f.value || '—'}</p>
           </div>
+        ))}
+      </div>
+    </div>
+  );
 
-          <div className="gsc-product-view-section">
-            <h4 className="gsc-product-view-section-title">Product Images</h4>
-            {viewMediaImages.length > 0 ? (
-              <div className="gsc-product-view-gallery">
-                {viewMediaImages.map((image, index) => (
-                  <div className="gsc-product-view-gallery-card" key={`${image}-${index}`}>
-                    <img src={image} alt={`Product ${index + 1}`} />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="empty-state">No images uploaded.</p>
-            )}
-          </div>
-        </>
-      );
-    }
-
-    if (resolvedProductViewTab === 'classification') {
+  const renderProductViewBody = () => {
+    /* ── 1. Product Detail ───────────────────────────────────── */
+    if (resolvedProductViewTab === 'overview') {
       return (
-        <>
-          <div className="gsc-product-view-section">
-            <h4 className="gsc-product-view-section-title">Classification Details</h4>
-            {renderViewDetailGrid(classificationViewFields)}
-          </div>
-          <div className="gsc-product-view-section">
-            <h4 className="gsc-product-view-section-title">Dynamic Fields</h4>
-            {dynamicViewGroups.length === 0 ? (
-              <p className="empty-state">No dynamic fields provided.</p>
-            ) : (
-              <div className="gsc-product-view-dynamic-groups">
+        <div className="pvr-tab-stack">
+          {renderPvDetailSection('General Information', generalViewFields)}
+          {renderPvDetailSection('Description', descriptionViewFields)}
+          {renderPvDetailSection('Classification & Attributes', classificationViewFields)}
+          {/* Dynamic Specifications */}
+          {false ? (
+            <div className="pvr-section">
+              <p className="pvr-section-title">Specifications</p>
+              <div className="pvr-dynamic-groups">
                 {dynamicViewGroups.map((group) => (
-                  <div className="gsc-product-view-dynamic-group" key={group.id}>
-                    <div className="gsc-product-view-dynamic-group-head">{group.label}</div>
-                    <div className="product-view-detail-grid">
+                  <div className="pvr-dynamic-group" key={group.id}>
+                    <p className="pvr-dynamic-group-head">{group.label}</p>
+                    <div className="user-detail-grid">
                       {group.items.map((entry) => {
-                        const hasUnit =
-                          entry.unit &&
-                          entry.label &&
+                        const hasUnit = entry.unit && entry.label &&
                           !String(entry.label).toLowerCase().includes(String(entry.unit).toLowerCase());
                         const label = hasUnit ? `${entry.label} (${entry.unit})` : entry.label;
                         return (
-                          <div className="product-view-detail-item" key={`${group.id}-${label}`}>
-                            <span className="product-view-detail-label">{label}</span>
-                            <p className="product-view-detail-value">{entry.value}</p>
+                          <div className="user-detail-card" key={`${group.id}-${label}`}>
+                            <p className="user-detail-label">{label}</p>
+                            <p className="user-detail-value">{entry.value || '—'}</p>
                           </div>
                         );
                       })}
@@ -3339,50 +4624,223 @@ function ProductPage({ token, adminUserId }) {
                   </div>
                 ))}
               </div>
-            )}
-          </div>
-        </>
-      );
-    }
-
-    if (resolvedProductViewTab === 'pricing') {
-      return (
-        <>
-          <div className="gsc-product-view-section">
-            <h4 className="gsc-product-view-section-title">Pricing Details</h4>
-            {renderViewDetailGrid(pricingViewFields)}
-          </div>
-          <div className="gsc-product-view-section">
-            <h4 className="gsc-product-view-section-title">Inventory &amp; Shipping</h4>
-            {renderViewDetailGrid(inventoryViewFields)}
-          </div>
-        </>
-      );
-    }
-
-    if (resolvedProductViewTab === 'company') {
-      return (
-        <div className="gsc-product-view-section">
-          <h4 className="gsc-product-view-section-title">Business &amp; Company Mapping</h4>
-          {renderViewDetailGrid(companyViewFields)}
+            </div>
+          ) : null}
+          {renderPvDetailSection('Business & Audit', companyViewFields)}
         </div>
       );
     }
 
+    /* ── 2. Media ───────────────────────────────────────────────── */
+    if (resolvedProductViewTab === 'media') {
+      const galleryOnly = selectedProductGallery.filter((u) => u !== selectedProductPrimaryImage);
+      return (
+        <div className="pvr-tab-stack">
+          <div className="pvr-section">
+            <p className="pvr-section-title">Thumbnail</p>
+            {selectedProductPrimaryImage ? (
+              <div className="pvr-media-thumb-wrap">
+                <img src={selectedProductPrimaryImage} alt={selectedProduct?.productName || 'Thumbnail'} className="pvr-media-thumb" />
+              </div>
+            ) : (
+              <p className="empty-state">No thumbnail uploaded.</p>
+            )}
+          </div>
+          <div className="pvr-section">
+            <p className="pvr-section-title">Gallery ({galleryOnly.length} image{galleryOnly.length !== 1 ? 's' : ''})</p>
+            {galleryOnly.length > 0 ? (
+              <div className="pvr-gallery-grid">
+                {galleryOnly.map((src, i) => (
+                  <img key={`${src}-${i}`} src={src} alt={`Gallery ${i + 1}`} className="pvr-gallery-img" />
+                ))}
+              </div>
+            ) : (
+              <p className="empty-state">No gallery images uploaded.</p>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    /* ── 3. UOM ─────────────────────────────────────────────────── */
+    if (resolvedProductViewTab === 'uom') {
+      return (
+        <div className="pvr-tab-stack">
+          <div className="pvr-section">
+            <p className="pvr-section-title">UOM Summary</p>
+            <div className="user-detail-grid">
+              {uomSummaryFields.map((f) => (
+                <div key={f.label} className="user-detail-card">
+                  <p className="user-detail-label">{f.label}</p>
+                  <p className="user-detail-value">{f.value || '—'}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="pvr-section">
+            <p className="pvr-section-title">Conversion Table</p>
+            {uomDisplayRows.length > 0 ? (
+              <div className="pvr-table-shell">
+                <table className="pvr-table">
+                  <thead>
+                    <tr>
+                      <th>UOM</th>
+                      <th>Qty</th>
+                      <th style={{ width: 40, textAlign: 'center' }}>=</th>
+                      <th>UOM</th>
+                      <th>Qty</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {uomDisplayRows.map((row, index) => (
+                      <tr key={`${row.type}-${row.leftUom}-${index}`}>
+                        <td>{row.leftUom || '—'}</td>
+                        <td>{row.leftQty}</td>
+                        <td style={{ textAlign: 'center', color: '#9ca3af', fontWeight: 700 }}>=</td>
+                        <td>{row.rightUom || '—'}</td>
+                        <td>{row.rightQty}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="empty-state">No UOM conversions configured.</p>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    /* ── 4. Variants ──────────────────────────────────────────────── */
     if (resolvedProductViewTab === 'variants') {
       return (
-        <div className="gsc-product-view-section">
-          <div className="panel-split">
-            <h4 className="gsc-product-view-section-title">Variants</h4>
-            <span className="muted">{variants.length} total</span>
-          </div>
+        <div className="pvr-tab-stack">
           {renderVariantsView()}
         </div>
       );
     }
 
+    /* ── 5. Pricing & Inventory ─────────────────────────────────── */
+    if (resolvedProductViewTab === 'pricing') {
+      return (
+        <div className="pvr-tab-stack">
+          {renderPvDetailSection('Pricing Details', pricingViewFields)}
+          {renderPvDetailSection('Inventory & Shipping', inventoryViewFields)}
+        </div>
+      );
+    }
+
+    /* ── 5. Review Workspace ─────────────────────────────────────── */
     if (resolvedProductViewTab === 'review') {
       return renderReviewWorkspace();
+    }
+
+    /* ── 6. Rating ──────────────────────────────────────────────── */
+    if (resolvedProductViewTab === 'rating') {
+      const visibleReviews = reviewsFilter === 'ALL'
+        ? productReviews
+        : productReviews.filter((r) => String(r?.status || '').toUpperCase() === reviewsFilter);
+      const starDisplay = (rating) => {
+        const n = Math.round(Number(rating) || 0);
+        return '★'.repeat(Math.min(n, 5)) + '☆'.repeat(Math.max(0, 5 - n));
+      };
+      return (
+        <div className="pvr-tab-stack">
+          {/* Summary cards */}
+          <div className="pvr-section">
+            <p className="pvr-section-title">Rating Summary</p>
+            <div className="user-detail-grid">
+              {productReviewSummaryCards.map((card) => (
+                <div key={card.label} className="user-detail-card pvr-rating-card">
+                  <p className="user-detail-value pvr-rating-big">{card.value}</p>
+                  <p className="user-detail-label">{card.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* Review list */}
+          <div className="pvr-section">
+            <div className="pvr-reviews-head">
+              <p className="pvr-section-title">
+                Customer Reviews
+                {productReviews.length > 0 ? <span className="pvh-reviews-total">{productReviews.length}</span> : null}
+              </p>
+              <div className="pvh-reviews-filters">
+                {['ALL', 'PUBLISHED', 'FLAGGED', 'REMOVED'].map((f) => (
+                  <button key={f} type="button"
+                    className={`pvh-filter-chip ${reviewsFilter === f ? 'active' : ''}`}
+                    onClick={() => setReviewsFilter(f)}
+                  >
+                    {f === 'ALL' ? 'All' : f.charAt(0) + f.slice(1).toLowerCase()}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {isLoadingReviews ? (
+              <p className="empty-state">Loading reviews…</p>
+            ) : visibleReviews.length === 0 ? (
+              <p className="empty-state">No {reviewsFilter !== 'ALL' ? reviewsFilter.toLowerCase() + ' ' : ''}reviews found.</p>
+            ) : (
+              <div className="pvh-reviews-list">
+                {visibleReviews.map((review) => {
+                  const rId = review?.id || review?.reviewId;
+                  const rStatus = String(review?.status || '').toUpperCase();
+                  const isBusy = reviewsBusyId === rId;
+                  const rating = Number(review?.rating || 0);
+                  const reviewerName = review?.reviewerName || review?.userName || review?.user?.name || 'Anonymous';
+                  const reviewText = review?.reviewText || review?.review || review?.comment || '';
+                  const reviewDate = review?.createdAt || review?.createdOn || review?.created_at || '';
+                  const photos = Array.isArray(review?.images) ? review.images : [];
+                  return (
+                    <div className="pvh-review-card" key={rId || Math.random()}>
+                      <div className="pvh-review-header">
+                        <div className="pvh-review-meta">
+                          <span className="pvh-reviewer-name">{reviewerName}</span>
+                          <span className="pvh-review-stars" title={`${rating} out of 5`}>{starDisplay(rating)}</span>
+                          {reviewDate ? (
+                            <span className="pvh-review-date">
+                              {new Date(reviewDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            </span>
+                          ) : null}
+                        </div>
+                        <span className={`pvh-review-status-pill pvh-status-${rStatus.toLowerCase()}`}>{rStatus || 'UNKNOWN'}</span>
+                      </div>
+                      {reviewText ? <p className="pvh-review-text">{reviewText}</p> : null}
+                      {photos.length > 0 ? (
+                        <div className="pvh-review-photos">
+                          {photos.map((p, pi) => (
+                            <div className="pvh-review-photo" key={pi}>
+                              <img src={resolveMediaUrl(p?.url || p)} alt={`Review photo ${pi + 1}`} />
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
+                      {canViewReviewModeration ? (
+                        <div className="pvh-review-actions">
+                          {rStatus !== 'PUBLISHED' ? (
+                            <button type="button" className="ghost-btn small pvh-action-publish"
+                              onClick={() => handleReviewStatusUpdate(rId, 'PUBLISHED')} disabled={isBusy}>Publish</button>
+                          ) : null}
+                          {rStatus !== 'FLAGGED' ? (
+                            <button type="button" className="ghost-btn small pvh-action-flag"
+                              onClick={() => handleReviewStatusUpdate(rId, 'FLAGGED')} disabled={isBusy}>Flag</button>
+                          ) : null}
+                          {rStatus !== 'REMOVED' ? (
+                            <button type="button" className="ghost-btn small pvh-action-remove"
+                              onClick={() => handleReviewStatusUpdate(rId, 'REMOVED')} disabled={isBusy}>Remove</button>
+                          ) : null}
+                          {isBusy ? <span className="pvh-review-saving">Saving…</span> : null}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      );
     }
 
     return null;
@@ -3390,7 +4848,7 @@ function ProductPage({ token, adminUserId }) {
 
   return (
     <div className="users-page product-page">
-      {showForm ? (
+      {showForm && !isEditing ? (
         <div className="gsc-form-page-header">
           <div className="gsc-form-breadcrumb-row">
             <div className="gsc-form-meta">
@@ -3407,7 +4865,7 @@ function ProductPage({ token, adminUserId }) {
           </div>
         </div>
       ) : null}
-      <Banner message={message} />
+      {showForm && isEditing ? null : <Banner message={message} />}
       <input
         ref={mediaInputRef}
         type="file"
@@ -3521,267 +4979,19 @@ function ProductPage({ token, adminUserId }) {
           </div>
         </div>
       ) : null}
-      {showForm && showCreateUomModal ? (
-        <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
-          <div className="admin-modal product-uom-manager-modal">
-            <div className="admin-modal-header">
-              <div>
-                <h3 className="panel-title">Manage UOM</h3>
-                <p className="panel-subtitle">Configure the base unit, purchase UOMs, sales UOMs, and library entries.</p>
-              </div>
-              <button type="button" className="ghost-btn small" onClick={() => setShowCreateUomModal(false)}>
-                Close
-              </button>
-            </div>
-            <div className="admin-modal-body">
-              <div className="gsc-product-secondary-stack product-uom-manager-stack">
-                <div className="panel card product-subpanel gsc-product-uom-card">
-                  <h4 className="panel-subheading">UOM setup</h4>
-                  <div className="field-grid">
-                    <div className="field field-span">
-                      <span>Selected base UOM</span>
-                      <div className="field-static">
-                        {selectedBaseUom ? formatUomLabel(selectedBaseUom) : 'Select a base UOM from the form above'}
-                      </div>
-                      <span className="field-help">
-                        {uoms.length === 0
-                          ? 'No UOMs available yet. Create one in the library below.'
-                          : 'Selling price is interpreted per selected base UOM.'}
-                      </span>
-                    </div>
-                    {uoms.length === 0 ? null : (
-                      <>
-                        <div className="field field-span">
-                          <span>Purchase UOMs (max 3)</span>
-                          {form.purchaseUoms.length === 0 ? <span className="field-help">No purchase UOMs added.</span> : null}
-                          {form.purchaseUoms.map((entry, index) => {
-                            const isBaseUom = form.baseUomId && entry.uomId === form.baseUomId;
-                            return (
-                              <div className="inline-row uom-entry-row" key={`create-modal-purchase-${index}`}>
-                                <select
-                                  value={entry.uomId}
-                                  onChange={(event) => handleUomEntryChange('purchase', index, 'uomId', event.target.value)}
-                                >
-                                  <option value="">Select UOM</option>
-                                  {uoms.map((item) => (
-                                    <option key={item.id} value={item.id}>
-                                      {formatUomLabel(item)}
-                                    </option>
-                                  ))}
-                                </select>
-                                <input
-                                  type="number"
-                                  step="0.000001"
-                                  value={entry.conversionFactor}
-                                  onChange={(event) =>
-                                    handleUomEntryChange('purchase', index, 'conversionFactor', event.target.value)
-                                  }
-                                  placeholder={isBaseUom ? '1 (base)' : 'e.g. 1000'}
-                                  disabled={isBaseUom}
-                                />
-                                <button
-                                  type="button"
-                                  className="ghost-btn small"
-                                  onClick={() => handleRemoveUomEntry('purchase', index)}
-                                >
-                                  Remove
-                                </button>
-                              </div>
-                            );
-                          })}
-                          <button
-                            type="button"
-                            className="primary-btn small gsc-form-action-btn"
-                            onClick={() => handleAddUomEntry('purchase')}
-                            disabled={form.purchaseUoms.length >= 3}
-                          >
-                            Add purchase UOM
-                          </button>
-                          <span className="field-help">
-                            Conversion factor is base units per 1 unit of the selected UOM.
-                          </span>
-                        </div>
-                        <div className="field field-span">
-                          <span>Sales UOMs (max 3)</span>
-                          {form.salesUoms.length === 0 ? <span className="field-help">No sales UOMs added.</span> : null}
-                          {form.salesUoms.map((entry, index) => {
-                            const isBaseUom = form.baseUomId && entry.uomId === form.baseUomId;
-                            return (
-                              <div className="inline-row uom-entry-row" key={`create-modal-sales-${index}`}>
-                                <select
-                                  value={entry.uomId}
-                                  onChange={(event) => handleUomEntryChange('sales', index, 'uomId', event.target.value)}
-                                >
-                                  <option value="">Select UOM</option>
-                                  {uoms.map((item) => (
-                                    <option key={item.id} value={item.id}>
-                                      {formatUomLabel(item)}
-                                    </option>
-                                  ))}
-                                </select>
-                                <input
-                                  type="number"
-                                  step="0.000001"
-                                  value={entry.conversionFactor}
-                                  onChange={(event) =>
-                                    handleUomEntryChange('sales', index, 'conversionFactor', event.target.value)
-                                  }
-                                  placeholder={isBaseUom ? '1 (base)' : 'e.g. 0.001'}
-                                  disabled={isBaseUom}
-                                />
-                                <button
-                                  type="button"
-                                  className="ghost-btn small"
-                                  onClick={() => handleRemoveUomEntry('sales', index)}
-                                >
-                                  Remove
-                                </button>
-                              </div>
-                            );
-                          })}
-                          <button
-                            type="button"
-                            className="primary-btn small gsc-form-action-btn"
-                            onClick={() => handleAddUomEntry('sales')}
-                            disabled={form.salesUoms.length >= 3}
-                          >
-                            Add sales UOM
-                          </button>
-                          <span className="field-help">
-                            Leave conversion blank to use global conversion if configured.
-                          </span>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-                <div className="panel card product-subpanel">
-                  <div className="panel-split">
-                    <div>
-                      <h4 className="panel-subheading">UOM library</h4>
-                      <p className="panel-subtitle">Create or manage units without leaving this form.</p>
-                    </div>
-                    <button
-                      type="button"
-                      className="ghost-btn small"
-                      onClick={handleUomRefresh}
-                      disabled={isUomSaving}
-                    >
-                      Refresh
-                    </button>
-                  </div>
-                  <div className="field-grid">
-                    <label className="field">
-                      <span>UOM Code</span>
-                      <input
-                        type="text"
-                        value={uomForm.uomCode}
-                        onChange={(event) => handleUomChange('uomCode', event.target.value)}
-                        placeholder="e.g. KG"
-                      />
-                    </label>
-                    <label className="field">
-                      <span>UOM Name</span>
-                      <input
-                        type="text"
-                        value={uomForm.uomName}
-                        onChange={(event) => handleUomChange('uomName', event.target.value)}
-                        placeholder="Kilogram"
-                      />
-                    </label>
-                    <label className="field field-span">
-                      <span>Description</span>
-                      <input
-                        type="text"
-                        value={uomForm.description}
-                        onChange={(event) => handleUomChange('description', event.target.value)}
-                        placeholder="Optional description"
-                      />
-                    </label>
-                    <label className="field">
-                      <span>Status</span>
-                      <select
-                        value={uomForm.isActive ? 'true' : 'false'}
-                        onChange={(event) => handleUomChange('isActive', event.target.value)}
-                      >
-                        <option value="true">Active</option>
-                        <option value="false">Inactive</option>
-                      </select>
-                    </label>
-                    <div className="field field-span form-actions">
-                      <button type="button" className="ghost-btn" onClick={resetUomForm} disabled={isUomSaving}>
-                        Clear
-                      </button>
-                      <button type="button" className="primary-btn" onClick={handleUomSave} disabled={isUomSaving}>
-                        {isUomSaving ? 'Saving...' : editingUomId ? 'Update UOM' : 'Create UOM'}
-                      </button>
-                    </div>
-                  </div>
-                  {uoms.length === 0 ? (
-                    <p className="empty-state">No UOMs created yet.</p>
-                  ) : (
-                    <div className="table-shell">
-                      <table className="admin-table">
-                        <thead>
-                          <tr>
-                            <th>Code</th>
-                            <th>Name</th>
-                            <th>Status</th>
-                            <th className="table-actions">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {uoms.map((uom) => (
-                            <tr key={uom.id || uom.uomCode}>
-                              <td>{uom.uomCode}</td>
-                              <td>{uom.uomName}</td>
-                              <td>{uom.isActive === false ? 'Inactive' : 'Active'}</td>
-                              <td className="table-actions">
-                                <div className="table-action-group">
-                                  <button
-                                    type="button"
-                                    className="ghost-btn small"
-                                    onClick={() => handleUomEdit(uom)}
-                                    disabled={isUomSaving}
-                                  >
-                                    Edit
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="ghost-btn small"
-                                    onClick={() => handleUomDelete(uom)}
-                                    disabled={isUomSaving}
-                                  >
-                                    Delete
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-            <div className="admin-modal-footer">
-              <button type="button" className="ghost-btn" onClick={() => setShowCreateUomModal(false)}>
-                Close
-              </button>
-              <button type="button" className="primary-btn" onClick={() => setShowCreateUomModal(false)}>
-                Done
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
       {showForm ? (
+        isEditing ? renderProductEditorForm() : (
         <form className="panel card product-form gsc-create-form" onSubmit={handleSubmit}>
             <div className="gsc-form-tabs">
               <button type="button" className={`gsc-form-tab ${productFormTab === 'general' ? 'active' : ''}`} onClick={() => setProductFormTab('general')}>General Details</button>
               <button type="button" className={`gsc-form-tab ${productFormTab === 'classification' ? 'active' : ''}`} onClick={() => setProductFormTab('classification')}>Classification</button>
               <button type="button" className={`gsc-form-tab ${productFormTab === 'pricing' ? 'active' : ''}`} onClick={() => setProductFormTab('pricing')}>Pricing Details</button>
+              <button type="button" className={`gsc-form-tab ${productFormTab === 'specs' ? 'active' : ''}`} onClick={() => setProductFormTab('specs')}>
+                Specifications
+                {attributeMappings.length > 0 ? (
+                  <span className="gsc-form-tab-badge">{attributeMappings.length}</span>
+                ) : null}
+              </button>
               <button type="button" className={`gsc-form-tab ${productFormTab === 'company' ? 'active' : ''}`} onClick={() => setProductFormTab('company')}>Company Mapping</button>
             </div>
             <div className={`field-grid form-grid gsc-form-panel gsc-tab-${productFormTab}`}>
@@ -4085,11 +5295,6 @@ function ProductPage({ token, adminUserId }) {
                     </div>
                   ) : null}
                 </div>
-                {attributeMappings.length > 0 ? (
-                  <div className="field-span gsc-product-general-dynamic-grid">
-                    {attributeMappings.map((mapping) => renderDynamicFieldInput(mapping))}
-                  </div>
-                ) : null}
               </div>
               {!isEditing ? (
               <div className="gsc-tab-section gsc-tab-company">
@@ -4179,6 +5384,23 @@ function ProductPage({ token, adminUserId }) {
                 </select>
               </label>
               </div>
+              <div className="gsc-tab-section gsc-tab-specs">
+                <div className="field-span section-heading">
+                  <h4 className="panel-subheading">Specifications</h4>
+                  <p className="panel-subtitle">
+                    {form.categoryId
+                      ? attributeMappings.length > 0
+                        ? `${attributeMappings.length} field${attributeMappings.length === 1 ? '' : 's'} required for this category.`
+                        : 'No specification fields are configured for this category.'
+                      : 'Select a category in the Classification tab to load specification fields.'}
+                  </p>
+                </div>
+                {attributeMappings.length > 0 ? (
+                  <div className="field-span gsc-product-specs-grid">
+                    {attributeMappings.map((mapping) => renderDynamicFieldInput(mapping))}
+                  </div>
+                ) : null}
+              </div>
               <div className="gsc-tab-section gsc-tab-pricing">
               <div className="field-span section-heading">
                 <h4 className="panel-subheading">Pricing</h4>
@@ -4216,7 +5438,7 @@ function ProductPage({ token, adminUserId }) {
               </div>
               {isEditing ? (
               <>
-              <div className="gsc-tab-section gsc-tab-general" style={{ display: 'none' }}>
+              <div className="gsc-tab-section gsc-tab-general">
                 <div className="field-span section-heading">
                   <h4 className="panel-subheading">Media &amp; units</h4>
                 </div>
@@ -4265,47 +5487,71 @@ function ProductPage({ token, adminUserId }) {
                             Clear
                           </button>
                         </div>
-                        <label className="field field-span">
-                          <span>Gallery images (comma or new line separated)</span>
-                          <textarea
-                            rows={3}
-                            value={form.galleryImagesText}
-                            onChange={(event) => handleChange('galleryImagesText', event.target.value)}
-                            placeholder="https://image1.jpg, https://image2.jpg"
-                          />
-                        </label>
-                        <div className="inline-row media-action-row">
-                          <button
-                            type="button"
-                            className="primary-btn small gsc-form-action-btn"
-                            onClick={() => openMediaUpload({ kind: 'product', field: 'galleryImagesText' })}
-                            disabled={isUploadingMedia}
-                          >
-                            {isUploadingMedia && mediaTarget?.kind === 'product' && mediaTarget?.field === 'galleryImagesText'
-                              ? 'Uploading...'
-                              : 'Upload Images'}
-                          </button>
-                          <button
-                            type="button"
-                            className="ghost-btn small"
-                            onClick={() => clearMediaField({ kind: 'product', field: 'galleryImagesText' })}
-                          >
-                            Clear
-                          </button>
-                        </div>
-                        {productGalleryPreview.length > 0 ? (
-                          <div className="media-thumb-grid">
+                        <div className="field field-span">
+                          <span>Gallery images</span>
+                          <div className="pcc-gallery-grid">
                             {productGalleryPreview.map((image, index) => (
-                              <div className="media-thumb" key={`${image}-${index}`}>
-                                <img src={image} alt={`Product gallery ${index + 1}`} />
+                              <div className="pcc-gallery-thumb" key={`${image}-${index}`}>
+                                <img src={image} alt={`Gallery ${index + 1}`} />
+                                <button
+                                  type="button"
+                                  className="pcc-gallery-remove"
+                                  onClick={() => {
+                                    const urls = parseList(form.galleryImagesText);
+                                    urls.splice(index, 1);
+                                    handleChange('galleryImagesText', urls.join(', '));
+                                  }}
+                                  title="Remove image"
+                                >
+                                  ×
+                                </button>
                               </div>
                             ))}
+                            <button
+                              type="button"
+                              className="pcc-gallery-add"
+                              onClick={() => openMediaUpload({ kind: 'product', field: 'galleryImagesText' })}
+                              disabled={isUploadingMedia}
+                            >
+                              {isUploadingMedia && mediaTarget?.kind === 'product' && mediaTarget?.field === 'galleryImagesText'
+                                ? '...'
+                                : '+'}
+                            </button>
                           </div>
-                        ) : null}
+                          {productGalleryPreview.length > 0 ? (
+                            <button
+                              type="button"
+                              className="ghost-btn small"
+                              style={{ marginTop: '6px' }}
+                              onClick={() => clearMediaField({ kind: 'product', field: 'galleryImagesText' })}
+                            >
+                              Clear all
+                            </button>
+                          ) : null}
+                        </div>
                       </div>
                     </div>
                   </div>
-                  <div className="gsc-product-secondary-stack">
+                  <div className="pcc-uom-card">
+                    <div className="pcc-uom-card-head">
+                      <div>
+                        <h4 className="panel-subheading" style={{ margin: 0 }}>Units of Measure (UOM)</h4>
+                        <p className="panel-subtitle" style={{ margin: '2px 0 0' }}>
+                          {selectedBaseUom ? `Base: ${formatUomLabel(selectedBaseUom)}` : 'No base UOM selected'}
+                          {form.purchaseUoms.length > 0 ? ` · ${form.purchaseUoms.length} purchase` : ''}
+                          {form.salesUoms.length > 0 ? ` · ${form.salesUoms.length} sales` : ''}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        className="ghost-btn small"
+                        onClick={() => setShowUomSection((v) => !v)}
+                      >
+                        {showUomSection ? 'Collapse' : 'Expand'}
+                      </button>
+                    </div>
+                    {showUomSection ? (
+                    <div className="gsc-product-secondary-stack">
                     <div className="panel card product-subpanel gsc-product-uom-card" ref={uomSectionRef}>
                       <h4 className="panel-subheading">UOM setup</h4>
                       <div className="field-grid">
@@ -4542,6 +5788,8 @@ function ProductPage({ token, adminUserId }) {
                         </div>
                       )}
                     </div>
+                  </div>
+                    ) : null}
                   </div>
                 </div>
               </div>
@@ -4781,89 +6029,126 @@ function ProductPage({ token, adminUserId }) {
               </button>
             </div>
         </form>
+        )
       ) : null}
       {showViewOnly ? (
-        <div className="product-view-shell gsc-product-view-shell">
-          <div className="panel card product-view-card gsc-product-view-frame">
-            {selectedProduct ? (
-              <>
-                <div className="gsc-product-view-topbar">
-                  <button
-                    type="button"
-                    className="gsc-product-view-back"
-                    onClick={() => {
-                      setShowViewActionMenu(false);
-                      handleBackToList();
-                    }}
-                  >
-                    <span className="gsc-product-view-back-icon" aria-hidden="true">
-                      ‹
-                    </span>
-                    <span>Back</span>
-                  </button>
-                  {hasProductDetailActions ? (
-                    <div className="gsc-product-view-menu-shell" ref={viewActionMenuRef}>
-                      <button
-                        type="button"
-                        className="gsc-product-view-menu-trigger"
-                        aria-label="Open product actions"
-                        aria-expanded={showViewActionMenu}
-                        onClick={() => setShowViewActionMenu((prev) => !prev)}
-                      >
-                        {ACTION_ICONS.more}
-                      </button>
-                      {showViewActionMenu ? (
-                        <div className="gsc-product-view-menu-panel">
-                          {canEditProduct ? (
-                            <button
-                              type="button"
-                              className="gsc-product-view-menu-item"
-                              onClick={() => {
-                                setShowViewActionMenu(false);
-                                handleOpenEditForm();
-                              }}
-                              disabled={disableEdit}
-                            >
-                              <span className="gsc-product-view-menu-icon edit">{ACTION_ICONS.edit}</span>
-                              <span>Edit</span>
-                            </button>
-                          ) : null}
-                          {canDeleteProduct ? (
-                            <button
-                              type="button"
-                              className="gsc-product-view-menu-item delete"
-                              onClick={() => handleDelete(selectedProduct.id)}
-                              disabled={isLoading}
-                            >
-                              <span className="gsc-product-view-menu-icon delete">{ACTION_ICONS.trash}</span>
-                              <span>Delete</span>
-                            </button>
-                          ) : null}
-                        </div>
-                      ) : null}
+        <div className="product-view-shell">
+          {selectedProduct ? (
+            <>
+              {/* ── Topbar: Back + action menu ─────────────────────── */}
+              <div className="pvr-topbar">
+                <button
+                  type="button"
+                  className="pvr-back-btn"
+                  onClick={() => { setShowViewActionMenu(false); handleBackToList(); }}
+                >
+                  ‹ Back
+                </button>
+                {hasProductDetailActions ? (
+                  <div className="gsc-product-view-menu-shell" ref={viewActionMenuRef}>
+                    <button
+                      type="button"
+                      className="gsc-product-view-menu-trigger"
+                      aria-label="Open product actions"
+                      aria-expanded={showViewActionMenu}
+                      onClick={() => setShowViewActionMenu((prev) => !prev)}
+                    >
+                      {ACTION_ICONS.more}
+                    </button>
+                    {showViewActionMenu ? (
+                      <div className="gsc-product-view-menu-panel">
+                        {canEditProduct ? (
+                          <button type="button" className="gsc-product-view-menu-item"
+                            onClick={() => { setShowViewActionMenu(false); handleOpenEditForm(); }}
+                            disabled={disableEdit}
+                          >
+                            <span className="gsc-product-view-menu-icon edit">{ACTION_ICONS.edit}</span>
+                            <span>Edit</span>
+                          </button>
+                        ) : null}
+                        {canDeleteProduct ? (
+                          <button type="button" className="gsc-product-view-menu-item delete"
+                            onClick={() => handleDelete(selectedProduct.id)} disabled={isLoading}
+                          >
+                            <span className="gsc-product-view-menu-icon delete">{ACTION_ICONS.trash}</span>
+                            <span>Delete</span>
+                          </button>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+
+              {/* ── Hero: thumbnail + name + KPI cells ─────────────── */}
+              <div className="pvr-hero panel card">
+                <div className="pvr-hero-left">
+                  {selectedProductPrimaryImage ? (
+                    <img src={selectedProductPrimaryImage} alt={selectedProduct?.productName || 'Product'} className="pvr-hero-thumb" />
+                  ) : (
+                    <div className="pvr-hero-thumb pvr-hero-thumb-empty">
+                      <svg viewBox="0 0 24 24" width="32" height="32"><path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2ZM8.5 13.5l2.5 3 3.5-4.5 4.5 6H5l3.5-4.5Z" fill="#CBD5E1"/></svg>
                     </div>
-                  ) : null}
+                  )}
                 </div>
-                <div className="product-view-tabs">
+                <div className="pvr-hero-body">
+                  <div className="pvr-hero-name-group">
+                    <h2 className="pvr-hero-name">{selectedProduct?.productName || '—'}</h2>
+                    <span className={`status-pill pvh-status-badge pvh-status-${statusValue.toLowerCase().replace(/_/g, '-')}`}>{statusLabel}</span>
+                  </div>
+                  <p className="pvr-hero-secondary">
+                    {[
+                      selectedProduct?.brandName,
+                      selectedProduct?.sku ? `SKU: ${selectedProduct.sku}` : null,
+                      selectedProduct?.businessName,
+                      selectedProduct?.category?.categoryName || selectedProduct?.category?.mainCategoryName,
+                    ].filter(Boolean).join('  ·  ')}
+                  </p>
+                  <div className="pvr-kpi-strip">
+                    {[
+                      { label: 'Selling Price', value: formatPrice(selectedProduct?.sellingPrice, selectedProduct?.currency) },
+                      { label: 'MRP',           value: formatPrice(selectedProduct?.mrp, selectedProduct?.currency) },
+                      { label: 'GST Rate',      value: selectedProduct?.gstRate != null ? `${selectedProduct.gstRate}%` : '—' },
+                      { label: 'Stock',         value: selectedProduct?.stockQuantity != null ? String(selectedProduct.stockQuantity) : '—' },
+                      { label: 'Avg Rating',    value: selectedProduct?.rating != null ? `${Number(selectedProduct.rating).toFixed(1)} ★` : '—' },
+                      { label: 'Variants',      value: String(variants.length) },
+                    ].map((kpi) => (
+                      <div className="pvr-kpi-cell" key={kpi.label}>
+                        <span className="pvr-kpi-val">{kpi.value}</span>
+                        <span className="pvr-kpi-lbl">{kpi.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Tab panel (business-view style) ────────────────── */}
+              <div className="bv-panel panel card">
+                <div className="bv-tab-bar">
                   {productViewTabs.map((tab) => (
                     <button
                       key={tab.key}
                       type="button"
-                      className={`product-view-tab ${resolvedProductViewTab === tab.key ? 'active' : ''}`}
+                      className={`bv-tab-btn ${resolvedProductViewTab === tab.key ? 'active' : ''}`}
                       onClick={() => setActiveProductViewTab(tab.key)}
                     >
-                      {tab.label}
+                      <span className="bv-tab-btn-label">{tab.label}</span>
+                      {tab.badgeCount ? (
+                        <span className={`bv-tab-badge ${tab.badgeTone || ''}`}>{tab.badgeCount}</span>
+                      ) : null}
                     </button>
                   ))}
                 </div>
-                <div className="gsc-product-view-body">{renderProductViewBody()}</div>
-              </>
-            ) : (
-              <p className="empty-state">
-                {isLoading ? 'Loading product details...' : 'Product details not available.'}
-              </p>
-            )}
-          </div>
+                <div className="bv-tab-content">
+                  {renderProductViewBody()}
+                </div>
+              </div>
+            </>
+          ) : (
+            <p className="empty-state">
+              {isLoading ? 'Loading product details...' : 'Product details not available.'}
+            </p>
+          )}
         </div>
       ) : null}
       {showChangeRequestModal ? (
@@ -4970,27 +6255,96 @@ function ProductPage({ token, adminUserId }) {
       ) : null}
       {!isViewing && !showForm ? (
         <div className="panel card users-table-card">
+          <div className="product-table-toolbar-shell" ref={productToolbarRef}>
           <div className="gsc-datatable-toolbar">
             <div className="gsc-datatable-toolbar-left">
-              <button type="button" className="gsc-toolbar-btn" title="Filter">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M4 6h16M4 12h10M4 18h6" />
-                </svg>
-                Filter
-              </button>
-              <button type="button" className="gsc-toolbar-btn" title="Columns">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="3" y="3" width="7" height="18" rx="1" />
-                  <rect x="14" y="3" width="7" height="18" rx="1" />
-                </svg>
-                Columns
-              </button>
-              <button type="button" className="gsc-toolbar-btn" title="Import/Export">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
-                </svg>
-                Import/Export
-              </button>
+              <div className="bdt-toolbar-wrap">
+                <button
+                  type="button"
+                  className={`gsc-toolbar-btn ${showFilterPanel ? 'active filter-active' : ''}`}
+                  title="Filter"
+                  onClick={() => {
+                    setShowFilterPanel((prev) => !prev);
+                    setShowColumnPicker(false);
+                    setShowImportExportMenu(false);
+                  }}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M4 6h16M4 12h10M4 18h6" />
+                  </svg>
+                  Filter{activeProductFilterCount ? ` (${activeProductFilterCount})` : ''}
+                </button>
+              </div>
+
+              <div className="bdt-toolbar-wrap">
+                <button
+                  type="button"
+                  className={`gsc-toolbar-btn ${showColumnPicker ? 'active' : ''}`}
+                  title="Columns"
+                  onClick={() => {
+                    setShowColumnPicker((prev) => !prev);
+                    setShowFilterPanel(false);
+                    setShowImportExportMenu(false);
+                  }}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="3" width="7" height="18" rx="1" />
+                    <rect x="14" y="3" width="7" height="18" rx="1" />
+                  </svg>
+                  Columns
+                </button>
+                {showColumnPicker ? (
+                  <div className="bdt-dropdown-panel bdt-column-picker">
+                    <p className="bdt-dropdown-label">Visible Columns</p>
+                    {PRODUCT_TABLE_COLUMN_OPTIONS.map((column) => (
+                      <label key={column.key} className="bdt-column-toggle">
+                        <input
+                          type="checkbox"
+                          checked={columnVisibility[column.key]}
+                          onChange={() => toggleColumn(column.key)}
+                        />
+                        {column.label}
+                      </label>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="bdt-toolbar-wrap">
+                <button
+                  type="button"
+                  className={`gsc-toolbar-btn ${showImportExportMenu ? 'active' : ''}`}
+                  title="Import/Export"
+                  onClick={() => {
+                    setShowImportExportMenu((prev) => !prev);
+                    setShowFilterPanel(false);
+                    setShowColumnPicker(false);
+                  }}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                  </svg>
+                  Import/Export
+                </button>
+                {showImportExportMenu ? (
+                  <div className="bdt-dropdown-panel product-toolbar-panel">
+                    <p className="bdt-dropdown-label">Export</p>
+                    <button type="button" className="bdt-dropdown-option" onClick={handleExportFilteredProducts}>
+                      Export Filtered Rows
+                    </button>
+                    <button type="button" className="bdt-dropdown-option" onClick={handleExportSelectedProducts}>
+                      Export Selected Rows
+                    </button>
+                    <p className="bdt-dropdown-label">Import</p>
+                    <button type="button" className="bdt-dropdown-option" onClick={handleDownloadProductImportTemplate}>
+                      Download CSV Template
+                    </button>
+                    <button type="button" className="bdt-dropdown-option" onClick={handleImportProductCsv}>
+                      Import Products CSV
+                    </button>
+                  </div>
+                ) : null}
+              </div>
             </div>
             <div className="gsc-datatable-toolbar-right">
               <div className="gsc-toolbar-search">
@@ -4998,7 +6352,10 @@ function ProductPage({ token, adminUserId }) {
                   type="search"
                   placeholder="Search"
                   value={query}
-                  onChange={(event) => setQuery(event.target.value)}
+                  onChange={(event) => {
+                    setQuery(event.target.value);
+                    setProductListPage(0);
+                  }}
                   aria-label="Search products"
                 />
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 18, height: 18, color: '#6b7280', flexShrink: 0 }}>
@@ -5010,7 +6367,7 @@ function ProductPage({ token, adminUserId }) {
                 <button
                   type="button"
                   className="gsc-create-btn"
-                  onClick={handleOpenCreateForm}
+                  onClick={() => navigate('/admin/products/create')}
                   title="Create product"
                   aria-label="Create product"
                 >
@@ -5021,6 +6378,99 @@ function ProductPage({ token, adminUserId }) {
               ) : null}
             </div>
           </div>
+          {showFilterPanel ? (
+            <div className="product-filter-strip">
+              <div className="product-filter-grid">
+                <label className="product-filter-field">
+                  <span>Category</span>
+                  <select
+                    value={productFilters.category}
+                    onChange={(event) => {
+                      setProductFilters((prev) => ({ ...prev, category: event.target.value }));
+                      setProductListPage(0);
+                    }}
+                  >
+                    <option value="">Select Category</option>
+                    {categoryFilterOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="product-filter-field">
+                  <span>Brand</span>
+                  <select
+                    value={productFilters.brand}
+                    onChange={(event) => {
+                      setProductFilters((prev) => ({ ...prev, brand: event.target.value }));
+                      setProductListPage(0);
+                    }}
+                  >
+                    <option value="">Select Brand</option>
+                    {brandFilterOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="product-filter-field">
+                  <span>Business</span>
+                  <select
+                    value={productFilters.business}
+                    onChange={(event) => {
+                      setProductFilters((prev) => ({ ...prev, business: event.target.value }));
+                      setProductListPage(0);
+                    }}
+                  >
+                    <option value="">Select Business</option>
+                    {businessFilterOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="product-filter-field">
+                  <span>Status</span>
+                  <select
+                    value={productFilters.status}
+                    onChange={(event) => {
+                      setProductFilters((prev) => ({ ...prev, status: event.target.value }));
+                      setProductListPage(0);
+                    }}
+                  >
+                    {PRODUCT_STATUS_FILTER_OPTIONS.map((option) => (
+                      <option key={option.value || 'all'} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <button
+                  type="button"
+                  className="product-filter-clear"
+                  onClick={clearProductFilters}
+                  disabled={!activeProductFilterCount}
+                >
+                  Clear Filters
+                </button>
+              </div>
+            </div>
+          ) : null}
+          </div>
+          <input
+            ref={productImportInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            style={{ display: 'none' }}
+            onChange={handleProductImportFileChange}
+          />
           <div className="users-search" style={{ display: 'none' }}>
             <span className="icon icon-search" />
             <input
@@ -5039,228 +6489,225 @@ function ProductPage({ token, adminUserId }) {
           {filteredProducts.length === 0 ? (
             <p className="empty-state">No products found.</p>
           ) : (
-            <div className="table-shell">
-              <table className="admin-table users-table product-table">
-                <thead>
-                  <tr>
-                    <th>
-                      <input
-                        type="checkbox"
-                        className="select-checkbox"
-                        checked={allSelected}
-                        onChange={toggleSelectAll}
-                        aria-label="Select all products"
-                      />
-                    </th>
-                    <th>Image</th>
-                    <th>Code</th>
-                    <th>Name</th>
-                    <th>Business</th>
-                    <th>Category</th>
-                    <th>Brand</th>
-                    <th>UOM</th>
-                    <th>Price</th>
-                    <th>Status</th>
-                    <th>Updated</th>
-                    <th className="table-actions">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredProducts.map((product) => {
-                    const statusValue = product?.approvalStatus || '';
-                    const statusClass = `status-pill ${
-                      statusValue ? statusValue.toLowerCase().replace(/_/g, '-') : 'pending'
-                    }`;
-                    const hasFullCategoryPath = Boolean(
-                      product?.category?.mainCategoryId && product?.category?.categoryId && product?.category?.subCategoryId
-                    );
-                    const categoryParts = formatCategoryParts(product?.category);
-                    const updatedAt = product?.updatedOn || product?.updated_on || product?.createdOn;
-                    const productCode = product?.sku || product?.productCode || `PRD-${product?.id || product?.productId || '-'}`;
-                    const brandLabel = product?.brandName || 'Unbranded';
-                    const uomLabel = product?.baseUomName || 'UOM not set';
-                      return (
-                        <tr
-                          key={product?.id || product?.productId}
-                          className={canViewProduct ? 'table-row-clickable' : ''}
-                          onClick={canViewProduct ? () => handleViewProduct(product?.id || product?.productId) : undefined}
-                        >
-                        <td>
-                          <input
-                            type="checkbox"
-                            className="select-checkbox"
-                            checked={product?.id ? selectedIds.has(product.id) : false}
-                            onClick={(event) => event.stopPropagation()}
-                            onChange={() => toggleSelect(product?.id)}
-                            aria-label={`Select ${product?.productName || 'product'}`}
-                          />
-                        </td>
-                        <td>
-                          <div className="product-image-cell">
-                            <ProductTableThumbnail
-                              imageUrl={getPrimaryProductImage(product)}
-                              alt={product?.productName || 'Product'}
+            <>
+              <div className="table-shell product-table-shell">
+                <table className="admin-table users-table product-table" style={{ minWidth: `${productTableMinWidth}px` }}>
+                  <thead>
+                    <tr>
+                      <th>
+                        <input
+                          type="checkbox"
+                          className="select-checkbox"
+                          checked={allSelected}
+                          onChange={toggleSelectAll}
+                          aria-label="Select all products"
+                        />
+                      </th>
+                      {visibleProductColumns.map((column) => (
+                        <th key={column.key} style={{ minWidth: column.minWidth }}>
+                          {column.label}
+                        </th>
+                      ))}
+                      <th className="table-actions">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredProducts.map((product) => {
+                      const statusValue = product?.approvalStatus || '';
+                      const hasFullCategoryPath = Boolean(
+                        product?.category?.mainCategoryId && product?.category?.categoryId && product?.category?.subCategoryId
+                      );
+                      const productId = getProductRecordId(product);
+                        return (
+                          <tr
+                            key={productId}
+                            className={canViewProduct ? 'table-row-clickable' : ''}
+                            onClick={canViewProduct ? () => handleViewProduct(productId) : undefined}
+                          >
+                          <td>
+                            <input
+                              type="checkbox"
+                              className="select-checkbox"
+                              checked={productId ? selectedIds.has(productId) : false}
+                              onClick={(event) => event.stopPropagation()}
+                              onChange={() => toggleSelect(productId)}
+                              aria-label={`Select ${product?.productName || 'product'}`}
                             />
-                          </div>
-                        </td>
-                        <td>
-                          <span className="product-table-code">{productCode}</span>
-                        </td>
-                        <td>
-                          <p className="user-name">{product?.productName || '-'}</p>
-                        </td>
-                        <td>
-                          <span className="product-table-primary">{product?.businessName || '-'}</span>
-                        </td>
-                        <td>
-                          <span className="product-table-primary">{categoryParts.primary}</span>
-                        </td>
-                        <td>
-                          <span className="product-table-primary">{brandLabel}</span>
-                        </td>
-                        <td>
-                          <span className="product-table-primary">{uomLabel}</span>
-                        </td>
-                        <td>
-                          <span className="product-price-main">
-                            {product?.mrp !== null && product?.mrp !== undefined && product?.mrp !== ''
-                              ? formatPrice(product.mrp, product?.currency)
-                              : '-'}
-                          </span>
-                        </td>
-                        <td>
-                          <span className={statusClass}>{formatStatus(statusValue)}</span>
-                        </td>
-                        <td>
-                          <span className="product-table-primary">{formatDateTime(updatedAt)}</span>
-                        </td>
-                        <td className="table-actions" onClick={(e) => e.stopPropagation()}>
-                          {(() => {
-                            const productId = product?.id || product?.productId;
-                            const statusCode = String(statusValue || '').toUpperCase();
-                            const canModerateRow = ['PENDING_REVIEW', 'CHANGES_REQUIRED'].includes(statusCode);
-                            const showApproveRow = canApproveProduct && canModerateRow;
-                            const showRequestChangesRow = canRequestChangesProduct && canModerateRow;
-                            const showRejectRow = canRejectProduct && canModerateRow;
-                            const hasRowActions =
-                              canViewProduct ||
-                              canEditProduct ||
-                              canDeleteProduct ||
-                              showApproveRow ||
-                              showRequestChangesRow ||
-                              showRejectRow;
+                          </td>
+                          {visibleProductColumns.map((column) => (
+                            <td key={`${productId}-${column.key}`} style={{ minWidth: column.minWidth }}>
+                              {getProductTableCellValue(product, column.key)}
+                            </td>
+                          ))}
+                          <td className="table-actions" onClick={(e) => e.stopPropagation()}>
+                            {(() => {
+                              const statusCode = String(statusValue || '').toUpperCase();
+                              const canModerateRow = ['PENDING_REVIEW', 'CHANGES_REQUIRED'].includes(statusCode);
+                              const showApproveRow = canApproveProduct && canModerateRow;
+                              const showRequestChangesRow = canRequestChangesProduct && canModerateRow;
+                              const showRejectRow = canRejectProduct && canModerateRow;
+                              const hasRowActions =
+                                canViewProduct ||
+                                canEditProduct ||
+                                canDeleteProduct ||
+                                showApproveRow ||
+                                showRequestChangesRow ||
+                                showRejectRow;
 
-                            if (!hasRowActions || !hasProductListActions) {
-                              return null;
-                            }
+                              if (!hasRowActions || !hasProductListActions) {
+                                return null;
+                              }
 
-                            return (
-                              <div className="product-table-action-menu" ref={openProductActionId === productId ? productActionMenuRef : null}>
-                                <button
-                                  type="button"
-                                  className="icon-btn product-table-action-trigger"
-                                  aria-label="Actions"
-                                  aria-expanded={openProductActionId === productId}
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    setOpenProductActionId((prev) => (prev === productId ? null : productId));
-                                  }}
-                                >
-                                  {ACTION_ICONS.more}
-                                </button>
-                                {openProductActionId === productId ? (
-                                  <div className="product-table-action-dropdown">
-                                    {canViewProduct ? (
-                                      <button
-                                        type="button"
-                                        onClick={(event) => {
-                                          event.stopPropagation();
-                                          setOpenProductActionId(null);
-                                          handleViewProduct(productId);
-                                        }}
-                                      >
-                                        <span className="gsc-product-view-menu-icon view">{ACTION_ICONS.view}</span>
-                                        View
-                                      </button>
-                                    ) : null}
-                                    {canEditProduct ? (
-                                      <button
-                                        type="button"
-                                        onClick={(event) => {
-                                          event.stopPropagation();
-                                          setOpenProductActionId(null);
-                                          navigate(`/admin/products/${productId}/edit`);
-                                        }}
-                                      >
-                                        <span className="gsc-product-view-menu-icon edit">{ACTION_ICONS.edit}</span>
-                                        Edit
-                                      </button>
-                                    ) : null}
-                                    {canDeleteProduct ? (
-                                      <button
-                                        type="button"
-                                        onClick={(event) => {
-                                          event.stopPropagation();
-                                          setOpenProductActionId(null);
-                                          handleDelete(productId);
-                                        }}
-                                      >
-                                        <span className="gsc-product-view-menu-icon delete">{ACTION_ICONS.trash}</span>
-                                        Delete
-                                      </button>
-                                    ) : null}
-                                    {showApproveRow ? (
-                                      <button
-                                        type="button"
-                                        disabled={!hasFullCategoryPath}
-                                        onClick={(event) => {
-                                          event.stopPropagation();
-                                          setOpenProductActionId(null);
-                                          handleRowStatusUpdate(productId, 'APPROVED');
-                                        }}
-                                      >
-                                        <span className="gsc-product-view-menu-icon approve">{ACTION_ICONS.approve}</span>
-                                        Approve
-                                      </button>
-                                    ) : null}
-                                    {showRequestChangesRow ? (
-                                      <button
-                                        type="button"
-                                        onClick={(event) => {
-                                          event.stopPropagation();
-                                          setOpenProductActionId(null);
-                                          handleRowStatusUpdate(productId, 'CHANGES_REQUIRED');
-                                        }}
-                                      >
-                                        <span className="gsc-product-view-menu-icon request-changes">{ACTION_ICONS.requestChanges}</span>
-                                        Request changes
-                                      </button>
-                                    ) : null}
-                                    {showRejectRow ? (
-                                      <button
-                                        type="button"
-                                        onClick={(event) => {
-                                          event.stopPropagation();
-                                          setOpenProductActionId(null);
-                                          handleRowStatusUpdate(productId, 'REJECTED');
-                                        }}
-                                      >
-                                        <span className="gsc-product-view-menu-icon reject">{ACTION_ICONS.reject}</span>
-                                        Reject
-                                      </button>
-                                    ) : null}
-                                  </div>
-                                ) : null}
-                              </div>
-                            );
-                          })()}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                              return (
+                                <div className="product-table-action-menu" ref={openProductActionId === productId ? productActionMenuRef : null}>
+                                  <button
+                                    type="button"
+                                    className="icon-btn product-table-action-trigger"
+                                    aria-label="Actions"
+                                    aria-expanded={openProductActionId === productId}
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      setOpenProductActionId((prev) => (prev === productId ? null : productId));
+                                    }}
+                                  >
+                                    {ACTION_ICONS.more}
+                                  </button>
+                                  {openProductActionId === productId ? (
+                                    <div className="product-table-action-dropdown">
+                                      {canViewProduct ? (
+                                        <button
+                                          type="button"
+                                          onClick={(event) => {
+                                            event.stopPropagation();
+                                            setOpenProductActionId(null);
+                                            handleViewProduct(productId);
+                                          }}
+                                        >
+                                          <span className="gsc-product-view-menu-icon view">{ACTION_ICONS.view}</span>
+                                          View
+                                        </button>
+                                      ) : null}
+                                      {canEditProduct ? (
+                                        <button
+                                          type="button"
+                                          onClick={(event) => {
+                                            event.stopPropagation();
+                                            setOpenProductActionId(null);
+                                            navigate(`/admin/products/${productId}/edit`);
+                                          }}
+                                        >
+                                          <span className="gsc-product-view-menu-icon edit">{ACTION_ICONS.edit}</span>
+                                          Edit
+                                        </button>
+                                      ) : null}
+                                      {canDeleteProduct ? (
+                                        <button
+                                          type="button"
+                                          onClick={(event) => {
+                                            event.stopPropagation();
+                                            setOpenProductActionId(null);
+                                            handleDelete(productId);
+                                          }}
+                                        >
+                                          <span className="gsc-product-view-menu-icon delete">{ACTION_ICONS.trash}</span>
+                                          Delete
+                                        </button>
+                                      ) : null}
+                                      {showApproveRow ? (
+                                        <button
+                                          type="button"
+                                          disabled={!hasFullCategoryPath}
+                                          onClick={(event) => {
+                                            event.stopPropagation();
+                                            setOpenProductActionId(null);
+                                            handleRowStatusUpdate(productId, 'APPROVED');
+                                          }}
+                                        >
+                                          <span className="gsc-product-view-menu-icon approve">{ACTION_ICONS.approve}</span>
+                                          Approve
+                                        </button>
+                                      ) : null}
+                                      {showRequestChangesRow ? (
+                                        <button
+                                          type="button"
+                                          onClick={(event) => {
+                                            event.stopPropagation();
+                                            setOpenProductActionId(null);
+                                            handleRowStatusUpdate(productId, 'CHANGES_REQUIRED');
+                                          }}
+                                        >
+                                          <span className="gsc-product-view-menu-icon request-changes">{ACTION_ICONS.requestChanges}</span>
+                                          Request changes
+                                        </button>
+                                      ) : null}
+                                      {showRejectRow ? (
+                                        <button
+                                          type="button"
+                                          onClick={(event) => {
+                                            event.stopPropagation();
+                                            setOpenProductActionId(null);
+                                            handleRowStatusUpdate(productId, 'REJECTED');
+                                          }}
+                                        >
+                                          <span className="gsc-product-view-menu-icon reject">{ACTION_ICONS.reject}</span>
+                                          Reject
+                                        </button>
+                                      ) : null}
+                                    </div>
+                                  ) : null}
+                                </div>
+                              );
+                            })()}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="bv-table-footer">
+                <div className="table-record-count">
+                  Showing {productPageStart}-{productPageEnd} of {productListMeta.totalElements} products
+                </div>
+                <div className="product-pagination-controls">
+                  <label className="product-pagination-size">
+                    <span>Rows</span>
+                    <select
+                      value={productPageSize}
+                      onChange={(event) => {
+                        setProductPageSize(Number(event.target.value) || 25);
+                        setProductListPage(0);
+                      }}
+                    >
+                      {PRODUCT_PAGE_SIZE_OPTIONS.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <div className="bv-table-pagination">
+                    <button
+                      type="button"
+                      className="secondary-btn"
+                      disabled={productListPage === 0 || isLoading}
+                      onClick={() => setProductListPage((prev) => Math.max(prev - 1, 0))}
+                    >
+                      {'< Prev'}
+                    </button>
+                    <span>Page {productListMeta.page + 1} / {Math.max(productListMeta.totalPages, 1)}</span>
+                    <button
+                      type="button"
+                      className="secondary-btn"
+                      disabled={!productListMeta.hasNext || isLoading}
+                      onClick={() => setProductListPage((prev) => prev + 1)}
+                    >
+                      {'Next >'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </>
           )}
         </div>
       ) : null}

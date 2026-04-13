@@ -11,8 +11,8 @@ const isPathActive = (pathname, path) => {
 const getMenuKey = (groupTitle, item) => item.key || item.path || `${groupTitle}-${item.label}`;
 
 const getAvatarLabel = (value) => {
-  const text = String(value || 'TradeX').trim();
-  if (!text) return 'TX';
+  const text = String(value || 'Deal 360').trim();
+  if (!text) return 'D3';
   const parts = text.split(/\s+/).filter(Boolean);
   if (parts.length === 1) {
     return parts[0].slice(0, 2).toUpperCase();
@@ -104,7 +104,7 @@ function AdminShell({ navItems, onLogout, pageTitle, pageSubtitle, children }) {
         <div className="admin-brand">
           {showExpandedSidebar ? (
             <div className="brand-copy">
-              <div className="brand-title">TRAD<span className="brand-title-accent">D</span>EX</div>
+              <div className="brand-title">DEAL<span className="brand-title-accent"> 360</span></div>
               <div className="brand-tag">ADMIN PANEL</div>
             </div>
           ) : null}

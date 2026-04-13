@@ -604,7 +604,7 @@
 }
 
 .admin-shell-gsc .product-page .product-table .product-table-action-dropdown .gsc-product-view-menu-icon.view {
-  color: #6e46ff;
+  color: #6345ED;
 }
 
 .admin-shell-gsc .product-page .product-table .product-table-action-dropdown .gsc-product-view-menu-icon.edit {
@@ -870,7 +870,7 @@
 }
 
 .admin-shell-gsc .business-datatable .bdt-name-link {
-  color: #6e46ff;
+  color: #6345ED;
   font-weight: 500;
   cursor: pointer;
   text-decoration: none;
@@ -884,7 +884,7 @@
 
 /* Subscription plan list name link – reuse same purple tone */
 .admin-shell-gsc .subscription-plan-list-card .bdt-name-link {
-  color: #6e46ff;
+  color: #6345ED;
 }
 
 .admin-shell-gsc .subscription-plan-list-card .bdt-name-link:hover {

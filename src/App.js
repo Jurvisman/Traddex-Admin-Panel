@@ -8,7 +8,9 @@ import {
   AppConfigPage,
   AdminTimezonesPage,
   BusinessPage,
+  BusinessCreatePage,
   BusinessProfileEditPage,
+  BusinessAnalyticsPage,
   IndustryPage,
   CollectionPage,
   LoginPage,
@@ -17,6 +19,7 @@ import {
   MainCategoryPage,
   OtpVerifyPage,
   ProductAttributePage,
+  ProductCreatePage,
   ProductPage,
   SubCategoryPage,
   SubscriptionAssignPage,
@@ -32,6 +35,7 @@ import {
   RolePermissionPage,
   OrderDisputesPage,
   OrderReturnsPage,
+  ReviewModerationPage,
   SupportPage,
   SubscriptionRevenuePage,
   AdvertisementRevenuePage,
@@ -41,6 +45,7 @@ import {
   AdvertisementViewPage,
   AdPricingConfigPage,
   AuditLogsPage,
+  KycAssistancePage,
 } from './pages';
 import { fetchMyPermissions } from './services/adminApi';
 import { PermissionsContext } from './shared/permissions';
@@ -238,7 +243,7 @@ const NAV_TONES = {
 
 const DEFAULT_ADMIN_META = {
   title: 'Dashboard',
-  // subtitle: 'Track core counts and activity across Traddex.',
+  // subtitle: 'Track core counts and activity across Deal 360.',
 };
 
 const ADMIN_META = [
@@ -365,6 +370,11 @@ const ADMIN_META = [
     match: '/admin/orders/returns',
     title: 'Order Returns',
     subtitle: 'Override return requests and lock final outcomes.',
+  },
+  {
+    match: '/admin/orders/reviews',
+    title: 'Review Moderation',
+    subtitle: 'Moderate reported buyer reviews across products and businesses.',
   },
   {
     match: '/admin/support',
@@ -672,9 +682,19 @@ function AppRoutes() {
               { path: '/admin/orders/sales', label: 'Sales Orders', icon: ICONS.orders, tone: NAV_TONES.orders },
               { path: '/admin/orders/disputes', label: 'Order Disputes', icon: ICONS.disputes, tone: NAV_TONES.orders },
               { path: '/admin/orders/returns', label: 'Order Returns', icon: ICONS.returns, tone: NAV_TONES.orders },
+              { path: '/admin/orders/reviews', label: 'Review Moderation', icon: ICONS.settingsRole, tone: NAV_TONES.orders },
             ],
           },
-          { path: '/admin/support', label: 'Support', icon: ICONS.support, tone: NAV_TONES.support },
+          {
+            key: 'support-root',
+            label: 'Support',
+            icon: ICONS.support,
+            tone: NAV_TONES.support,
+            children: [
+              { path: '/admin/support', label: 'Tickets', icon: ICONS.support, tone: NAV_TONES.support },
+              { path: '/admin/support/kyc-assistance', label: 'KYC Assistance', icon: ICONS.support, tone: NAV_TONES.support },
+            ],
+          },
         ],
       },
     ],
@@ -884,6 +904,18 @@ function AppRoutes() {
           }
         />
         <Route
+          path="businesses/create"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={canAccessPath('/admin/businesses') && allowedActionCodes.has('ADMIN_BUSINESS_READ')}
+              fallbackPath={routeFallbackPath}
+            >
+              <BusinessCreatePage token={authToken} />
+            </PermissionGate>
+          }
+        />
+        <Route
           path="businesses/:id"
           element={
             <PermissionGate
@@ -911,6 +943,18 @@ function AppRoutes() {
               fallbackPath={routeFallbackPath}
             >
               <BusinessProfileEditPage token={authToken} allowedActions={allowedActionCodes} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="businesses/analytics"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={canAccessPath('/admin/businesses') && allowedActionCodes.has('ADMIN_BUSINESS_READ')}
+              fallbackPath={routeFallbackPath}
+            >
+              <BusinessAnalyticsPage token={authToken} />
             </PermissionGate>
           }
         />
@@ -1119,6 +1163,22 @@ function AppRoutes() {
               fallbackPath={routeFallbackPath}
             >
               <ProductPage token={authToken} adminUserId={authUserId} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="products/create"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={
+                canAccessPath('/admin/products') &&
+                allowedActionCodes.has('ADMIN_PRODUCTS_READ') &&
+                allowedActionCodes.has('ADMIN_PRODUCTS_CREATE')
+              }
+              fallbackPath={routeFallbackPath}
+            >
+              <ProductCreatePage token={authToken} />
             </PermissionGate>
           }
         />
@@ -1379,6 +1439,21 @@ function AppRoutes() {
           }
         />
         <Route
+          path="orders/reviews"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={
+                canAccessPath('/admin/orders/reviews') &&
+                allowedActionCodes.has('ADMIN_REVIEWS_READ')
+              }
+              fallbackPath={routeFallbackPath}
+            >
+              <ReviewModerationPage token={authToken} />
+            </PermissionGate>
+          }
+        />
+        <Route
           path="orders/purchase"
           element={
             <PermissionGate
@@ -1483,6 +1558,21 @@ function AppRoutes() {
               fallbackPath={routeFallbackPath}
             >
               <SupportPage token={authToken} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="support/kyc-assistance"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={
+                canAccessPath('/admin/support/kyc-assistance') &&
+                allowedActionCodes.has('ADMIN_KYC_ASSISTANCE_READ')
+              }
+              fallbackPath={routeFallbackPath}
+            >
+              <KycAssistancePage token={authToken} currentUser={authUserId} allowedActions={allowedActionCodes} />
             </PermissionGate>
           }
         />

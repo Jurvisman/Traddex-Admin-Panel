@@ -81,7 +81,9 @@ function SubscriptionPlanPage({ token }) {
 
   const loadPlans = async () => {
     const response = await listSubscriptionPlans(token);
-    setPlans(response?.data?.plans || []);
+    const raw = Array.isArray(response?.data?.plans) ? response.data.plans : [];
+    raw.sort((a, b) => new Date(b?.createdAt || b?.created_at || 0) - new Date(a?.createdAt || a?.created_at || 0));
+    setPlans(raw);
   };
 
   const loadFeatures = async () => {

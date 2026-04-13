@@ -76,6 +76,20 @@ export const updateBusinessProfileStatus = (token, profileId, status) =>
   request(`/admin/profile/${profileId}/status?status=${encodeURIComponent(status)}`, { method: 'POST', token });
 
 export const listIndustries = (token) => request('/industries', { token });
+export const getIndustry = (token, id) => request(`/industries/${id}`, { token });
+export const sendOtp    = (mobileNumber) => request('/users/send-otp',   { method: 'POST', body: { mobileNumber } });
+export const verifyOtp  = (mobileNumber, otpCode) => request('/users/verify-otp', { method: 'POST', body: { mobileNumber, otpCode } });
+export const sendBusinessCreateOtp = (token, mobileNumber) =>
+  request('/admin/businesses/send-otp', { method: 'POST', body: { mobileNumber }, token });
+export const verifyBusinessCreateOtp = (token, mobileNumber, otpCode) =>
+  request('/admin/businesses/verify-otp', { method: 'POST', body: { mobileNumber, otpCode }, token });
+export const listCountries  = (token) => request('/locations/countries', { token });
+export const listStates     = (token, countryCode) => request(`/locations/states?countryCode=${encodeURIComponent(countryCode)}`, { token });
+export const listCities     = (token, stateCode)   => request(`/locations/cities?stateCode=${encodeURIComponent(stateCode)}`, { token });
+export const listBusinessTypes = (token, segment) => {
+  const params = segment ? `?segment=${encodeURIComponent(segment.toUpperCase())}` : '';
+  return request(`/profile/business/types${params}`, { token });
+};
 export const createIndustry = (token, payload) => request('/industries', { method: 'POST', body: payload, token });
 export const updateIndustry = (token, id, payload) =>
   request(`/industries/${id}`, { method: 'PUT', body: payload, token });
@@ -84,6 +98,7 @@ export const updateIndustryOrder = (token, id, position) =>
 export const deleteIndustry = (token, id) => request(`/industries/${id}`, { method: 'DELETE', token });
 
 export const listMainCategories = (token) => request('/main-categories', { token });
+export const getMainCategory = (token, id) => request(`/main-categories/${id}`, { token });
 export const createMainCategory = (token, payload) =>
   request('/main-categories', { method: 'POST', body: payload, token });
 export const updateMainCategory = (token, id, payload) =>
@@ -96,6 +111,7 @@ export const listCategories = (token, mainCategoryId) => {
   const query = mainCategoryId ? `?mainCategoryId=${mainCategoryId}` : '';
   return request(`/categories${query}`, { token });
 };
+export const getCategory = (token, id) => request(`/categories/${id}`, { token });
 export const createCategory = (token, payload) => request('/categories', { method: 'POST', body: payload, token });
 export const updateCategory = (token, id, payload) =>
   request(`/categories/${id}`, { method: 'PUT', body: payload, token });
@@ -118,6 +134,7 @@ export const listSubCategories = (token, categoryId) => {
   const query = categoryId ? `?categoryId=${categoryId}` : '';
   return request(`/sub-categories${query}`, { token });
 };
+export const getSubCategory = (token, id) => request(`/sub-categories/${id}`, { token });
 export const createSubCategory = (token, payload) =>
   request('/sub-categories', { method: 'POST', body: payload, token });
 export const updateSubCategory = (token, id, payload) =>
@@ -126,9 +143,23 @@ export const updateSubCategoryOrder = (token, id, position, categoryId) =>
   request(`/sub-categories/${id}/order`, { method: 'POST', body: { position, categoryId }, token });
 export const deleteSubCategory = (token, id) => request(`/sub-categories/${id}`, { method: 'DELETE', token });
 
-export const listProducts = (token) => request('/admin/product/getall', { token });
+export const listProducts = (token, filters = {}) => {
+  const params = new URLSearchParams();
+  if (filters.status) params.set('status', filters.status);
+  if (filters.query) params.set('query', filters.query);
+  if (filters.category) params.set('category', filters.category);
+  if (filters.business) params.set('business', filters.business);
+  if (filters.brand) params.set('brand', filters.brand);
+  if (filters.page !== null && filters.page !== undefined) params.set('page', String(filters.page));
+  if (filters.size !== null && filters.size !== undefined) params.set('size', String(filters.size));
+  const query = params.toString() ? `?${params.toString()}` : '';
+  return request(`/admin/product/getall${query}`, { token });
+};
 export const listProductsByUser = (token, userId) => request(`/admin/product/by-user?userId=${userId}`, { token });
 export const listProductsByBusinessUser = (token, userId) => request(`/admin/businesses/${userId}/products`, { token });
+export const getBusinessLeadSummary = (token, userId) => request(`/admin/businesses/${userId}/leads`, { token });
+export const getBusinessOrderSummary = (token, userId) => request(`/admin/businesses/${userId}/orders`, { token });
+export const getBusinessPaymentSummary = (token, userId) => request(`/admin/businesses/${userId}/payments`, { token });
 export const createProduct = (token, payload) =>
   request('/admin/product/create', { method: 'POST', body: payload, token });
 export const getProduct = (token, id) => request(`/admin/product/${id}`, { token });
@@ -361,6 +392,9 @@ export const listSubscriptionAssignments = (token, filters = {}) => {
   return request(`/admin/subscription/list${query}`, { token });
 };
 
+export const getBusinessFeatureUsage = (token, userId) =>
+  request(`/admin/subscription/feature-usage?user_id=${userId}`, { token });
+
 // Addon pricing management
 export const upsertAddonPricing = (token, payload) =>
   request('/admin/addon/pricing', { method: 'POST', body: payload, token });
@@ -429,3 +463,47 @@ export const getAdPricingConfig = (token) =>
 
 export const updateAdPricingConfig = (token, payload) =>
   request('/admin/advertisements/pricing-config', { method: 'PUT', body: payload, token });
+
+// Review moderation
+export const listAdminProductReviews = (token, filters = {}) => {
+  const params = new URLSearchParams();
+  if (filters.productId !== null && filters.productId !== undefined && filters.productId !== '') {
+    params.set('productId', String(filters.productId));
+  }
+  if (filters.status) params.set('status', filters.status);
+  if (filters.reportedOnly === true) params.set('reportedOnly', 'true');
+  if (filters.query) params.set('query', filters.query);
+  if (filters.page) params.set('page', String(filters.page));
+  if (filters.limit) params.set('limit', String(filters.limit));
+  const query = params.toString() ? `?${params.toString()}` : '';
+  return request(`/admin/reviews/products${query}`, { token });
+};
+
+export const listAdminBusinessReviews = (token, filters = {}) => {
+  const params = new URLSearchParams();
+  if (filters.status) params.set('status', filters.status);
+  if (filters.reportedOnly === true) params.set('reportedOnly', 'true');
+  if (filters.query) params.set('query', filters.query);
+  if (filters.page) params.set('page', String(filters.page));
+  if (filters.limit) params.set('limit', String(filters.limit));
+  const query = params.toString() ? `?${params.toString()}` : '';
+  return request(`/admin/reviews/businesses${query}`, { token });
+};
+
+export const updateAdminProductReviewStatus = (token, reviewId, status) =>
+  request(`/admin/reviews/products/${reviewId}/status`, { method: 'PATCH', body: { status }, token });
+
+export const updateAdminBusinessReviewStatus = (token, reviewId, status) =>
+  request(`/admin/reviews/businesses/${reviewId}/status`, { method: 'PATCH', body: { status }, token });
+
+export const updateAdminReviewReportStatus = (token, reportId, status) =>
+  request(`/admin/reviews/reports/${reportId}`, { method: 'PATCH', body: { status }, token });
+
+export const fetchKycAssistanceRequests = (token) =>
+  request('/admin/support/kyc-assistance', { token });
+
+export const updateKycAssistanceStatus = (token, id, status, adminNote = null) =>
+  request(`/admin/support/kyc-assistance/${id}/status`, { method: 'PATCH', body: { status, adminNote }, token });
+
+export const assignKycAssistanceRequest = (token, id, adminId) =>
+  request(`/admin/support/kyc-assistance/${id}/assign`, { method: 'PATCH', body: { adminId }, token });
