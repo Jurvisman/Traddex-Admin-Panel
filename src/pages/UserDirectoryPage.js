@@ -59,13 +59,13 @@ const RE_PHONE = /^[6-9][0-9]{9}$/;
    CREATE USER MODAL
    ══════════════════════════════════════════════════════════════ */
 function CreateUserModal({ token, onClose, onSuccess }) {
-  const [name, setName]       = useState('');
-  const [phone, setPhone]     = useState('');
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
   const [otpSent, setOtpSent] = useState(false);
-  const [otp, setOtp]         = useState('');
+  const [otp, setOtp] = useState('');
   const [verified, setVerified] = useState(false);
-  const [step, setStep]       = useState(OTP_STEP.IDLE);
-  const [error, setError]     = useState('');
+  const [step, setStep] = useState(OTP_STEP.IDLE);
+  const [error, setError] = useState('');
   const [resendTimer, setResendTimer] = useState(0);
   const timerRef = useRef(null);
 
@@ -209,7 +209,7 @@ function CreateUserModal({ token, onClose, onSuccess }) {
         }}>
           {STEPS.map((label, i) => {
             const active = i === 0 ? !otpSent : i === 1 ? otpSent && !verified : verified;
-            const done   = i === 0 ? otpSent : i === 1 ? verified : false;
+            const done = i === 0 ? otpSent : i === 1 ? verified : false;
             return (
               <div key={label} style={{ display: 'flex', alignItems: 'center', flex: i < 2 ? 1 : 'none' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
@@ -484,7 +484,7 @@ function UserDirectoryPage({ token, allowedActions }) {
   }, [allowedActions]);
 
   const hasActionModel = allowedActionSet.size > 0;
-  const canUserRead   = !hasActionModel || allowedActionSet.has('ADMIN_USERS_READ');
+  const canUserRead = !hasActionModel || allowedActionSet.has('ADMIN_USERS_READ');
   const canUserUpdate = !hasActionModel || allowedActionSet.has('ADMIN_USERS_UPDATE');
   const canUserCreate = !hasActionModel || allowedActionSet.has('ADMIN_USERS_CREATE');
 
@@ -537,10 +537,10 @@ function UserDirectoryPage({ token, allowedActions }) {
     });
   }, [query, users]);
 
-  const activeCount   = useMemo(() => users.filter((u) => Number(u?.active) === 1).length, [users]);
+  const activeCount = useMemo(() => users.filter((u) => Number(u?.active) === 1).length, [users]);
   const inactiveCount = Math.max(0, users.length - activeCount);
   const verifiedCount = useMemo(() => users.filter((u) => Number(u?.verify) === 1).length, [users]);
-  const pendingCount  = Math.max(0, users.length - verifiedCount);
+  const pendingCount = Math.max(0, users.length - verifiedCount);
 
   const handleToggleActive = async (user) => {
     if (!canUserUpdate) {
@@ -578,18 +578,18 @@ function UserDirectoryPage({ token, allowedActions }) {
 
   const renderViewPanel = () => {
     if (!viewUser) return null;
-    const u        = viewUser;
-    const name     = getUserName(u);
-    const email    = getUserEmail(u);
-    const phone    = u?.number || u?.mobile || u?.phone || null;
+    const u = viewUser;
+    const name = getUserName(u);
+    const email = getUserEmail(u);
+    const phone = u?.number || u?.mobile || u?.phone || null;
     const userType = getUserType(u);
     const initials = getInitials(u);
-    const verif    = resolveVerification(u);
+    const verif = resolveVerification(u);
     const isActive = Number(u?.active) === 1;
-    const joined   = u?.created_at || u?.createdAt || u?.joined_at;
-    const lastAct  = u?.last_active || u?.lastActive || u?.updatedAt || u?.updated_at;
+    const joined = u?.created_at || u?.createdAt || u?.joined_at;
+    const lastAct = u?.last_active || u?.lastActive || u?.updatedAt || u?.updated_at;
     const timeZone = u?.timeZone || u?.time_zone || null;
-    const userId   = u?.id || u?.user_id;
+    const userId = u?.id || u?.user_id;
 
     return (
       <div className="mv-panel card">
@@ -627,11 +627,11 @@ function UserDirectoryPage({ token, allowedActions }) {
         <div className="mv-section">
           <p className="mv-section-label">Basic Info</p>
           <div className="mv-detail-grid">
-            <UserDetailRow label="User ID"      value={String(userId ?? '—')} />
-            <UserDetailRow label="Phone"        value={phone} />
-            <UserDetailRow label="Email"        value={email !== '-' ? email : null} />
-            <UserDetailRow label="User Type"    value={userType} />
-            <UserDetailRow label="Timezone"     value={timeZone} />
+            <UserDetailRow label="User ID" value={String(userId ?? '—')} />
+            <UserDetailRow label="Phone" value={phone} />
+            <UserDetailRow label="Email" value={email !== '-' ? email : null} />
+            <UserDetailRow label="User Type" value={userType} />
+            <UserDetailRow label="Timezone" value={timeZone} />
             <UserDetailRow label="Verification" value={verif.label} />
           </div>
         </div>
@@ -668,7 +668,6 @@ function UserDirectoryPage({ token, allowedActions }) {
         <div className="panel card users-table-card">
           <div className="panel-split">
             <div className="category-list-head-left">
-              <h3 className="panel-subheading">User list</h3>
               <div className="gsc-datatable-toolbar-left">
                 <button type="button" className="gsc-toolbar-btn" title="Filter">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

@@ -25,19 +25,17 @@ const NATURE_OPTIONS = [
 ];
 
 /* ── Field definitions ──────────────────────────────────────────── */
-// type: 'text' | 'textarea' | 'number' | 'email' | 'url' | 'tel'
-//       'industry' | 'segment' | 'businessType' | 'hours' | 'nature' | 'modeOfService'
 const BUSINESS_PROFILE_FIELDS = [
   { key: 'businessName',        label: 'Business Name',          required: true, span: true },
-  { key: 'ownerName',           label: 'Owner Name' },
+  { key: 'ownerName',           label: 'Owner Name',           required: true },
   { key: 'contactNumber',       label: 'Contact Number',         type: 'tel' },
   { key: 'whatsappNumber',      label: 'WhatsApp Number',        type: 'tel' },
   { key: 'email',               label: 'Business Email',         type: 'email' },
-  { key: 'industry',            label: 'Industry',               type: 'industry' },
-  { key: 'businessSegment',     label: 'Business Segment',       type: 'segment' },
-  { key: 'businessType',        label: 'Business Type',          type: 'businessType' },
-  { key: 'gstNumber',           label: 'GST Number' },
-  { key: 'businessPan',         label: 'Business PAN' },
+  { key: 'industry',            label: 'Industry',               type: 'industry',    required: true },
+  { key: 'businessSegment',     label: 'Business Segment',       type: 'segment',     required: true },
+  { key: 'businessType',        label: 'Business Type',          type: 'businessType', required: true },
+  { key: 'gstNumber',           label: 'GST Number',             required: true },
+  { key: 'businessPan',         label: 'Business PAN',           required: true },
   { key: 'udyam',               label: 'Udyam Registration' },
   { key: 'nature',              label: 'Nature of Business',     type: 'nature' },
   { key: 'experience',          label: 'Experience' },
@@ -48,12 +46,12 @@ const BUSINESS_PROFILE_FIELDS = [
   { key: 'languagesSupported',  label: 'Languages Supported' },
   { key: 'primaryCategoryId',   label: 'Primary Category ID',   type: 'number' },
   { key: 'primarySubCategoryId',label: 'Primary Sub-Category ID', type: 'number' },
-  { key: 'address',             label: 'Address',                type: 'textarea', span: true },
+  { key: 'address',             label: 'Address',                type: 'textarea', span: true, required: true },
   { key: 'formattedAddress',    label: 'Formatted Address',      type: 'textarea', span: true },
   { key: 'placeId',             label: 'Place ID' },
   { key: 'plotNo',              label: 'Plot No' },
   { key: 'landmark',            label: 'Landmark' },
-  { key: 'postalCode',          label: 'Postal Code' },
+  { key: 'postalCode',          label: 'Postal Code',            required: true },
   { key: 'countryCode',         label: 'Country Code' },
   { key: 'stateCode',           label: 'State Code' },
   { key: 'cityCode',            label: 'City Code' },
@@ -74,8 +72,6 @@ const BUSINESS_PROFILE_FIELDS = [
   { key: 'ifscCode',            label: 'IFSC Code' },
   { key: 'razorpayKey',         label: 'Razorpay Key' },
 ];
-
-const SPECIAL_TYPES = new Set(['industry', 'segment', 'businessType', 'hours', 'nature', 'modeOfService']);
 
 const getEditTabForField = (key) => {
   const generalKeys = new Set([
@@ -99,6 +95,94 @@ const getEditTabForField = (key) => {
   return 'general';
 };
 
+/* ── Validation ────────────────────────────────────────────────── */
+const PHONE_RE  = /^[6-9][0-9]{9}$/;
+const EMAIL_RE  = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const GST_RE    = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
+const PAN_RE    = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
+const IFSC_RE   = /^[A-Z]{4}0[A-Z0-9]{6}$/;
+const POSTAL_RE = /^[1-9][0-9]{5}$/;
+const URL_RE    = /^https?:\/\/.+\..+/;
+
+const validateBusinessForm = (form) => {
+  const errors = {};
+
+  if (!form.businessName?.trim()) {
+    errors.businessName = 'Business name is required.';
+  } else if (form.businessName.trim().length < 2) {
+    errors.businessName = 'Business name must be at least 2 characters.';
+  }
+
+  if (!form.ownerName?.trim()) {
+    errors.ownerName = 'Owner name is required.';
+  } else if (form.ownerName.trim().length < 2) {
+    errors.ownerName = 'Owner name must be at least 2 characters.';
+  }
+
+  if (!form.industry?.trim()) {
+    errors.industry = 'Industry is required.';
+  }
+  if (!form.businessSegment?.trim()) {
+    errors.businessSegment = 'Segment is required.';
+  }
+  if (!form.businessType?.trim()) {
+    errors.businessType = 'Business type is required.';
+  }
+  if (!form.address?.trim()) {
+    errors.address = 'Address is required.';
+  }
+
+  if (form.email?.trim() && !EMAIL_RE.test(form.email.trim())) {
+    errors.email = 'Enter a valid business email address.';
+  }
+  if (form.contactNumber?.trim() && !PHONE_RE.test(form.contactNumber.trim())) {
+    errors.contactNumber = 'Enter a valid 10-digit Indian mobile number.';
+  }
+  if (form.whatsappNumber?.trim() && !PHONE_RE.test(form.whatsappNumber.trim())) {
+    errors.whatsappNumber = 'Enter a valid 10-digit Indian mobile number.';
+  }
+  if (!form.gstNumber?.trim()) {
+    errors.gstNumber = 'GST number is required.';
+  } else if (!GST_RE.test(form.gstNumber.trim().toUpperCase())) {
+    errors.gstNumber = 'Invalid GST. Example: 22AAAAA0000A1Z5';
+  }
+
+  if (!form.businessPan?.trim()) {
+    errors.businessPan = 'PAN number is required.';
+  } else if (!PAN_RE.test(form.businessPan.trim().toUpperCase())) {
+    errors.businessPan = 'Invalid PAN. Example: AAAAA0000A';
+  }
+  if (form.ifscCode?.trim() && !IFSC_RE.test(form.ifscCode.trim().toUpperCase())) {
+    errors.ifscCode = 'Invalid IFSC. Example: SBIN0001234';
+  }
+  if (!form.postalCode?.trim()) {
+    errors.postalCode = 'PIN code is required.';
+  } else if (!POSTAL_RE.test(form.postalCode.trim())) {
+    errors.postalCode = 'Enter a valid 6-digit PIN code.';
+  }
+  if (form.website?.trim() && !URL_RE.test(form.website.trim())) {
+    errors.website = 'Must start with http:// or https://';
+  }
+  if (form.latitude?.toString().trim()) {
+    const lat = Number(form.latitude);
+    if (Number.isNaN(lat) || lat < -90 || lat > 90) {
+      errors.latitude = 'Latitude must be between -90 and 90.';
+    }
+  }
+  if (form.longitude?.toString().trim()) {
+    const lng = Number(form.longitude);
+    if (Number.isNaN(lng) || lng < -180 || lng > 180) {
+      errors.longitude = 'Longitude must be between -180 and 180.';
+    }
+  }
+  if (form.accountNumber?.trim() && !/^[0-9]{9,18}$/.test(form.accountNumber.trim())) {
+    errors.accountNumber = 'Account number must be 9–18 digits.';
+  }
+
+  return errors;
+};
+
+/* ── Form mapping ───────────────────────────────────────────── */
 const buildBusinessFormState = (profile) =>
   BUSINESS_PROFILE_FIELDS.reduce((acc, field) => {
     const value = profile?.[field.key];
@@ -122,68 +206,10 @@ const buildBusinessPayload = (form) =>
     return acc;
   }, {});
 
-/* ── Validation ────────────────────────────────────────────────── */
-const PHONE_RE  = /^[0-9]{10}$/;
-const EMAIL_RE  = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const GST_RE    = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
-const PAN_RE    = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
-const IFSC_RE   = /^[A-Z]{4}0[A-Z0-9]{6}$/;
-const POSTAL_RE = /^[0-9]{6}$/;
-const URL_RE    = /^(https?:\/\/)?([\w-]+\.)+[\w-]+(\/[\w-./?%&=]*)?$/i;
-
-const validateBusinessForm = (form) => {
-  const errors = {};
-
-  if (!form.businessName?.trim()) {
-    errors.businessName = 'Business name is required.';
-  }
-  if (form.email?.trim() && !EMAIL_RE.test(form.email.trim())) {
-    errors.email = 'Enter a valid business email address.';
-  }
-  if (form.contactNumber?.trim() && !PHONE_RE.test(form.contactNumber.trim())) {
-    errors.contactNumber = 'Phone number must be exactly 10 digits.';
-  }
-  if (form.whatsappNumber?.trim() && !PHONE_RE.test(form.whatsappNumber.trim())) {
-    errors.whatsappNumber = 'WhatsApp number must be exactly 10 digits.';
-  }
-  if (form.gstNumber?.trim() && !GST_RE.test(form.gstNumber.trim().toUpperCase())) {
-    errors.gstNumber = 'Invalid GST number format (e.g. 22AAAAA0000A1Z5).';
-  }
-  if (form.businessPan?.trim() && !PAN_RE.test(form.businessPan.trim().toUpperCase())) {
-    errors.businessPan = 'Invalid PAN format (e.g. AAAAA0000A).';
-  }
-  if (form.ifscCode?.trim() && !IFSC_RE.test(form.ifscCode.trim().toUpperCase())) {
-    errors.ifscCode = 'Invalid IFSC code format (e.g. SBIN0001234).';
-  }
-  if (form.postalCode?.trim() && !POSTAL_RE.test(form.postalCode.trim())) {
-    errors.postalCode = 'Postal code must be 6 digits.';
-  }
-  if (form.website?.trim() && !URL_RE.test(form.website.trim())) {
-    errors.website = 'Enter a valid website URL.';
-  }
-  if (form.latitude?.toString().trim()) {
-    const lat = Number(form.latitude);
-    if (Number.isNaN(lat) || lat < -90 || lat > 90) {
-      errors.latitude = 'Latitude must be between -90 and 90.';
-    }
-  }
-  if (form.longitude?.toString().trim()) {
-    const lng = Number(form.longitude);
-    if (Number.isNaN(lng) || lng < -180 || lng > 180) {
-      errors.longitude = 'Longitude must be between -180 and 180.';
-    }
-  }
-  if (form.accountNumber?.trim() && !/^[0-9]{9,18}$/.test(form.accountNumber.trim())) {
-    errors.accountNumber = 'Account number must be 9–18 digits.';
-  }
-
-  return errors;
-};
-
 /* ── Select field renderer ─────────────────────────────────────── */
-function SelectField({ value, onChange, options, placeholder, disabled }) {
+function SelectField({ value, onChange, options, placeholder, disabled, ...props }) {
   return (
-    <select value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled}>
+    <select value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled} onBlur={props.onBlur}>
       <option value="">{placeholder}</option>
       {options.map((opt) => {
         const val  = typeof opt === 'string' ? opt : (opt.value || opt.id || opt.typeName || opt.name || String(opt));
@@ -208,6 +234,7 @@ function BusinessProfileEditPage({ token }) {
   const [businessProfile, setBusinessProfile] = useState(null);
   const [form, setForm]           = useState(() => buildBusinessFormState(null));
   const [formErrors, setFormErrors] = useState({});
+  const [touched, setTouched]     = useState({});
   const [activeTab, setActiveTab] = useState('general');
 
   // Reference data for dropdowns
@@ -257,16 +284,31 @@ function BusinessProfileEditPage({ token }) {
     };
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [id, token]);
 
   const handleChange = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
-    if (formErrors[key]) {
-      setFormErrors((prev) => { const next = { ...prev }; delete next[key]; return next; });
+    // Real-time validation if touched
+    if (touched[key] || formErrors[key]) {
+      const allErrors = validateBusinessForm({ ...form, [key]: value });
+      setFormErrors((prev) => {
+        const next = { ...prev };
+        if (allErrors[key]) next[key] = allErrors[key];
+        else delete next[key];
+        return next;
+      });
     }
     // When segment changes, clear businessType
     if (key === 'businessSegment') {
       setForm((prev) => ({ ...prev, businessSegment: value, businessType: '' }));
+    }
+  };
+
+  const handleBlur = (key) => {
+    setTouched((prev) => ({ ...prev, [key]: true }));
+    const allErrors = validateBusinessForm(form);
+    if (allErrors[key]) {
+      setFormErrors((prev) => ({ ...prev, [key]: allErrors[key] }));
     }
   };
 
@@ -280,7 +322,8 @@ function BusinessProfileEditPage({ token }) {
     }
   };
 
-  const saveProfile = async () => {
+  const saveProfile = async (event) => {
+    if (event) event.preventDefault();
     if (!businessProfile?.userId) {
       setMessage({ type: 'error', text: 'Business profile is missing user information.' });
       return;
@@ -289,6 +332,11 @@ function BusinessProfileEditPage({ token }) {
     const errors = validateBusinessForm(form);
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
+      // Mark all fields as touched to show errors
+      const allTouched = {};
+      BUSINESS_PROFILE_FIELDS.forEach((f) => { allTouched[f.key] = true; });
+      setTouched(allTouched);
+
       const firstErrorTab = getEditTabForField(Object.keys(errors)[0]);
       setActiveTab(firstErrorTab);
       setMessage({ type: 'error', text: 'Please fix the validation errors before saving.' });
@@ -297,6 +345,7 @@ function BusinessProfileEditPage({ token }) {
 
     setIsSaving(true);
     setFormErrors({});
+    setTouched({});
     setMessage({ type: 'info', text: '' });
 
     try {
@@ -315,16 +364,17 @@ function BusinessProfileEditPage({ token }) {
     }
   };
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    await saveProfile();
-  };
-
   /* ── Render a single field ─────────────────────────────────── */
   const renderField = (field) => {
     const value = form?.[field.key] ?? '';
     const error = formErrors[field.key];
-    const commonProps = { className: error ? 'input-error' : undefined };
+    const isTouched = touched[field.key];
+    const showError = Boolean(error && (isTouched || Object.keys(formErrors).length > 0));
+
+    const commonProps = {
+      className: showError ? 'input-error' : undefined,
+      onBlur: () => handleBlur(field.key),
+    };
 
     let input;
     const fieldType = field.type || 'text';
@@ -348,6 +398,7 @@ function BusinessProfileEditPage({ token }) {
           onChange={(v) => handleChange(field.key, v)}
           options={industryOptions}
           placeholder="— Select industry —"
+          onBlur={() => handleBlur(field.key)}
         />
       );
     } else if (fieldType === 'segment') {
@@ -360,6 +411,7 @@ function BusinessProfileEditPage({ token }) {
             { value: 'B2C', label: 'B2C (Business to Customer)' },
           ]}
           placeholder="— Select segment —"
+          onBlur={() => handleBlur(field.key)}
         />
       );
     } else if (fieldType === 'businessType') {
@@ -378,6 +430,7 @@ function BusinessProfileEditPage({ token }) {
           options={typeOptions}
           placeholder={form.businessSegment ? '— Select type —' : '— Select segment first —'}
           disabled={!form.businessSegment && businessTypes.length === 0}
+          onBlur={() => handleBlur(field.key)}
         />
       );
     } else if (fieldType === 'nature') {
@@ -387,6 +440,7 @@ function BusinessProfileEditPage({ token }) {
           onChange={(v) => handleChange(field.key, v)}
           options={NATURE_OPTIONS}
           placeholder="— Select nature —"
+          onBlur={() => handleBlur(field.key)}
         />
       );
     } else if (fieldType === 'modeOfService') {
@@ -396,6 +450,7 @@ function BusinessProfileEditPage({ token }) {
           onChange={(v) => handleChange(field.key, v)}
           options={['Online', 'Offline', 'Both']}
           placeholder="— Select mode —"
+          onBlur={() => handleBlur(field.key)}
         />
       );
     } else if (fieldType === 'hours') {
@@ -406,7 +461,8 @@ function BusinessProfileEditPage({ token }) {
           <select
             value={selectedPreset}
             onChange={(e) => handleHoursPreset(e.target.value)}
-            className={error ? 'input-error' : undefined}
+            onBlur={() => handleBlur(field.key)}
+            className={showError ? 'input-error' : undefined}
           >
             <option value="">— Select hours —</option>
             {HOURS_PRESETS.map((p) => (
@@ -420,7 +476,7 @@ function BusinessProfileEditPage({ token }) {
               value={value}
               onChange={(e) => handleChange(field.key, e.target.value)}
               style={{ marginTop: 8 }}
-              className={error ? 'input-error' : undefined}
+              className={showError ? 'input-error' : undefined}
             />
           ) : null}
         </>
@@ -460,7 +516,7 @@ function BusinessProfileEditPage({ token }) {
           {field.required && <span className="field-required"> *</span>}
         </span>
         {input}
-        {error && <span className="field-error-msg">{error}</span>}
+        {showError && <span className="field-error-msg">{error}</span>}
       </label>
     );
   };
@@ -476,7 +532,7 @@ function BusinessProfileEditPage({ token }) {
         </div>
       </div>
 
-      <Banner message={message} />
+      <Banner message={message} onDismiss={() => setMessage({ type: 'info', text: '' })} />
 
       <div className="panel card business-profile-edit-card">
         {isLoading ? (
@@ -501,13 +557,13 @@ function BusinessProfileEditPage({ token }) {
               ))}
             </div>
 
-            <form id="business-edit-form" className="field-grid business-profile-edit-grid" onSubmit={handleSubmit}>
+            <form id="business-edit-form" className="field-grid business-profile-edit-grid" onSubmit={saveProfile}>
               {BUSINESS_PROFILE_FIELDS
                 .filter((field) => getEditTabForField(field.key) === activeTab)
                 .map((field) => renderField(field))}
             </form>
 
-            <div className="business-edit-footer">
+            <div className="form-actions" style={{ marginTop: 24, display: 'flex', gap: 12, justifyContent: 'flex-end', padding: '0 20px 20px' }}>
               <button
                 type="button"
                 className="ghost-btn"
@@ -516,7 +572,7 @@ function BusinessProfileEditPage({ token }) {
                 Cancel
               </button>
               <button type="submit" form="business-edit-form" className="primary-btn" disabled={isSaving}>
-                {isSaving ? 'Saving...' : 'Update'}
+                {isSaving ? 'Updating...' : 'Update Profile'}
               </button>
             </div>
           </>
