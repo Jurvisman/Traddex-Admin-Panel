@@ -217,9 +217,9 @@ function CreateUserModal({ token, onClose, onSuccess }) {
                     width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 11, fontWeight: 700,
-                    background: done ? '#16a34a' : active ? '#6e46ff' : '#e2e8f0',
+                    background: done ? '#16a34a' : active ? 'var(--accent)' : '#e2e8f0',
                     color: done || active ? '#fff' : '#94a3b8',
-                    boxShadow: active ? '0 0 0 3px rgba(110,70,255,0.15)' : 'none',
+                    boxShadow: active ? '0 0 0 3px rgba(99,69,237,0.15)' : 'none',
                     transition: 'all 0.2s',
                   }}>
                     {done ? '✓' : i + 1}
@@ -227,7 +227,7 @@ function CreateUserModal({ token, onClose, onSuccess }) {
                   <span style={{
                     fontSize: 12,
                     fontWeight: active || done ? 600 : 400,
-                    color: active ? '#6e46ff' : done ? '#16a34a' : '#94a3b8',
+                    color: active ? 'var(--accent)' : done ? '#16a34a' : '#94a3b8',
                     whiteSpace: 'nowrap',
                   }}>
                     {label}
@@ -321,10 +321,10 @@ function CreateUserModal({ token, onClose, onSuccess }) {
                   cursor: (isBusy || verified || (otpSent && resendTimer > 0)) ? 'not-allowed' : 'pointer',
                   background: (isBusy || verified || (otpSent && resendTimer > 0))
                     ? '#e2e8f0'
-                    : 'linear-gradient(135deg, #6e46ff 0%, #8b5cf6 100%)',
+                    : 'linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%)',
                   color: (isBusy || verified || (otpSent && resendTimer > 0)) ? '#9ca3af' : '#fff',
                   boxShadow: (isBusy || verified || (otpSent && resendTimer > 0))
-                    ? 'none' : '0 4px 12px rgba(110,70,255,0.25)',
+                    ? 'none' : '0 4px 12px rgba(99,69,237,0.25)',
                   transition: 'all 0.15s',
                 }}
               >
@@ -373,9 +373,9 @@ function CreateUserModal({ token, onClose, onSuccess }) {
                     cursor: (isBusy || otp.length < 4) ? 'not-allowed' : 'pointer',
                     background: (isBusy || otp.length < 4)
                       ? '#e2e8f0'
-                      : 'linear-gradient(135deg, #6e46ff 0%, #8b5cf6 100%)',
+                      : 'linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%)',
                     color: (isBusy || otp.length < 4) ? '#9ca3af' : '#fff',
-                    boxShadow: (isBusy || otp.length < 4) ? 'none' : '0 4px 12px rgba(110,70,255,0.3)',
+                    boxShadow: (isBusy || otp.length < 4) ? 'none' : '0 4px 12px rgba(99,69,237,0.3)',
                     transition: 'all 0.15s',
                   }}
                 >
@@ -606,7 +606,7 @@ function UserDirectoryPage({ token, allowedActions }) {
 
         {/* avatar + verification */}
         <div className="mv-section" style={{ display: 'flex', alignItems: 'center', gap: 14, paddingTop: 14, paddingBottom: 14 }}>
-          <div className="mv-emp-avatar" style={{ background: 'linear-gradient(135deg, #6e46ff, #8b5cf6)', fontSize: 20 }}>
+          <div className="mv-emp-avatar" style={{ background: 'linear-gradient(135deg, var(--accent), var(--accent-strong))', fontSize: 20 }}>
             {initials}
           </div>
           <div className="mv-emp-avatar-info">
@@ -787,7 +787,7 @@ function UserDirectoryPage({ token, allowedActions }) {
                             <div>
                               <span
                                 className="bdt-name-link"
-                                style={{ color: 'var(--gsc-primary, #6e46ff)', fontWeight: 600, cursor: 'pointer' }}
+                                style={{ color: 'var(--gsc-primary, #6345ED)', fontWeight: 600, cursor: 'pointer' }}
                               >
                                 {getUserName(user)}
                               </span>

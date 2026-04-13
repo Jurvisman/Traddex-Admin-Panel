@@ -32,7 +32,7 @@ function ToggleSwitch({ id, checked, onChange, label, disabled }) {
           position: 'absolute',
           inset: 0,
           borderRadius: 20,
-          background: checked ? '#6e46ff' : '#d1d5db',
+          background: checked ? '#6345ED' : '#d1d5db',
           transition: 'background 0.2s',
         }} />
         <span style={{

@@ -28,7 +28,7 @@ const formatDate = (value) => {
 
 function StatCard({ label, value, sub, accent }) {
   return (
-    <div className="biz-stat-card" style={{ '--biz-accent': accent || 'var(--accent, #8660ff)' }}>
+    <div className="biz-stat-card" style={{ '--biz-accent': accent || 'var(--accent, #6345ED)' }}>
       <p className="biz-stat-label">{label}</p>
       <p className="biz-stat-value">{value}</p>
       {sub && <p className="biz-stat-sub">{sub}</p>}

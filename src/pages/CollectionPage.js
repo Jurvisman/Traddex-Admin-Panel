@@ -971,7 +971,7 @@ function CollectionPage({ token }) {
                       </div>
 
                       {/* Search & Add */}
-                      <div className="gsc-toolbar-search" style={{ width: '100%', margin: 0, border: '2px solid #6e46ff20', borderRadius: 12, transition: 'all 0.2s' }}>
+                      <div className="gsc-toolbar-search" style={{ width: '100%', margin: 0, border: '2px solid rgba(99, 69, 237, 0.12)', borderRadius: 12, transition: 'all 0.2s' }}>
                         <input
                           type="search"
                           placeholder="Search items to add..."
@@ -979,7 +979,7 @@ function CollectionPage({ token }) {
                           onChange={(e) => setProductPickerQuery(e.target.value)}
                           style={{ border: 'none', background: 'transparent', height: 40 }}
                         />
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16, color: '#6e46ff' }}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16, color: 'var(--accent)' }}>
                           <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
                         </svg>
                       </div>
@@ -1022,7 +1022,7 @@ function CollectionPage({ token }) {
                                       <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" style={{ width: 12, height: 12 }}><path d="M20 6 9 17l-5-5"/></svg>
                                     </div>
                                   ) : (
-                                    <span style={{ fontSize: 11, fontWeight: 700, color: '#6e46ff' }}>+ Add</span>
+                                    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)' }}>+ Add</span>
                                   )}
                                 </div>
                               );

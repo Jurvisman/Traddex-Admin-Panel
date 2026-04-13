@@ -1783,7 +1783,7 @@ function BusinessPage({ token, allowedActions }) {
                                             const used = feat.used_count ?? 0;
                                             const remaining = feat.remaining_count;
                                             const pct = limit != null && limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : null;
-                                            const barColor = pct == null ? '#8660ff' : pct >= 90 ? '#dc2626' : pct >= 70 ? '#d97706' : '#16a34a';
+                                            const barColor = pct == null ? '#6345ED' : pct >= 90 ? '#dc2626' : pct >= 70 ? '#d97706' : '#16a34a';
                                             return (
                                               <tr key={feat.feature_code || fi}>
                                                 <td>{fi + 1}</td>

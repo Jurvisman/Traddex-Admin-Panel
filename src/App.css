@@ -8,8 +8,8 @@
   --panel-soft: #f6f3ff;
   --ink: #0f1230;
   --muted: #6d7190;
-  --accent: #8660ff;
-  --accent-strong: #5c4bff;
+  --accent: #6345ED;
+  --accent-strong: #4f35c3;
   --line: #e5e2f4;
   --primary-color: #238257;
   --primary-light: rgba(42, 138, 95, 0.12);
@@ -759,7 +759,7 @@ textarea {
 }
 .inline-spinner.dark {
   border-color: rgba(110, 70, 255, 0.2);
-  border-top-color: #6e46ff;
+  border-top-color: #6345ED;
 }
 @keyframes spinRotate {
   to { transform: rotate(360deg); }
@@ -778,7 +778,7 @@ textarea {
   width: 36px;
   height: 36px;
   border: 3px solid #e5e2f4;
-  border-top-color: #6e46ff;
+  border-top-color: #6345ED;
   border-radius: 50%;
   animation: spinRotate 0.7s linear infinite;
 }
@@ -3177,7 +3177,7 @@ textarea {
   border: none;
   background: transparent;
   font: inherit;
-  color: #6e46ff;
+  color: #6345ED;
   font-weight: 600;
   cursor: pointer;
 }
@@ -3675,7 +3675,7 @@ textarea {
   min-height: 150px;
   padding: 12px;
   color: #ffffff;
-  background: #6e46ff;
+  background: #6345ED;
   background-size: cover;
   background-position: center;
   display: flex;
@@ -12015,7 +12015,7 @@ textarea {
 .role-permission-page .users-table input[type='checkbox'] {
   width: 16px;
   height: 16px;
-  accent-color: #6e46ff;
+  accent-color: #6345ED;
 }
 
 .role-permission-groups {
@@ -12689,7 +12689,7 @@ textarea {
   --gsc-stage-border: #e5e7eb;
   --gsc-card: #ffffff;
   --gsc-card-soft: #f8f9fa;
-  --gsc-primary: #6e46ff;
+  --gsc-primary: #6345ED;
   --gsc-primary-soft: color-mix(in srgb, #417914 40%, #ffffff);
   --gsc-primary-border: rgba(65, 121, 20, 0.22);
   --gsc-text: #30353a;
@@ -16022,7 +16022,7 @@ textarea {
   transition: background 0.15s;
 }
 .bdt-dropdown-option:hover { background: var(--panel-soft, #f6f3ff); }
-.bdt-dropdown-option.selected { background: var(--accent, #8660ff); color: #fff; }
+.bdt-dropdown-option.selected { background: var(--accent, #6345ED); color: #fff; }
 .bdt-dropdown-option.danger { color: #ef4444; }
 .bdt-dropdown-option.danger:hover { background: #fef2f2; }
 
@@ -16038,12 +16038,12 @@ textarea {
   transition: background 0.15s;
 }
 .bdt-column-toggle:hover { background: var(--panel-soft, #f6f3ff); }
-.bdt-column-toggle input[type="checkbox"] { accent-color: var(--accent, #8660ff); }
+.bdt-column-toggle input[type="checkbox"] { accent-color: var(--accent, #6345ED); }
 
 /* Active toolbar button state */
 .gsc-toolbar-btn.active {
   background: var(--panel-soft, #f6f3ff);
-  color: var(--accent, #8660ff);
+  color: var(--accent, #6345ED);
 }
 
 .product-toolbar-panel {
@@ -16086,8 +16086,8 @@ textarea {
 
 .product-toolbar-select:focus {
   outline: none;
-  border-color: var(--accent, #8660ff);
-  box-shadow: 0 0 0 3px rgba(134, 96, 255, 0.12);
+  border-color: var(--accent, #6345ED);
+  box-shadow: 0 0 0 3px rgba(99, 69, 237, 0.12);
 }
 
 .product-filter-strip {
@@ -16130,8 +16130,8 @@ textarea {
 }
 
 .product-filter-field select:focus {
-  border-color: var(--accent, #8660ff);
-  box-shadow: 0 0 0 3px rgba(134, 96, 255, 0.12);
+  border-color: var(--accent, #6345ED);
+  box-shadow: 0 0 0 3px rgba(99, 69, 237, 0.12);
 }
 
 .product-filter-clear {
@@ -16242,8 +16242,8 @@ textarea {
 }
 
 .product-pagination-size select:focus {
-  border-color: #8660ff;
-  box-shadow: 0 0 0 3px rgba(134, 96, 255, 0.12);
+  border-color: #6345ED;
+  box-shadow: 0 0 0 3px rgba(99, 69, 237, 0.12);
 }
 
 @media (max-width: 1180px) {
@@ -16469,7 +16469,7 @@ textarea {
   border: 1px solid var(--line, #e5e2f4);
   border-radius: 14px;
   padding: 18px;
-  border-top: 3px solid var(--biz-accent, var(--accent, #8660ff));
+  border-top: 3px solid var(--biz-accent, var(--accent, #6345ED));
 }
 .biz-stat-label { font-size: 12px; color: var(--muted, #6d7190); margin: 0 0 4px; }
 .biz-stat-value { font-size: 28px; font-weight: 800; color: var(--ink, #0f1230); margin: 0 0 2px; }
@@ -16744,8 +16744,8 @@ textarea {
 }
 .bv-tab-btn:hover { color: var(--admin-ink, #111827); }
 .bv-tab-btn.active {
-  color: var(--accent, #8660ff);
-  border-bottom-color: var(--accent, #8660ff);
+  color: var(--accent, #6345ED);
+  border-bottom-color: var(--accent, #6345ED);
 }
 
 /* ── Tab content ───────────────────────────────────────────── */
@@ -17022,8 +17022,8 @@ textarea {
 }
 
 .bv-table-filter-select:focus {
-  border-color: #8660ff;
-  box-shadow: 0 0 0 3px rgba(134, 96, 255, 0.12);
+  border-color: #6345ED;
+  box-shadow: 0 0 0 3px rgba(99, 69, 237, 0.12);
 }
 
 .bv-table-footer {
@@ -20797,7 +20797,7 @@ textarea {
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #8660ff 0%, #5c4bff 100%);
+  background: linear-gradient(135deg, #6345ED 0%, #4f35c3 100%);
   color: #ffffff;
   display: flex;
   align-items: center;

@@ -100,7 +100,7 @@ function ToggleSwitch({ id, checked, onChange, label, disabled }) {
         />
         <span style={{
           position: 'absolute', inset: 0, borderRadius: 20,
-          background: checked ? '#6e46ff' : '#d1d5db',
+          background: checked ? 'var(--accent)' : '#d1d5db',
           transition: 'background 0.2s',
         }} />
         <span style={{
@@ -735,8 +735,8 @@ function CategoryPage({ token }) {
                   style={{
                     padding: '11px 16px 10px',
                     border: 'none', background: 'none',
-                    borderBottom: isActive ? '2px solid #6e46ff' : '2px solid transparent',
-                    color: isDisabled ? '#d1d5db' : isActive ? '#6e46ff' : '#64748b',
+                    borderBottom: isActive ? '2px solid var(--accent)' : '2px solid transparent',
+                    color: isDisabled ? '#d1d5db' : isActive ? 'var(--accent)' : '#64748b',
                     fontWeight: isActive ? 700 : 500,
                     fontSize: 13, cursor: isDisabled ? 'not-allowed' : 'pointer',
                     transition: 'all 0.15s',
@@ -908,7 +908,7 @@ function CategoryPage({ token }) {
                         onClick={() => setModalTab('fields')}
                         style={{
                           padding: '9px 18px', borderRadius: 8, fontSize: 13, fontWeight: 600,
-                          border: '1.5px solid #6e46ff', background: 'transparent', color: '#6e46ff', cursor: 'pointer',
+                          border: '1.5px solid var(--accent)', background: 'transparent', color: 'var(--accent)', cursor: 'pointer',
                         }}
                       >
                         Manage Fields →
@@ -920,7 +920,7 @@ function CategoryPage({ token }) {
                       style={{
                         padding: '9px 22px', borderRadius: 8, fontSize: 13, fontWeight: 600,
                         border: 'none', cursor: isFormSaving ? 'not-allowed' : 'pointer',
-                        background: isFormSaving ? '#e2e8f0' : 'linear-gradient(135deg, #6e46ff, #8b5cf6)',
+                        background: isFormSaving ? '#e2e8f0' : 'linear-gradient(135deg, var(--accent), var(--accent-strong))',
                         color: isFormSaving ? '#9ca3af' : '#fff',
                         boxShadow: isFormSaving ? 'none' : '0 4px 10px rgba(110,70,255,0.25)',
                       }}
@@ -963,7 +963,7 @@ function CategoryPage({ token }) {
                           flex: 1, padding: '8px 12px', borderRadius: 8, border: 'none',
                           fontSize: 13, fontWeight: addFieldMode === key ? 600 : 500,
                           background: addFieldMode === key ? '#fff' : 'transparent',
-                          color: addFieldMode === key ? '#6e46ff' : '#6b7280',
+                          color: addFieldMode === key ? 'var(--accent)' : '#6b7280',
                           boxShadow: addFieldMode === key ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
                           cursor: 'pointer', transition: 'all 0.15s',
                         }}
@@ -1018,7 +1018,7 @@ function CategoryPage({ token }) {
                                 style={{
                                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                                   gap: 12, width: '100%', padding: '10px 14px', textAlign: 'left',
-                                  border: selected ? '1.5px solid #6e46ff' : '1.5px solid #e2e8f0',
+                                  border: selected ? '1.5px solid var(--accent)' : '1.5px solid #e2e8f0',
                                   borderRadius: 10, background: selected ? '#faf5ff' : '#fff',
                                   cursor: 'pointer', transition: 'all 0.12s',
                                   boxShadow: selected ? '0 0 0 3px rgba(110,70,255,0.1)' : 'none',
@@ -1035,7 +1035,7 @@ function CategoryPage({ token }) {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                                   <TypeBadge type={typeLabel(def.dataType)} />
                                   {selected && (
-                                    <span style={{ width: 18, height: 18, borderRadius: '50%', background: '#6e46ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <span style={{ width: 18, height: 18, borderRadius: '50%', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                       <svg viewBox="0 0 12 12" fill="none" stroke="#fff" strokeWidth="2" style={{ width: 10, height: 10 }}>
                                         <path d="M2 6l3 3 5-5" />
                                       </svg>
@@ -1067,7 +1067,7 @@ function CategoryPage({ token }) {
                             disabled={isSavingField}
                             style={{
                               padding: '8px 20px', borderRadius: 8, fontSize: 13, fontWeight: 600, border: 'none',
-                              background: isSavingField ? '#e2e8f0' : 'linear-gradient(135deg, #6e46ff, #8b5cf6)',
+                              background: isSavingField ? '#e2e8f0' : 'linear-gradient(135deg, var(--accent), var(--accent-strong))',
                               color: isSavingField ? '#9ca3af' : '#fff', cursor: isSavingField ? 'not-allowed' : 'pointer',
                               boxShadow: isSavingField ? 'none' : '0 3px 8px rgba(110,70,255,0.25)',
                             }}
@@ -1098,7 +1098,7 @@ function CategoryPage({ token }) {
                           />
                           {fieldEditor.label && (
                             <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
-                              Key: <code style={{ color: '#6e46ff' }}>{toFieldKey(fieldEditor.label) || '—'}</code>
+                              Key: <code style={{ color: 'var(--accent)' }}>{toFieldKey(fieldEditor.label) || '—'}</code>
                             </div>
                           )}
                         </div>
@@ -1153,8 +1153,8 @@ function CategoryPage({ token }) {
                               type="button"
                               onClick={handleAddOption}
                               style={{
-                                padding: '0 14px', height: 38, borderRadius: 8, border: '1.5px solid #6e46ff',
-                                background: 'transparent', color: '#6e46ff', fontWeight: 600, fontSize: 13, cursor: 'pointer',
+                                padding: '0 14px', height: 38, borderRadius: 8, border: '1.5px solid var(--accent)',
+                                background: 'transparent', color: 'var(--accent)', fontWeight: 600, fontSize: 13, cursor: 'pointer',
                               }}
                             >
                               Add
@@ -1222,7 +1222,7 @@ function CategoryPage({ token }) {
                           disabled={isSavingField}
                           style={{
                             padding: '8px 22px', borderRadius: 8, fontSize: 13, fontWeight: 600, border: 'none',
-                            background: isSavingField ? '#e2e8f0' : 'linear-gradient(135deg, #6e46ff, #8b5cf6)',
+                            background: isSavingField ? '#e2e8f0' : 'linear-gradient(135deg, var(--accent), var(--accent-strong))',
                             color: isSavingField ? '#9ca3af' : '#fff', cursor: isSavingField ? 'not-allowed' : 'pointer',
                             boxShadow: isSavingField ? 'none' : '0 3px 10px rgba(110,70,255,0.25)',
                           }}
@@ -1248,7 +1248,7 @@ function CategoryPage({ token }) {
                     </div>
                     <span style={{
                       padding: '3px 10px', borderRadius: 999, background: '#ede9fe',
-                      color: '#6e46ff', fontSize: 12, fontWeight: 700,
+                      color: 'var(--accent)', fontSize: 12, fontWeight: 700,
                     }}>
                       {assignedFields.length} {assignedFields.length === 1 ? 'field' : 'fields'}
                     </span>
