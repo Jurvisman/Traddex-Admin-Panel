@@ -1001,6 +1001,7 @@ function BusinessPage({ token, allowedActions }) {
     { key: 'personal', label: 'Personal' },
     { key: 'business', label: 'Business' },
     { key: 'bank', label: 'Banking' },
+    { key: 'kycdocs', label: 'KYC Documents' },
     { key: 'media', label: 'Media' },
     { key: 'products', label: 'Products', count: viewProducts.length, badgeCount: productPendingCount, badgeTone: 'danger' },
     { key: 'subscription', label: 'Subscription', count: viewSubscriptions.length },
@@ -1577,6 +1578,183 @@ function BusinessPage({ token, allowedActions }) {
 
                   {/* Banking Details */}
                   {activeTab === 'bank' ? renderFieldGrid(bankFields, 'No bank details available.') : null}
+
+                  {/* KYC Documents */}
+                  {activeTab === 'kycdocs' ? (() => {
+                    const bp  = viewBusinessProfile || {};
+                    const up  = viewUserProfile    || {};
+                    const raw = viewDetails        || {};
+
+                    const pick = (...keys) => {
+                      for (const k of keys) {
+                        const v = bp[k] ?? up[k] ?? raw[k];
+                        if (v) return v;
+                      }
+                      return undefined;
+                    };
+                    const pickBool = (...keys) => {
+                      for (const k of keys) {
+                        const v = bp[k] ?? up[k] ?? raw[k];
+                        if (v !== undefined && v !== null) return Boolean(v);
+                      }
+                      return false;
+                    };
+                    const isPdf = (url) => typeof url === 'string' && url.toLowerCase().includes('.pdf');
+
+                    // ── Entity type meta ─────────────────────────────────────────
+                    const ENTITY_META = {
+                      HOME_BASED: { label: 'Home-based / Personal Business', icon: '🏠', color: '#7c3aed', bg: '#f5f3ff', border: '#ddd6fe' },
+                      SHOP:       { label: 'Dukan / Shop',                   icon: '🏪', color: '#0369a1', bg: '#f0f9ff', border: '#bae6fd' },
+                      MSME:       { label: 'MSME / Udyam Registered',        icon: '🏭', color: '#b45309', bg: '#fffbeb', border: '#fde68a' },
+                      GST:        { label: 'GST Registered Business',        icon: '📋', color: '#065f46', bg: '#ecfdf5', border: '#a7f3d0' },
+                      COMPANY:    { label: 'Company / Firm',                 icon: '🏢', color: '#1e40af', bg: '#eff6ff', border: '#bfdbfe' },
+                    };
+
+                    // ── Required docs per entity type ────────────────────────────
+                    // Each entry: { id, label, urlKey, verifiedKey, verifiedLabel, metaKey, required }
+                    const ALL_DOCS = {
+                      aadhaarFront:   { id: 'aadhaarFront',   label: 'Aadhaar — Front',        url: pick('aadhaarFrontDocUrl','aadhaar_front_doc_url'),   verified: pickBool('aadhaarVerified','aadhaar_verified'),   verifiedLabel: 'Aadhaar Verified' },
+                      aadhaarBack:    { id: 'aadhaarBack',    label: 'Aadhaar — Back',         url: pick('aadhaarBackDocUrl','aadhaar_back_doc_url'),    verified: pickBool('aadhaarVerified','aadhaar_verified') },
+                      pan:            { id: 'pan',            label: 'PAN Card',               url: pick('panDocUrl','pan_doc_url'),                     verified: pickBool('panVerified','pan_verified'),           verifiedLabel: 'PAN Verified',    meta: pick('businessPan','business_pan') },
+                      gst:            { id: 'gst',            label: 'GST Certificate',        url: pick('gstDocUrl','gst_doc_url'),                     verified: pickBool('gstVerified','gst_verified'),           verifiedLabel: 'GST Verified',    meta: pick('gstNumber','gst_number') },
+                      udyam:          { id: 'udyam',          label: 'Udyam Certificate',      url: pick('udyamDocUrl','udyam_doc_url'),                 verified: pickBool('udyamVerified','udyam_verified'),       verifiedLabel: 'Udyam Verified',  meta: pick('udyam','udyamNumber','udyam_number') },
+                      businessProof:  { id: 'businessProof',  label: 'Business Proof / License', url: pick('businessProofDocUrl','business_proof_doc_url'), verified: false, meta: pick('licenseNumber','license_number') },
+                      addressProof:   { id: 'addressProof',   label: (() => { const t = pick('addressProofType','address_proof_type'); return t ? `Address Proof — ${String(t).replace(/_/g,' ')}` : 'Address Proof'; })(), url: pick('addressProofDocUrl','address_proof_doc_url'), verified: false },
+                      bankProof:      { id: 'bankProof',      label: (() => { const t = pick('bankProofType','bank_proof_type'); return t ? `Bank Proof — ${String(t).replace(/_/g,' ')}` : 'Bank Proof'; })(),           url: pick('bankProofDocUrl','bank_proof_doc_url'),      verified: pickBool('pennyDropVerified','penny_drop_verified'), verifiedLabel: 'Penny Drop ✓' },
+                    };
+
+                    const ENTITY_REQUIRED = {
+                      HOME_BASED: ['aadhaarFront','aadhaarBack','pan','addressProof','bankProof'],
+                      SHOP:       ['aadhaarFront','aadhaarBack','pan','businessProof','addressProof','bankProof'],
+                      MSME:       ['aadhaarFront','aadhaarBack','pan','udyam','addressProof','bankProof'],
+                      GST:        ['aadhaarFront','aadhaarBack','pan','gst','addressProof','bankProof'],
+                      COMPANY:    ['aadhaarFront','aadhaarBack','pan','gst','businessProof','addressProof','bankProof'],
+                    };
+
+                    const entityType   = (pick('businessEntityType','business_entity_type') || '').toUpperCase();
+                    const entityMeta   = ENTITY_META[entityType];
+                    const requiredIds  = ENTITY_REQUIRED[entityType] || Object.keys(ALL_DOCS);
+                    const requiredDocs = requiredIds.map((id) => ALL_DOCS[id]);
+
+                    const uploadedCount  = requiredDocs.filter((d) => Boolean(d.url)).length;
+                    const verifiedCount  = requiredDocs.filter((d) => Boolean(d.verified)).length;
+                    const completePct    = Math.round((uploadedCount / requiredDocs.length) * 100);
+
+                    // ── KYC status badge ─────────────────────────────────────────
+                    const kycStatus = (pick('status') || '').toUpperCase();
+                    const kycStatusMeta = {
+                      VERIFIED:       { label: 'KYC Verified',       cls: 'kyc-status-verified' },
+                      APPROVED:       { label: 'KYC Approved',       cls: 'kyc-status-verified' },
+                      ACTIVE:         { label: 'Active',             cls: 'kyc-status-verified' },
+                      PENDING_REVIEW: { label: 'Pending Review',     cls: 'kyc-status-pending'  },
+                      SUBMITTED:      { label: 'Submitted',          cls: 'kyc-status-submitted'},
+                      REJECTED:       { label: 'Rejected',           cls: 'kyc-status-rejected' },
+                    }[kycStatus] || { label: kycStatus || 'Unknown', cls: 'kyc-status-pending' };
+
+                    // ── Section groups ───────────────────────────────────────────
+                    const SECTION_GROUPS = [
+                      { title: 'Identity Documents',   ids: ['aadhaarFront','aadhaarBack','pan'] },
+                      { title: 'Business Registration',ids: ['gst','udyam','businessProof'] },
+                      { title: 'Address Proof',        ids: ['addressProof'] },
+                      { title: 'Bank Proof',           ids: ['bankProof'] },
+                    ];
+
+                    const DocCard = ({ doc }) => (
+                      <div className={`bv-kycdoc-card ${doc.url ? 'bv-kycdoc-card-filled' : 'bv-kycdoc-card-missing'}`}>
+                        <div className="bv-kycdoc-label-row">
+                          <span className="bv-kycdoc-label">{doc.label}</span>
+                          {doc.verified
+                            ? <span className="bv-kycdoc-badge bv-kycdoc-badge-verified">{doc.verifiedLabel || '✓ Verified'}</span>
+                            : doc.url
+                              ? <span className="bv-kycdoc-badge bv-kycdoc-badge-uploaded">Uploaded</span>
+                              : <span className="bv-kycdoc-badge bv-kycdoc-badge-missing">Missing</span>
+                          }
+                        </div>
+                        {doc.meta ? <p className="bv-kycdoc-meta">{doc.meta}</p> : null}
+                        {doc.url ? (
+                          isPdf(doc.url)
+                            ? <a href={doc.url} target="_blank" rel="noopener noreferrer" className="bv-kycdoc-pdf-link">📄 View PDF</a>
+                            : <a href={doc.url} target="_blank" rel="noopener noreferrer"><img src={doc.url} alt={doc.label} className="bv-kycdoc-img" /></a>
+                        ) : (
+                          <div className="bv-kycdoc-empty">Not uploaded</div>
+                        )}
+                      </div>
+                    );
+
+                    return (
+                      <div className="bv-kycdocs-tab">
+
+                        {/* ── Entity type header ── */}
+                        {entityMeta ? (
+                          <div className="bv-kyc-entity-header" style={{ background: entityMeta.bg, borderColor: entityMeta.border }}>
+                            <span className="bv-kyc-entity-icon">{entityMeta.icon}</span>
+                            <div className="bv-kyc-entity-info">
+                              <span className="bv-kyc-entity-label" style={{ color: entityMeta.color }}>{entityMeta.label}</span>
+                              <span className="bv-kyc-entity-sub">Documents required for this registration type</span>
+                            </div>
+                            <span className={`bv-kyc-status-badge ${kycStatusMeta.cls}`}>{kycStatusMeta.label}</span>
+                          </div>
+                        ) : (
+                          <div className="bv-kyc-entity-header" style={{ background: '#f9fafb', borderColor: '#e5e7eb' }}>
+                            <span className="bv-kyc-entity-icon">📁</span>
+                            <div className="bv-kyc-entity-info">
+                              <span className="bv-kyc-entity-label" style={{ color: '#374151' }}>KYC Documents</span>
+                              <span className="bv-kyc-entity-sub">Business entity type not specified — showing all documents</span>
+                            </div>
+                            <span className={`bv-kyc-status-badge ${kycStatusMeta.cls}`}>{kycStatusMeta.label}</span>
+                          </div>
+                        )}
+
+                        {/* ── Completeness bar ── */}
+                        <div className="bv-kyc-progress-wrap">
+                          <div className="bv-kyc-progress-row">
+                            <span className="bv-kyc-progress-label">{uploadedCount} of {requiredDocs.length} documents uploaded</span>
+                            <span className="bv-kyc-progress-pct">{completePct}%</span>
+                          </div>
+                          <div className="bv-kyc-progress-bar">
+                            <div className="bv-kyc-progress-fill" style={{ width: `${completePct}%`, background: completePct === 100 ? '#16a34a' : completePct >= 60 ? '#f59e0b' : '#ef4444' }} />
+                          </div>
+                          <div className="bv-kyc-progress-tags">
+                            {[
+                              { label: 'Aadhaar',    done: pickBool('aadhaarVerified','aadhaar_verified') },
+                              { label: 'PAN',        done: pickBool('panVerified','pan_verified') },
+                              { label: 'GST',        done: pickBool('gstVerified','gst_verified'),   show: requiredIds.includes('gst') },
+                              { label: 'Udyam',      done: pickBool('udyamVerified','udyam_verified'), show: requiredIds.includes('udyam') },
+                              { label: 'Penny Drop', done: pickBool('pennyDropVerified','penny_drop_verified') },
+                            ].filter((t) => t.show !== false).map(({ label, done }) => (
+                              <span key={label} className={`bv-kyc-pill ${done ? 'bv-kyc-pill-done' : 'bv-kyc-pill-pending'}`}>
+                                {done ? '✓' : '○'} {label}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* ── Document sections ── */}
+                        {SECTION_GROUPS.map((group) => {
+                          const docs = group.ids
+                            .filter((id) => requiredIds.includes(id))
+                            .map((id) => ALL_DOCS[id]);
+                          if (docs.length === 0) return null;
+                          const allUploaded = docs.every((d) => Boolean(d.url));
+                          return (
+                            <div key={group.title} className="bv-media-section">
+                              <div className="bv-kycdoc-section-header">
+                                <p className="bv-section-title" style={{ margin: 0 }}>{group.title}</p>
+                                <span className={`bv-kycdoc-section-status ${allUploaded ? 'bv-kycdoc-sec-ok' : 'bv-kycdoc-sec-pend'}`}>
+                                  {allUploaded ? '✓ Complete' : `${docs.filter(d=>d.url).length}/${docs.length} uploaded`}
+                                </span>
+                              </div>
+                              <div className="bv-kycdoc-grid">
+                                {docs.map((doc) => <DocCard key={doc.id} doc={doc} />)}
+                              </div>
+                            </div>
+                          );
+                        })}
+
+
+                      </div>
+                    );
+                  })() : null}
 
                   {/* Media */}
                   {activeTab === 'media' ? (() => {
