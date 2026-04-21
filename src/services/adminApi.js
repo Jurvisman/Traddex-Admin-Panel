@@ -173,6 +173,37 @@ export const updateProductVariantStatus = (token, productId, variantId, payload)
 export const reviewProductBrand = (token, productId, payload) =>
   request(`/admin/product/${productId}/brand/review`, { method: 'PUT', body: payload, token });
 
+// --- Admin Service APIs ---
+
+export const listServices = (token, filters = {}) => {
+  const params = new URLSearchParams();
+  if (filters.status) params.set('status', filters.status);
+  if (filters.query) params.set('query', filters.query);
+  if (filters.page !== null && filters.page !== undefined) params.set('page', String(filters.page));
+  if (filters.size !== null && filters.size !== undefined) params.set('size', String(filters.size));
+  const query = params.toString() ? `?${params.toString()}` : '';
+  return request(`/admin/service/getall${query}`, { token });
+};
+
+export const getService = (token, id) => request(`/admin/service/${id}`, { token });
+
+export const createService = (token, payload) =>
+  request('/admin/service/create', { method: 'POST', body: payload, token });
+
+export const updateService = (token, id, payload) =>
+  request(`/admin/service/${id}/update`, { method: 'PUT', body: payload, token });
+
+export const assignServiceCategory = (token, id, mainCategoryId, categoryId, subCategoryId) => {
+  const params = new URLSearchParams();
+  params.set('mainCategoryId', mainCategoryId);
+  params.set('categoryId', categoryId);
+  if (subCategoryId) params.set('subCategoryId', subCategoryId);
+  const query = `?${params.toString()}`;
+  return request(`/admin/service/${id}/assign-category${query}`, { method: 'PUT', token });
+};
+
+export const deleteService = (token, id) => request(`/admin/service/${id}`, { method: 'DELETE', token });
+
 const requestMultipart = async (path, { method = 'POST', formData, token: authToken } = {}) => {
   const headers = {};
   if (authToken) headers.Authorization = `Bearer ${authToken}`;

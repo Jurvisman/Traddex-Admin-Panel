@@ -20085,7 +20085,8 @@ textarea {
   color: #6b7280;
 }
 .rws-field input,
-.rws-field select {
+.rws-field select,
+.rws-field textarea {
   height: 38px;
   padding: 8px 12px;
   border: 1px solid #d1d5db;
@@ -20096,14 +20097,21 @@ textarea {
   font-family: inherit;
   transition: border-color 0.15s;
 }
+.rws-field textarea {
+  min-height: 96px;
+  resize: vertical;
+  line-height: 1.5;
+}
 .rws-field input:focus,
-.rws-field select:focus {
+.rws-field select:focus,
+.rws-field textarea:focus {
   border-color: #6366f1;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
   outline: none;
 }
 .rws-field input:disabled,
-.rws-field select:disabled {
+.rws-field select:disabled,
+.rws-field textarea:disabled {
   background: #f9fafb;
   color: #9ca3af;
   cursor: not-allowed;
@@ -21116,4 +21124,3 @@ textarea {
   border-radius: 12px;
   border: 1px solid #e2e8f0;
 }
-

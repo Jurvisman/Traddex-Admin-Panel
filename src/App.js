@@ -46,6 +46,8 @@ import {
   AdPricingConfigPage,
   AuditLogsPage,
   KycAssistancePage,
+  ServicePage,
+  ServiceCreatePage,
 } from './pages';
 import { fetchMyPermissions } from './services/adminApi';
 import { PermissionsContext } from './shared/permissions';
@@ -97,6 +99,11 @@ const ICONS = {
         d="M4 5h6v6H4V5Zm10 0h6v6h-6V5ZM4 13h6v6H4v-6Zm9 2h7v2h-7v-2Z"
         fill="currentColor"
       />
+    </svg>
+  ),
+  services: (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2Zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8Zm-1-13h2v6h-2V7Zm0 8h2v2h-2v-2Z" fill="currentColor" />
     </svg>
   ),
   products: (
@@ -225,6 +232,7 @@ const NAV_TONES = {
   catalog: { base: '#F59E0B', soft: 'rgba(245, 158, 11, 0.16)', shadow: 'rgba(245, 158, 11, 0.3)' },
   fields: { base: '#8B5CF6', soft: 'rgba(139, 92, 246, 0.16)', shadow: 'rgba(139, 92, 246, 0.3)' },
   products: { base: '#14B8A6', soft: 'rgba(20, 184, 166, 0.16)', shadow: 'rgba(20, 184, 166, 0.3)' },
+  services: { base: '#6366F1', soft: 'rgba(99, 102, 241, 0.16)', shadow: 'rgba(99, 102, 241, 0.3)' },
   inquiryConfig: { base: '#F97316', soft: 'rgba(249, 115, 22, 0.16)', shadow: 'rgba(249, 115, 22, 0.3)' },
   inquiryReport: { base: '#EF4444', soft: 'rgba(239, 68, 68, 0.16)', shadow: 'rgba(239, 68, 68, 0.3)' },
   subOverview: { base: '#3B82F6', soft: 'rgba(59, 130, 246, 0.16)', shadow: 'rgba(59, 130, 246, 0.3)' },
@@ -310,6 +318,11 @@ const ADMIN_META = [
     matchPrefix: '/admin/products',
     title: 'Products',
     subtitle: 'Create and manage products submitted by businesses.',
+  },
+  {
+    matchPrefix: '/admin/services',
+    title: 'Services',
+    subtitle: 'Review and moderate service listings submitted by businesses.',
   },
   {
     match: '/admin/inquiry/config',
@@ -596,6 +609,7 @@ function AppRoutes() {
           { path: '/admin/users', label: 'User', icon: ICONS.users, tone: NAV_TONES.users, exact: true },
           { path: '/admin/businesses', label: 'Business', icon: ICONS.business, tone: NAV_TONES.business },
           { path: '/admin/products', label: 'Product', icon: ICONS.products, tone: NAV_TONES.products },
+          { path: '/admin/services', label: 'Service', icon: ICONS.services, tone: NAV_TONES.services },
           {
             key: 'product-masters-root',
             label: 'Product Masters',
@@ -1210,6 +1224,66 @@ function AppRoutes() {
               fallbackPath={routeFallbackPath}
             >
               <ProductPage token={authToken} adminUserId={authUserId} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="services"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={
+                canAccessPath('/admin/services') &&
+                allowedActionCodes.has('ADMIN_CATALOG_MANAGER_READ')
+              }
+              fallbackPath={routeFallbackPath}
+            >
+              <ServicePage token={authToken} adminUserId={authUserId} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="services/create"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={
+                canAccessPath('/admin/services') &&
+                allowedActionCodes.has('ADMIN_CATALOG_MANAGER_READ')
+              }
+              fallbackPath={routeFallbackPath}
+            >
+              <ServiceCreatePage token={authToken} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="services/:id"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={
+                canAccessPath('/admin/services') &&
+                allowedActionCodes.has('ADMIN_CATALOG_MANAGER_READ')
+              }
+              fallbackPath={routeFallbackPath}
+            >
+              <ServicePage token={authToken} adminUserId={authUserId} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="services/:id/edit"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={
+                canAccessPath('/admin/services') &&
+                allowedActionCodes.has('ADMIN_CATALOG_MANAGER_READ')
+              }
+              fallbackPath={routeFallbackPath}
+            >
+              <ServiceCreatePage token={authToken} />
             </PermissionGate>
           }
         />
