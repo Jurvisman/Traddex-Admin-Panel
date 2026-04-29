@@ -62,6 +62,9 @@ export const fetchRolePermissions = (token, roleId) => request(`/admin/rbac/role
 export const saveRolePermissions = (token, roleId, actionIds) =>
   request(`/admin/rbac/roles/${roleId}/permissions`, { method: 'PUT', body: { actionIds }, token });
 export const fetchMyPermissions = (token) => request('/admin/permissions', { token });
+export const fetchAppVisibilityScope = (token, scope) => request(`/admin/app-visibility/${scope}`, { token });
+export const saveAppVisibilityScope = (token, scope, items) =>
+  request(`/admin/app-visibility/${scope}`, { method: 'PUT', body: { scope, items }, token });
 export const fetchUserDetails = (token, id) => request(`/users/${id}/details`, { token });
 export const fetchBusinessDetails = (token, id) => request(`/admin/businesses/${id}/details`, { token });
 export const logoutUser = (token, id) => request(`/users/${id}/logout`, { method: 'POST', token });
