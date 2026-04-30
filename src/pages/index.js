@@ -29,6 +29,7 @@ export { default as AddonPricingPage } from './AddonPricingPage';
 export { default as EmployeePage } from './EmployeePage';
 export { default as RolePermissionPage } from './RolePermissionPage';
 export { default as AppConfigPage } from './AppConfigPage';
+export { default as AppVisibilityPage } from './AppVisibilityPage';
 export { default as OrderDisputesPage } from './OrderDisputesPage';
 export { default as OrderReturnsPage } from './OrderReturnsPage';
 export { default as ReviewModerationPage } from './ReviewModerationPage';

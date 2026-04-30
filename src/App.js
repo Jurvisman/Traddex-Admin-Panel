@@ -6,6 +6,7 @@ import {
   CategoryPage,
   BrandPage,
   AppConfigPage,
+  AppVisibilityPage,
   AdminTimezonesPage,
   BusinessPage,
   BusinessCreatePage,
@@ -676,6 +677,7 @@ function AppRoutes() {
             children: [
               { path: '/admin/settings/roles', label: 'Role & Permission', icon: ICONS.settingsRole, tone: NAV_TONES.settingsRole },
               { path: '/admin/settings/logs', label: 'Audit Logs', icon: ICONS.settingsRole, tone: NAV_TONES.settingsRole },
+              { path: '/admin/settings/app-visibility', label: 'App Visibility', icon: ICONS.appConfig, tone: NAV_TONES.appConfig },
             ],
           },
           { path: '/admin/app-config', label: 'CMS', icon: ICONS.appConfig, tone: NAV_TONES.appConfig },
@@ -1440,6 +1442,21 @@ function AppRoutes() {
               fallbackPath={routeFallbackPath}
             >
               <RolePermissionPage token={authToken} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="settings/app-visibility"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={
+                canAccessPath('/admin/settings/app-visibility') &&
+                allowedActionCodes.has('ADMIN_APP_VISIBILITY_READ')
+              }
+              fallbackPath={routeFallbackPath}
+            >
+              <AppVisibilityPage token={authToken} />
             </PermissionGate>
           }
         />
