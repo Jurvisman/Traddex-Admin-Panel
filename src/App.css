@@ -14901,6 +14901,41 @@ textarea {
   box-shadow: 0 0 0 1px var(--gsc-primary);
 }
 
+.admin-shell-gsc .plan-existing-subscribers-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 16px 0 4px;
+  padding: 14px 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #111827;
+}
+
+.admin-shell-gsc .plan-existing-subscribers-toggle input {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: var(--gsc-primary);
+}
+
+.admin-shell-gsc .plan-existing-subscribers-toggle span {
+  display: grid;
+  gap: 4px;
+}
+
+.admin-shell-gsc .plan-existing-subscribers-toggle strong {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.admin-shell-gsc .plan-existing-subscribers-toggle small {
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .admin-shell-gsc .select-checkbox {
   width: 18px;
   height: 18px;

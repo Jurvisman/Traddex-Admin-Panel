@@ -20,6 +20,7 @@ const initialForm = {
   font_color: '#0f1230',
   background_color: '#ffffff',
   is_active: '1',
+  apply_to_existing_subscribers: false,
 };
 
 const USER_TYPES = [
@@ -178,6 +179,7 @@ function SubscriptionPlanPage({ token }) {
       font_color: form.font_color || null,
       background_color: form.background_color || null,
       is_active: Number(form.is_active),
+      apply_to_existing_subscribers: Boolean(form.apply_to_existing_subscribers),
       features: featureRows
         .filter((row) => row.feature_id)
         .map((row) => ({
@@ -625,6 +627,24 @@ function SubscriptionPlanPage({ token }) {
                     />
                   </label>
                 </div>
+
+                {editingId ? (
+                  <label className="plan-existing-subscribers-toggle">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(form.apply_to_existing_subscribers)}
+                      onChange={(event) =>
+                        handleChange('apply_to_existing_subscribers', event.target.checked)
+                      }
+                    />
+                    <span>
+                      <strong>Apply newly added features to existing active subscribers</strong>
+                      <small>
+                        Keep off for new-subscriber-only rollout. Turn on only when old subscribers should receive the new entitlements now.
+                      </small>
+                    </span>
+                  </label>
+                ) : null}
 
                 <div className="plan-feature-card">
                   <div className="panel-split">
