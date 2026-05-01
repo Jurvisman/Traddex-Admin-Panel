@@ -46,3 +46,4 @@ export { default as AuditLogsPage } from './AuditLogsPage';
 export { default as KycAssistancePage } from './KycAssistancePage';
 export { default as ServicePage } from './ServicePage';
 export { default as ServiceCreatePage } from './ServiceCreatePage';
+export { default as StorefrontManagementPage } from './StorefrontManagementPage';
