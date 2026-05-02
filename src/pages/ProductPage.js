@@ -7,6 +7,7 @@ import {
   createProduct,
   createUom,
   deleteProduct,
+  deleteProductsBulk,
   deleteUom,
   fetchUsers,
   getProduct,
@@ -499,6 +500,8 @@ function ProductPage({ token, adminUserId }) {
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [showColumnPicker, setShowColumnPicker] = useState(false);
   const [showImportExportMenu, setShowImportExportMenu] = useState(false);
@@ -1050,7 +1053,17 @@ function ProductPage({ token, adminUserId }) {
       case 'code':
         return <span className="product-table-code">{getProductCode(product)}</span>;
       case 'name':
-        return <p className="user-name">{product?.productName || '-'}</p>;
+        return (
+          <p
+            className="user-name bdt-name-link"
+            onClick={() => handleViewProduct(getProductRecordId(product))}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === 'Enter' && handleViewProduct(getProductRecordId(product))}
+          >
+            {product?.productName || '-'}
+          </p>
+        );
       case 'business':
         return <span className="product-table-primary">{product?.businessName || '-'}</span>;
       case 'mainCategory':
@@ -2698,6 +2711,32 @@ function ProductPage({ token, adminUserId }) {
       }
       return next;
     });
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    console.log('Starting bulk delete for products:', Array.from(selectedIds));
+    setIsDeleting(true);
+    try {
+      const ids = Array.from(selectedIds);
+      const result = await deleteProductsBulk(token, ids);
+      console.log('Bulk delete successful:', result);
+      setMessage({ type: 'success', text: `Successfully deleted ${ids.length} product(s).` });
+      setSelectedIds(new Set());
+      setShowBulkDeleteConfirm(false);
+      // Reload the current page
+      await loadProducts({
+        page: productListPage,
+        size: productPageSize,
+        queryText: debouncedQuery,
+        filters: productFilters,
+      });
+    } catch (error) {
+      console.error('Bulk delete failed:', error);
+      setMessage({ type: 'error', text: error.message || 'Failed to delete products.' });
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleDelete = async (id) => {
@@ -6490,6 +6529,34 @@ function ProductPage({ token, adminUserId }) {
             <p className="empty-state">No products found.</p>
           ) : (
             <>
+              {/* Bulk action bar */}
+              {selectedIds.size > 0 && (
+                <div className="bdt-bulk-bar">
+                  <div className="bdt-bulk-info">
+                    <span className="bdt-bulk-count">{selectedIds.size}</span>
+                    <span className="bdt-bulk-label">row(s) selected</span>
+                  </div>
+                  <div className="bdt-bulk-actions">
+                    <button
+                      type="button"
+                      className="bdt-bulk-btn delete"
+                      onClick={() => setShowBulkDeleteConfirm(true)}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                      </svg>
+                      Delete
+                    </button>
+                    <button
+                      type="button"
+                      className="bdt-bulk-btn ghost"
+                      onClick={() => setSelectedIds(new Set())}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
               <div className="table-shell product-table-shell">
                 <table className="admin-table users-table product-table" style={{ minWidth: `${productTableMinWidth}px` }}>
                   <thead>
@@ -6522,7 +6589,6 @@ function ProductPage({ token, adminUserId }) {
                           <tr
                             key={productId}
                             className={canViewProduct ? 'table-row-clickable' : ''}
-                            onClick={canViewProduct ? () => handleViewProduct(productId) : undefined}
                           >
                           <td>
                             <input
@@ -6711,6 +6777,36 @@ function ProductPage({ token, adminUserId }) {
           )}
         </div>
       ) : null}
+      {showBulkDeleteConfirm && (
+        <div className="modal-backdrop" role="presentation">
+          <div className="modal-card small-modal">
+            <div className="modal-head">
+              <h3 className="panel-title">Delete Products</h3>
+            </div>
+            <div className="modal-body">
+              <p>Are you sure you want to delete {selectedIds.size} selected product(s)? This action will remove them from the active listing.</p>
+            </div>
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="ghost-btn"
+                onClick={() => setShowBulkDeleteConfirm(false)}
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="primary-btn danger"
+                onClick={handleBulkDelete}
+                disabled={isDeleting}
+              >
+                {isDeleting ? 'Deleting...' : 'Delete Products'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

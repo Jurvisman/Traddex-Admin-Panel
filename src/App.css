@@ -16576,11 +16576,71 @@ textarea {
   border-radius: 8px;
   margin-bottom: 12px;
 }
+
+.bdt-bulk-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+
 .bdt-bulk-count {
+  font-size: 14px;
+  font-weight: 700;
+  color: #92400e;
+}
+
+.bdt-bulk-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #b45309;
+}
+
+.bdt-bulk-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.bdt-bulk-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 8px;
   font-size: 13px;
   font-weight: 600;
-  color: #92400e;
-  flex: 1;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+}
+
+.bdt-bulk-btn.delete {
+  background: #dc2626;
+  color: #fff;
+  border-color: #dc2626;
+}
+
+.bdt-bulk-btn.delete:hover {
+  background: #b91c1c;
+  border-color: #b91c1c;
+}
+
+.bdt-bulk-btn.ghost {
+  background: transparent;
+  color: #4b5563;
+  border-color: #d1d5db;
+}
+
+.bdt-bulk-btn.ghost:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+  color: #111827;
+}
+
+.bdt-bulk-btn svg {
+  width: 16px;
+  height: 16px;
 }
 .ghost-btn.danger, .primary-btn.danger {
   color: #dc2626;

@@ -681,16 +681,19 @@ function BusinessPage({ token, allowedActions }) {
 
   const handleBulkDelete = async () => {
     if (!selectedRows.size) return;
+    console.log('Starting bulk delete for businesses:', Array.from(selectedRows));
     setIsDeleting(true);
     setMessage({ type: 'info', text: '' });
     try {
       const ids = Array.from(selectedRows);
-      await deleteUsersBulk(token, ids);
+      const result = await deleteUsersBulk(token, ids);
+      console.log('Bulk delete successful:', result);
       setSelectedRows(new Set());
       setShowBulkDeleteConfirm(false);
       await loadBusinesses();
       setMessage({ type: 'success', text: `${ids.length} business(es) deleted successfully.` });
     } catch (error) {
+      console.error('Bulk delete failed:', error);
       setMessage({ type: 'error', text: error.message || 'Failed to delete businesses.' });
     } finally {
       setIsDeleting(false);
@@ -1231,17 +1234,29 @@ function BusinessPage({ token, allowedActions }) {
             {/* Bulk action bar */}
             {selectedRows.size > 0 && (
               <div className="bdt-bulk-bar">
-                <span className="bdt-bulk-count">{selectedRows.size} selected</span>
-                <button
-                  type="button"
-                  className="ghost-btn small danger"
-                  onClick={() => setShowBulkDeleteConfirm(true)}
-                >
-                  Delete Selected
-                </button>
-                <button type="button" className="ghost-btn small" onClick={() => setSelectedRows(new Set())}>
-                  Clear Selection
-                </button>
+                <div className="bdt-bulk-info">
+                  <span className="bdt-bulk-count">{selectedRows.size}</span>
+                  <span className="bdt-bulk-label">business(es) selected</span>
+                </div>
+                <div className="bdt-bulk-actions">
+                  <button
+                    type="button"
+                    className="bdt-bulk-btn delete"
+                    onClick={() => setShowBulkDeleteConfirm(true)}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    </svg>
+                    Delete Selected
+                  </button>
+                  <button
+                    type="button"
+                    className="bdt-bulk-btn ghost"
+                    onClick={() => setSelectedRows(new Set())}
+                  >
+                    Clear Selection
+                  </button>
+                </div>
               </div>
             )}
 
@@ -1250,7 +1265,7 @@ function BusinessPage({ token, allowedActions }) {
               <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
                 <div className="admin-modal confirm-modal">
                   <h3 className="panel-subheading">Delete {selectedRows.size} Business(es)?</h3>
-                  <p className="panel-subtitle">This action cannot be undone. All selected business accounts will be permanently removed.</p>
+                  <p className="panel-subtitle">Are you sure you want to delete the selected business accounts? This will mark them as deleted and remove them from the active listings.</p>
                   <div className="form-actions" style={{ marginTop: 20 }}>
                     <button type="button" className="ghost-btn" onClick={() => setShowBulkDeleteConfirm(false)} disabled={isDeleting}>
                       Cancel
