@@ -46,7 +46,7 @@ export const fromLocalInputValue = (value) => {
   if (Number.isNaN(parsed.getTime())) return '';
   return parsed.toISOString();
 };
-export const isHardcodedSection = (section) => section?.type === 'hardcoded';
+export const isHardcodedSection = (section) => section?.type === 'hardcoded' || section?.type === 'fixed';
 export const isHomeMainPage = (page) => page?.id === 'home_main' || page?.route === '/home';
 
 export const screenSectionTypeOptions = [
@@ -4296,6 +4296,94 @@ export const screenToolboxItems = [
       actionText: 'Manage',
       enabled: true,
       items: TRAVEL_BOOKINGS_SAMPLE.map((item) => ({ ...item })),
+    },
+  },
+  {
+    key: 'statsRowFixed',
+    label: 'Sales Report',
+    hint: 'Hardcoded sales and statistics dashboard card',
+    section: {
+      id: 'stats_row',
+      type: 'hardcoded',
+      title: 'Sales Report',
+      enabled: true,
+    },
+  },
+  {
+    key: 'b2bB2cFixed',
+    label: 'B2B & B2C',
+    hint: 'Hardcoded marketplace performance breakdown',
+    section: {
+      id: 'b2b_b2c',
+      type: 'hardcoded',
+      title: 'B2B & B2C',
+      enabled: true,
+    },
+  },
+  {
+    key: 'quickActionFixed',
+    label: 'Quick Action',
+    hint: 'Hardcoded pending tasks and quick links',
+    section: {
+      id: 'quick_action',
+      type: 'hardcoded',
+      title: 'Quick Action',
+      enabled: true,
+    },
+  },
+  {
+    key: 'businessOfMonthFixed',
+    label: 'Business of Month',
+    hint: 'Hardcoded spotlight for top performing business',
+    section: {
+      id: 'business_of_month',
+      type: 'hardcoded',
+      title: 'Business of Month',
+      enabled: true,
+    },
+  },
+  {
+    key: 'trendingCategoriesFixed',
+    label: 'Trending Categories',
+    hint: 'Hardcoded trending product categories',
+    section: {
+      id: 'trending_categories',
+      type: 'hardcoded',
+      title: 'Categories of Trending',
+      enabled: true,
+    },
+  },
+  {
+    key: 'bestsellersFixed',
+    label: 'Bestsellers',
+    hint: 'Hardcoded best performing products list',
+    section: {
+      id: 'bestsellers',
+      type: 'hardcoded',
+      title: 'Bestsellers',
+      enabled: true,
+    },
+  },
+  {
+    key: 'servicesNearYouFixed',
+    label: 'Services Near You',
+    hint: 'Hardcoded local services recommendations',
+    section: {
+      id: 'services_near_you',
+      type: 'hardcoded',
+      title: 'Services Near You',
+      enabled: true,
+    },
+  },
+  {
+    key: 'businessHealthFixed',
+    label: 'Your Business Health',
+    hint: 'Hardcoded business health metrics and insights',
+    section: {
+      id: 'business_health',
+      type: 'hardcoded',
+      title: 'Your Business Health',
+      enabled: true,
     },
   },
   {

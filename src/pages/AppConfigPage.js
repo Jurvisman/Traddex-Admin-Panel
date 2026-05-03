@@ -452,7 +452,7 @@ function AppConfigPage({ token }) {
     return Array.isArray(sections) ? sections : [];
   }, [selectedPage]);
   const buildDragId = (section, index, prefix) => {
-    const base = section?.id || `${prefix}-section-${index}`;
+    const base = section?.id || `new-${Math.random().toString(36).substr(2, 6)}`;
     return `${prefix}-${base}`;
   };
   const headerDragIds = useMemo(
@@ -3026,10 +3026,8 @@ function AppConfigPage({ token }) {
     if (pageIndex < 0) return;
     const sections = ensureScreenSections(pagesList[pageIndex]);
     const section = sections[index];
-    if (isHardcodedSection(section)) {
-      setMessage({ type: 'error', text: 'Fixed sections cannot be deleted.' });
-      return;
-    }
+    // Removal allowed for all section types as per user request
+
     sections.splice(index, 1);
     updateConfigFromBuilder(next, 'Section removed. Remember to save draft.');
     resetSectionForm();
@@ -8309,7 +8307,7 @@ function AppConfigPage({ token }) {
                           type="button"
                           className="ghost-btn small danger"
                           onClick={() => requestDeleteSection(editingSectionIndex)}
-                          disabled={isEditingFixed}
+                          disabled={isLoading}
                         >
                           Remove
                         </button>

@@ -709,7 +709,7 @@ function BusinessPage({ token, allowedActions }) {
     setIsRejecting(true);
     setMessage({ type: 'info', text: '' });
     try {
-      await updateBusinessProfileStatus(token, viewBusinessProfile.profileId, 'REJECTED');
+      await updateBusinessProfileStatus(token, viewBusinessProfile.profileId, 'REJECTED', rejectReason);
       await loadBusinesses();
       await loadBusinessDetails(viewBusinessProfile.userId || viewUser?.id);
       setShowRejectInput(false);
@@ -1544,7 +1544,7 @@ function BusinessPage({ token, allowedActions }) {
 
               {showRejectInput ? (
                 <div className="bdt-reject-panel panel card">
-                  <p className="bdt-reject-label">Rejection Reason <span className="bdt-optional">(optional — noted internally)</span></p>
+                  <p className="bdt-reject-label">Rejection Reason <span className="bdt-optional">(Visible to User)</span></p>
                   <textarea
                     className="bdt-reject-textarea"
                     placeholder="e.g. GST number mismatch, incomplete address, document unclear..."
