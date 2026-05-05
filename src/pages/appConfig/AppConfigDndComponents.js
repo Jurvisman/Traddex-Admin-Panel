@@ -192,18 +192,38 @@ export const ToolboxItem = ({ item, onAdd }) => {
     : {
         transform: CSS.Transform.toString(transform),
       };
+  const modeLabel =
+    item.mode === 'Dynamic'
+      ? 'Live'
+      : item.mode === 'Hybrid'
+        ? 'Live + backup'
+        : item.mode === 'Manual'
+          ? 'Manual'
+          : item.mode;
   return (
     <div
       ref={setNodeRef}
       style={style}
       className={`toolbox-item ${isDragging ? 'is-dragging is-drag-source' : ''}`}
-      {...attributes}
-      {...listeners}
     >
-      <div className="toolbox-grip" />
+      <button
+        type="button"
+        className="toolbox-grip"
+        aria-label={`Drag ${item.label}`}
+        {...attributes}
+        {...listeners}
+      />
       <div className="toolbox-body">
-        <div className="toolbox-title">{item.label}</div>
+        <div className="toolbox-title-row">
+          <span className="toolbox-title">{item.label}</span>
+          {item.mode ? (
+            <span className={`toolbox-mode-badge toolbox-mode-${String(item.mode).toLowerCase()}`}>
+              {modeLabel}
+            </span>
+          ) : null}
+        </div>
         <div className="toolbox-hint">{item.hint}</div>
+        {item.bestFor ? <div className="toolbox-best-for">{item.bestFor}</div> : null}
       </div>
       <button
         type="button"
@@ -250,9 +270,17 @@ export const SortablePreviewItem = ({ id, className, onClick, children }) => {
           onClick(event);
         }
       }}
-      {...attributes}
-      {...listeners}
     >
+      <button
+        type="button"
+        className="preview-drag-handle"
+        aria-label="Drag block"
+        onClick={(event) => event.stopPropagation()}
+        {...attributes}
+        {...listeners}
+      >
+        <span />
+      </button>
       {children}
     </div>
   );
@@ -371,7 +399,14 @@ export const ToolboxDragPreview = ({ item }) => (
     <div className="toolbox-item is-dragging">
       <div className="toolbox-grip" />
       <div className="toolbox-body">
-        <div className="toolbox-title">{item.label}</div>
+        <div className="toolbox-title-row">
+          <span className="toolbox-title">{item.label}</span>
+          {item.mode ? (
+            <span className={`toolbox-mode-badge toolbox-mode-${String(item.mode).toLowerCase()}`}>
+              {item.mode}
+            </span>
+          ) : null}
+        </div>
         <div className="toolbox-hint">{item.hint}</div>
       </div>
     </div>

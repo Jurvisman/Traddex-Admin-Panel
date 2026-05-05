@@ -71,6 +71,17 @@ export const buildSectionFromForm = (base, form) => {
   const isPlaceCardCarouselBlock = resolvedBlockType === 'beauty_salon_carousel';
   const isTabbedProductShelfBlock = resolvedBlockType === 'tabbed_product_shelf';
   const isShopCardCarouselBlock = resolvedBlockType === 'shop_card_carousel';
+  const isDynamicFallbackBlock =
+    isColumnGridBlock ||
+    isCampaignBentoBlock ||
+    isPhaseOneProductShelfBlock ||
+    isProductCardCarouselBlock ||
+    isCategoryIconGridBlock ||
+    isPlaceCardCarouselBlock ||
+    isTabbedProductShelfBlock ||
+    isShopCardCarouselBlock ||
+    Boolean(String(form.dataSourceRef || '').trim()) ||
+    Boolean(String(form.itemsPath || '').trim());
   const stylePresetOptions = STYLE_PRESET_OPTIONS[resolvedBlockType] || [];
   const setOrDelete = (key, value) => {
     if (value === undefined || value === null || String(value).trim() === '') {
@@ -263,6 +274,17 @@ export const buildSectionFromForm = (base, form) => {
   setOrDelete('itemsPath', form.itemsPath?.trim());
   setOrDelete('itemTemplateRef', form.itemTemplateRef?.trim());
   setOrDelete('dataSourceRef', form.dataSourceRef?.trim());
+  if (isDynamicFallbackBlock) {
+    const fallbackBehavior = String(form.fallbackBehavior || 'HIDE_BLOCK').trim().toUpperCase();
+    const fallbackSource = String(form.fallbackSource || 'MANUAL_ITEMS').trim().toUpperCase();
+    next.fallbackPolicy = {
+      behavior: fallbackBehavior,
+      source: fallbackSource,
+      ...(String(form.fallbackMessage || '').trim() ? { message: String(form.fallbackMessage).trim() } : {}),
+    };
+  } else {
+    delete next.fallbackPolicy;
+  }
   const isLegacyMultiItemGrid =
     !phaseOneBlockTypes.has(resolvedBlockType) && resolvedBlockType === 'multiItemGrid';
   const sourceType = String(form.sourceType || 'MANUAL').trim().toUpperCase();
@@ -282,6 +304,7 @@ export const buildSectionFromForm = (base, form) => {
     next.productLimit = productLimit;
     next.dataSource = {
       sourceType: 'PRODUCT_FEED',
+      feedMode,
       ...(sourceIndustryId ? { industryId: sourceIndustryId } : {}),
       ...(sourceMainCategoryId ? { mainCategoryId: sourceMainCategoryId } : {}),
       ...(sourceCategoryIds.length ? { categoryIds: sourceCategoryIds } : {}),
@@ -381,6 +404,7 @@ export const buildSectionFromForm = (base, form) => {
       next.productLimit = productLimit;
       next.dataSource = {
         sourceType: 'PRODUCT_FEED',
+        feedMode,
         ...(sourceIndustryId ? { industryId: sourceIndustryId } : {}),
         ...(sourceMainCategoryId ? { mainCategoryId: sourceMainCategoryId } : {}),
         ...(sourceCategoryIds.length ? { categoryIds: sourceCategoryIds } : {}),
@@ -409,6 +433,7 @@ export const buildSectionFromForm = (base, form) => {
       next.itemsPath = String(form.itemsPath || '').trim() || '$.products';
       next.dataSource = {
         sourceType: 'PRODUCT_FEED',
+        feedMode: String(form.productFeedMode || resolveMultiItemGridFeedMode(form.dataSourceRef, 'TOP_SELLING')).trim().toUpperCase(),
         ...(sourceIndustryId ? { industryId: sourceIndustryId } : {}),
         ...(sourceMainCategoryId ? { mainCategoryId: sourceMainCategoryId } : {}),
         ...(sourceCategoryIds.length ? { categoryIds: sourceCategoryIds } : {}),
@@ -740,5 +765,8 @@ export const buildSectionFormFromConfig = (section, fallbackType) => {
       source?.limit !== undefined && source?.limit !== null
         ? String(source.limit)
         : defaultSectionForm.blockLimit,
+    fallbackBehavior: section?.fallbackPolicy?.behavior || defaultSectionForm.fallbackBehavior,
+    fallbackMessage: section?.fallbackPolicy?.message || defaultSectionForm.fallbackMessage,
+    fallbackSource: section?.fallbackPolicy?.source || defaultSectionForm.fallbackSource,
   };
 };

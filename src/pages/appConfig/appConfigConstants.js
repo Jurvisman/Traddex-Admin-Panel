@@ -6647,6 +6647,9 @@ export const defaultSectionForm = {
   blockFeedMode: 'BESTSELLER',
   blockTabField: 'mainCategoryName',
   blockLimit: '10',
+  fallbackBehavior: 'HIDE_BLOCK',
+  fallbackMessage: '',
+  fallbackSource: 'MANUAL_ITEMS',
 };
 
 export const defaultHeaderForm = {

@@ -3,7 +3,8 @@ import {
   DndContext,
   DragOverlay,
   PointerSensor,
-  closestCenter,
+  closestCorners,
+  MeasuringStrategy,
   pointerWithin,
   useDroppable,
   useSensor,
@@ -46,8 +47,6 @@ import {
   screenSectionTypeOptions,
   defaultBlockTypeBySectionType,
   headerSectionTypeOptions,
-  headerToolboxItems,
-  screenToolboxItems,
   toolboxItems,
   blockLabels,
   resolveBlockLabel,
@@ -160,6 +159,7 @@ const PHASE_ONE_DATA_PATH_PRESETS = [
   { value: '$.categories', label: 'Categories ($.categories)' },
   { value: '$.rows', label: 'Rows ($.rows)' },
 ];
+
 const DEFAULT_NAVIGATION_TARGET = 'COLLECTION';
 const NAVIGATION_TARGET_OPTIONS = [
   { value: 'COLLECTION', label: 'Collection' },
@@ -182,6 +182,149 @@ const NAVIGATION_TARGET_PLACEHOLDERS = {
   EXTERNAL_URL: 'https://example.com/offer',
   CUSTOM: 'app://collection/summer-serums',
 };
+
+const TOOLBOX_GROUPS = [
+  { id: 'marketing', label: 'Banners & Promos', description: 'Hero banners, offers, campaigns, and visual story cards' },
+  { id: 'commerce', label: 'Products', description: 'Live product shelves, product cards, and product grids' },
+  { id: 'categories', label: 'Categories & Brands', description: 'Category navigation, showcases, and brand discovery' },
+  { id: 'discovery', label: 'Shops & Navigation', description: 'Nearby shops, quick actions, shortcuts, and chips' },
+  { id: 'content', label: 'Content Blocks', description: 'Text, icon lists, section titles, and manual content rows' },
+  { id: 'header', label: 'Header', description: 'Top-of-screen location, search, and navigation blocks' },
+  { id: 'fixed', label: 'Legacy / Fixed', description: 'Hardcoded industry blocks kept for compatibility' },
+];
+
+const DEFAULT_HIDDEN_TOOLBOX_KEYS = new Set([
+  'brandLogoCarousel',
+  'fashionQuickActions',
+  'statsRowFixed',
+  'b2bB2cFixed',
+  'quickActionFixed',
+  'businessOfMonthFixed',
+  'trendingCategoriesFixed',
+  'bestsellersFixed',
+  'servicesNearYouFixed',
+  'businessHealthFixed',
+]);
+
+const TOOLBOX_LABEL_OVERRIDES = {
+  productCardCarousel: 'Product Carousel',
+  productShelf: 'Product Shelf',
+  productGrid: 'Product Grid',
+  tabbedProductShelf: 'Tabbed Product Shelf',
+  categoryIconGrid: 'Category Grid',
+  categoryShowcase: 'Category Bubbles',
+  columnGrid: 'Category Cards',
+  brandShowcase: 'Brand Carousel',
+  mediaOverlayCarousel: 'Image Story Cards',
+  featuredCards: 'Manual Feature Cards',
+  quickActions: 'Quick Actions',
+  chipScroll: 'Filter Chips',
+  infoList: 'Text List',
+  iconList: 'Icon List',
+};
+
+const TOOLBOX_HINT_OVERRIDES = {
+  productCardCarousel: 'Best for Hot deals, Recommended, Bestseller style product rows',
+  productShelf: 'Best for simple horizontal products with price and Add/View action',
+  productGrid: 'Best for dense 2/3-column live product discovery',
+  categoryIconGrid: 'Best for app-like category icons such as Snacks, Beauty, Electronics',
+  categoryShowcase: 'Best for visual category bubbles with category images',
+  columnGrid: 'Best for larger category cards with preview images',
+  brandShowcase: 'Best for brand rows; can be live brand feed or manual brand cards',
+  mediaOverlayCarousel: 'Manual image cards with title overlay; use for stories or brand stores',
+  featuredCards: 'Manual promo cards; use when content is curated, not backend-fed',
+  quickActions: 'Manual shortcuts such as Orders, Cart, Support, Offers',
+  chipScroll: 'Manual chips for filters, tags, or quick links',
+};
+
+
+
+const FALLBACK_BEHAVIOR_OPTIONS = [
+  { value: 'HIDE_BLOCK', label: 'Hide block' },
+  { value: 'MANUAL_FALLBACK', label: 'Manual fallback' },
+  { value: 'EMPTY_MESSAGE', label: 'Show message' },
+  { value: 'KEEP_SKELETON', label: 'Keep skeleton' },
+];
+
+const FALLBACK_SOURCE_OPTIONS = [
+  { value: 'MANUAL_ITEMS', label: 'Manual items' },
+  { value: 'PARENT_CATEGORY', label: 'Parent category' },
+  { value: 'NONE', label: 'None' },
+];
+
+const TOOLBOX_GROUP_BY_KEY = {
+  addressHeader: 'header',
+  searchBar: 'header',
+  horizontalPills: 'header',
+  productCardCarousel: 'commerce',
+  tabbedProductShelf: 'commerce',
+  productShelf: 'commerce',
+  productGrid: 'commerce',
+  categoryIconGrid: 'categories',
+  categoryShowcase: 'categories',
+  categoryPreviewGrid: 'categories',
+  columnGrid: 'categories',
+  brandShowcase: 'categories',
+  brandLogoCarousel: 'categories',
+  shopsNearYou: 'discovery',
+  quickActions: 'discovery',
+  fashionQuickActions: 'discovery',
+  chipScroll: 'discovery',
+  splitPromoRow: 'marketing',
+  campaignBento: 'marketing',
+  featuredCards: 'marketing',
+  mediaOverlayCarousel: 'marketing',
+  infoList: 'content',
+  iconList: 'content',
+  sectionTitle: 'content',
+};
+
+const TOOLBOX_BEST_FOR_BY_KEY = {
+  productCardCarousel: 'Best for horizontal live product recommendations',
+  tabbedProductShelf: 'Best for grouped live or manual product shelves',
+  productShelf: 'Best for compact product rows with add/view actions',
+  productGrid: 'Best for dense product discovery sections',
+  categoryIconGrid: 'Best for app-like 4-column category browsing',
+  categoryShowcase: 'Best for visual category bubbles',
+  shopsNearYou: 'Best for nearby business discovery',
+  campaignBento: 'Best for high-impact campaign landing sections',
+};
+
+const resolveToolboxGroupId = (item) => {
+  if (!item) return 'content';
+  if (item.scope === 'header') return 'header';
+  if (TOOLBOX_GROUP_BY_KEY[item.key]) return TOOLBOX_GROUP_BY_KEY[item.key];
+  const section = item.section || {};
+  if (section.type === 'hardcoded' || section.type === 'fixed') return 'fixed';
+  const blockType = String(section.blockType || section.type || '').toLowerCase();
+  if (blockType.includes('product') || blockType.includes('shelf')) return 'commerce';
+  if (blockType.includes('category') || blockType.includes('brand')) return 'categories';
+  if (blockType.includes('shop') || blockType.includes('quick') || blockType.includes('chip')) return 'discovery';
+  if (blockType.includes('promo') || blockType.includes('banner') || blockType.includes('campaign') || blockType.includes('media')) return 'marketing';
+  return 'content';
+};
+
+const resolveToolboxMode = (item) => {
+  const section = item?.section || {};
+  const sourceType = String(section.dataSource?.sourceType || section.sourceType || '').trim().toUpperCase();
+  if (section.type === 'hardcoded' || section.type === 'fixed') return 'Fixed';
+  if (sourceType && sourceType !== 'MANUAL') {
+    const hasManualItems = Array.isArray(section.items) && section.items.length > 0;
+    return hasManualItems ? 'Hybrid' : 'Dynamic';
+  }
+  if (section.dataSourceRef || section.itemsPath) return 'Dynamic';
+  return 'Manual';
+};
+
+const enrichToolboxItem = (item) => ({
+  ...item,
+  label: TOOLBOX_LABEL_OVERRIDES[item.key] || item.label,
+  hint: TOOLBOX_HINT_OVERRIDES[item.key] || item.hint,
+  groupId: resolveToolboxGroupId(item),
+  mode: resolveToolboxMode(item),
+  bestFor: TOOLBOX_BEST_FOR_BY_KEY[item.key] || '',
+  isDefaultHidden: DEFAULT_HIDDEN_TOOLBOX_KEYS.has(item.key),
+});
 
 const resolveLinkPresetValue = (value, presets) => {
   const current = String(value || '').trim();
@@ -247,7 +390,7 @@ const normalizeSearchText = (value) => String(value || '').trim().toLowerCase();
 const formatDestinationProductLabel = (product) => {
   const productName = product?.productName || product?.name || `Product ${product?.id || ''}`;
   const productId = product?.id != null ? `#${product.id}` : '';
-  const status = product?.approvalStatus ? ` · ${String(product.approvalStatus).replaceAll('_', ' ')}` : '';
+  const status = product?.approvalStatus ? ` Â· ${String(product.approvalStatus).replaceAll('_', ' ')}` : '';
   return `${productName}${productId ? ` (${productId})` : ''}${status}`;
 };
 
@@ -277,9 +420,9 @@ const formatBusinessSelectionLabel = (business) => {
     business?.businessName ||
     business?.name ||
     `Business ${business?.id || business?.userId || ''}`;
-  const type = business?.businessType ? ` · ${business.businessType}` : '';
+  const type = business?.businessType ? ` Â· ${business.businessType}` : '';
   const location = [business?.cityCode, business?.stateCode].filter(Boolean).join(', ');
-  const suffix = location ? ` · ${location}` : '';
+  const suffix = location ? ` Â· ${location}` : '';
   return `${title}${type}${suffix}`;
 };
 
@@ -315,6 +458,10 @@ function AppConfigPage({ token }) {
   const [showEditor, setShowEditor] = useState(false);
   const [showAdvancedFields, setShowAdvancedFields] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState({});
+  const [toolboxSearch, setToolboxSearch] = useState('');
+  const [toolboxModeFilter, setToolboxModeFilter] = useState('ALL');
+  const [toolboxGroupFilter, setToolboxGroupFilter] = useState('CORE');
+
   const togglePropGroup = (key) => setCollapsedGroups((prev) => ({ ...prev, [key]: !prev[key] }));
   const [isUploadingBanner, setIsUploadingBanner] = useState(false);
   const [isUploadingHeaderImage, setIsUploadingHeaderImage] = useState(false);
@@ -452,8 +599,8 @@ function AppConfigPage({ token }) {
     return Array.isArray(sections) ? sections : [];
   }, [selectedPage]);
   const buildDragId = (section, index, prefix) => {
-    const base = section?.id || `new-${Math.random().toString(36).substr(2, 6)}`;
-    return `${prefix}-${base}`;
+    const base = section?.id || section?.blockType || section?.type || 'block';
+    return `${prefix}-${base}-${index}`;
   };
   const headerDragIds = useMemo(
     () => selectedHeaderSections.map((section, index) => buildDragId(section, index, 'header')),
@@ -548,7 +695,7 @@ function AppConfigPage({ token }) {
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: { distance: 6 },
+      activationConstraint: { distance: 3 },
     })
   );
 
@@ -556,13 +703,57 @@ function AppConfigPage({ token }) {
     const current = String(activeDragId || '');
     if (!current.startsWith('toolbox:')) return null;
     const key = current.replace('toolbox:', '');
-    return toolboxItems.find((entry) => entry.key === key) || null;
+    const item = toolboxItems.find((entry) => entry.key === key) || null;
+    return item ? enrichToolboxItem(item) : null;
   }, [activeDragId]);
+
+  const enrichedToolboxItems = useMemo(
+    () => toolboxItems.map(enrichToolboxItem),
+    []
+  );
+
+  const visibleToolboxGroups = useMemo(() => {
+    const query = toolboxSearch.trim().toLowerCase();
+    const filteredItems = enrichedToolboxItems.filter((item) => {
+      const mode = String(item.mode || '').toUpperCase();
+      const matchesMode = toolboxModeFilter === 'ALL' || mode === toolboxModeFilter;
+      const matchesGroup =
+        toolboxGroupFilter === 'ALL' ||
+        (toolboxGroupFilter === 'CORE' ? !item.isDefaultHidden && item.groupId !== 'fixed' : item.groupId === toolboxGroupFilter);
+      const searchText = [
+        item.label,
+        item.hint,
+        item.bestFor,
+        item.mode,
+        item.section?.blockType,
+        item.section?.type,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return matchesMode && matchesGroup && (!query || searchText.includes(query));
+    });
+    const byGroup = new Map();
+    filteredItems.forEach((item) => {
+      const groupId = item.groupId || 'content';
+      if (!byGroup.has(groupId)) byGroup.set(groupId, []);
+      byGroup.get(groupId).push(item);
+    });
+    return TOOLBOX_GROUPS
+      .map((group) => ({ ...group, items: byGroup.get(group.id) || [] }))
+      .filter((group) => group.items.length > 0);
+  }, [enrichedToolboxItems, toolboxGroupFilter, toolboxModeFilter, toolboxSearch]);
+
+  const toolboxResultCount = useMemo(
+    () => visibleToolboxGroups.reduce((sum, group) => sum + group.items.length, 0),
+    [visibleToolboxGroups]
+  );
+
 
   const collisionDetectionStrategy = useCallback((args) => {
     const activeId = String(args?.active?.id || '');
     if (activeId.startsWith('toolbox:')) {
-      return pointerWithin(args).filter((entry) => {
+      const pointerMatches = pointerWithin(args).filter((entry) => {
         const id = String(entry?.id || '');
         return (
           id === 'drop-header' ||
@@ -571,8 +762,9 @@ function AppConfigPage({ token }) {
           id.startsWith('section-')
         );
       });
+      return pointerMatches.length ? pointerMatches : closestCorners(args);
     }
-    return closestCenter(args);
+    return closestCorners(args);
   }, []);
 
   const headerDrop = useDroppable({ id: 'drop-header' });
@@ -881,7 +1073,7 @@ function AppConfigPage({ token }) {
       profile?.address ||
       fallbackBusiness?.cityCode ||
       '';
-    const subtitle = [businessType, location].filter(Boolean).join(' · ');
+    const subtitle = [businessType, location].filter(Boolean).join(' Â· ');
     return {
       businessUserId: userId,
       title: businessName,
@@ -1871,12 +2063,12 @@ function AppConfigPage({ token }) {
         } else if (resolvedMainCategoryId) {
           allCategories = await resolveSourceCategoriesForForm(resolvedMainCategoryId);
         } else {
-          // No main category — use all industry main categories directly.
+          // No main category â€” use all industry main categories directly.
           // This is the correct mode for showing Men, Women, Kids, etc. on the fashion page.
           allCategories = industryMainCategories;
         }
       } else if (!resolvedMainCategoryId && industryId) {
-        // No main category selected — show all main categories of the industry directly.
+        // No main category selected â€” show all main categories of the industry directly.
         // This is the correct mode for category_showcase / media_overlay_carousel blocks
         // that are configured to display all industry main categories (e.g. Fashion page).
         const industryMainCategories = mainCategories.filter(
@@ -3328,6 +3520,242 @@ function AppConfigPage({ token }) {
   const isGenericHeaderBlock = !isHeaderSearch && !isHeaderPills;
   const screenBlockLabel = resolveBlockLabel(screenBlockType, sectionForm.type || 'Block');
   const headerBlockLabel = resolveBlockLabel(headerBlockType, headerSectionForm.type || 'Block');
+  const blockCapabilities = useMemo(() => {
+    if (activePanel !== 'screen') {
+      return { title: 'Header setup', subtitle: 'Editing top header area.', chips: ['Header'], diagnostics: [] };
+    }
+
+    const normalizedSourceType = String(sectionForm.sourceType || 'MANUAL').trim().toUpperCase();
+    const normalizedBlockDataSourceType = String(sectionForm.blockDataSourceType || 'MANUAL').trim().toUpperCase();
+    const hasDataSourceRef = Boolean(String(sectionForm.dataSourceRef || '').trim());
+    const hasItemsPath = Boolean(String(sectionForm.itemsPath || '').trim());
+    const manualItems = normalizePhaseOneItems(sectionForm.sduiItems, screenBlockType);
+    const manualItemCount = manualItems.length;
+    const hasManualItems = manualItemCount > 0;
+    const selectedCategoryCount = Array.isArray(sectionForm.sourceCategoryIds)
+      ? sectionForm.sourceCategoryIds.length
+      : 0;
+    const usesProductFeed =
+      isProductCardCarouselFeed ||
+      isPhaseOneProductShelf ||
+      (isTabbedProductShelf && normalizedBlockDataSourceType === 'PRODUCT_FEED') ||
+      (isMultiItemGrid && hasDataSourceRef);
+    const usesCategoryFeed =
+      isPhaseOneCategoryIconGrid ||
+      isPhaseOneCategoryShowcase ||
+      (isCategoryFeedEligible && normalizedSourceType === 'CATEGORY_FEED');
+    const usesShopFeed = isShopCardCarousel && normalizedBlockDataSourceType !== 'MANUAL';
+    const usesAnyFeed =
+      usesProductFeed ||
+      usesCategoryFeed ||
+      usesShopFeed ||
+      hasDataSourceRef ||
+      hasItemsPath ||
+      normalizedSourceType === 'DATA_SOURCE' ||
+      normalizedSourceType === 'HYBRID';
+    const supportsImages =
+      isHeroBanner ||
+      isPromoHeroBanner ||
+      isPromoBanner ||
+      isBeautyHeroBanner ||
+      isPhaseOneHeroCarousel ||
+      isMediaOverlayCarousel ||
+      isCampaignBento ||
+      isSplitPromoRow ||
+      isPhaseOneCategoryIconGrid ||
+      isPhaseOneCategoryShowcase ||
+      isProductCardCarousel;
+    const supportsCta =
+      isHeroBanner ||
+      isPromoHeroBanner ||
+      isPromoBanner ||
+      isBeautyHeroBanner ||
+      isPhaseOneHeroCarousel ||
+      isMediaOverlayCarousel ||
+      isSplitPromoRow ||
+      isCampaignBento;
+    const diagnostics = [];
+
+    if (usesProductFeed && !String(sectionForm.productFeedMode || sectionForm.blockFeedMode || '').trim()) {
+      diagnostics.push({ type: 'error', text: 'Choose which products to show from the Data tab.' });
+    }
+    if (usesProductFeed && !String(sectionForm.sourceMainCategoryId || '').trim() && selectedCategoryCount === 0) {
+      diagnostics.push({ type: 'warn', text: 'Showing products from all categories. Select a category in Data if this block is for one section only.' });
+    }
+    if (usesCategoryFeed && !String(sectionForm.sourceMainCategoryId || '').trim() && !String(sectionForm.sourceIndustryId || '').trim()) {
+      diagnostics.push({ type: 'warn', text: 'Select an industry or main category in Data so the app knows which categories to show.' });
+    }
+    if (usesAnyFeed && !hasManualItems && String(sectionForm.fallbackBehavior || 'HIDE_BLOCK').toUpperCase() === 'MANUAL_FALLBACK') {
+      diagnostics.push({ type: 'error', text: 'Fallback is set to manual items, but Content has no backup cards.' });
+    }
+    if (usesAnyFeed && String(sectionForm.fallbackBehavior || 'HIDE_BLOCK').toUpperCase() === 'EMPTY_MESSAGE' && !String(sectionForm.fallbackMessage || '').trim()) {
+      diagnostics.push({ type: 'warn', text: 'Add the empty message in Fallback, or change empty behavior to Hide block.' });
+    }
+    if (supportsImages && !String(sectionForm.imageUrl || '').trim() && !hasManualItems && !isPhaseOneCategoryIconGrid && !isPhaseOneCategoryShowcase && !isProductCardCarouselFeed) {
+      diagnostics.push({ type: 'warn', text: 'This block needs an image/card. Add it from Content or connect a feed in Data.' });
+    }
+    if (!usesAnyFeed && !hasManualItems && !String(sectionForm.title || sectionForm.text || sectionForm.imageUrl || '').trim()) {
+      diagnostics.push({ type: 'warn', text: 'Nothing visible is configured yet. Add title, image, text, or cards from Content.' });
+    }
+
+    const chips = [
+      usesAnyFeed ? 'Live data' : 'Manual content',
+      usesProductFeed ? 'Product list' : null,
+      usesCategoryFeed ? 'Category list' : null,
+      usesShopFeed ? 'Shop list' : null,
+      supportsImages ? 'Image cards' : null,
+      supportsCta ? 'Tap action' : null,
+      hasManualItems ? `${manualItemCount} backup card${manualItemCount === 1 ? '' : 's'}` : null,
+    ].filter(Boolean);
+
+    return {
+      title: usesAnyFeed ? 'This block uses live data' : 'This block uses manual content',
+      subtitle: usesAnyFeed
+        ? 'Set the source in Data and backup behavior in Fallback.'
+        : 'Edit what appears in Content. Data settings are hidden unless needed.',
+      chips,
+      diagnostics,
+    };
+  }, [
+    activePanel,
+    isBeautyHeroBanner,
+    isCampaignBento,
+    isCategoryFeedEligible,
+    isHeroBanner,
+    isMediaOverlayCarousel,
+    isMultiItemGrid,
+    isPhaseOneCategoryIconGrid,
+    isPhaseOneCategoryShowcase,
+    isPhaseOneHeroCarousel,
+    isPhaseOneProductShelf,
+    isProductCardCarousel,
+    isProductCardCarouselFeed,
+    isPromoBanner,
+    isPromoHeroBanner,
+    isShopCardCarousel,
+    isSplitPromoRow,
+    isTabbedProductShelf,
+    screenBlockType,
+    sectionForm.blockDataSourceType,
+    sectionForm.blockFeedMode,
+    sectionForm.dataSourceRef,
+    sectionForm.fallbackBehavior,
+    sectionForm.fallbackMessage,
+    sectionForm.imageUrl,
+    sectionForm.itemsPath,
+    sectionForm.productFeedMode,
+    sectionForm.sduiItems,
+    sectionForm.sourceCategoryIds,
+    sectionForm.sourceIndustryId,
+    sectionForm.sourceMainCategoryId,
+    sectionForm.sourceType,
+    sectionForm.text,
+    sectionForm.title,
+  ]);
+  const dataTabGuide = useMemo(() => {
+    if (activePanel !== 'screen') return null;
+    const selectedCategoryCount = Array.isArray(sectionForm.sourceCategoryIds)
+      ? sectionForm.sourceCategoryIds.length
+      : 0;
+
+    if (isProductCardCarousel) {
+      const isLive = Boolean(String(sectionForm.dataSourceRef || '').trim());
+      return {
+        title: 'How products appear in this carousel',
+        mode: isLive ? 'Live product list' : 'Manual cards',
+        steps: [
+          isLive
+            ? `Showing ${sectionForm.productFeedMode || 'BESTSELLER'} products from the backend.`
+            : 'Showing only the cards you add in Content.',
+          sectionForm.sourceMainCategoryId || selectedCategoryCount
+            ? 'Limited to the selected category scope.'
+            : 'No category selected, so the app can show products from all categories.',
+          'Use Fallback to decide what happens when no products are found.',
+        ],
+      };
+    }
+
+    if (isTabbedProductShelf || isPhaseOneProductShelf) {
+      const isLive =
+        String(sectionForm.blockDataSourceType || '').toUpperCase() === 'PRODUCT_FEED' ||
+        Boolean(String(sectionForm.dataSourceRef || '').trim());
+      return {
+        title: 'How products appear in this section',
+        mode: isLive ? 'Live product list' : 'Manual section',
+        steps: [
+          isLive ? 'Products are fetched from backend product feeds.' : 'Products/cards are controlled manually in Content.',
+          sectionForm.sourceMainCategoryId || selectedCategoryCount
+            ? 'Category filters are applied before the app renders this block.'
+            : 'Without category filters, this section is treated as a global shelf.',
+          'Keep a fallback plan so users do not see blank space when the feed is empty.',
+        ],
+      };
+    }
+
+    if (isCategoryFeedEligible || isPhaseOneCategoryIconGrid || isPhaseOneCategoryShowcase) {
+      return {
+        title: 'How categories appear in this block',
+        mode: 'Category list',
+        steps: [
+          'Industry/main category decides the category pool.',
+          'Ranking/filter options decide the order and which categories are allowed.',
+          'Apply the category feed after changing filters so preview cards refresh.',
+        ],
+      };
+    }
+
+    if (isShopCardCarousel || isBeautySalonCarousel) {
+      return {
+        title: 'How shops/services appear in this block',
+        mode: 'Shop/service list',
+        steps: [
+          'Choose live feed when the app should fetch shops automatically.',
+          'Choose manual/selection when business owners must be hand picked.',
+          'Fallback handles empty areas or unavailable service data.',
+        ],
+      };
+    }
+
+    if (sectionForm.dataSourceRef || sectionForm.itemsPath) {
+      return {
+        title: 'How content appears in this block',
+        mode: 'API data source',
+        steps: [
+          'Data source chooses which API response to use.',
+          'Items path tells the app where the list is inside that response.',
+          'Use Advanced only when the backend response shape changes.',
+        ],
+      };
+    }
+
+    return {
+      title: 'This block does not need live data',
+      mode: 'Manual content',
+      steps: [
+        'Edit the visible content in the Content tab.',
+        'Use Data only if this block should load live backend records.',
+        'Static/manual blocks are safest for fixed banners and editorial content.',
+      ],
+    };
+  }, [
+    activePanel,
+    isBeautySalonCarousel,
+    isCategoryFeedEligible,
+    isPhaseOneCategoryIconGrid,
+    isPhaseOneCategoryShowcase,
+    isPhaseOneProductShelf,
+    isProductCardCarousel,
+    isShopCardCarousel,
+    isTabbedProductShelf,
+    sectionForm.blockDataSourceType,
+    sectionForm.dataSourceRef,
+    sectionForm.itemsPath,
+    sectionForm.productFeedMode,
+    sectionForm.sourceCategoryIds,
+    sectionForm.sourceMainCategoryId,
+  ]);
+
+
 
   const filteredMainCategoryOptions = useMemo(() => {
     const industryId = normalizeCollectionId(sectionForm.sourceIndustryId);
@@ -3920,6 +4348,8 @@ function AppConfigPage({ token }) {
           <DndContext
             sensors={sensors}
             collisionDetection={collisionDetectionStrategy}
+            measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
+            autoScroll={{ threshold: { x: 0.2, y: 0.28 }, acceleration: 8 }}
             onDragStart={handleDragStart}
             onDragCancel={handleDragCancel}
             onDragEnd={handleDragEnd}
@@ -3928,24 +4358,71 @@ function AppConfigPage({ token }) {
               <div className="app-config-builder">
                 <div className="toolbox-card">
                   <div className="panel-split">
-                    <h3 className="panel-subheading">Toolbox</h3>
-                    <span className="chip subtle">Drag blocks</span>
+                    <div>
+                      <h3 className="panel-subheading">Toolbox</h3>
+                      <p className="toolbox-caption">Pick a block by job, not by implementation name.</p>
+                    </div>
+                    <span className="chip subtle">{toolboxResultCount} blocks</span>
+                  </div>
+                  <div className="toolbox-controls">
+                    <label className="toolbox-search">
+                      <span>Search blocks</span>
+                      <input
+                        type="search"
+                        value={toolboxSearch}
+                        onChange={(event) => setToolboxSearch(event.target.value)}
+                        placeholder="Product, category, banner..."
+                      />
+                    </label>
+                    <div className="toolbox-filter-row">
+                      <select
+                        value={toolboxGroupFilter}
+                        onChange={(event) => setToolboxGroupFilter(event.target.value)}
+                        aria-label="Filter toolbox group"
+                      >
+                        <option value="CORE">Recommended blocks</option>
+                        <option value="ALL">All blocks incl. legacy</option>
+                        {TOOLBOX_GROUPS.map((group) => (
+                          <option key={group.id} value={group.id}>{group.label}</option>
+                        ))}
+                      </select>
+                      <select
+                        value={toolboxModeFilter}
+                        onChange={(event) => setToolboxModeFilter(event.target.value)}
+                        aria-label="Filter toolbox mode"
+                      >
+                        <option value="ALL">All data modes</option>
+                        <option value="DYNAMIC">Live feed</option>
+                        <option value="HYBRID">Live + backup</option>
+                        <option value="MANUAL">Manual content</option>
+                        <option value="FIXED">Fixed</option>
+                      </select>
+                    </div>
                   </div>
                   <div className="toolbox-list">
-                    <div className="toolbox-group">
-                      <div className="toolbox-group-title">Header Blocks</div>
-                      {headerToolboxItems.map((item) => (
-                        <ToolboxItem key={item.key} item={item} onAdd={handleToolboxAdd} />
-                      ))}
-                    </div>
-                    <div className="toolbox-group">
-                      <div className="toolbox-group-title">Body Blocks</div>
-                      {screenToolboxItems.map((item) => (
-                        <ToolboxItem key={item.key} item={item} onAdd={handleToolboxAdd} />
-                      ))}
-                    </div>
+                    {visibleToolboxGroups.length ? (
+                      visibleToolboxGroups.map((group) => (
+                        <details className="toolbox-group" key={group.id} open>
+                          <summary className="toolbox-group-title">
+                            <span>{group.label}</span>
+                            <small>{group.items.length}</small>
+                          </summary>
+                          <p className="toolbox-group-description">{group.description}</p>
+                          <div className="toolbox-group-items">
+                            {group.items.map((item) => (
+                              <ToolboxItem key={item.key} item={item} onAdd={handleToolboxAdd} />
+                            ))}
+                          </div>
+                        </details>
+                      ))
+                    ) : (
+                      <div className="toolbox-empty">
+                        <strong>No blocks match this filter.</strong>
+                        <span>Clear search or choose another group.</span>
+                      </div>
+                    )}
                   </div>
-                  <p className="toolbox-note">Drag blocks into the preview to add.</p>
+                  <p className="toolbox-note">Drag a block into the preview or use Add. Badges describe how each block gets data.</p>
                 </div>
               </div>
               <div className="app-config-preview">
@@ -4065,13 +4542,13 @@ function AppConfigPage({ token }) {
                 </div>
                 {activePanel === 'screen' ? (
                   <form className="prop-form" onSubmit={handleSectionSubmit}>
-                    {/* ── General ──────────────────────────────────────── */}
+                    {/* -- General ---------------------------------------- */}
                     <div className={`prop-group${collapsedGroups.general ? ' is-collapsed' : ''}`}>
                       <div className="prop-group-header" onClick={() => togglePropGroup('general')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && togglePropGroup('general')}>
                         <div className="prop-group-left">
                           <span className="prop-group-title">General</span>
                         </div>
-                        <span className="prop-group-toggle">▾</span>
+                        <span className="prop-group-toggle">?</span>
                       </div>
                       <div className="prop-group-body">
                         <div className="field-grid">
@@ -4268,14 +4745,14 @@ function AppConfigPage({ token }) {
                         </div>
                       </div>
                     </div>
-                    {/* ── Appearance ───────────────────────────────────── */}
+                    {/* -- Appearance ------------------------------------- */}
                     {(supportsStylePreset || isPhaseOneProductShelf || isProductCardCarousel || isSectionTitleBlock) ? (
                       <div className={`prop-group${collapsedGroups.appearance ? ' is-collapsed' : ''}`}>
                         <div className="prop-group-header" onClick={() => togglePropGroup('appearance')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && togglePropGroup('appearance')}>
                           <div className="prop-group-left">
                             <span className="prop-group-title">Appearance</span>
                           </div>
-                          <span className="prop-group-toggle">▾</span>
+                          <span className="prop-group-toggle">?</span>
                         </div>
                         <div className="prop-group-body">
                           <div className="field-grid">
@@ -4379,14 +4856,14 @@ function AppConfigPage({ token }) {
                         </div>
                       </div>
                     ) : null}
-                    {/* ── Content ──────────────────────────────────────── */}
+                    {/* -- Content ---------------------------------------- */}
                     {isHeroBanner ? (
                       <div className={`prop-group${collapsedGroups.content ? ' is-collapsed' : ''}`}>
                         <div className="prop-group-header" onClick={() => togglePropGroup('content')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && togglePropGroup('content')}>
                           <div className="prop-group-left">
                             <span className="prop-group-title">Content</span>
                           </div>
-                          <span className="prop-group-toggle">▾</span>
+                          <span className="prop-group-toggle">?</span>
                         </div>
                         <div className="prop-group-body">
                           <div className="field-grid">
@@ -4594,14 +5071,14 @@ function AppConfigPage({ token }) {
                         </div>
                       </div>
                     ) : null}
-                    {/* ── Data Source ───────────────────────────────────── */}
+                    {/* -- Data Source ------------------------------------- */}
                     {isPhaseOneBlock ? (
                       <div className={`prop-group${collapsedGroups.dataSource ? ' is-collapsed' : ''}`}>
                         <div className="prop-group-header" onClick={() => togglePropGroup('dataSource')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && togglePropGroup('dataSource')}>
                           <div className="prop-group-left">
                             <span className="prop-group-title">Data Source</span>
                           </div>
-                          <span className="prop-group-toggle">▾</span>
+                          <span className="prop-group-toggle">?</span>
                         </div>
                         <div className="prop-group-body">
                           <div className="field-grid">
@@ -5615,7 +6092,7 @@ function AppConfigPage({ token }) {
                                   {(sectionForm.blockDataSourceType || 'MANUAL') === 'PRODUCT_FEED' ? 'Live Feed' : 'Manual'}
                                 </span>
                               </div>
-                              <span className="prop-group-toggle">▾</span>
+                              <span className="prop-group-toggle">?</span>
                             </div>
                             <div className="prop-group-body">
                             <div className="field-grid source-config-grid">
@@ -5830,7 +6307,7 @@ function AppConfigPage({ token }) {
                                   {(sectionForm.blockDataSourceType || 'SHOP_FEED') !== 'MANUAL' ? 'Live Feed' : 'Manual'}
                                 </span>
                               </div>
-                              <span className="prop-group-toggle">▾</span>
+                              <span className="prop-group-toggle">?</span>
                             </div>
                             <div className="prop-group-body">
                             <div className="field-grid source-config-grid">
@@ -5883,7 +6360,7 @@ function AppConfigPage({ token }) {
                               <div className="prop-group-left">
                                 <span className="prop-group-title">Data Source</span>
                               </div>
-                              <span className="prop-group-toggle">▾</span>
+                              <span className="prop-group-toggle">?</span>
                             </div>
                             <div className="prop-group-body">
                               <div className="field-grid source-config-grid">
@@ -5991,13 +6468,13 @@ function AppConfigPage({ token }) {
                             </div>
                           </div>
                         ) : null}
-                    {/* ── Items ────────────────────────────────────────── */}
+                    {/* -- Items ------------------------------------------ */}
                     <div className={`prop-group${collapsedGroups.items ? ' is-collapsed' : ''}`}>
                       <div className="prop-group-header" onClick={() => togglePropGroup('items')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && togglePropGroup('items')}>
                         <div className="prop-group-left">
                           <span className="prop-group-title">Items</span>
                         </div>
-                        <span className="prop-group-toggle">▾</span>
+                        <span className="prop-group-toggle">?</span>
                       </div>
                       <div className="prop-group-body">
                         <div className="field-grid">
@@ -6757,7 +7234,7 @@ function AppConfigPage({ token }) {
                                   </label>
                                   <label className="field">
                                     <span>Price</span>
-                                    <input type="text" value={item.price || ''} onChange={(event) => updatePhaseOneItem(idx, 'price', event.target.value)} placeholder="₹499" />
+                                    <input type="text" value={item.price || ''} onChange={(event) => updatePhaseOneItem(idx, 'price', event.target.value)} placeholder="?499" />
                                   </label>
                                 </>
                               ) : null}
@@ -8182,14 +8659,14 @@ function AppConfigPage({ token }) {
                         </div>
                       </div>
                     </div>
-                    {/* ── Advanced ──────────────────────────────────────── */}
+                    {/* -- Advanced ---------------------------------------- */}
                     {(!isEditingFixed && !isPhaseOneBlock) ? (
                       <div className={`prop-group${collapsedGroups.advanced ? ' is-collapsed' : ''}`}>
                         <div className="prop-group-header" onClick={() => togglePropGroup('advanced')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && togglePropGroup('advanced')}>
                           <div className="prop-group-left">
                             <span className="prop-group-title">Advanced</span>
                           </div>
-                          <span className="prop-group-toggle">▾</span>
+                          <span className="prop-group-toggle">?</span>
                         </div>
                         <div className="prop-group-body">
                           <div className="field-grid">
@@ -8994,7 +9471,7 @@ function AppConfigPage({ token }) {
             </div>
             {pageIndustry && editingSectionIndex === null ? (
               <div className="industry-hint">
-                This page is linked to <strong>{resolveIndustryLabel(pageIndustry)}</strong> — category feeds will default to this industry.
+                This page is linked to <strong>{resolveIndustryLabel(pageIndustry)}</strong> â€” category feeds will default to this industry.
               </div>
             ) : null}
             <form className="field-grid modal-grid" onSubmit={handleSectionSubmit}>
@@ -9418,3 +9895,4 @@ function AppConfigPage({ token }) {
 }
 
 export default AppConfigPage;
+
