@@ -78,6 +78,8 @@ export const screenSectionTypeOptions = [
   { value: 'category_showcase', label: 'Category Showcase' },
   { value: 'tabbed_product_shelf', label: 'Tabbed Product Shelf (SDUI)' },
   { value: 'shop_card_carousel', label: 'Shop card carousel (SDUI)' },
+  { value: 'businessOfMonth', label: 'Business of the Month' },
+  { value: 'servicesNearYou', label: 'Services Near You' },
 ];
 
 export const defaultBlockTypeBySectionType = {
@@ -136,11 +138,11 @@ export const headerToolboxItems = [
 ];
 
 const BEAUTY_HERO_SAMPLE = {
-  badgeText: 'Glow Edit',
-  title: 'Radiant skin, effortless glam',
-  subtitle: 'Curated skincare, makeup, and salon essentials',
-  ctaText: 'Shop the edit',
-  imageUrl: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=1400&q=80',
+  badgeText: '',
+  title: '',
+  subtitle: '',
+  ctaText: '',
+  imageUrl: '',
   deepLink: '',
   ctaLink: '',
 };
@@ -221,13 +223,13 @@ const FASHION_QUICK_ACTIONS_SAMPLE = [
 ];
 
 const FASHION_HERO_SAMPLE = {
-  badgeText: 'Spring Edit',
-  title: 'Fresh fashion drops for every buyer',
-  subtitle: 'Trend-led fits, premium labels, and curated looks across wholesale and retail.',
-  ctaText: 'Explore now',
-  imageUrl: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1400&q=80',
-  deepLink: 'app://category/fashion',
-  ctaLink: 'app://category/fashion',
+  badgeText: '',
+  title: '',
+  subtitle: '',
+  ctaText: '',
+  imageUrl: '',
+  deepLink: '',
+  ctaLink: '',
 };
 
 const FASHION_STYLE_SHOWCASE_SAMPLE = [
@@ -471,13 +473,13 @@ const FASHION_SHOPS_SAMPLE = [
 ];
 
 const ELECTRONICS_HERO_SAMPLE = {
-  badgeText: 'Electronics Week',
-  title: 'Upgrade your tech stack',
-  subtitle: 'Phones, laptops, and smart gear with fast delivery',
-  ctaText: 'Shop now',
-  imageUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1400&q=80',
-  deepLink: 'app://category/electronics',
-  ctaLink: 'app://category/electronics',
+  badgeText: '',
+  title: '',
+  subtitle: '',
+  ctaText: '',
+  imageUrl: '',
+  deepLink: '',
+  ctaLink: '',
 };
 
 const ELECTRONICS_DEAL_SAMPLE = [
@@ -543,12 +545,11 @@ const ELECTRONICS_MEDIA_OVERLAY_SAMPLE = [
 ];
 
 const GROCERY_HERO_SAMPLE = {
-  badgeText: 'Top Deals',
-  title: 'Fresh groceries, faster delivery',
-  subtitle: 'Fruits, staples, snacks and daily essentials in one place',
-  ctaText: 'Shop now',
-  imageUrl:
-    'https://upload.wikimedia.org/wikipedia/commons/thumb/6/63/Best_organic_produce_Toronto.jpg/960px-Best_organic_produce_Toronto.jpg',
+  badgeText: '',
+  title: '',
+  subtitle: '',
+  ctaText: '',
+  imageUrl: '',
   deepLink: '',
   ctaLink: '',
 };

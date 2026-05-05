@@ -300,10 +300,19 @@ export const buildSectionFromForm = (base, form) => {
         const businessUserIds = Array.isArray(form.sourceBusinessUserIds)
           ? form.sourceBusinessUserIds.map((value) => normalizeCollectionId(value)).filter(Boolean)
           : [];
+        if (!businessUserIds.length) {
+          console.warn('CMS Validation: BUSINESS_SELECTION requires at least one Business User ID');
+        }
         if (businessUserIds.length) sourcePayload.businessUserIds = businessUserIds;
       } else {
         const sourceIndustryId = normalizeCollectionId(form.sourceIndustryId);
         if (sourceIndustryId) sourcePayload.industryId = sourceIndustryId;
+        
+        // Basic Validation: If feed mode is enabled, industryId is usually mandatory
+        if (!sourceIndustryId && (sourceType === 'CATEGORY_FEED' || sourceType === 'PRODUCT_FEED')) {
+           console.warn(`CMS Validation: ${sourceType} source usually requires an Industry ID to fetch data.`);
+        }
+
         if (sourceType === 'CATEGORY_FEED') {
           sourcePayload.mode = resolveDefaultCategoryFeedMode(resolvedBlockType, form.sourceFeedMode);
         }
