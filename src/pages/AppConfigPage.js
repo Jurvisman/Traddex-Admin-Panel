@@ -212,9 +212,9 @@ const TOOLBOX_LABEL_OVERRIDES = {
   productGrid: 'Product Grid',
   tabbedProductShelf: 'Tabbed Product Shelf',
   categoryIconGrid: 'Category Grid',
-  categoryShowcase: 'Category Bubbles',
+  categoryShowcase: 'Category Showcase',
   columnGrid: 'Category Cards',
-  brandShowcase: 'Brand Carousel',
+  brandShowcase: 'Brand Bento Box',
   mediaOverlayCarousel: 'Image Story Cards',
   featuredCards: 'Manual Feature Cards',
   quickActions: 'Quick Actions',
@@ -230,7 +230,7 @@ const TOOLBOX_HINT_OVERRIDES = {
   categoryIconGrid: 'Best for app-like category icons such as Snacks, Beauty, Electronics',
   categoryShowcase: 'Best for visual category bubbles with category images',
   columnGrid: 'Best for larger category cards with preview images',
-  brandShowcase: 'Best for brand rows; can be live brand feed or manual brand cards',
+  brandShowcase: 'Brand campaign with top banner, four tiles, and bottom CTA banner',
   mediaOverlayCarousel: 'Manual image cards with title overlay; use for stories or brand stores',
   featuredCards: 'Manual promo cards; use when content is curated, not backend-fed',
   quickActions: 'Manual shortcuts such as Orders, Cart, Support, Offers',
@@ -500,6 +500,7 @@ function AppConfigPage({ token }) {
   const [placeCardBusinessPick, setPlaceCardBusinessPick] = useState('');
   const [heroDestinationQueries, setHeroDestinationQueries] = useState({});
   const [sectionDestinationQuery, setSectionDestinationQuery] = useState('');
+  const [bentoTileProductQueries, setBentoTileProductQueries] = useState({});
   const [mainCategories, setMainCategories] = useState([]);
   const [sourceCategories, setSourceCategories] = useState([]);
   const [isLoadingSourceCategories, setIsLoadingSourceCategories] = useState(false);
@@ -598,10 +599,12 @@ function AppConfigPage({ token }) {
     const sections = selectedPage?.header?.blocks;
     return Array.isArray(sections) ? sections : [];
   }, [selectedPage]);
+
   const buildDragId = (section, index, prefix) => {
     const base = section?.id || section?.blockType || section?.type || 'block';
     return `${prefix}-${base}-${index}`;
   };
+
   const headerDragIds = useMemo(
     () => selectedHeaderSections.map((section, index) => buildDragId(section, index, 'header')),
     [selectedHeaderSections]
@@ -714,12 +717,15 @@ function AppConfigPage({ token }) {
 
   const visibleToolboxGroups = useMemo(() => {
     const query = toolboxSearch.trim().toLowerCase();
+    const queryClean = query.replace(/ /g, '').replace(/_/g, '');
+
     const filteredItems = enrichedToolboxItems.filter((item) => {
       const mode = String(item.mode || '').toUpperCase();
       const matchesMode = toolboxModeFilter === 'ALL' || mode === toolboxModeFilter;
       const matchesGroup =
         toolboxGroupFilter === 'ALL' ||
         (toolboxGroupFilter === 'CORE' ? !item.isDefaultHidden && item.groupId !== 'fixed' : item.groupId === toolboxGroupFilter);
+      
       const searchText = [
         item.label,
         item.hint,
@@ -731,14 +737,24 @@ function AppConfigPage({ token }) {
         .filter(Boolean)
         .join(' ')
         .toLowerCase();
-      return matchesMode && matchesGroup && (!query || searchText.includes(query));
+      
+      const textClean = searchText.replace(/ /g, '').replace(/_/g, '');
+
+      const matchesQuery = !query || 
+        searchText.includes(query) || 
+        searchText.replace(/_/g, ' ').includes(query) ||
+        textClean.includes(queryClean);
+
+      return matchesMode && matchesGroup && matchesQuery;
     });
+
     const byGroup = new Map();
     filteredItems.forEach((item) => {
       const groupId = item.groupId || 'content';
       if (!byGroup.has(groupId)) byGroup.set(groupId, []);
       byGroup.get(groupId).push(item);
     });
+
     return TOOLBOX_GROUPS
       .map((group) => ({ ...group, items: byGroup.get(group.id) || [] }))
       .filter((group) => group.items.length > 0);
@@ -748,6 +764,7 @@ function AppConfigPage({ token }) {
     () => visibleToolboxGroups.reduce((sum, group) => sum + group.items.length, 0),
     [visibleToolboxGroups]
   );
+
 
 
   const collisionDetectionStrategy = useCallback((args) => {
@@ -1462,6 +1479,49 @@ function AppConfigPage({ token }) {
     setSectionForm((prev) => {
       const nextTiles = ensureBentoTiles(prev.bentoTiles);
       nextTiles[index] = { ...nextTiles[index], [field]: value };
+      return { ...prev, bentoTiles: nextTiles };
+    });
+  };
+
+  const updateBentoTileDestinationType = (index, nextType) => {
+    const normalizedType = String(nextType || DEFAULT_NAVIGATION_TARGET).trim().toUpperCase();
+    setSectionForm((prev) => {
+      const nextTiles = ensureBentoTiles(prev.bentoTiles);
+      const current = nextTiles[index] || {};
+      const currentTarget = parseNavigationTarget(
+        current.deepLink || '',
+        current.destinationType,
+        current.destinationValue
+      );
+      const nextValue =
+        normalizedType === 'CUSTOM'
+          ? current.deepLink || ''
+          : currentTarget.type === normalizedType
+            ? currentTarget.value
+            : '';
+      nextTiles[index] = {
+        ...current,
+        destinationType: normalizedType,
+        destinationValue: nextValue,
+        deepLink: buildNavigationTargetLink(normalizedType, nextValue),
+      };
+      return { ...prev, bentoTiles: nextTiles };
+    });
+    if (normalizedType === 'PRODUCT') loadDestinationProducts();
+  };
+
+  const updateBentoTileDestinationValue = (index, type, value) => {
+    const normalizedType = String(type || DEFAULT_NAVIGATION_TARGET).trim().toUpperCase();
+    const normalizedValue = String(value || '').trim();
+    setSectionForm((prev) => {
+      const nextTiles = ensureBentoTiles(prev.bentoTiles);
+      const current = nextTiles[index] || {};
+      nextTiles[index] = {
+        ...current,
+        destinationType: normalizedType,
+        destinationValue: normalizedValue,
+        deepLink: buildNavigationTargetLink(normalizedType, normalizedValue),
+      };
       return { ...prev, bentoTiles: nextTiles };
     });
   };
@@ -4773,6 +4833,94 @@ function AppConfigPage({ token }) {
                         </select>
                       </label>
                     ) : null}
+                    {isPhaseOneBrandGrid ? (
+                      <>
+                        <label className="field">
+                          <span>Section background</span>
+                          <div className="inline-row">
+                            <input
+                              type="text"
+                              value={sectionForm.sectionBgColor}
+                              onChange={(event) =>
+                                setSectionForm((prev) => ({ ...prev, sectionBgColor: event.target.value }))
+                              }
+                              placeholder="#E7F6FF"
+                            />
+                            <input
+                              type="color"
+                              className="color-input"
+                              value={resolveHexColor(sectionForm.sectionBgColor, '#E7F6FF')}
+                              onChange={(event) =>
+                                setSectionForm((prev) => ({ ...prev, sectionBgColor: event.target.value }))
+                              }
+                            />
+                          </div>
+                        </label>
+                        <label className="field">
+                          <span>Tile background</span>
+                          <div className="inline-row">
+                            <input
+                              type="text"
+                              value={sectionForm.cardBgColor}
+                              onChange={(event) =>
+                                setSectionForm((prev) => ({ ...prev, cardBgColor: event.target.value }))
+                              }
+                              placeholder="#CFEAFF"
+                            />
+                            <input
+                              type="color"
+                              className="color-input"
+                              value={resolveHexColor(sectionForm.cardBgColor, '#CFEAFF')}
+                              onChange={(event) =>
+                                setSectionForm((prev) => ({ ...prev, cardBgColor: event.target.value }))
+                              }
+                            />
+                          </div>
+                        </label>
+                        <label className="field">
+                          <span>Bottom banner color</span>
+                          <div className="inline-row">
+                            <input
+                              type="text"
+                              value={sectionForm.badgeBgColor}
+                              onChange={(event) =>
+                                setSectionForm((prev) => ({ ...prev, badgeBgColor: event.target.value }))
+                              }
+                              placeholder="#0B4EA2"
+                            />
+                            <input
+                              type="color"
+                              className="color-input"
+                              value={resolveHexColor(sectionForm.badgeBgColor, '#0B4EA2')}
+                              onChange={(event) =>
+                                setSectionForm((prev) => ({ ...prev, badgeBgColor: event.target.value }))
+                              }
+                            />
+                          </div>
+                        </label>
+                        <label className="field">
+                          <span>Text color</span>
+                          <div className="inline-row">
+                            <input
+                              type="text"
+                              value={sectionForm.titleColor}
+                              onChange={(event) =>
+                                setSectionForm((prev) => ({ ...prev, titleColor: event.target.value }))
+                              }
+                              placeholder="#12304A"
+                            />
+                            <input
+                              type="color"
+                              className="color-input"
+                              value={resolveHexColor(sectionForm.titleColor, '#12304A')}
+                              onChange={(event) =>
+                                setSectionForm((prev) => ({ ...prev, titleColor: event.target.value }))
+                              }
+                            />
+                          </div>
+                        </label>
+                      </>
+                    ) : null}
                     {isPhaseOneProductShelf ? (
                       <label className="field">
                         <span>Shelf layout</span>
@@ -5225,29 +5373,11 @@ function AppConfigPage({ token }) {
                                 {isPhaseOneCategoryShowcase ? (
                                   <>
                                     <label className="field">
-                                      <span>Variant</span>
+                                      <span>Industry</span>
                                       <select
-                                        value={sectionForm.showcaseVariant || 'circle'}
-                                        onChange={(event) =>
-                                          setSectionForm((prev) => ({
-                                            ...prev,
-                                            showcaseVariant: event.target.value,
-                                          }))
-                                        }
+                                        value={sectionForm.sourceIndustryId || ''}
+                                        onChange={(event) => handleCategoryBlockIndustryChange(event.target.value)}
                                       >
-                                        {SHOWCASE_VARIANT_OPTIONS.map((opt) => (
-                                          <option key={opt.value} value={opt.value}>
-                                            {opt.label}
-                                          </option>
-                                        ))}
-                                      </select>
-                                    </label>
-                                <label className="field">
-                                  <span>Industry</span>
-                                  <select
-                                    value={sectionForm.sourceIndustryId || ''}
-                                    onChange={(event) => handleCategoryBlockIndustryChange(event.target.value)}
-                                  >
                                         <option value="">Select industry</option>
                                         {industries.map((item) => {
                                           const id = resolveIndustryId(item);
@@ -5260,6 +5390,61 @@ function AppConfigPage({ token }) {
                                         })}
                                       </select>
                                     </label>
+                                    <label className="field">
+                                      <span>Showcase layout variant</span>
+                                      <select
+                                        value={sectionForm.showcaseVariant || 'circle'}
+                                        onChange={(event) =>
+                                          setSectionForm((prev) => ({ ...prev, showcaseVariant: event.target.value }))
+                                        }
+                                      >
+                                        {SHOWCASE_VARIANT_OPTIONS.map((option) => (
+                                          <option key={`showcase-variant-${option.value}`} value={option.value}>
+                                            {option.label}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    </label>
+                                    {sectionForm.showcaseVariant === 'banner' ? (
+                                      <>
+                                        <label className="field">
+                                          <span>Background color</span>
+                                          <div className="inline-row">
+                                            <input
+                                              type="text"
+                                              value={sectionForm.sectionBgColor}
+                                              onChange={(event) =>
+                                                setSectionForm((prev) => ({ ...prev, sectionBgColor: event.target.value }))
+                                              }
+                                              placeholder="#FDF2F2"
+                                            />
+                                            <input
+                                              type="color"
+                                              className="color-input"
+                                              value={
+                                                sectionForm.sectionBgColor && sectionForm.sectionBgColor.startsWith('#')
+                                                  ? sectionForm.sectionBgColor
+                                                  : '#FDF2F2'
+                                              }
+                                              onChange={(event) =>
+                                                setSectionForm((prev) => ({ ...prev, sectionBgColor: event.target.value }))
+                                              }
+                                            />
+                                          </div>
+                                        </label>
+                                        <label className="field field-span">
+                                          <span>Top banner image URL</span>
+                                          <input
+                                            type="text"
+                                            value={sectionForm.bentoHeaderImage}
+                                            onChange={(event) =>
+                                              setSectionForm((prev) => ({ ...prev, bentoHeaderImage: event.target.value }))
+                                            }
+                                            placeholder="https://cdn.example.com/category-showcase-header.png"
+                                          />
+                                        </label>
+                                      </>
+                                    ) : null}
                                   </>
                                 ) : null}
                             {isPhaseOneBrandGrid ? (
@@ -8573,7 +8758,18 @@ function AppConfigPage({ token }) {
                           </div>
                           {bentoTileSourceType === 'MANUAL' ? (
                             <div className="bento-tile-grid">
-                              {ensureBentoTiles(sectionForm.bentoTiles).map((tile, idx) => (
+                              {ensureBentoTiles(sectionForm.bentoTiles).map((tile, idx) => {
+                                const tileDest = parseNavigationTarget(
+                                  tile.deepLink || '',
+                                  tile.destinationType,
+                                  tile.destinationValue
+                                );
+                                const tileProductQuery = bentoTileProductQueries[idx] || '';
+                                const filteredTileProducts = destinationProducts.filter((p) => {
+                                  if (!tileProductQuery) return true;
+                                  return getDestinationProductSearchText(p).includes(tileProductQuery.toLowerCase());
+                                });
+                                return (
                                 <div key={`bento-tile-${idx}`} className="bento-tile-row">
                                   <div className="bento-tile-title">Card {idx + 1}</div>
                                   <div className="inline-row">
@@ -8601,18 +8797,98 @@ function AppConfigPage({ token }) {
                                   </div>
                                   <input
                                     type="text"
-                                    value={tile.deepLink}
-                                    onChange={(event) => updateBentoTile(idx, 'deepLink', event.target.value)}
-                                    placeholder="app://category/123 or app://collection/soft-drinks"
-                                  />
-                                  <input
-                                    type="text"
                                     value={tile.label}
                                     onChange={(event) => updateBentoTile(idx, 'label', event.target.value)}
-                                    placeholder="Soft drinks"
+                                    placeholder="Card label (e.g. Soft drinks)"
                                   />
+                                  {/* ── Smart deep link picker ── */}
+                                  <div className="bento-tile-link-row">
+                                    <select
+                                      value={tileDest.type}
+                                      onChange={(event) => updateBentoTileDestinationType(idx, event.target.value)}
+                                      style={{ flex: '0 0 auto', minWidth: 120 }}
+                                    >
+                                      {NAVIGATION_TARGET_OPTIONS.map((opt) => (
+                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                      ))}
+                                    </select>
+                                    {tileDest.type === 'COLLECTION' ? (
+                                      <select
+                                        value={tileDest.value}
+                                        onChange={(event) => updateBentoTileDestinationValue(idx, 'COLLECTION', event.target.value)}
+                                      >
+                                        <option value="">Select collection</option>
+                                        {!productCollectionOptions.some((o) => o.value === tileDest.value) && tileDest.value ? (
+                                          <option value={tileDest.value}>Current: {tileDest.value}</option>
+                                        ) : null}
+                                        {productCollectionOptions.map((o) => (
+                                          <option key={o.value} value={o.value}>{o.label}</option>
+                                        ))}
+                                      </select>
+                                    ) : tileDest.type === 'CATEGORY' ? (
+                                      <select
+                                        value={tileDest.value}
+                                        onChange={(event) => updateBentoTileDestinationValue(idx, 'CATEGORY', event.target.value)}
+                                      >
+                                        <option value="">Select main category</option>
+                                        {!destinationMainCategoryOptions.some((o) => o.value === tileDest.value) && tileDest.value ? (
+                                          <option value={tileDest.value}>Current: #{tileDest.value}</option>
+                                        ) : null}
+                                        {destinationMainCategoryOptions.map((o) => (
+                                          <option key={o.value} value={o.value}>{o.label}</option>
+                                        ))}
+                                      </select>
+                                    ) : tileDest.type === 'PRODUCT' ? (
+                                      <>
+                                        <input
+                                          type="search"
+                                          value={tileProductQuery}
+                                          onChange={(event) =>
+                                            setBentoTileProductQueries((prev) => ({ ...prev, [idx]: event.target.value }))
+                                          }
+                                          placeholder="Search product name, id, SKU"
+                                          style={{ minWidth: 0 }}
+                                        />
+                                        <select
+                                          value={tileDest.value}
+                                          onChange={(event) => updateBentoTileDestinationValue(idx, 'PRODUCT', event.target.value)}
+                                        >
+                                          <option value="">Select product</option>
+                                          {!filteredTileProducts.some((p) => String(p?.id || '') === tileDest.value) && tileDest.value ? (
+                                            <option value={tileDest.value}>Current product #{tileDest.value}</option>
+                                          ) : null}
+                                          {filteredTileProducts.map((p) => (
+                                            <option key={p.id} value={String(p.id || '')}>
+                                              {formatDestinationProductLabel(p)}
+                                            </option>
+                                          ))}
+                                        </select>
+                                      </>
+                                    ) : (
+                                      <input
+                                        type="text"
+                                        value={tileDest.value}
+                                        onChange={(event) =>
+                                          updateBentoTileDestinationValue(idx, tileDest.type, event.target.value)
+                                        }
+                                        placeholder={
+                                          tileDest.type === 'EXTERNAL_URL'
+                                            ? 'https://example.com/offer'
+                                            : tileDest.type === 'CAMPAIGN'
+                                              ? 'campaign-slug'
+                                              : 'app://collection/soft-drinks'
+                                        }
+                                      />
+                                    )}
+                                  </div>
+                                  {tile.deepLink ? (
+                                    <p className="field-help" style={{ marginTop: 2, wordBreak: 'break-all' }}>
+                                      ↳ {tile.deepLink}
+                                    </p>
+                                  ) : null}
                                 </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           ) : (
                             <p className="field-help">

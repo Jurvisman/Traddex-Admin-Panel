@@ -849,6 +849,41 @@ export const PreviewSection = ({
                   : isJewelleryShowcase
                     ? 'preview-showcase-theme-jewellery'
                   : '';
+    if (variant === 'banner') {
+      const bannerBg = section?.sectionBgColor || '#FDF2F2';
+      const headerImage = section?.headerImage || '';
+      const text = section?.text || '';
+      return (
+        <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`} style={{ padding: 0 }}>
+          <div className="preview-showcase-banner-container" style={{ backgroundColor: bannerBg, padding: '20px', borderRadius: '12px', margin: '10px 0', position: 'relative', overflow: 'hidden' }}>
+            <div className="preview-showcase-banner-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', minHeight: '60px' }}>
+              <div style={{ flex: 1, paddingRight: '100px', textAlign: 'left' }}>
+                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold', color: '#1F2937' }}>{title || 'Category Showcase'}</h3>
+                {text ? <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#4B5563', opacity: 0.8 }}>{text}</p> : null}
+              </div>
+              {headerImage ? (
+                <img src={headerImage} alt="" style={{ position: 'absolute', right: '15px', top: '10px', width: '80px', height: '80px', objectFit: 'contain' }} />
+              ) : null}
+            </div>
+            <div className="preview-showcase-row preview-showcase-banner-row" style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '4px' }}>
+              {items.map((item, itemIndex) => {
+                const image = getPreviewImage(item);
+                const label = getPreviewTitle(item);
+                return (
+                  <div key={`preview-showcase-banner-item-${index}-${itemIndex}`} className="preview-showcase-banner-item" style={{ width: '70px', flexShrink: 0, textAlign: 'center' }}>
+                    <div className="preview-showcase-banner-image-wrap" style={{ width: '70px', height: '70px', borderRadius: '10px', backgroundColor: 'rgba(255,255,255,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px', marginBottom: '6px', border: '1px solid rgba(0,0,0,0.04)' }}>
+                      {image ? <img src={image} alt="" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} /> : <div className="preview-image-placeholder" style={{ width: '100%', height: '100%', borderRadius: '6px' }} />}
+                    </div>
+                    <div style={{ fontSize: '10px', fontWeight: '600', color: '#374151', lineHeight: '12px' }}>{label}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
         {title ? (

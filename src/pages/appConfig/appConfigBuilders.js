@@ -247,7 +247,14 @@ export const buildSectionFromForm = (base, form) => {
     delete next.hero;
     delete next.tiles;
     delete next.tileSource;
-    if (!isColumnGridBlock) {
+    if (resolvedBlockType === 'category_showcase') {
+      const headerImage = form.bentoHeaderImage?.trim();
+      if (headerImage) {
+        next.headerImage = headerImage;
+      } else {
+        delete next.headerImage;
+      }
+    } else if (!isColumnGridBlock) {
       delete next.headerImage;
     }
   }
@@ -285,8 +292,7 @@ export const buildSectionFromForm = (base, form) => {
   } else {
     delete next.fallbackPolicy;
   }
-  const isLegacyMultiItemGrid =
-    !phaseOneBlockTypes.has(resolvedBlockType) && resolvedBlockType === 'multiItemGrid';
+  const isLegacyMultiItemGrid = resolvedBlockType === 'multiItemGrid';
   const sourceType = String(form.sourceType || 'MANUAL').trim().toUpperCase();
   if (isLegacyMultiItemGrid) {
     const feedMode = String(form.productFeedMode || 'FREQUENTLY_BOUGHT').trim().toUpperCase();

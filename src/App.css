@@ -9124,6 +9124,25 @@ textarea {
   color: var(--ink);
 }
 
+.bento-tile-link-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.bento-tile-link-row select,
+.bento-tile-link-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.bento-tile-link-row > select:first-child {
+  flex: 0 0 auto;
+  min-width: 110px;
+  max-width: 130px;
+}
+
 .multi-select-list {
   display: grid;
   gap: 8px;

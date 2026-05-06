@@ -1,4 +1,4 @@
-export const emptyMessage = { type: 'info', text: '' };
+﻿export const emptyMessage = { type: 'info', text: '' };
 
 export const parseJson = (value) => {
   if (!value || !value.trim()) return { data: null, error: 'Config JSON is required.' };
@@ -60,7 +60,7 @@ export const screenSectionTypeOptions = [
   { value: 'grid', label: 'Product grid' },
   { value: 'column_grid', label: 'Column grid (SDUI)' },
   { value: 'category_icon_grid', label: 'Category icon grid (SDUI)' },
-  { value: 'brand_logo_grid', label: 'Brand showcase (SDUI)' },
+  { value: 'brand_logo_grid', label: 'Brand Bento Box (SDUI)' },
   { value: 'media_overlay_carousel', label: 'Media overlay carousel (SDUI)' },
   { value: 'product_card_carousel', label: 'Product card carousel (SDUI)' },
   { value: 'info_list', label: 'Info list (SDUI)' },
@@ -368,7 +368,7 @@ const FASHION_NEW_ARRIVALS_SAMPLE = [
     imageUrl: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=800&q=80',
     priceLine: 'Rs 2,499',
     moqLine: 'MOQ 12',
-    sellerLine: 'Mode House · Ahmedabad',
+    sellerLine: 'Mode House Â· Ahmedabad',
     deliveryLabel: 'Dispatch in 24 hrs',
     stockLabel: 'Ready stock',
     stockDot: '#22C55E',
@@ -380,7 +380,7 @@ const FASHION_NEW_ARRIVALS_SAMPLE = [
     imageUrl: 'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=800&q=80',
     priceLine: 'Rs 1,899',
     moqLine: 'MOQ 8',
-    sellerLine: 'Aarya Apparel · Surat',
+    sellerLine: 'Aarya Apparel Â· Surat',
     deliveryLabel: 'Dispatch in 48 hrs',
     stockLabel: 'Fast moving',
     stockDot: '#F59E0B',
@@ -392,7 +392,7 @@ const FASHION_NEW_ARRIVALS_SAMPLE = [
     imageUrl: 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=800&q=80',
     priceLine: 'Rs 1,590',
     moqLine: 'MOQ 10',
-    sellerLine: 'Urban Rack · Mumbai',
+    sellerLine: 'Urban Rack Â· Mumbai',
     deliveryLabel: 'Dispatch in 24 hrs',
     stockLabel: 'In stock',
     stockDot: '#22C55E',
@@ -404,7 +404,7 @@ const FASHION_NEW_ARRIVALS_SAMPLE = [
     imageUrl: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80',
     priceLine: 'Rs 1,299',
     moqLine: 'MOQ 20',
-    sellerLine: 'Carry Craft · Delhi',
+    sellerLine: 'Carry Craft Â· Delhi',
     deliveryLabel: 'Dispatch in 72 hrs',
     stockLabel: 'Fresh drop',
     stockDot: '#6366F1',
@@ -2665,7 +2665,7 @@ const FOOD_POPULAR_DISHES_SAMPLE = [
     priceLine: 'Rs 249',
     mrpLine: 'Rs 329',
     rating: '4.7',
-    sellerLine: 'Brew & Beans • Navrangpura',
+    sellerLine: 'Brew & Beans â€¢ Navrangpura',
     deliveryLabel: '20-25 min',
     badgeText: 'Popular',
     imageUrl: 'https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?auto=format&fit=crop&w=800&q=80',
@@ -2677,7 +2677,7 @@ const FOOD_POPULAR_DISHES_SAMPLE = [
     priceLine: 'Rs 179',
     mrpLine: 'Rs 229',
     rating: '4.6',
-    sellerLine: 'Ramesh Dosa • Law Garden',
+    sellerLine: 'Ramesh Dosa â€¢ Law Garden',
     deliveryLabel: '15-20 min',
     badgeText: 'Bestseller',
     imageUrl: 'https://images.unsplash.com/photo-1630383249896-424e482df921?auto=format&fit=crop&w=800&q=80',
@@ -2689,7 +2689,7 @@ const FOOD_POPULAR_DISHES_SAMPLE = [
     priceLine: 'Rs 299',
     mrpLine: 'Rs 369',
     rating: '4.8',
-    sellerLine: 'Secret Garden • Satellite',
+    sellerLine: 'Secret Garden â€¢ Satellite',
     deliveryLabel: '25-30 min',
     badgeText: 'Limited',
     imageUrl: 'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?auto=format&fit=crop&w=800&q=80',
@@ -2733,7 +2733,7 @@ const FOOD_SPECIALS_SAMPLE = [
 const FOOD_VENUES_NEARBY_SAMPLE = [
   {
     title: 'Brew & Beans Cafe',
-    subtitle: 'Cafe • Navrangpura',
+    subtitle: 'Cafe â€¢ Navrangpura',
     rating: '4.6',
     distance: '1.2 km',
     verified: true,
@@ -2747,7 +2747,7 @@ const FOOD_VENUES_NEARBY_SAMPLE = [
   },
   {
     title: 'Royal Gujarati Thali',
-    subtitle: 'Restaurant • CG Road',
+    subtitle: 'Restaurant â€¢ CG Road',
     rating: '4.5',
     distance: '2.3 km',
     verified: true,
@@ -2761,7 +2761,7 @@ const FOOD_VENUES_NEARBY_SAMPLE = [
   },
   {
     title: 'Sky Lounge & Bar',
-    subtitle: 'Rooftop • SG Highway',
+    subtitle: 'Rooftop â€¢ SG Highway',
     rating: '4.5',
     distance: '4.2 km',
     verified: true,
@@ -2827,9 +2827,9 @@ const FOOD_AREA_GUIDE_SAMPLE = [
 ];
 
 const FOOD_CITY_DICTIONARY_SAMPLE = [
-  { title: 'Butter cheese dosa', subtitle: 'Law Garden • Best after 7 PM', priceLine: 'Rs 120 - 220', imageUrl: 'https://images.unsplash.com/photo-1630383249896-424e482df921?auto=format&fit=crop&w=800&q=80' },
-  { title: 'Chocolate sandwich', subtitle: 'Manek Chowk • Night classic', priceLine: 'Rs 80 - 160', imageUrl: 'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=800&q=80' },
-  { title: 'Loaded cold coffee', subtitle: 'Navrangpura • Cafe favourite', priceLine: 'Rs 140 - 240', imageUrl: 'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?auto=format&fit=crop&w=800&q=80' },
+  { title: 'Butter cheese dosa', subtitle: 'Law Garden â€¢ Best after 7 PM', priceLine: 'Rs 120 - 220', imageUrl: 'https://images.unsplash.com/photo-1630383249896-424e482df921?auto=format&fit=crop&w=800&q=80' },
+  { title: 'Chocolate sandwich', subtitle: 'Manek Chowk â€¢ Night classic', priceLine: 'Rs 80 - 160', imageUrl: 'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=800&q=80' },
+  { title: 'Loaded cold coffee', subtitle: 'Navrangpura â€¢ Cafe favourite', priceLine: 'Rs 140 - 240', imageUrl: 'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?auto=format&fit=crop&w=800&q=80' },
 ];
 
 const FOOD_PROMISES_SAMPLE = [
@@ -4132,11 +4132,11 @@ const buildAutomobileDefaultSections = (industryId) => {
 };
 
 export const screenToolboxItems = [
-  // ── Banners & Heroes ────────────────────────────────────────────────────
+  // â”€â”€ Banners & Heroes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
     key: 'adBanner',
     label: 'Ad Banner',
-    hint: 'Live ad slot — serves the best matching active business ad based on industry and slot type. Shows nothing if no active ad exists.',
+    hint: 'Live ad slot â€” serves the best matching active business ad based on industry and slot type. Shows nothing if no active ad exists.',
     section: {
       id: 'ad_banner',
       type: 'ad_banner',
@@ -4192,7 +4192,7 @@ export const screenToolboxItems = [
   {
     key: 'promoBanner',
     label: 'Promo Text Banner',
-    hint: 'Coloured banner with title, body text and CTA — no image needed',
+    hint: 'Coloured banner with title, body text and CTA â€” no image needed',
     section: {
       id: 'promo_banner',
       type: 'banner',
@@ -4678,11 +4678,11 @@ export const screenToolboxItems = [
     },
   },
 
-  // ── Product Blocks ───────────────────────────────────────────────────────
+  // â”€â”€ Product Blocks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
     key: 'productCardCarousel',
     label: 'Product Cards',
-    hint: 'Horizontal scrollable product cards — supports live feed or manual items',
+    hint: 'Horizontal scrollable product cards â€” supports live feed or manual items',
     section: {
       id: 'product_card_carousel',
       type: 'horizontalList',
@@ -4696,7 +4696,7 @@ export const screenToolboxItems = [
   {
     key: 'tabbedProductShelf',
     label: 'Tabbed Product Shelf',
-    hint: 'Product cards grouped into tabs (e.g. Men / Women / Kids) — supports live feed',
+    hint: 'Product cards grouped into tabs (e.g. Men / Women / Kids) â€” supports live feed',
     section: {
       id: 'tabbed_product_shelf',
       blockType: 'tabbed_product_shelf',
@@ -4722,7 +4722,7 @@ export const screenToolboxItems = [
   {
     key: 'productGrid',
     label: 'Product Grid',
-    hint: '3-column live product grid — pulls from a feed endpoint',
+    hint: '3-column live product grid â€” pulls from a feed endpoint',
     section: {
       id: 'multi_item_grid',
       type: 'grid',
@@ -4738,7 +4738,7 @@ export const screenToolboxItems = [
   {
     key: 'featuredCards',
     label: 'Featured Cards',
-    hint: 'Horizontal cards with badge and subtitle — great for festive highlights',
+    hint: 'Horizontal cards with badge and subtitle â€” great for festive highlights',
     section: {
       id: 'featured_cards',
       type: 'horizontalList',
@@ -4752,11 +4752,11 @@ export const screenToolboxItems = [
     },
   },
 
-  // ── Category & Brand ─────────────────────────────────────────────────────
+  // â”€â”€ Category & Brand â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
     key: 'categoryIconGrid',
     label: 'Category Icon Grid',
-    hint: '4-column category icons — auto-fetched from industry',
+    hint: '4-column category icons â€” auto-fetched from industry',
     section: {
       id: 'category_icon_grid',
       type: 'grid',
@@ -4773,7 +4773,7 @@ export const screenToolboxItems = [
   {
     key: 'categoryShowcase',
     label: 'Category Showcase',
-    hint: 'Circular or square category bubbles — auto-fetched from industry',
+    hint: 'Circular or square category bubbles â€” auto-fetched from industry',
     section: {
       id: 'category_showcase',
       type: 'category_showcase',
@@ -4803,7 +4803,7 @@ export const screenToolboxItems = [
   {
     key: 'columnGrid',
     label: 'Column Grid',
-    hint: '3-column cards with dual images — supports category feed or manual items',
+    hint: '3-column cards with dual images â€” supports category feed or manual items',
     section: {
       id: 'column_grid',
       type: 'grid',
@@ -4835,8 +4835,8 @@ export const screenToolboxItems = [
   },
   {
     key: 'brandShowcase',
-    label: 'Brand Showcase',
-    hint: 'Automobile-style horizontal brand cards with optional live industry feed',
+    label: 'Brand Bento Box',
+    hint: 'Brand campaign block with top banner, four tiles, and bottom CTA banner',
     section: {
       id: 'brand_showcase',
       type: 'horizontalList',
@@ -4888,11 +4888,11 @@ export const screenToolboxItems = [
     },
   },
 
-  // ── Business / Shops ─────────────────────────────────────────────────────
+  // â”€â”€ Business / Shops â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
     key: 'shopsNearYou',
     label: 'Shops Near You',
-    hint: 'Detailed shop cards with chips and 3 action buttons — fetches live by location',
+    hint: 'Detailed shop cards with chips and 3 action buttons â€” fetches live by location',
     section: {
       id: 'shop_card_carousel',
       blockType: 'shop_card_carousel',
@@ -4902,7 +4902,7 @@ export const screenToolboxItems = [
     },
   },
 
-  // ── Actions & Navigation ─────────────────────────────────────────────────
+  // â”€â”€ Actions & Navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
     key: 'quickActions',
     label: 'Quick Actions',
@@ -4934,7 +4934,7 @@ export const screenToolboxItems = [
   {
     key: 'chipScroll',
     label: 'Chip Scroll',
-    hint: 'Horizontal scrolling pill tags — great for tips, filters or topic links',
+    hint: 'Horizontal scrolling pill tags â€” great for tips, filters or topic links',
     section: {
       id: 'chip_scroll',
       type: 'horizontalList',
@@ -4950,7 +4950,7 @@ export const screenToolboxItems = [
     },
   },
 
-  // ── Content & Layout ─────────────────────────────────────────────────────
+  // â”€â”€ Content & Layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
     key: 'infoList',
     label: 'Info List',
@@ -5004,7 +5004,7 @@ export const blockLabels = {
   quick_action_row: 'Quick Action Row',
   column_grid: 'Festive Column Grid',
   category_icon_grid: 'Category Icon Grid',
-  brand_logo_grid: 'Brand Showcase',
+  brand_logo_grid: 'Brand Bento Box',
   media_overlay_carousel: 'Media Overlay Carousel',
   product_card_carousel: 'Product Card Carousel',
   deal_card_carousel: 'Product Card Carousel',
@@ -5966,7 +5966,7 @@ export const STYLE_PRESET_OPTIONS = {
     { value: 'fashion', label: 'Fashion' },
   ],
   brand_logo_grid: [
-    { value: '', label: 'Default (Blue grid)' },
+    { value: '', label: 'Default bento' },
     { value: 'fashion', label: 'Fashion' },
     { value: 'automobile', label: 'Automobile (horizontal carousel)' },
     { value: 'kids', label: 'Kids' },
@@ -6018,6 +6018,7 @@ export const SHOWCASE_VARIANT_OPTIONS = [
   { value: 'circle', label: 'Circle' },
   { value: 'circle_icon', label: 'Circle + Icon badge' },
   { value: 'card', label: 'Card' },
+  { value: 'banner', label: 'Banner' },
 ];
 
 export const MULTI_ITEM_GRID_FEED_OPTIONS = [
@@ -6697,3 +6698,4 @@ export const getPageLabel = (page, index, presets) => {
   const preset = (presets || []).find((item) => item.id === page?.id);
   return preset?.label || page?.id || page?.route || `Page ${index + 1}`;
 };
+
