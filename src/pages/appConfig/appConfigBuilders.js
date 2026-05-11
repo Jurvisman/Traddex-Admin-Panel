@@ -71,6 +71,17 @@ export const buildSectionFromForm = (base, form) => {
   const isPlaceCardCarouselBlock = resolvedBlockType === 'beauty_salon_carousel';
   const isTabbedProductShelfBlock = resolvedBlockType === 'tabbed_product_shelf';
   const isShopCardCarouselBlock = resolvedBlockType === 'shop_card_carousel';
+  const isDynamicFallbackBlock =
+    isColumnGridBlock ||
+    isCampaignBentoBlock ||
+    isPhaseOneProductShelfBlock ||
+    isProductCardCarouselBlock ||
+    isCategoryIconGridBlock ||
+    isPlaceCardCarouselBlock ||
+    isTabbedProductShelfBlock ||
+    isShopCardCarouselBlock ||
+    Boolean(String(form.dataSourceRef || '').trim()) ||
+    Boolean(String(form.itemsPath || '').trim());
   const stylePresetOptions = STYLE_PRESET_OPTIONS[resolvedBlockType] || [];
   const setOrDelete = (key, value) => {
     if (value === undefined || value === null || String(value).trim() === '') {
@@ -236,7 +247,14 @@ export const buildSectionFromForm = (base, form) => {
     delete next.hero;
     delete next.tiles;
     delete next.tileSource;
-    if (!isColumnGridBlock) {
+    if (resolvedBlockType === 'category_showcase') {
+      const headerImage = form.bentoHeaderImage?.trim();
+      if (headerImage) {
+        next.headerImage = headerImage;
+      } else {
+        delete next.headerImage;
+      }
+    } else if (!isColumnGridBlock) {
       delete next.headerImage;
     }
   }
@@ -263,8 +281,18 @@ export const buildSectionFromForm = (base, form) => {
   setOrDelete('itemsPath', form.itemsPath?.trim());
   setOrDelete('itemTemplateRef', form.itemTemplateRef?.trim());
   setOrDelete('dataSourceRef', form.dataSourceRef?.trim());
-  const isLegacyMultiItemGrid =
-    !phaseOneBlockTypes.has(resolvedBlockType) && resolvedBlockType === 'multiItemGrid';
+  if (isDynamicFallbackBlock) {
+    const fallbackBehavior = String(form.fallbackBehavior || 'HIDE_BLOCK').trim().toUpperCase();
+    const fallbackSource = String(form.fallbackSource || 'MANUAL_ITEMS').trim().toUpperCase();
+    next.fallbackPolicy = {
+      behavior: fallbackBehavior,
+      source: fallbackSource,
+      ...(String(form.fallbackMessage || '').trim() ? { message: String(form.fallbackMessage).trim() } : {}),
+    };
+  } else {
+    delete next.fallbackPolicy;
+  }
+  const isLegacyMultiItemGrid = resolvedBlockType === 'multiItemGrid';
   const sourceType = String(form.sourceType || 'MANUAL').trim().toUpperCase();
   if (isLegacyMultiItemGrid) {
     const feedMode = String(form.productFeedMode || 'FREQUENTLY_BOUGHT').trim().toUpperCase();
@@ -282,6 +310,7 @@ export const buildSectionFromForm = (base, form) => {
     next.productLimit = productLimit;
     next.dataSource = {
       sourceType: 'PRODUCT_FEED',
+      feedMode,
       ...(sourceIndustryId ? { industryId: sourceIndustryId } : {}),
       ...(sourceMainCategoryId ? { mainCategoryId: sourceMainCategoryId } : {}),
       ...(sourceCategoryIds.length ? { categoryIds: sourceCategoryIds } : {}),
@@ -300,10 +329,19 @@ export const buildSectionFromForm = (base, form) => {
         const businessUserIds = Array.isArray(form.sourceBusinessUserIds)
           ? form.sourceBusinessUserIds.map((value) => normalizeCollectionId(value)).filter(Boolean)
           : [];
+        if (!businessUserIds.length) {
+          console.warn('CMS Validation: BUSINESS_SELECTION requires at least one Business User ID');
+        }
         if (businessUserIds.length) sourcePayload.businessUserIds = businessUserIds;
       } else {
         const sourceIndustryId = normalizeCollectionId(form.sourceIndustryId);
         if (sourceIndustryId) sourcePayload.industryId = sourceIndustryId;
+        
+        // Basic Validation: If feed mode is enabled, industryId is usually mandatory
+        if (!sourceIndustryId && (sourceType === 'CATEGORY_FEED' || sourceType === 'PRODUCT_FEED')) {
+           console.warn(`CMS Validation: ${sourceType} source usually requires an Industry ID to fetch data.`);
+        }
+
         if (sourceType === 'CATEGORY_FEED') {
           sourcePayload.mode = resolveDefaultCategoryFeedMode(resolvedBlockType, form.sourceFeedMode);
         }
@@ -372,6 +410,7 @@ export const buildSectionFromForm = (base, form) => {
       next.productLimit = productLimit;
       next.dataSource = {
         sourceType: 'PRODUCT_FEED',
+        feedMode,
         ...(sourceIndustryId ? { industryId: sourceIndustryId } : {}),
         ...(sourceMainCategoryId ? { mainCategoryId: sourceMainCategoryId } : {}),
         ...(sourceCategoryIds.length ? { categoryIds: sourceCategoryIds } : {}),
@@ -400,6 +439,7 @@ export const buildSectionFromForm = (base, form) => {
       next.itemsPath = String(form.itemsPath || '').trim() || '$.products';
       next.dataSource = {
         sourceType: 'PRODUCT_FEED',
+        feedMode: String(form.productFeedMode || resolveMultiItemGridFeedMode(form.dataSourceRef, 'TOP_SELLING')).trim().toUpperCase(),
         ...(sourceIndustryId ? { industryId: sourceIndustryId } : {}),
         ...(sourceMainCategoryId ? { mainCategoryId: sourceMainCategoryId } : {}),
         ...(sourceCategoryIds.length ? { categoryIds: sourceCategoryIds } : {}),
@@ -731,5 +771,8 @@ export const buildSectionFormFromConfig = (section, fallbackType) => {
       source?.limit !== undefined && source?.limit !== null
         ? String(source.limit)
         : defaultSectionForm.blockLimit,
+    fallbackBehavior: section?.fallbackPolicy?.behavior || defaultSectionForm.fallbackBehavior,
+    fallbackMessage: section?.fallbackPolicy?.message || defaultSectionForm.fallbackMessage,
+    fallbackSource: section?.fallbackPolicy?.source || defaultSectionForm.fallbackSource,
   };
 };

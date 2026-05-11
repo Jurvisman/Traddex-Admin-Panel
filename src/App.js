@@ -49,6 +49,7 @@ import {
   KycAssistancePage,
   ServicePage,
   ServiceCreatePage,
+  StorefrontManagementPage,
 } from './pages';
 import { fetchMyPermissions } from './services/adminApi';
 import { PermissionsContext } from './shared/permissions';
@@ -264,6 +265,11 @@ const ADMIN_META = [
     matchPrefix: '/admin/businesses',
     title: 'Business',
     // subtitle: 'Review business profiles, KYC tabs, and account status.',
+  },
+  {
+    match: '/admin/storefront',
+    title: 'Storefronts',
+    subtitle: 'Approve and publish merchant websites to live domains.',
   },
   {
     matchPrefix: '/admin/users',
@@ -611,6 +617,7 @@ function AppRoutes() {
           { path: '/admin/businesses', label: 'Business', icon: ICONS.business, tone: NAV_TONES.business },
           { path: '/admin/products', label: 'Product', icon: ICONS.products, tone: NAV_TONES.products },
           { path: '/admin/services', label: 'Service', icon: ICONS.services, tone: NAV_TONES.services },
+          { path: '/admin/storefront', label: 'Storefront', icon: ICONS.dashboard, tone: NAV_TONES.dashboard },
           {
             key: 'product-masters-root',
             label: 'Product Masters',
@@ -749,6 +756,7 @@ function AppRoutes() {
     if (isPermissionLoading) return true;
     if (!path) return true;
     if (allowedPaths.size === 0) return false;
+    if (path === '/admin/storefront' || path.startsWith('/admin/storefront/')) return true;
     return hasPathAccess(allowedPaths, path);
   };
 
@@ -771,6 +779,7 @@ function AppRoutes() {
               if (visibleChildren.length === 0) return null;
               return { ...item, children: visibleChildren };
             }
+            if (item?.path === '/admin/storefront') return item;
             return canSeeNavPath(item?.path) ? item : null;
           })
           .filter(Boolean);
@@ -1286,6 +1295,18 @@ function AppRoutes() {
               fallbackPath={routeFallbackPath}
             >
               <ServiceCreatePage token={authToken} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="storefront"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={canAccessPath('/admin/storefront')}
+              fallbackPath={routeFallbackPath}
+            >
+              <StorefrontManagementPage token={authToken} />
             </PermissionGate>
           }
         />

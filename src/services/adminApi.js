@@ -75,8 +75,12 @@ export const updateBusinessProfile = (token, userId, payload, status) => {
   const query = status ? `?status=${encodeURIComponent(status)}` : '';
   return request(`/admin/profile/${userId}/business${query}`, { method: 'PUT', body: payload, token });
 };
-export const updateBusinessProfileStatus = (token, profileId, status) =>
-  request(`/admin/profile/${profileId}/status?status=${encodeURIComponent(status)}`, { method: 'POST', token });
+export const updateBusinessProfileStatus = (token, profileId, status, rejectionReason = null) =>
+  request(`/admin/profile/${profileId}/status?status=${encodeURIComponent(status)}`, { 
+    method: 'POST', 
+    body: rejectionReason ? { rejectionReason } : undefined,
+    token 
+  });
 
 export const listIndustries = (token) => request('/industries', { token });
 export const getIndustry = (token, id) => request(`/industries/${id}`, { token });
