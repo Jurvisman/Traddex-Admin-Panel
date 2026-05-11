@@ -67,6 +67,9 @@ const SERVICE_TABLE_COLUMN_OPTIONS = [
   { key: 'mainCategory', label: 'Main Category', minWidth: 170 },
   { key: 'category', label: 'Category', minWidth: 170 },
   { key: 'subCategory', label: 'Sub-Category', minWidth: 170 },
+  { key: 'serviceType', label: 'Service Type', minWidth: 150 },
+  { key: 'pricingModel', label: 'Pricing Model', minWidth: 150 },
+  { key: 'bookingMode', label: 'Booking Flow', minWidth: 150 },
   { key: 'serviceUom', label: 'UOM', minWidth: 110 },
   { key: 'basePrice', label: 'Base Price', minWidth: 130 },
   { key: 'priceUnit', label: 'Price Unit', minWidth: 130 },
@@ -87,6 +90,9 @@ const INITIAL_SERVICE_COLUMN_VISIBILITY = {
   mainCategory: true,
   category: true,
   subCategory: false,
+  serviceType: true,
+  pricingModel: true,
+  bookingMode: false,
   serviceUom: true,
   basePrice: true,
   priceUnit: false,
@@ -114,6 +120,7 @@ const SERVICE_VIEW_TABS = [
   { key: 'overview', label: 'Service Detail' },
   { key: 'review', label: 'Review Workspace' },
   { key: 'pricing', label: 'Pricing & Tax' },
+  { key: 'scope', label: 'Scope & Area' },
   { key: 'media', label: 'Media' },
   { key: 'description', label: 'Description' },
 ];
@@ -161,6 +168,11 @@ const formatStatus = (status) => {
     .split('_')
     .map((part) => (part ? `${part.charAt(0).toUpperCase()}${part.slice(1)}` : ''))
     .join(' ');
+};
+
+const formatEnum = (value) => {
+  if (!value) return formatValue(value);
+  return formatStatus(value);
 };
 
 const formatPrice = (value) => {
@@ -415,8 +427,12 @@ function ServicePage({ token, adminUserId }) {
   const serviceReviewChecklist = useMemo(() => {
     const svc = selectedService || {};
     const gallery = Array.isArray(svc.galleryImages) ? svc.galleryImages : [];
-    const hasPrice = svc.basePrice !== null && svc.basePrice !== undefined && svc.basePrice !== '';
+    const pricingModel = String(svc.pricingModel || '').toUpperCase();
+    const quoteOnly = pricingModel === 'ASK_QUOTE';
+    const hasPrice = quoteOnly || (svc.basePrice !== null && svc.basePrice !== undefined && svc.basePrice !== '');
+    const hasServiceSetup = Boolean(svc.serviceType && svc.serviceLocationType && svc.bookingMode);
     const hasDescription = Boolean(svc.shortDescription || svc.fullDescription);
+    const hasScope = Boolean(svc.includedItems || svc.customerRequirements || svc.keyFeatures || svc.fullDescription);
     const categoryDetail = reviewCategoryComplete
       ? [assignmentMainName, assignmentCategoryName, assignmentSubCategoryName]
           .filter(Boolean)
@@ -430,6 +446,13 @@ function ServicePage({ token, adminUserId }) {
         detail: categoryDetail || 'Category path selected.',
       },
       {
+        label: 'Service Setup',
+        status: hasServiceSetup ? 'ready' : 'missing',
+        detail: hasServiceSetup
+          ? [formatValue(svc.serviceType), formatValue(svc.serviceLocationType), formatValue(svc.bookingMode)].join(' / ')
+          : 'Service type, work location and booking flow should be selected.',
+      },
+      {
         label: 'Service Details',
         status: svc.serviceName && hasDescription ? 'ready' : 'missing',
         detail: svc.serviceName && hasDescription
@@ -440,8 +463,17 @@ function ServicePage({ token, adminUserId }) {
         label: 'Pricing & Tax',
         status: hasPrice ? 'ready' : 'missing',
         detail: hasPrice
-          ? `${formatPrice(svc.basePrice)}${svc.taxRate != null ? `, GST ${svc.taxRate}%` : ''}`
-          : 'Base price is missing.',
+          ? quoteOnly
+            ? 'Ask for quote service. Price can be finalized in lead flow.'
+            : `${formatPrice(svc.basePrice)}${svc.pricingModel ? `, ${formatStatus(svc.pricingModel)}` : ''}${svc.taxRate != null ? `, GST ${svc.taxRate}%` : ''}`
+          : 'Base price is missing for non-quote service.',
+      },
+      {
+        label: 'Scope & Requirements',
+        status: hasScope ? 'ready' : 'missing',
+        detail: hasScope
+          ? 'Scope, included items or customer requirements are available.'
+          : 'Add included/excluded scope or customer requirements.',
       },
       {
         label: 'Media',
@@ -454,10 +486,10 @@ function ServicePage({ token, adminUserId }) {
       },
       {
         label: 'Coverage & Availability',
-        status: svc.coverageArea || svc.serviceAvailability ? 'ready' : 'missing',
-        detail: svc.coverageArea || svc.serviceAvailability
-          ? [svc.coverageArea, svc.serviceAvailability].filter(Boolean).join(' / ')
-          : 'Coverage area or availability is missing.',
+        status: svc.coverageArea || svc.serviceAvailability || svc.serviceLocationType ? 'ready' : 'missing',
+        detail: svc.coverageArea || svc.serviceAvailability || svc.serviceLocationType
+          ? [svc.coverageArea, svc.serviceAvailability, svc.serviceRadiusKm ? `${svc.serviceRadiusKm} km radius` : null].filter(Boolean).join(' / ')
+          : 'Coverage area, availability or work location is missing.',
       },
     ];
   }, [
@@ -750,6 +782,12 @@ function ServicePage({ token, adminUserId }) {
         return <span className="product-table-primary">{formatValue(catName)}</span>;
       case 'subCategory':
         return <span className="product-table-secondary">{formatValue(subName)}</span>;
+      case 'serviceType':
+        return <span className="product-table-primary">{formatEnum(svc?.serviceType)}</span>;
+      case 'pricingModel':
+        return <span className="product-table-primary">{formatEnum(svc?.pricingModel)}</span>;
+      case 'bookingMode':
+        return <span className="product-table-primary">{formatEnum(svc?.bookingMode)}</span>;
       case 'serviceUom':
         return <span className="product-table-primary">{formatValue(svc?.serviceUom)}</span>;
       case 'basePrice':
@@ -949,12 +987,31 @@ function ServicePage({ token, adminUserId }) {
         return (
           <div className="field-grid">
             <div className="field"><span>Base Price</span><strong>{formatPrice(selectedService.basePrice)}</strong></div>
+            <div className="field"><span>Pricing Model</span><strong>{formatEnum(selectedService.pricingModel)}</strong></div>
             <div className="field"><span>Price Unit</span><strong>{formatValue(selectedService.priceUnit)}</strong></div>
+            <div className="field"><span>Billing Unit</span><strong>{formatValue(selectedService.billingUnit)}</strong></div>
+            <div className="field"><span>Minimum Order / Visit</span><strong>{formatValue(selectedService.minimumOrderQuantity)}</strong></div>
             <div className="field"><span>UOM</span><strong>{formatValue(selectedService.serviceUom)}</strong></div>
             <div className="field"><span>Discount</span><strong>{selectedService.discount != null ? `${selectedService.discount}%` : '—'}</strong></div>
             <div className="field"><span>Additional Charges</span><strong>{formatPrice(selectedService.additionalCharges)}</strong></div>
             <div className="field"><span>Tax Rate</span><strong>{selectedService.taxRate != null ? `${selectedService.taxRate}%` : '—'}</strong></div>
             <div className="field"><span>Tax Inclusive</span><strong>{formatValue(selectedService.taxInclusive)}</strong></div>
+          </div>
+        );
+      case 'scope':
+        return (
+          <div className="field-grid">
+            <div className="field"><span>Service Type</span><strong>{formatEnum(selectedService.serviceType)}</strong></div>
+            <div className="field"><span>Work Location</span><strong>{formatEnum(selectedService.serviceLocationType)}</strong></div>
+            <div className="field"><span>Booking Flow</span><strong>{formatEnum(selectedService.bookingMode)}</strong></div>
+            <div className="field"><span>Lead Time</span><strong>{formatValue(selectedService.leadTime)}</strong></div>
+            <div className="field"><span>Coverage Area</span><strong>{formatValue(selectedService.coverageArea)}</strong></div>
+            <div className="field"><span>Radius</span><strong>{selectedService.serviceRadiusKm ? `${selectedService.serviceRadiusKm} km` : '—'}</strong></div>
+            <div className="field"><span>Pickup / Drop</span><strong>{selectedService.pickupDropAvailable ? 'Available' : 'Not Available'}</strong></div>
+            <div className="field"><span>Emergency</span><strong>{selectedService.emergencyAvailable ? 'Available' : 'Not Available'}</strong></div>
+            <div className="field field-span"><span>Included Items</span><p style={{ whiteSpace: 'pre-wrap' }}>{selectedService.includedItems || '—'}</p></div>
+            <div className="field field-span"><span>Excluded / Extra Charges</span><p style={{ whiteSpace: 'pre-wrap' }}>{selectedService.excludedItems || '—'}</p></div>
+            <div className="field field-span"><span>Customer Requirements</span><p style={{ whiteSpace: 'pre-wrap' }}>{selectedService.customerRequirements || '—'}</p></div>
           </div>
         );
       case 'media': {
@@ -1498,12 +1555,16 @@ function ServicePage({ token, adminUserId }) {
                     {[
                       selectedService.businessName,
                       selectedService.serviceCode ? `Code: ${selectedService.serviceCode}` : null,
+                      selectedService.serviceType ? formatStatus(selectedService.serviceType) : null,
+                      selectedService.pricingModel ? formatStatus(selectedService.pricingModel) : null,
                       selectedService.category?.categoryName || selectedService.category?.mainCategoryName,
                     ].filter(Boolean).join('  ·  ')}
                   </p>
                   <div className="pvr-kpi-strip">
                     {[
                       { label: 'Base Price', value: formatPrice(selectedService.basePrice) },
+                      { label: 'Service Type', value: formatEnum(selectedService.serviceType) },
+                      { label: 'Pricing', value: formatEnum(selectedService.pricingModel) },
                       { label: 'UOM', value: selectedService.serviceUom || '—' },
                       { label: 'GST Rate', value: selectedService.taxRate != null ? `${selectedService.taxRate}%` : '—' },
                       { label: 'Duration', value: selectedService.serviceDuration || '—' },
