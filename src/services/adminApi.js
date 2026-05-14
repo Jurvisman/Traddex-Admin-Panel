@@ -153,6 +153,8 @@ export const deleteSubCategory = (token, id) => request(`/sub-categories/${id}`,
 export const listProducts = (token, filters = {}) => {
   const params = new URLSearchParams();
   if (filters.status) params.set('status', filters.status);
+  if (filters.source) params.set('source', filters.source);
+  if (filters.appListingStatus) params.set('appListingStatus', filters.appListingStatus);
   if (filters.query) params.set('query', filters.query);
   if (filters.category) params.set('category', filters.category);
   if (filters.business) params.set('business', filters.business);
@@ -179,6 +181,8 @@ export const updateProductVariantStatus = (token, productId, variantId, payload)
   request(`/admin/product/${productId}/variants/${variantId}/status`, { method: 'PUT', body: payload, token });
 export const reviewProductBrand = (token, productId, payload) =>
   request(`/admin/product/${productId}/brand/review`, { method: 'PUT', body: payload, token });
+export const reviewProductAppListing = (token, productId, payload) =>
+  request(`/admin/product/${productId}/app-listing-review`, { method: 'PUT', body: payload, token });
 
 // --- Admin Service APIs ---
 

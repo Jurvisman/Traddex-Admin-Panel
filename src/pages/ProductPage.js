@@ -21,6 +21,7 @@ import {
   listSubCategories,
   listUoms,
   reviewProductBrand,
+  reviewProductAppListing,
   uploadBannerImages,
   updateAdminProductReviewStatus,
   updateUom,
@@ -323,6 +324,7 @@ const createReviewForm = () => ({
   mainCategoryId: '',
   categoryId: '',
   subCategoryId: '',
+  rejectionReason: '',
 });
 
 const createBrandReviewForm = (product) => ({
@@ -354,6 +356,8 @@ const PRODUCT_TABLE_COLUMN_OPTIONS = [
   { key: 'code', label: 'Code', minWidth: 140 },
   { key: 'name', label: 'Name', minWidth: 220 },
   { key: 'business', label: 'Business', minWidth: 220 },
+  { key: 'source', label: 'Source', minWidth: 150 },
+  { key: 'appListing', label: 'App Listing', minWidth: 180 },
   { key: 'mainCategory', label: 'Main Category', minWidth: 180 },
   { key: 'category', label: 'Category', minWidth: 180 },
   { key: 'subCategory', label: 'Sub-Category', minWidth: 180 },
@@ -378,6 +382,8 @@ const INITIAL_PRODUCT_COLUMN_VISIBILITY = {
   code: true,
   name: true,
   business: true,
+  source: true,
+  appListing: true,
   mainCategory: true,
   category: true,
   subCategory: false,
@@ -406,6 +412,20 @@ const PRODUCT_STATUS_FILTER_OPTIONS = [
   { value: 'REJECTED', label: 'Rejected' },
 ];
 
+const PRODUCT_SOURCE_FILTER_OPTIONS = [
+  { value: '', label: 'All Sources' },
+  { value: 'TRADDEX_APP', label: 'Traddex App' },
+  { value: 'MERCHANT_ADMIN', label: 'Merchant Admin' },
+];
+
+const PRODUCT_APP_LISTING_FILTER_OPTIONS = [
+  { value: '', label: 'All App Listing States' },
+  { value: 'NOT_REQUESTED', label: 'Not Requested' },
+  { value: 'PENDING_REVIEW', label: 'Pending Review' },
+  { value: 'APPROVED', label: 'Approved' },
+  { value: 'REJECTED', label: 'Rejected' },
+];
+
 const PRODUCT_PAGE_SIZE_OPTIONS = [10, 25, 50];
 
 const getProductRecordId = (product) => product?.id || product?.productId || null;
@@ -422,6 +442,22 @@ const getProductRatingCount = (product) => {
 const getProductReviewCount = (product) => {
   const count = Number(product?.reviewCount ?? product?.review_count ?? 0);
   return Number.isFinite(count) ? count : 0;
+};
+const getProductSourceLabel = (product) =>
+  String(product?.productSource || '').toUpperCase() === 'MERCHANT_ADMIN' ? 'Merchant Admin' : 'Traddex App';
+const getAppListingStatusLabel = (product) => {
+  const status = String(product?.appListingStatus || '').toUpperCase();
+  if (status === 'PENDING_REVIEW') return 'Pending Review';
+  if (status === 'APPROVED') return 'Approved';
+  if (status === 'REJECTED') return 'Rejected';
+  return 'Not Requested';
+};
+const getAppListingStatusClass = (product) => {
+  const status = String(product?.appListingStatus || '').toUpperCase();
+  if (status === 'APPROVED') return 'approved';
+  if (status === 'REJECTED') return 'rejected';
+  if (status === 'PENDING_REVIEW') return 'pending-review';
+  return 'draft';
 };
 const getProductVariantCount = (product) => {
   if (Array.isArray(product?.variants)) return product.variants.length;
@@ -511,6 +547,8 @@ function ProductPage({ token, adminUserId }) {
     business: '',
     brand: '',
     status: '',
+    source: '',
+    appListingStatus: '',
   });
   const [showForm, setShowForm] = useState(false);
   const [showCreateSelector, setShowCreateSelector] = useState(false);
@@ -662,6 +700,8 @@ function ProductPage({ token, adminUserId }) {
       size,
       query: queryText,
       status: filters.status,
+      source: filters.source,
+      appListingStatus: filters.appListingStatus,
       category: filters.category,
       business: filters.business,
       brand: filters.brand,
@@ -1012,6 +1052,8 @@ function ProductPage({ token, adminUserId }) {
       business: '',
       brand: '',
       status: '',
+      source: '',
+      appListingStatus: '',
     });
     setProductListPage(0);
   };
@@ -1066,6 +1108,18 @@ function ProductPage({ token, adminUserId }) {
         );
       case 'business':
         return <span className="product-table-primary">{product?.businessName || '-'}</span>;
+      case 'source':
+        return (
+          <span className={`status-pill product-status-pill ${String(product?.productSource || '').toLowerCase().replace(/_/g, '-') || 'draft'}`}>
+            {getProductSourceLabel(product)}
+          </span>
+        );
+      case 'appListing':
+        return (
+          <span className={`status-pill product-status-pill ${getAppListingStatusClass(product)}`}>
+            {getAppListingStatusLabel(product)}
+          </span>
+        );
       case 'mainCategory':
         return <span className="product-table-primary">{formatValue(product?.category?.mainCategoryName)}</span>;
       case 'category':
@@ -1696,6 +1750,7 @@ function ProductPage({ token, adminUserId }) {
       mainCategoryId: category?.mainCategoryId ? String(category.mainCategoryId) : '',
       categoryId: category?.categoryId ? String(category.categoryId) : '',
       subCategoryId: category?.subCategoryId ? String(category.subCategoryId) : '',
+      rejectionReason: '',
     };
     setReviewForm(nextReviewForm);
     setBrandReviewForm(createBrandReviewForm(selectedProduct));
@@ -3041,7 +3096,50 @@ function ProductPage({ token, adminUserId }) {
     }
   };
 
+  const handleAppListingReview = async (approve) => {
+    if (!selectedProductId || !selectedProduct) return;
+    if ((approve && !canApproveProduct) || (!approve && !canRejectProduct)) {
+      setMessage({ type: 'error', text: 'You do not have permission to review app listings.' });
+      return;
+    }
+    if (String(selectedProduct?.productSource || '').toUpperCase() !== 'MERCHANT_ADMIN') {
+      setMessage({ type: 'info', text: 'This product was created from the Traddex app.' });
+      return;
+    }
+    if (approve && !reviewCategoryComplete) {
+      setMessage({ type: 'error', text: 'Assign main category and category before approving app listing.' });
+      return;
+    }
+    if (!approve && !reviewRejectionReason) {
+      setMessage({ type: 'error', text: 'Rejection reason is required.' });
+      return;
+    }
+    try {
+      setIsLoading(true);
+      await reviewProductAppListing(token, selectedProductId, {
+        approve,
+        mainCategoryId: reviewForm.mainCategoryId ? Number(reviewForm.mainCategoryId) : null,
+        categoryId: reviewForm.categoryId ? Number(reviewForm.categoryId) : null,
+        subCategoryId: reviewForm.subCategoryId ? Number(reviewForm.subCategoryId) : null,
+        rejectionReason: approve ? null : reviewRejectionReason,
+      });
+      await Promise.all([loadProducts(), loadProductDetail(selectedProductId)]);
+      setMessage({
+        type: 'success',
+        text: approve ? 'App listing approved successfully.' : 'App listing rejected successfully.',
+      });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to review app listing.' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const statusValue = selectedProduct?.approvalStatus || '';
+  const productSourceValue = String(selectedProduct?.productSource || '').toUpperCase();
+  const appListingStatusValue = String(selectedProduct?.appListingStatus || '').toUpperCase();
+  const isMerchantAdminProduct = productSourceValue === 'MERCHANT_ADMIN';
+  const isMerchantAppListingPending = isMerchantAdminProduct && appListingStatusValue === 'PENDING_REVIEW';
   const canReviewBrand = canEditProduct || canApproveProduct;
   const hasBrandAttached = Boolean(selectedProduct?.brandName || selectedProduct?.brandId);
   const brandNeedsReview =
@@ -3946,6 +4044,7 @@ function ProductPage({ token, adminUserId }) {
     : [];
   const reviewUsesAllSubCategories = Boolean(reviewForm.categoryId) && !reviewForm.subCategoryId;
   const reviewCategoryComplete = Boolean(reviewForm.mainCategoryId && reviewForm.categoryId);
+  const reviewRejectionReason = String(reviewForm.rejectionReason || '').trim();
   const reviewCategoryDirty = Boolean(
     selectedProduct &&
       (String(selectedProduct?.category?.mainCategoryId || '') !== String(reviewForm.mainCategoryId || '') ||
@@ -4036,6 +4135,17 @@ function ProductPage({ token, adminUserId }) {
           : 'Pricing information is incomplete',
     },
   ];
+  const reviewCategorySummary = reviewCategoryComplete
+    ? [
+        mainCategories.find((item) => String(item?.id || '') === String(reviewForm.mainCategoryId || ''))?.name,
+        reviewCategories.find((item) => String(item?.id || '') === String(reviewForm.categoryId || ''))?.name,
+        reviewUsesAllSubCategories
+          ? 'All sub-categories'
+          : reviewSubCategories.find((item) => String(item?.id || '') === String(reviewForm.subCategoryId || ''))?.name,
+      ]
+        .filter(Boolean)
+        .join(' / ')
+    : 'Mapping incomplete';
   const viewSubCategoryLabel = selectedProduct
     ? getScopedSubCategoryLabel(
         selectedProduct?.category?.categoryName,
@@ -4135,6 +4245,8 @@ function ProductPage({ token, adminUserId }) {
   ];
   const generalViewFields = [
     { label: 'Product ID', value: formatValue(selectedProduct?.id) },
+    { label: 'Source', value: getProductSourceLabel(selectedProduct) },
+    { label: 'App Listing Status', value: getAppListingStatusLabel(selectedProduct) },
     { label: 'Product Type', value: formatValue(selectedProduct?.productType) },
     { label: 'Product Name', value: formatValue(selectedProduct?.productName) },
     { label: 'SKU', value: formatValue(selectedProduct?.sku) },
@@ -4191,8 +4303,12 @@ function ProductPage({ token, adminUserId }) {
   const companyViewFields = [
     { label: 'Business', value: formatValue(selectedProduct?.businessName) },
     { label: 'Business User ID', value: formatValue(selectedProduct?.userId) },
+    { label: 'Website Category', value: formatValue(selectedProduct?.websiteCategoryName || selectedProduct?.merchantCategoryName) },
+    { label: 'Website Sub-category', value: formatValue(selectedProduct?.websiteSubcategoryName || selectedProduct?.merchantSubcategoryName) },
     { label: 'Account Code', value: formatValue(selectedProduct?.accountCode) },
     { label: 'Approval Status', value: statusLabel },
+    { label: 'App Visible', value: formatValue(selectedProduct?.appVisible) },
+    { label: 'App Requested At', value: formatDateTime(selectedProduct?.appListingRequestedAt) },
     { label: 'Created On', value: formatDateTime(selectedProduct?.createdOn) },
     { label: 'Updated On', value: formatDateTime(selectedProduct?.updatedOn) },
     { label: 'License Certificate', value: formatValue(selectedProduct?.licenseCertificateId) },
@@ -4367,7 +4483,7 @@ function ProductPage({ token, adminUserId }) {
     const sv = statusValue.toUpperCase();
     const isApproved  = sv === 'APPROVED';
     const isRejected  = sv === 'REJECTED';
-    const isFinalized = isApproved || isRejected;
+    const isFinalized = (isApproved || isRejected) && !isMerchantAppListingPending;
     const allReady    = reviewChecklist.every((c) => c.status === 'ready');
     const readyCount  = reviewChecklist.filter((c) => c.status === 'ready').length;
 
@@ -4382,10 +4498,12 @@ function ProductPage({ token, adminUserId }) {
             </div>
             <div>
               <p className="rws-decision-status">
-                {isApproved ? 'Product Approved' : isRejected ? 'Product Rejected' : `Status: ${statusLabel}`}
+                {isMerchantAppListingPending ? 'Merchant app listing pending review' : isApproved ? 'Product Approved' : isRejected ? 'Product Rejected' : `Status: ${statusLabel}`}
               </p>
               <p className="rws-decision-hint">
-                {isFinalized
+                {isMerchantAppListingPending
+                  ? 'This product came from merchant admin. Confirm app category mapping, then approve or reject app visibility.'
+                  : isFinalized
                   ? `This product has been ${statusLabel.toLowerCase()}. No further action needed.`
                   : brandNeedsReview
                   ? 'Complete Brand Verification below before approving this product.'
@@ -4397,7 +4515,27 @@ function ProductPage({ token, adminUserId }) {
           </div>
           {hasProductReviewActions && !isFinalized ? (
             <div className="rws-decision-actions">
-              {canApproveProduct ? (
+              {canApproveProduct && isMerchantAppListingPending ? (
+                <button
+                  type="button"
+                  className="rws-btn-approve"
+                  onClick={() => handleAppListingReview(true)}
+                  disabled={isLoading}
+                >
+                  Approve App Listing
+                </button>
+              ) : null}
+              {canRejectProduct && isMerchantAppListingPending ? (
+                <button
+                  type="button"
+                  className="rws-btn-reject"
+                  onClick={() => handleAppListingReview(false)}
+                  disabled={isLoading}
+                >
+                  Reject App Listing
+                </button>
+              ) : null}
+              {canApproveProduct && !isMerchantAppListingPending ? (
                 <button
                   type="button"
                   className="rws-btn-approve"
@@ -4407,7 +4545,7 @@ function ProductPage({ token, adminUserId }) {
                   ✓ Approve
                 </button>
               ) : null}
-              {canRequestChangesProduct ? (
+              {canRequestChangesProduct && !isMerchantAppListingPending ? (
                 <button
                   type="button"
                   className="rws-btn-changes"
@@ -4417,7 +4555,7 @@ function ProductPage({ token, adminUserId }) {
                   Request Changes
                 </button>
               ) : null}
-              {canRejectProduct ? (
+              {canRejectProduct && !isMerchantAppListingPending ? (
                 <button
                   type="button"
                   className="rws-btn-reject"
@@ -4432,9 +4570,79 @@ function ProductPage({ token, adminUserId }) {
         </div>
 
         {/* ── Step 2: Review Checklist ────────────────────────── */}
-        <div className="rws-card">
-          <div className="rws-card-head">
-            <p className="rws-card-title">Review Checklist</p>
+          {isMerchantAdminProduct ? (
+            <div className="rws-card">
+              <div className="rws-card-head">
+                <p className="rws-card-title">Merchant Origin</p>
+                <span className={`rws-badge${appListingStatusValue === 'APPROVED' ? ' green' : appListingStatusValue === 'PENDING_REVIEW' ? ' amber' : ''}`}>
+                  {getAppListingStatusLabel(selectedProduct)}
+                </span>
+              </div>
+              <p className="rws-card-desc">
+                This product was created from merchant admin. Website categories are merchant-defined, while app categories are assigned here.
+              </p>
+              <div className="rws-fields-row">
+                <div className="rws-field">
+                  <span>Website category</span>
+                  <div className="rws-static-value">{formatValue(selectedProduct?.websiteCategoryName || selectedProduct?.merchantCategoryName)}</div>
+                </div>
+                <div className="rws-field">
+                  <span>Website sub-category</span>
+                  <div className="rws-static-value">{formatValue(selectedProduct?.websiteSubcategoryName || selectedProduct?.merchantSubcategoryName)}</div>
+                </div>
+                <div className="rws-field">
+                  <span>Requested at</span>
+                  <div className="rws-static-value">{formatDateTime(selectedProduct?.appListingRequestedAt)}</div>
+                </div>
+              </div>
+              {selectedProduct?.appListingRejectionReason ? (
+                <div className="rws-note-box">
+                  <strong>Last rejection reason</strong>
+                  <pre className="rws-note-pre">{selectedProduct.appListingRejectionReason}</pre>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+          {isMerchantAppListingPending ? (
+            <div className="rws-card">
+              <div className="rws-card-head">
+                <p className="rws-card-title">App Listing Review</p>
+                <span className={`rws-badge${reviewCategoryComplete ? ' green' : ' amber'}`}>
+                  {reviewCategoryComplete ? 'Ready to review' : 'Category mapping needed'}
+                </span>
+              </div>
+              <p className="rws-card-desc">
+                Map this merchant-defined product into the Traddex catalog, then approve app visibility or reject with a clear reason.
+              </p>
+              <div className="rws-review-summary">
+                <div className="rws-review-summary-item">
+                  <span>Current mapping</span>
+                  <strong>{reviewCategorySummary}</strong>
+                </div>
+                <div className="rws-review-summary-item">
+                  <span>Approval target</span>
+                  <strong>{reviewCategoryComplete ? 'Ready for app publishing' : 'Complete mapping first'}</strong>
+                </div>
+              </div>
+              <label className="rws-field">
+                <span>Rejection reason</span>
+                <textarea
+                  value={reviewForm.rejectionReason}
+                  onChange={(event) =>
+                    setReviewForm((prev) => ({
+                      ...prev,
+                      rejectionReason: event.target.value,
+                    }))
+                  }
+                  rows={4}
+                  placeholder="Explain what is wrong before the merchant can request app visibility again."
+                />
+              </label>
+            </div>
+          ) : null}
+          <div className="rws-card">
+            <div className="rws-card-head">
+              <p className="rws-card-title">Review Checklist</p>
             <span className={`rws-badge${allReady ? ' green' : ' amber'}`}>
               {readyCount}/{reviewChecklist.length} Ready
             </span>
@@ -6485,6 +6693,40 @@ function ProductPage({ token, adminUserId }) {
                   >
                     {PRODUCT_STATUS_FILTER_OPTIONS.map((option) => (
                       <option key={option.value || 'all'} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="product-filter-field">
+                  <span>Source</span>
+                  <select
+                    value={productFilters.source}
+                    onChange={(event) => {
+                      setProductFilters((prev) => ({ ...prev, source: event.target.value }));
+                      setProductListPage(0);
+                    }}
+                  >
+                    {PRODUCT_SOURCE_FILTER_OPTIONS.map((option) => (
+                      <option key={option.value || 'all-sources'} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="product-filter-field">
+                  <span>App Listing</span>
+                  <select
+                    value={productFilters.appListingStatus}
+                    onChange={(event) => {
+                      setProductFilters((prev) => ({ ...prev, appListingStatus: event.target.value }));
+                      setProductListPage(0);
+                    }}
+                  >
+                    {PRODUCT_APP_LISTING_FILTER_OPTIONS.map((option) => (
+                      <option key={option.value || 'all-app-listing'} value={option.value}>
                         {option.label}
                       </option>
                     ))}

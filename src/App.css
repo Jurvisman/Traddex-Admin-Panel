@@ -14403,6 +14403,7 @@ textarea {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .admin-shell-gsc .gsc-toolbar-btn {
@@ -20923,6 +20924,7 @@ textarea {
 }
 .rws-badge.green { background: #dcfce7; color: #16a34a; }
 .rws-badge.amber { background: #fef3c7; color: #d97706; }
+.rws-badge.red { background: #fee2e2; color: #dc2626; }
 
 /* ── Checklist ───────────────────────────────────────────────── */
 .rws-checklist {
@@ -21019,6 +21021,33 @@ textarea {
 }
 .rws-save-btn:hover:not(:disabled) { background: #4338ca; }
 .rws-save-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.rws-review-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.rws-review-summary-item {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+}
+
+.rws-review-summary-item span {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.rws-review-summary-item strong {
+  font-size: 0.8125rem;
+  color: #111827;
+  line-height: 1.5;
+}
 
 /* ── Brand info ───────────────────────────────────────────────── */
 .rws-brand-info-row {
