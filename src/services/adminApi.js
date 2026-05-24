@@ -21,6 +21,7 @@ const parseError = async (response) => {
 const request = async (path, { method = 'GET', body, token } = {}) => {
   const headers = {
     'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': 'true',
   };
   if (token) {
     headers.Authorization = `Bearer ${token}`;
