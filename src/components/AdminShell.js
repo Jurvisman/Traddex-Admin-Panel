@@ -172,6 +172,7 @@ function AdminShell({ navItems, onLogout, pageTitle, pageSubtitle, children }) {
                             <NavLink
                               key={child.path}
                               to={child.path}
+                              end={child.exact === true}
                               className={({ isActive }) => `admin-nav-subitem ${isActive ? 'active' : ''}`}
                               onClick={handleLinkClick}
                             >
