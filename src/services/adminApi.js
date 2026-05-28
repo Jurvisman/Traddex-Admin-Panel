@@ -559,3 +559,9 @@ export const updateWaitlistLeadStatus = (token, id, status) =>
 
 export const updateWaitlistLeadNotes = (token, id, notes) =>
   request(`/admin/support/waitlist/${id}/notes`, { method: 'PATCH', body: { notes }, token });
+
+export const fetchWaitlistConfig = (token) =>
+  request('/admin/support/waitlist/config', { token });
+
+export const updateWaitlistConfigLimit = (token, limit) =>
+  request('/admin/support/waitlist/config', { method: 'PUT', body: { limit }, token });
