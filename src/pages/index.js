@@ -49,3 +49,4 @@ export { default as ServiceCreatePage } from './ServiceCreatePage';
 export { default as StorefrontManagementPage } from './StorefrontManagementPage';
 export { default as StorefrontTemplatesPage } from './StorefrontTemplatesPage';
 export { default as StorefrontWebsiteRequestsPage } from './StorefrontWebsiteRequestsPage';
+export { default as WaitlistLeadsPage } from './WaitlistLeadsPage';

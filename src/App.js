@@ -52,6 +52,7 @@ import {
   StorefrontManagementPage,
   StorefrontTemplatesPage,
   StorefrontWebsiteRequestsPage,
+  WaitlistLeadsPage,
 } from './pages';
 import { fetchMyPermissions } from './services/adminApi';
 import { PermissionsContext } from './shared/permissions';
@@ -404,6 +405,11 @@ const ADMIN_META = [
     subtitle: 'Customer tickets, inquiries, and complaint management.',
   },
   {
+    match: '/admin/support/waitlist',
+    title: 'Waitlist Leads',
+    subtitle: 'Monitor and manage early access registrations and leads.',
+  },
+  {
     match: '/admin/revenue/subscription',
     title: 'Subscription Revenue',
     subtitle: 'Breakdown of subscription payments and analytics.',
@@ -728,6 +734,7 @@ function AppRoutes() {
             children: [
               { path: '/admin/support', label: 'Tickets', icon: ICONS.support, tone: NAV_TONES.support },
               { path: '/admin/support/kyc-assistance', label: 'KYC Assistance', icon: ICONS.support, tone: NAV_TONES.support },
+              { path: '/admin/support/waitlist', label: 'Waitlist Leads', icon: ICONS.support, tone: NAV_TONES.support },
             ],
           },
         ],
@@ -768,7 +775,13 @@ function AppRoutes() {
     if (isPermissionLoading) return true;
     if (!path) return true;
     if (allowedPaths.size === 0) return false;
-    if (path === '/admin/storefront' || path.startsWith('/admin/storefront/')) return true;
+    if (
+      path === '/admin/storefront' ||
+      path.startsWith('/admin/storefront/') ||
+      path === '/admin/support/waitlist' ||
+      path.startsWith('/admin/support/waitlist')
+    )
+      return true;
     return hasPathAccess(allowedPaths, path);
   };
 
@@ -1688,6 +1701,18 @@ function AppRoutes() {
               fallbackPath={routeFallbackPath}
             >
               <KycAssistancePage token={authToken} currentUser={authUserId} allowedActions={allowedActionCodes} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="support/waitlist"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={canAccessPath('/admin/support/waitlist')}
+              fallbackPath={routeFallbackPath}
+            >
+              <WaitlistLeadsPage token={authToken} />
             </PermissionGate>
           }
         />

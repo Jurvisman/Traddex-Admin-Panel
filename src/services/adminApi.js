@@ -550,3 +550,12 @@ export const updateKycAssistanceStatus = (token, id, status, adminNote = null) =
 
 export const assignKycAssistanceRequest = (token, id, adminId) =>
   request(`/admin/support/kyc-assistance/${id}/assign`, { method: 'PATCH', body: { adminId }, token });
+
+export const fetchWaitlistLeads = (token) =>
+  request('/admin/support/waitlist', { token });
+
+export const updateWaitlistLeadStatus = (token, id, status) =>
+  request(`/admin/support/waitlist/${id}/status`, { method: 'PATCH', body: { status }, token });
+
+export const updateWaitlistLeadNotes = (token, id, notes) =>
+  request(`/admin/support/waitlist/${id}/notes`, { method: 'PATCH', body: { notes }, token });
