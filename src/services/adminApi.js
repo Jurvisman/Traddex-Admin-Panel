@@ -565,3 +565,24 @@ export const fetchWaitlistConfig = (token) =>
 
 export const updateWaitlistConfigLimit = (token, limit) =>
   request('/admin/support/waitlist/config', { method: 'PUT', body: { limit }, token });
+
+export const fetchWebsiteCmsPages = (token) =>
+  request('/admin/website-cms/pages', { token });
+
+export const fetchWebsiteCmsPage = (token, slug) =>
+  request(`/admin/website-cms/pages/${encodeURIComponent(slug)}`, { token });
+
+export const updateWebsiteCmsPage = (token, slug, payload) =>
+  request(`/admin/website-cms/pages/${encodeURIComponent(slug)}`, { method: 'PUT', body: payload, token });
+
+export const publishWebsiteCmsPage = (token, slug) =>
+  request(`/admin/website-cms/pages/${encodeURIComponent(slug)}/publish`, { method: 'POST', token });
+
+export const fetchWebsiteSocialLinks = (token) =>
+  request('/admin/website-cms/social-links', { token });
+
+export const saveWebsiteSocialLink = (token, payload) =>
+  request('/admin/website-cms/social-links', { method: 'POST', body: payload, token });
+
+export const deleteWebsiteSocialLink = (token, id) =>
+  request(`/admin/website-cms/social-links/${id}`, { method: 'DELETE', token });

@@ -53,6 +53,7 @@ import {
   StorefrontTemplatesPage,
   StorefrontWebsiteRequestsPage,
   WaitlistLeadsPage,
+  WebsiteCmsPage,
 } from './pages';
 import { fetchMyPermissions } from './services/adminApi';
 import { PermissionsContext } from './shared/permissions';
@@ -378,6 +379,11 @@ const ADMIN_META = [
     match: '/admin/app-config',
     title: 'CMS',
     subtitle: 'Edit and publish dynamic app content and layout configuration.',
+  },
+  {
+    match: '/admin/website-cms',
+    title: 'Website CMS',
+    subtitle: 'Manage Deal360 website legal content and social platform links.',
   },
   {
     match: '/admin/timezones',
@@ -706,6 +712,7 @@ function AppRoutes() {
             ],
           },
           { path: '/admin/app-config', label: 'CMS', icon: ICONS.appConfig, tone: NAV_TONES.appConfig },
+          { path: '/admin/website-cms', label: 'Website CMS', icon: ICONS.appConfig, tone: NAV_TONES.appConfig },
           {
             key: 'location-root',
             label: 'Location',
@@ -1521,6 +1528,21 @@ function AppRoutes() {
               fallbackPath={routeFallbackPath}
             >
               <AppConfigPage token={authToken} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="website-cms"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={
+                canAccessPath('/admin/website-cms') &&
+                allowedActionCodes.has('ADMIN_WEBSITE_CMS_READ')
+              }
+              fallbackPath={routeFallbackPath}
+            >
+              <WebsiteCmsPage token={authToken} />
             </PermissionGate>
           }
         />

@@ -50,3 +50,4 @@ export { default as StorefrontManagementPage } from './StorefrontManagementPage'
 export { default as StorefrontTemplatesPage } from './StorefrontTemplatesPage';
 export { default as StorefrontWebsiteRequestsPage } from './StorefrontWebsiteRequestsPage';
 export { default as WaitlistLeadsPage } from './WaitlistLeadsPage';
+export { default as WebsiteCmsPage } from './WebsiteCmsPage';
