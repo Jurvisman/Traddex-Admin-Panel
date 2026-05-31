@@ -21,6 +21,7 @@ const formatDateTime = (value) => {
 const getStatusPillClass = (status) => {
   const s = String(status || '').trim().toUpperCase();
   if (s === 'ONBOARDED') return 'approved';      // green
+  if (s === 'SETUP_IN_PROGRESS') return 'under-review';
   if (s === 'CALLED') return 'under-review';     // blue
   if (s === 'PENDING') return 'pending-review';  // yellow
   return 'pending';
@@ -29,6 +30,7 @@ const getStatusPillClass = (status) => {
 const getStatusLabel = (status) => {
   const s = String(status || '').trim().toUpperCase();
   if (s === 'ONBOARDED') return 'Onboarded';
+  if (s === 'SETUP_IN_PROGRESS') return 'Setup In Progress';
   if (s === 'CALLED') return 'Called';
   if (s === 'PENDING') return 'Pending';
   return s;
@@ -57,6 +59,7 @@ const STATUS_FILTER_OPTIONS = [
   { value: '', label: 'All Statuses' },
   { value: 'PENDING', label: 'Pending' },
   { value: 'CALLED', label: 'Called' },
+  { value: 'SETUP_IN_PROGRESS', label: 'Setup In Progress' },
   { value: 'ONBOARDED', label: 'Onboarded' },
 ];
 
@@ -218,7 +221,7 @@ function WaitlistLeadsPage({ token }) {
 
   /* ── Status counts ───────────────────────────────────────────── */
   const statusCounts = useMemo(() => {
-    const counts = { PENDING: 0, CALLED: 0, ONBOARDED: 0 };
+    const counts = { PENDING: 0, CALLED: 0, SETUP_IN_PROGRESS: 0, ONBOARDED: 0 };
     (Array.isArray(leads) ? leads : []).forEach((l) => {
       const s = String(l.status || '').trim().toUpperCase();
       if (counts[s] !== undefined) counts[s] += 1;
@@ -233,8 +236,13 @@ function WaitlistLeadsPage({ token }) {
 
     if (s === 'PENDING') {
       actions.push({ label: 'Mark as Called', onClick: () => handleUpdateStatus(lead.id, 'CALLED') });
+      actions.push({ label: 'Start Setup', onClick: () => handleUpdateStatus(lead.id, 'SETUP_IN_PROGRESS') });
       actions.push({ label: 'Mark as Onboarded', onClick: () => handleUpdateStatus(lead.id, 'ONBOARDED') });
     } else if (s === 'CALLED') {
+      actions.push({ label: 'Start Setup', onClick: () => handleUpdateStatus(lead.id, 'SETUP_IN_PROGRESS') });
+      actions.push({ label: 'Mark as Onboarded', onClick: () => handleUpdateStatus(lead.id, 'ONBOARDED') });
+      actions.push({ label: 'Move back to Pending', onClick: () => handleUpdateStatus(lead.id, 'PENDING') });
+    } else if (s === 'SETUP_IN_PROGRESS') {
       actions.push({ label: 'Mark as Onboarded', onClick: () => handleUpdateStatus(lead.id, 'ONBOARDED') });
       actions.push({ label: 'Move back to Pending', onClick: () => handleUpdateStatus(lead.id, 'PENDING') });
     } else if (s === 'ONBOARDED') {
@@ -299,6 +307,7 @@ function WaitlistLeadsPage({ token }) {
         <div style={{ flex: '1 1 300px', display: 'flex', gap: 12, alignItems: 'center', margin: 0 }}>
           <span className="status-chip pending" style={{ padding: '16px 20px', flex: 1, textAlign: 'center', margin: 0 }}>{statusCounts.PENDING} Pending</span>
           <span className="status-chip changes-required" style={{ padding: '16px 20px', flex: 1, textAlign: 'center', margin: 0 }}>{statusCounts.CALLED} Called</span>
+          <span className="status-chip changes-required" style={{ padding: '16px 20px', flex: 1, textAlign: 'center', margin: 0 }}>{statusCounts.SETUP_IN_PROGRESS} Setup</span>
           <span className="status-chip login" style={{ padding: '16px 20px', flex: 1, textAlign: 'center', margin: 0 }}>{statusCounts.ONBOARDED} Onboarded</span>
         </div>
       </div>
@@ -406,6 +415,8 @@ function WaitlistLeadsPage({ token }) {
                   <th>Contact Details</th>
                   <th>City</th>
                   <th>Business Type</th>
+                  <th>Plan</th>
+                  <th>Payment</th>
                   <th>Status</th>
                   <th>Admin Notes</th>
                   <th>Signup Date</th>
@@ -440,6 +451,14 @@ function WaitlistLeadsPage({ token }) {
                     </td>
                     <td>{lead.city}</td>
                     <td>{getBusinessTypeLabel(lead.businessType)}</td>
+                    <td>
+                      {lead.selectedPlanName || <span style={{ color: '#cbd5e1' }}>-</span>}
+                      {lead.source ? <span style={{ display: 'block', fontSize: 11, color: 'var(--muted)' }}>{lead.source}</span> : null}
+                    </td>
+                    <td>
+                      {lead.paymentStatus || <span style={{ color: '#cbd5e1' }}>-</span>}
+                      {lead.couponCode ? <span style={{ display: 'block', fontSize: 11, color: 'var(--muted)' }}>{lead.couponCode}</span> : null}
+                    </td>
                     <td>
                       <span className={`status-pill ${getStatusPillClass(lead.status)}`}>
                         {getStatusLabel(lead.status)}
@@ -594,6 +613,21 @@ function WaitlistLeadsPage({ token }) {
               <div className="drawer-field">
                 <label>Business Segment</label>
                 <div>🏬 {getBusinessTypeLabel(selectedLead.businessType)}</div>
+              </div>
+
+              <div className="drawer-field">
+                <label>Pricing Source</label>
+                <div>{selectedLead.source || '-'}</div>
+              </div>
+
+              <div className="drawer-field">
+                <label>Selected Plan</label>
+                <div>{selectedLead.selectedPlanName || '-'}</div>
+              </div>
+
+              <div className="drawer-field">
+                <label>Payment / Coupon</label>
+                <div>{selectedLead.paymentStatus || '-'}{selectedLead.couponCode ? ` / ${selectedLead.couponCode}` : ''}</div>
               </div>
 
               <div className="drawer-field">

@@ -30,6 +30,7 @@ import {
   SubscriptionPlanPage,
   SubscriptionPlanCreatePage,
   SubscriptionPlanViewPage,
+  SubscriptionCouponPage,
   AdminUsersPage,
   UserDirectoryPage,
   EmployeePage,
@@ -366,6 +367,11 @@ const ADMIN_META = [
     subtitle: 'Set per-unit addon pricing for features.',
   },
   {
+    match: '/admin/subscription/coupons',
+    title: 'Coupons',
+    subtitle: 'Manage subscription promo codes and launch offer usage.',
+  },
+  {
     match: '/admin/subscription/assignments',
     title: 'Assign Subscriptions',
     subtitle: 'Grant plans to users and review assignments.',
@@ -677,6 +683,7 @@ function AppRoutes() {
               { path: '/admin/subscription/features', label: 'Features', icon: ICONS.subFeatures, tone: NAV_TONES.subFeatures },
               { path: '/admin/subscription/plans', label: 'Plan', icon: ICONS.subPlans, tone: NAV_TONES.subPlans },
               { path: '/admin/subscription/addon-pricing', label: 'Addon Pricing', icon: ICONS.subPlans, tone: NAV_TONES.subAssignments },
+              { path: '/admin/subscription/coupons', label: 'Coupons', icon: ICONS.subAssignments, tone: NAV_TONES.subAssignments },
             ],
           },
           {
@@ -1474,6 +1481,21 @@ function AppRoutes() {
               fallbackPath={routeFallbackPath}
             >
               <AddonPricingPage token={authToken} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="subscription/coupons"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={
+                canAccessPath('/admin/subscription/coupons') &&
+                allowedActionCodes.has('ADMIN_SUBSCRIPTION_COUPON_READ')
+              }
+              fallbackPath={routeFallbackPath}
+            >
+              <SubscriptionCouponPage token={authToken} />
             </PermissionGate>
           }
         />

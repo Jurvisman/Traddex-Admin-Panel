@@ -196,6 +196,34 @@ function SubscriptionPlanViewPage({ token }) {
                   </div>
                 </div>
               </div>
+              {selectedPlan.promo_price !== undefined && selectedPlan.promo_price !== null && (
+                <div className="user-view-card">
+                  <p className="user-view-label">Promo Price</p>
+                  <p className="user-view-value">₹ {selectedPlan.promo_price}</p>
+                </div>
+              )}
+              {selectedPlan.promo_label && (
+                <div className="user-view-card">
+                  <p className="user-view-label">Promo Label / Badge</p>
+                  <p className="user-view-value">{selectedPlan.promo_label}</p>
+                </div>
+              )}
+              {selectedPlan.cta_label && (
+                <div className="user-view-card">
+                  <p className="user-view-label">CTA Label</p>
+                  <p className="user-view-value">{selectedPlan.cta_label}</p>
+                </div>
+              )}
+              {selectedPlan.best_for && (
+                <div className="user-view-card">
+                  <p className="user-view-label">Best For</p>
+                  <p className="user-view-value">{selectedPlan.best_for}</p>
+                </div>
+              )}
+              <div className="user-view-card">
+                <p className="user-view-label">Popular status</p>
+                <p className="user-view-value">{selectedPlan.popular === 1 ? 'Yes (Highlighted)' : 'No'}</p>
+              </div>
             </div>
 
             {selectedPlan.description ? (

@@ -26,6 +26,7 @@ export { default as SubscriptionPlanCreatePage } from './SubscriptionPlanCreateP
 export { default as SubscriptionPlanViewPage } from './SubscriptionPlanViewPage';
 export { default as SubscriptionAssignPage } from './SubscriptionAssignPage';
 export { default as AddonPricingPage } from './AddonPricingPage';
+export { default as SubscriptionCouponPage } from './SubscriptionCouponPage';
 export { default as EmployeePage } from './EmployeePage';
 export { default as RolePermissionPage } from './RolePermissionPage';
 export { default as AppConfigPage } from './AppConfigPage';

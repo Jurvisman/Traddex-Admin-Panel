@@ -438,6 +438,34 @@ export const listSubscriptionAssignments = (token, filters = {}) => {
 export const getBusinessFeatureUsage = (token, userId) =>
   request(`/admin/subscription/feature-usage?user_id=${userId}`, { token });
 
+// Subscription coupon management
+export const listSubscriptionCoupons = (token) =>
+  request('/admin/subscription/coupons', { token });
+export const getSubscriptionCoupon = (token, id) =>
+  request(`/admin/subscription/coupons/${id}`, { token });
+export const createSubscriptionCoupon = (token, payload) =>
+  request('/admin/subscription/coupons', { method: 'POST', body: payload, token });
+export const updateSubscriptionCoupon = (token, id, payload) =>
+  request(`/admin/subscription/coupons/${id}`, { method: 'PUT', body: payload, token });
+export const updateSubscriptionCouponStatus = (token, id, active) =>
+  request(`/admin/subscription/coupons/${id}/status`, { method: 'PATCH', body: { active }, token });
+export const deleteSubscriptionCoupon = (token, id) =>
+  request(`/admin/subscription/coupons/${id}`, { method: 'DELETE', token });
+export const listSubscriptionCouponRedemptions = (token, couponId, filters = {}) => {
+  const params = new URLSearchParams();
+  if (filters.status) params.set('status', filters.status);
+  if (filters.planId) params.set('planId', filters.planId);
+  if (filters.mobile) params.set('mobile', filters.mobile);
+  if (filters.query) params.set('query', filters.query);
+  const query = params.toString() ? `?${params.toString()}` : '';
+  return request(
+    couponId
+      ? `/admin/subscription/coupons/${couponId}/redemptions${query}`
+      : `/admin/subscription/coupon-redemptions${query}`,
+    { token },
+  );
+};
+
 // Addon pricing management
 export const upsertAddonPricing = (token, payload) =>
   request('/admin/addon/pricing', { method: 'POST', body: payload, token });

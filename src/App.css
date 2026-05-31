@@ -3080,6 +3080,91 @@ textarea {
   margin-bottom: 8px;
 }
 
+.subscription-coupon-page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.subscription-coupon-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(160px, 1fr));
+  gap: 14px;
+}
+
+.subscription-coupon-stat {
+  min-height: 86px;
+  padding: 18px 20px;
+  border: 1px solid #e6eaf2;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.subscription-coupon-stat span {
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.subscription-coupon-stat strong {
+  color: #0f172a;
+  font-size: 25px;
+  line-height: 1;
+}
+
+.subscription-coupon-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(360px, 0.75fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.subscription-coupon-list,
+.subscription-coupon-form,
+.subscription-coupon-report {
+  border-radius: 8px;
+}
+
+.subscription-coupon-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.subscription-coupon-editor select[multiple] {
+  min-height: 118px;
+}
+
+.coupon-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.block-text {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.ghost-btn.danger {
+  color: #b91c1c;
+  border-color: #fecaca;
+  background: #fff7f7;
+}
+
+@media (max-width: 1200px) {
+  .subscription-coupon-layout,
+  .subscription-coupon-metrics {
+    grid-template-columns: 1fr;
+  }
+}
+
 .plan-builder {
   display: grid;
   grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
