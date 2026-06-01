@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   createUserAccount,
   deleteUsersBulk,
+  activateBusinessSubscription,
   fetchBusinessDetails,
   fetchBusinesses,
   getAddonHistory,
@@ -19,7 +20,7 @@ import {
   updateBusinessProfileStatus,
   updateBusinessAccount,
 } from '../services/adminApi';
-import { BUSINESS_PERMISSIONS, REVIEW_MODERATION_PERMISSIONS } from '../constants/adminPermissions';
+import { BUSINESS_PERMISSIONS, REVIEW_MODERATION_PERMISSIONS, SUBSCRIPTION_PERMISSIONS } from '../constants/adminPermissions';
 import { usePermissions } from '../shared/permissions';
 
 const normalize = (value) => String(value || '').toLowerCase();
@@ -391,6 +392,9 @@ function BusinessPage({ token, allowedActions }) {
   const [showRejectInput, setShowRejectInput] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [isRejecting, setIsRejecting] = useState(false);
+  const [activationTarget, setActivationTarget] = useState(null);
+  const [activationNote, setActivationNote] = useState('');
+  const [isActivatingSubscription, setIsActivatingSubscription] = useState(false);
 
   // Create business modal
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -435,6 +439,7 @@ function BusinessPage({ token, allowedActions }) {
   const canRead = !hasActionModel || allowedActionSet.has(BUSINESS_PERMISSIONS.read);
   const canEditKyc = !hasActionModel || allowedActionSet.has(BUSINESS_PERMISSIONS.kycUpdate);
   const canApprove = !hasActionModel || allowedActionSet.has(BUSINESS_PERMISSIONS.approve);
+  const canActivateSubscription = !hasActionModel || allowedActionSet.has(SUBSCRIPTION_PERMISSIONS.activate);
   const canViewReviewModeration = hasPermission(REVIEW_MODERATION_PERMISSIONS.read);
 
   const loadBusinesses = async () => {
@@ -895,6 +900,43 @@ function BusinessPage({ token, allowedActions }) {
       setMessage({ type: 'error', text: error.message || 'Failed to verify business profile.' });
     } finally {
       setIsBusinessSaving(false);
+    }
+  };
+
+  const openActivationModal = (subscription) => {
+    if (!canActivateSubscription) {
+      setMessage({ type: 'error', text: 'You do not have permission to activate subscriptions.' });
+      return;
+    }
+    setActivationTarget(subscription);
+    setActivationNote('');
+  };
+
+  const closeActivationModal = () => {
+    if (isActivatingSubscription) return;
+    setActivationTarget(null);
+    setActivationNote('');
+  };
+
+  const handleActivateSubscription = async () => {
+    const subscriptionId = activationTarget?.id || activationTarget?.subscription_id;
+    const userId = viewUser?.id || viewUser?.user_id;
+    if (!subscriptionId || !userId) return;
+    setIsActivatingSubscription(true);
+    setMessage({ type: 'info', text: '' });
+    try {
+      await activateBusinessSubscription(token, subscriptionId, { activationNote });
+      setActivationTarget(null);
+      setActivationNote('');
+      await Promise.all([
+        loadBusinessDetails(userId),
+        loadViewTabData(userId),
+      ]);
+      setMessage({ type: 'success', text: 'Subscription activated successfully. Validity starts from activation time.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to activate subscription.' });
+    } finally {
+      setIsActivatingSubscription(false);
     }
   };
 
@@ -1898,8 +1940,10 @@ function BusinessPage({ token, allowedActions }) {
                         <>
                           {viewSubscriptions.map((sub, i) => {
                             const planName = sub?.plan?.name || sub?.plan_name || sub?.planName || '—';
-                            const planPrice = sub?.plan?.price ?? sub?.plan?.amount ?? sub?.price ?? null;
-                            const isSubActive = sub?.status === 'ACTIVE';
+                            const planPrice = sub?.amount_paid ?? sub?.amountPaid ?? sub?.plan?.price ?? sub?.plan?.amount ?? sub?.price ?? null;
+                            const subStatus = normalizeStatus(sub?.status);
+                            const isSubActive = subStatus === 'ACTIVE';
+                            const isPendingActivation = subStatus === 'PENDING_ACTIVATION';
                             // match feature usage for this subscription
                             const subId = sub?.id;
                             const usageRecord = viewFeatureUsage.find(
@@ -1910,6 +1954,16 @@ function BusinessPage({ token, allowedActions }) {
                               <div key={sub?.id || i} className="bv-sub-card">
                                 <div className="bv-sub-card-head">
                                   <span className="bv-sub-plan-name">{planName}</span>
+                                  {isPendingActivation && canActivateSubscription ? (
+                                    <button
+                                      type="button"
+                                      className="primary-btn"
+                                      onClick={() => openActivationModal(sub)}
+                                      disabled={isActivatingSubscription}
+                                    >
+                                      Activate Subscription
+                                    </button>
+                                  ) : null}
                                   <span className={`status-pill ${isSubActive ? 'status-verified' : 'status-inactive'}`}>{sub?.status || '—'}</span>
                                 </div>
                                 <div className="user-detail-grid">
@@ -1927,10 +1981,28 @@ function BusinessPage({ token, allowedActions }) {
                                     <p className="user-detail-label">Expiry Date</p>
                                     <p className="user-detail-value">{formatDate(sub?.endDate || sub?.end_date)}</p>
                                   </div>
+                                  {sub?.activated_at || sub?.activatedAt ? (
+                                    <div className="user-detail-card">
+                                      <p className="user-detail-label">Activated At</p>
+                                      <p className="user-detail-value">{formatDate(sub?.activated_at || sub?.activatedAt)}</p>
+                                    </div>
+                                  ) : null}
+                                  {sub?.coupon_code || sub?.couponCode ? (
+                                    <div className="user-detail-card">
+                                      <p className="user-detail-label">Coupon</p>
+                                      <p className="user-detail-value">{sub?.coupon_code || sub?.couponCode}</p>
+                                    </div>
+                                  ) : null}
                                   {sub?.billingCycle ? (
                                     <div className="user-detail-card">
                                       <p className="user-detail-label">Billing Cycle</p>
                                       <p className="user-detail-value">{sub.billingCycle}</p>
+                                    </div>
+                                  ) : null}
+                                  {sub?.billing_cycle ? (
+                                    <div className="user-detail-card">
+                                      <p className="user-detail-label">Billing Cycle</p>
+                                      <p className="user-detail-value">{sub.billing_cycle}</p>
                                     </div>
                                   ) : null}
                                   {sub?.plan?.duration ? (
@@ -1943,6 +2015,12 @@ function BusinessPage({ token, allowedActions }) {
                                     <div className="user-detail-card" style={{ gridColumn: '1 / -1' }}>
                                       <p className="user-detail-label">Plan Description</p>
                                       <p className="user-detail-value">{sub.plan.description}</p>
+                                    </div>
+                                  ) : null}
+                                  {sub?.activation_note || sub?.activationNote ? (
+                                    <div className="user-detail-card" style={{ gridColumn: '1 / -1' }}>
+                                      <p className="user-detail-label">Activation Note</p>
+                                      <p className="user-detail-value">{sub?.activation_note || sub?.activationNote}</p>
                                     </div>
                                   ) : null}
                                 </div>
@@ -2090,15 +2168,32 @@ function BusinessPage({ token, allowedActions }) {
                             <div className="table-shell" style={{ marginTop: 20 }}>
                               <table className="admin-table bv-detail-table bv-payments-table">
                                 <thead>
-                                  <tr><th>P-ID</th><th>Type</th><th>Razorpay ID</th><th>Amount</th><th>Status</th><th>Date</th></tr>
+                                  <tr>
+                                    <th>P-ID</th>
+                                    <th>Type</th>
+                                    <th>Plan ID</th>
+                                    <th>Razorpay ID</th>
+                                    <th>Amount</th>
+                                    <th>Launch Discount</th>
+                                    <th>Coupon</th>
+                                    <th>Coupon Discount</th>
+                                    <th>Final Paid</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                  </tr>
                                 </thead>
                                 <tbody>
                                   {pagedPayments.items.map((payment, i) => (
                                     <tr key={payment?.paymentId || i}>
                                       <td>{payment?.paymentId ?? '-'}</td>
                                       <td>{payment?.type || '-'}</td>
+                                      <td>{payment?.planId || '-'}</td>
                                       <td>{payment?.razorpayPaymentId || '-'}</td>
                                       <td>{formatCurrency(payment?.amount)}</td>
+                                      <td>{formatCurrency(payment?.launchDiscountAmount)}</td>
+                                      <td>{payment?.couponCode || '-'}</td>
+                                      <td>{formatCurrency(payment?.couponDiscountAmount)}</td>
+                                      <td>{formatCurrency(payment?.finalPaidAmount ?? payment?.amount)}</td>
                                       <td>
                                         <span className={`status-pill ${getStatusPillClass(payment?.status)}`}>
                                           {payment?.status || '-'}
@@ -2428,6 +2523,50 @@ function BusinessPage({ token, allowedActions }) {
       ) : null}
 
       {/* ── Create Business Modal ─────────────────────────────── */}
+      {activationTarget && (
+        <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
+          <div className="admin-modal confirm-modal">
+            <h3>Activate Subscription</h3>
+            <p>
+              This will start the subscription validity for {viewBusinessProfile?.businessName || getUserName(viewUser)} from now.
+            </p>
+            <div className="user-detail-grid" style={{ margin: '14px 0' }}>
+              <div className="user-detail-card">
+                <p className="user-detail-label">Plan</p>
+                <p className="user-detail-value">{activationTarget?.plan_name || activationTarget?.planName || activationTarget?.plan?.name || '-'}</p>
+              </div>
+              <div className="user-detail-card">
+                <p className="user-detail-label">Paid Amount</p>
+                <p className="user-detail-value">{formatCurrency(activationTarget?.amount_paid ?? activationTarget?.amountPaid)}</p>
+              </div>
+              <div className="user-detail-card">
+                <p className="user-detail-label">Current Status</p>
+                <p className="user-detail-value">{activationTarget?.status || '-'}</p>
+              </div>
+            </div>
+            <label className="form-field" style={{ display: 'block' }}>
+              <span>Activation Note</span>
+              <textarea
+                className="bdt-reject-textarea"
+                value={activationNote}
+                onChange={(event) => setActivationNote(event.target.value)}
+                placeholder="Example: KYC verified and catalog setup completed."
+                rows={4}
+                disabled={isActivatingSubscription}
+              />
+            </label>
+            <div className="modal-actions">
+              <button type="button" className="ghost-btn" onClick={closeActivationModal} disabled={isActivatingSubscription}>
+                Cancel
+              </button>
+              <button type="button" className="primary-btn" onClick={handleActivateSubscription} disabled={isActivatingSubscription}>
+                {isActivatingSubscription ? 'Activating...' : 'Confirm Activate'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showCreateModal && (
         <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
           <div className="admin-modal create-business-modal">

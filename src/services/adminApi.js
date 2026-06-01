@@ -435,6 +435,9 @@ export const listSubscriptionAssignments = (token, filters = {}) => {
   return request(`/admin/subscription/list${query}`, { token });
 };
 
+export const activateBusinessSubscription = (token, subscriptionId, payload = {}) =>
+  request(`/admin/subscription/${subscriptionId}/activate`, { method: 'POST', body: payload, token });
+
 export const getBusinessFeatureUsage = (token, userId) =>
   request(`/admin/subscription/feature-usage?user_id=${userId}`, { token });
 
