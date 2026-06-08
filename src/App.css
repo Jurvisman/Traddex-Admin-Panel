@@ -4711,12 +4711,13 @@ textarea {
 .preview-phase-one-category-image {
   border-radius: 14px;
   overflow: hidden;
-  background: #eaf4f8;
+  background: #ffffff;
   aspect-ratio: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 6px;
+  border: 1px solid rgba(0,0,0,0.06);
 }
 
 .preview-phase-one-category-image img {

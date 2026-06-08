@@ -1,4 +1,4 @@
-﻿export const emptyMessage = { type: 'info', text: '' };
+export const emptyMessage = { type: 'info', text: '' };
 
 export const parseJson = (value) => {
   if (!value || !value.trim()) return { data: null, error: 'Config JSON is required.' };
@@ -63,11 +63,9 @@ export const screenSectionTypeOptions = [
   { value: 'brand_logo_grid', label: 'Brand Bento Box (SDUI)' },
   { value: 'media_overlay_carousel', label: 'Media overlay carousel (SDUI)' },
   { value: 'info_list', label: 'Info list (SDUI)' },
-  { value: 'categoryPreviewGrid', label: 'Category preview grid' },
   { value: 'campaignBento', label: 'Campaign bento' },
   { value: 'list', label: 'List' },
   { value: 'banner', label: 'Banner' },
-  { value: 'card', label: 'Card' },
   { value: 'twoColumn', label: 'Two column' },
   { value: 'spacer', label: 'Spacer' },
   { value: 'title', label: 'Title' },
@@ -86,7 +84,6 @@ export const defaultBlockTypeBySectionType = {
   split_promo_row: 'split_promo_row',
   title: 'sectionTitle',
   grid: 'multiItemGrid',
-  categoryPreviewGrid: 'categoryPreviewGrid',
   campaignBento: 'campaignBento',
   campaign: 'campaignBento',
   product_shelf_horizontal: 'product_shelf_horizontal',
@@ -4710,11 +4707,11 @@ export const screenToolboxItems = [
     },
   },
 
-  // â”€â”€ Category & Brand â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ⎯⎯ Category & Brand ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
   {
     key: 'categoryIconGrid',
     label: 'Category Icon Grid',
-    hint: '4-column category icons â€” auto-fetched from industry',
+    hint: '4-column category icons — auto-fetched from industry',
     section: {
       id: 'category_icon_grid',
       type: 'grid',
@@ -4731,7 +4728,7 @@ export const screenToolboxItems = [
   {
     key: 'categoryShowcase',
     label: 'Category Showcase',
-    hint: 'Circular or square category bubbles â€” auto-fetched from industry',
+    hint: 'Circular or square category bubbles — auto-fetched from industry',
     section: {
       id: 'category_showcase',
       type: 'category_showcase',
@@ -4745,23 +4742,9 @@ export const screenToolboxItems = [
     },
   },
   {
-    key: 'categoryPreviewGrid',
-    label: 'Category Preview Grid',
-    hint: 'Large 2-column category cards with image preview',
-    section: {
-      id: 'category_preview_grid',
-      type: 'grid',
-      blockType: 'categoryPreviewGrid',
-      title: 'Frequently bought',
-      collectionIds: [],
-      itemsPath: '$.categories',
-      columns: 2,
-    },
-  },
-  {
     key: 'columnGrid',
     label: 'Column Grid',
-    hint: '3-column cards with dual images â€” supports category feed or manual items',
+    hint: '3-column cards with dual images — supports category feed or manual items',
     section: {
       id: 'column_grid',
       type: 'grid',
@@ -4797,10 +4780,10 @@ export const screenToolboxItems = [
     hint: 'Brand campaign block with top banner, four tiles, and bottom CTA banner',
     section: {
       id: 'brand_showcase',
-      type: 'horizontalList',
+      type: 'grid',
       blockType: 'brand_logo_grid',
       title: 'Top Brands',
-      stylePreset: 'automobile',
+      stylePreset: 'default',
       enabled: true,
       dataSource: {
         sourceType: 'BRAND_FEED',
