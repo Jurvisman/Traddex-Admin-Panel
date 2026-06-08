@@ -1417,6 +1417,20 @@ export const PreviewSection = ({
   if (blockType === 'shop_card_carousel') {
     const normalizedPreset = resolvePreviewThemeKey(stylePreset);
     const themeClass = normalizedPreset ? `is-${normalizedPreset}` : '';
+
+    const preset = String(stylePreset || '').trim().toLowerCase();
+    const ACCENT_COLORS = {
+      default: '#4F46E5',
+      beauty: '#C96C8A',
+      grocery: '#2E6B1F',
+      fashion: '#4E3823',
+      electronics: '#2563EB',
+      automobile: '#2563EB',
+      food: '#FC8019',
+      sports: '#D4F000',
+    };
+    const accentColor = ACCENT_COLORS[preset] || ACCENT_COLORS.default;
+
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
         {title ? (
@@ -1426,23 +1440,31 @@ export const PreviewSection = ({
           </div>
         ) : null}
         <div className={`preview-shop-card-row ${themeClass}`}>
-          {items.map((item, itemIndex) => (
-            <div key={`preview-shop-card-${index}-${itemIndex}`} className={`preview-shop-card ${themeClass}`}>
-              <div className="preview-shop-card-image">
-                {getPreviewImage(item) ? <img src={getPreviewImage(item)} alt="" /> : <div className="preview-image-placeholder" />}
+          {items.map((item, itemIndex) => {
+            const reviewsCount = item?.reviewsCount || item?.reviewCount || ((item?.id ? String(item.id).charCodeAt(0) * 3 : 150) % 200 + 45);
+            return (
+              <div key={`preview-shop-card-${index}-${itemIndex}`} className={`preview-shop-card ${themeClass}`}>
+                <div className="preview-shop-card-image">
+                  {getPreviewImage(item) ? <img src={getPreviewImage(item)} alt="" /> : <div className="preview-image-placeholder" />}
+                </div>
+                <div className="preview-shop-card-title">{item?.title || `Place ${itemIndex + 1}`}</div>
+                <div className="preview-shop-card-meta-row">
+                  <div className="preview-shop-card-rating">
+                    <span className="preview-shop-card-star">★</span>
+                    <span className="preview-shop-card-rating-val">{item?.rating || '4.5'}</span>
+                    <span className="preview-shop-card-reviews">{`(${reviewsCount})`}</span>
+                  </div>
+                  <div className="preview-shop-card-distance">{item?.distance || '1.2 km'}</div>
+                </div>
+                <div 
+                  className="preview-shop-card-visit-btn"
+                  style={{ borderColor: accentColor, color: accentColor }}
+                >
+                  Visit Store
+                </div>
               </div>
-              <div className="preview-shop-card-title">{item?.title || `Place ${itemIndex + 1}`}</div>
-              {item?.subtitle ? <div className="preview-shop-card-subtitle">{item.subtitle}</div> : null}
-              <div className="preview-shop-card-meta">
-                <span>{item?.rating || '4.8'}</span>
-                <span>{item?.distance || '2.4 km'}</span>
-              </div>
-              <div className="preview-shop-card-actions">
-                <span className="preview-shop-card-pill">View</span>
-                <span className="preview-shop-card-pill">Call</span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     );

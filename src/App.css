@@ -7392,22 +7392,25 @@ textarea {
 .preview-shop-card-row {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: 136px;
-  gap: 10px;
+  grid-auto-columns: 160px;
+  gap: 12px;
   overflow-x: auto;
-  padding-bottom: 4px;
+  padding-bottom: 8px;
 }
 
 .preview-shop-card {
-  border-radius: 16px;
+  border-radius: 18px;
   border: 1px solid rgba(15, 23, 42, 0.08);
   background: #ffffff;
   padding: 10px;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
 }
 
 .preview-shop-card-image {
-  height: 88px;
-  border-radius: 14px;
+  height: 96px;
+  border-radius: 12px;
   overflow: hidden;
   background: #f3f4f6;
 }
@@ -7420,44 +7423,61 @@ textarea {
 
 .preview-shop-card-title {
   margin-top: 8px;
-  font-size: 10px;
-  font-weight: 800;
+  font-size: 13px;
+  font-weight: 700;
   color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.preview-shop-card-subtitle {
-  margin-top: 3px;
-  font-size: 8px;
-  color: #6b7280;
-}
-
-.preview-shop-card-meta {
+.preview-shop-card-meta-row {
   margin-top: 6px;
   display: flex;
-  gap: 6px;
-  font-size: 8px;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+}
+
+.preview-shop-card-rating {
+  display: flex;
+  align-items: center;
+}
+
+.preview-shop-card-star {
+  color: #F59E0B;
+  margin-right: 3px;
+  font-size: 11px;
+}
+
+.preview-shop-card-rating-val {
+  color: #F59E0B;
+  font-weight: 700;
+}
+
+.preview-shop-card-reviews {
+  color: #6b7280;
+  margin-left: 3px;
+}
+
+.preview-shop-card-distance {
   color: #6b7280;
 }
 
-.preview-shop-card-actions {
-  margin-top: 8px;
+.preview-shop-card-visit-btn {
+  margin-top: 12px;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid;
   display: flex;
-  gap: 6px;
-}
-
-.preview-shop-card-pill {
-  display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 42px;
-  height: 24px;
-  padding: 0 8px;
-  border-radius: 999px;
-  border: 1px solid rgba(15, 23, 42, 0.12);
   background: #ffffff;
-  font-size: 8px;
-  font-weight: 800;
-  color: #1f2937;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  box-sizing: border-box;
+  text-align: center;
 }
 
 .preview-shop-card-row.is-sports .preview-shop-card {
