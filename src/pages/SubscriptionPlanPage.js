@@ -25,6 +25,7 @@ const initialForm = {
   cta_label: '',
   popular: '0',
   best_for: '',
+  waitlist_enabled: '0',
   apply_to_existing_subscribers: false,
 };
 
@@ -189,6 +190,7 @@ function SubscriptionPlanPage({ token }) {
       cta_label: form.cta_label.trim() || null,
       popular: Number(form.popular),
       best_for: form.best_for.trim() || null,
+      waitlist_enabled: form.waitlist_enabled === '1',
       apply_to_existing_subscribers: Boolean(form.apply_to_existing_subscribers),
       features: featureRows
         .filter((row) => row.feature_id)
@@ -255,6 +257,7 @@ function SubscriptionPlanPage({ token }) {
       cta_label: plan.cta_label || '',
       popular: plan.popular !== null && plan.popular !== undefined ? String(plan.popular) : '0',
       best_for: plan.best_for || '',
+      waitlist_enabled: plan.waitlist_enabled ? '1' : '0',
     });
     const rows = (plan.features || []).map((feature) =>
       createFeatureRow({
@@ -679,6 +682,16 @@ function SubscriptionPlanPage({ token }) {
                     <select value={form.popular} onChange={(event) => handleChange('popular', event.target.value)}>
                       <option value="0">No</option>
                       <option value="1">Yes (Show badge)</option>
+                    </select>
+                  </label>
+                  <label className="field">
+                    <span>Plan Signup Action</span>
+                    <select
+                      value={form.waitlist_enabled}
+                      onChange={(event) => handleChange('waitlist_enabled', event.target.value)}
+                    >
+                      <option value="0">Direct checkout</option>
+                      <option value="1">Open waitlist form</option>
                     </select>
                   </label>
                   <label className="field">
