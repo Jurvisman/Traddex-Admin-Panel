@@ -4,9 +4,10 @@ import { DndContext, closestCenter } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy, arrayMove, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { listSubscriptionPlans } from '../services/adminApi';
+import { API_ORIGIN } from '../config/runtime';
 import '../styles/TemplateView.css';
 
-const API_BASE = (process.env.REACT_APP_API_BASE || 'http://localhost:8080').replace(/\/+$/, '');
+const API_BASE = API_ORIGIN;
 const buildUrl = (path) => `${API_BASE}/api${path.startsWith('/') ? path : '/' + path}`;
 
 const resolveImageUrl = (url) => {

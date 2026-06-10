@@ -70,10 +70,6 @@ function SubscriptionPlanViewPage({ token }) {
       .finally(() => setIsLoading(false));
   }, [numericId, token]);
 
-  const handleBack = () => {
-    navigate('/admin/subscription/plans');
-  };
-
   const handleEditPlan = () => {
     if (!selectedPlan?.id) return;
     navigate(`/admin/subscription/plans/${selectedPlan.id}/edit`);
@@ -198,10 +194,24 @@ function SubscriptionPlanViewPage({ token }) {
               </div>
               {selectedPlan.promo_price !== undefined && selectedPlan.promo_price !== null && (
                 <div className="user-view-card">
-                  <p className="user-view-label">Promo Price</p>
+                  <p className="user-view-label">Offer price</p>
                   <p className="user-view-value">₹ {selectedPlan.promo_price}</p>
                 </div>
               )}
+              <div className="user-view-card">
+                <p className="user-view-label">Launch offer</p>
+                <p className="user-view-value">
+                  {selectedPlan.offer_active === true || Number(selectedPlan.offer_active) === 1
+                    ? 'Active'
+                    : 'Inactive'}
+                </p>
+              </div>
+              {selectedPlan.offer_duration_months ? (
+                <div className="user-view-card">
+                  <p className="user-view-label">Offer duration</p>
+                  <p className="user-view-value">{selectedPlan.offer_duration_months} month(s)</p>
+                </div>
+              ) : null}
               {selectedPlan.promo_label && (
                 <div className="user-view-card">
                   <p className="user-view-label">Promo Label / Badge</p>
@@ -230,6 +240,13 @@ function SubscriptionPlanViewPage({ token }) {
               <div className="detail-section">
                 <p className="detail-section-title">Description</p>
                 <p className="user-view-value">{selectedPlan.description}</p>
+              </div>
+            ) : null}
+
+            {selectedPlan.offer_terms ? (
+              <div className="detail-section">
+                <p className="detail-section-title">Launch offer terms</p>
+                <p className="user-view-value">{selectedPlan.offer_terms}</p>
               </div>
             ) : null}
 
@@ -287,4 +304,3 @@ function SubscriptionPlanViewPage({ token }) {
 }
 
 export default SubscriptionPlanViewPage;
-

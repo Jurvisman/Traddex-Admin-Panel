@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Banner, TableRowActionMenu } from '../components';
+import { API_ORIGIN } from '../config/runtime';
 
-const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:8080';
+const API_BASE = API_ORIGIN;
 const buildUrl = (path) => `${API_BASE}/api${path}`;
 
 const STATUS_OPTIONS = [

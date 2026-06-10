@@ -1,4 +1,6 @@
-const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:8080';
+import { API_ORIGIN } from '../config/runtime';
+
+const API_BASE = API_ORIGIN;
 
 const parseErrorMessage = async (response, fallback) => {
   try {

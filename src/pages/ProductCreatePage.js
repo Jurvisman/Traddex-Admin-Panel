@@ -14,6 +14,7 @@ import {
   listUoms,
   uploadBannerImages,
 } from '../services/adminApi';
+import { API_ORIGIN } from '../config/runtime';
 
 /* ── Tabs ─────────────────────────────────────────────────────── */
 const TABS = [
@@ -91,7 +92,7 @@ const FORM_FIELD_TAB_MAP = {
   defaultStockOutUomId: 'pricing',
 };
 
-const ADMIN_API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:8080';
+const ADMIN_API_BASE = API_ORIGIN;
 
 /* ── Helpers ──────────────────────────────────────────────────── */
 const normalize = (v) => String(v || '').toLowerCase();

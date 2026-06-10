@@ -12,8 +12,9 @@ import {
   updateProductCollection,
 } from '../services/adminApi';
 import { PRODUCT_MASTER_PERMISSIONS } from '../constants/adminPermissions';
+import { API_ORIGIN } from '../config/runtime';
 
-const ADMIN_API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:8080';
+const ADMIN_API_BASE = API_ORIGIN;
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 

@@ -3,12 +3,13 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
+import { API_ORIGIN } from './config/runtime';
 
 const originalFetch = window.fetch.bind(window);
 
 window.fetch = (input, init = {}) => {
   const url = typeof input === 'string' ? input : input?.url || '';
-  const apiBase = process.env.REACT_APP_API_BASE || '';
+  const apiBase = API_ORIGIN;
   const shouldBypassNgrokWarning =
     url.includes('ngrok') || (apiBase && url.startsWith(apiBase));
 

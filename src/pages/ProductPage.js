@@ -28,6 +28,7 @@ import {
   updateProduct,
   updateProductVariantStatus,
 } from '../services/adminApi';
+import { API_ORIGIN } from '../config/runtime';
 
 const createUomConversionEntry = () => ({
   rowId: `uom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -54,7 +55,7 @@ const PRODUCT_EDITOR_TABS = [
   { key: 'media', label: 'Media' },
 ];
 
-const ADMIN_API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:8080';
+const ADMIN_API_BASE = API_ORIGIN;
 
 const normalize = (value) => String(value || '').toLowerCase();
 const normalizeDynamicKey = (value) =>

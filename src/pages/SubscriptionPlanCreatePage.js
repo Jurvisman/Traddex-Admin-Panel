@@ -19,7 +19,10 @@ const initialForm = {
   font_color: '#0f1230',
   background_color: '#ffffff',
   is_active: '1',
+  offer_active: '0',
   promo_price: '',
+  offer_duration_months: '',
+  offer_terms: '',
   promo_label: '',
   cta_label: '',
   popular: '0',
@@ -100,7 +103,10 @@ function SubscriptionPlanCreatePage({ token }) {
       font_color: plan.font_color || '#0f1230',
       background_color: plan.background_color || '#ffffff',
       is_active: plan.is_active !== null && plan.is_active !== undefined ? String(plan.is_active) : '1',
+      offer_active: plan.offer_active ? '1' : '0',
       promo_price: plan.promo_price ?? '',
+      offer_duration_months: plan.offer_duration_months ?? '',
+      offer_terms: plan.offer_terms || '',
       promo_label: plan.promo_label || '',
       cta_label: plan.cta_label || '',
       popular: plan.popular !== null && plan.popular !== undefined ? String(plan.popular) : '0',
@@ -207,7 +213,10 @@ function SubscriptionPlanCreatePage({ token }) {
       font_color: form.font_color || null,
       background_color: form.background_color || null,
       is_active: Number(form.is_active),
+      offer_active: form.offer_active === '1',
       promo_price: toNumber(form.promo_price),
+      offer_duration_months: toNumber(form.offer_duration_months),
+      offer_terms: form.offer_terms.trim() || null,
       promo_label: form.promo_label.trim() || null,
       cta_label: form.cta_label.trim() || null,
       popular: Number(form.popular),
@@ -240,6 +249,19 @@ function SubscriptionPlanCreatePage({ token }) {
     if (!form.duration_months) {
       setMessage({ type: 'error', text: 'Plan duration is required.' });
       return;
+    }
+    if (form.offer_active === '1') {
+      const offerPrice = toNumber(form.promo_price);
+      const regularPrice = toNumber(form.price);
+      const offerDuration = toNumber(form.offer_duration_months);
+      if (offerPrice === null || offerPrice < 0 || offerPrice > regularPrice) {
+        setMessage({ type: 'error', text: 'Enter an offer price between zero and the regular monthly price.' });
+        return;
+      }
+      if (!offerDuration || offerDuration < 1 || offerDuration > 120) {
+        setMessage({ type: 'error', text: 'Offer duration must be between 1 and 120 months.' });
+        return;
+      }
     }
 
     const payload = buildPayload();
@@ -335,7 +357,7 @@ function SubscriptionPlanCreatePage({ token }) {
                 <p className="plan-preview-title">{form.plan_name || 'Plan Name'}</p>
                 <div className="plan-preview-price" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                    {form.promo_price ? (
+                    {form.offer_active === '1' && form.promo_price !== '' ? (
                       <>
                         <span style={{ fontSize: 13, textDecoration: 'line-through', color: '#94a3b8' }}>₹ {monthlyPrice || '0'}</span>
                         <span className="plan-preview-price-main">₹ {form.promo_price}/mo</span>
@@ -346,7 +368,7 @@ function SubscriptionPlanCreatePage({ token }) {
                   </div>
                   <span className="plan-preview-price-pill">₹ {yearlyPrice || '0'}/yr</span>
                 </div>
-                {form.promo_label && (
+                {form.offer_active === '1' && form.promo_label && (
                   <div style={{
                     background: 'rgba(245, 158, 11, 0.08)', border: '1px dashed #f59e0b', color: '#d97706',
                     fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 6, margin: '8px 0',
@@ -473,12 +495,31 @@ function SubscriptionPlanCreatePage({ token }) {
                   <input type="number" value={yearlyPrice} readOnly placeholder="11988" />
                 </label>
                 <label className="field">
-                  <span>Promo Price (Optional)</span>
+                  <span>Launch Offer</span>
+                  <select value={form.offer_active} onChange={(event) => handleChange('offer_active', event.target.value)}>
+                    <option value="0">Inactive - charge regular price</option>
+                    <option value="1">Active - use offer price</option>
+                  </select>
+                </label>
+                <label className="field">
+                  <span>Offer Price / Month</span>
                   <input
                     type="number"
+                    min="0"
                     value={form.promo_price}
                     onChange={(event) => handleChange('promo_price', event.target.value)}
-                    placeholder="e.g. 499"
+                    placeholder="0 for free, or e.g. 499"
+                  />
+                </label>
+                <label className="field">
+                  <span>Offer Duration (Months)</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="120"
+                    value={form.offer_duration_months}
+                    onChange={(event) => handleChange('offer_duration_months', event.target.value)}
+                    placeholder="e.g. 3 or 24"
                   />
                 </label>
                 <label className="field">
@@ -488,6 +529,15 @@ function SubscriptionPlanCreatePage({ token }) {
                     value={form.promo_label}
                     onChange={(event) => handleChange('promo_label', event.target.value)}
                     placeholder="e.g. Founder price: Rs.499 locked"
+                  />
+                </label>
+                <label className="field field-span">
+                  <span>Offer Terms Shown To Customers</span>
+                  <textarea
+                    value={form.offer_terms}
+                    onChange={(event) => handleChange('offer_terms', event.target.value)}
+                    placeholder="e.g. Rs.499/month for 24 months, then Rs.799/month."
+                    rows={3}
                   />
                 </label>
                 <label className="field">

@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Banner, TableRowActionMenu } from '../components';
+import { API_ORIGIN, STOREFRONT_BASE_URL } from '../config/runtime';
 
-const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:8080';
+const API_BASE = API_ORIGIN;
 const buildUrl = (path) => `${API_BASE}/api${path}`;
 
 const STATUS_OPTIONS = [
@@ -43,7 +44,7 @@ const primaryDomain = (site) => {
 };
 
 const storefrontPreviewUrl = (domain) =>
-  domain && domain !== '-' ? `http://localhost:3001/site/${encodeURIComponent(domain)}` : null;
+  domain && domain !== '-' ? `${STOREFRONT_BASE_URL}/site/${encodeURIComponent(domain)}` : null;
 
 const DomainLink = ({ domain }) => {
   const href = storefrontPreviewUrl(domain);
