@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Banner, TableRowActionMenu, TaxonomyDeleteImpactDialog } from '../components';
 import { usePermissions } from '../shared/permissions';
 import {
@@ -13,6 +13,7 @@ import {
   listAttributeMappings,
   listCategories,
   listMainCategories,
+  updateAttributeMapping,
   updateCategory,
 } from '../services/adminApi';
 import { buildOrderingWarning, findNextAvailableOrdering, findOrderingConflict, parseOrderingInput } from '../utils/ordering';
@@ -82,6 +83,28 @@ const buildMainCategoryOptionLabel = (mainCategory) =>
   [mainCategory?.industryName, mainCategory?.name]
     .filter(Boolean)
     .join(' > ') || mainCategory?.name || '-';
+
+const fieldCardButton = {
+  padding: '7px 10px',
+  borderRadius: 8,
+  border: '1px solid #e2e8f0',
+  background: '#fff',
+  color: '#475569',
+  fontSize: 12,
+  fontWeight: 700,
+  cursor: 'pointer',
+};
+
+const pillStyle = (bg, color) => ({
+  display: 'inline-flex',
+  alignItems: 'center',
+  padding: '3px 8px',
+  borderRadius: 999,
+  background: bg,
+  color,
+  fontSize: 11,
+  fontWeight: 700,
+});
 
 /* ── Small toggle switch component ─────────────────────────── */
 function ToggleSwitch({ id, checked, onChange, label, disabled }) {
@@ -189,12 +212,20 @@ function CategoryPage({ token }) {
   const [isSavingField, setIsSavingField] = useState(false);
   const [fieldDefinitions, setFieldDefinitions] = useState([]);
   const [categoryFields, setCategoryFields]     = useState([]);
+  const [inheritedFields, setInheritedFields]   = useState([]);
   const [fieldSearchQuery, setFieldSearchQuery] = useState('');
   const [fieldOptionDraft, setFieldOptionDraft] = useState('');
   const [addFieldMode, setAddFieldMode]         = useState('existing'); // 'existing' | 'new'
   const [fieldEditor, setFieldEditor]           = useState(initialFieldEditor);
   const [selectedExistingFieldId, setSelectedExistingFieldId] = useState('');
   const [existingFieldRequired, setExistingFieldRequired]     = useState(false);
+  const [editingMappingId, setEditingMappingId] = useState(null);
+  const [mappingDraft, setMappingDraft] = useState({
+    required: false,
+    filterable: false,
+    searchable: false,
+    active: true,
+  });
 
   /* ── Permissions ── */
   const { hasPermission } = usePermissions();
@@ -239,29 +270,70 @@ function CategoryPage({ token }) {
     });
   }, [assignedDefinitionIds, fieldDefinitions, fieldSearchQuery]);
 
+  const normalizeFieldMapping = useCallback((mapping, source = 'category') => {
+    const def = definitionById.get(String(mapping?.attributeId || '')) || null;
+    const dataType = def?.dataType || mapping?.dataType;
+    return {
+      mappingId:    mapping.id,
+      mappingObj:   mapping,
+      attributeId:  mapping?.attributeId,
+      attributeKey: def?.key || mapping?.attributeKey,
+      label:        def?.label || mapping?.label || mapping?.attributeKey || '-',
+      type:         typeLabel(dataType),
+      dataType,
+      unit:         def?.unit || '',
+      options:      getDefinitionOptions(def),
+      required:     readBoolean(mapping?.required, false),
+      filterable:   readBoolean(mapping?.filterable, false),
+      searchable:   readBoolean(mapping?.searchable, false),
+      active:       readBoolean(mapping?.active, true),
+      sortOrder:    Number.isFinite(Number(mapping?.sortOrder)) ? Number(mapping.sortOrder) : 9999,
+      source,
+    };
+  }, [definitionById]);
+
+  const sortMappings = useCallback((list) =>
+    [...list].sort((a, b) => {
+      const ao = Number.isFinite(Number(a?.sortOrder)) ? Number(a.sortOrder) : Number.MAX_SAFE_INTEGER;
+      const bo = Number.isFinite(Number(b?.sortOrder)) ? Number(b.sortOrder) : Number.MAX_SAFE_INTEGER;
+      if (ao !== bo) return ao - bo;
+      const aLabel = definitionById.get(String(a?.attributeId || ''))?.label || a?.label || '';
+      const bLabel = definitionById.get(String(b?.attributeId || ''))?.label || b?.label || '';
+      return aLabel.localeCompare(bLabel);
+    }), [definitionById]);
+
   const assignedFields = useMemo(() =>
-    [...categoryFields]
-      .sort((a, b) => {
-        const ao = Number.isFinite(Number(a?.sortOrder)) ? Number(a.sortOrder) : Number.MAX_SAFE_INTEGER;
-        const bo = Number.isFinite(Number(b?.sortOrder)) ? Number(b.sortOrder) : Number.MAX_SAFE_INTEGER;
-        if (ao !== bo) return ao - bo;
-        const aLabel = definitionById.get(String(a?.attributeId || ''))?.label || a?.label || '';
-        const bLabel = definitionById.get(String(b?.attributeId || ''))?.label || b?.label || '';
-        return aLabel.localeCompare(bLabel);
-      })
-      .map((mapping) => {
-        const def = definitionById.get(String(mapping?.attributeId || '')) || null;
-        return {
-          mappingId:  mapping.id,
-          mappingObj: mapping,
-          label:      def?.label || mapping?.label || mapping?.attributeKey || '-',
-          type:       typeLabel(def?.dataType || mapping?.dataType),
-          required:   readBoolean(mapping?.required, false),
-          active:     readBoolean(mapping?.active, true),
-        };
-      }),
-    [categoryFields, definitionById]
+    sortMappings(categoryFields)
+      .map((mapping) => normalizeFieldMapping(mapping, 'category')),
+    [categoryFields, normalizeFieldMapping, sortMappings]
   );
+
+  const inheritedAssignedFields = useMemo(() =>
+    sortMappings(inheritedFields)
+      .map((mapping) => normalizeFieldMapping(mapping, 'mainCategory'))
+      .filter((field) => field.active),
+    [inheritedFields, normalizeFieldMapping, sortMappings]
+  );
+
+  const effectivePreviewFields = useMemo(() => {
+    const byAttribute = new Map();
+    inheritedAssignedFields.forEach((field) => {
+      byAttribute.set(String(field.attributeId || field.attributeKey), field);
+    });
+    assignedFields.forEach((field) => {
+      if (field.active) byAttribute.set(String(field.attributeId || field.attributeKey), field);
+    });
+    return [...byAttribute.values()].sort((a, b) => a.sortOrder - b.sortOrder);
+  }, [assignedFields, inheritedAssignedFields]);
+
+  const fieldStats = useMemo(() => {
+    return {
+      own: assignedFields.length,
+      inherited: inheritedAssignedFields.length,
+      required: effectivePreviewFields.filter((field) => field.required).length,
+      filterable: effectivePreviewFields.filter((field) => field.filterable).length,
+    };
+  }, [assignedFields, effectivePreviewFields, inheritedAssignedFields.length]);
 
   /* ── Ordering helpers ── */
   const requestedOrdering  = parseOrderingInput(form.ordering);
@@ -351,17 +423,39 @@ function CategoryPage({ token }) {
     setFieldDefinitions(res?.data?.definitions || []);
   };
 
-  const loadCategoryFields = async (categoryId) => {
-    if (!categoryId) { setCategoryFields([]); return; }
+  const getMainCategoryIdForFields = (categoryId) =>
+    fieldsTargetCategory?.mainCategoryId ??
+    fieldsTargetCategory?.main_category_id ??
+    form.mainCategoryId ??
+    items.find((item) => String(item.id) === String(categoryId))?.mainCategoryId ??
+    items.find((item) => String(item.id) === String(categoryId))?.main_category_id ??
+    null;
+
+  const loadCategoryFields = async (categoryId, mainCategoryIdOverride) => {
+    if (!categoryId) {
+      setCategoryFields([]);
+      setInheritedFields([]);
+      return;
+    }
     const res = await listAttributeMappings(token, { categoryId: Number(categoryId) });
     setCategoryFields(res?.data?.mappings || []);
+    const mainCategoryId = mainCategoryIdOverride ?? getMainCategoryIdForFields(categoryId);
+    if (mainCategoryId) {
+      const inheritedRes = await listAttributeMappings(token, {
+        mainCategoryId: Number(mainCategoryId),
+        active: true,
+      });
+      setInheritedFields(inheritedRes?.data?.mappings || []);
+    } else {
+      setInheritedFields([]);
+    }
   };
 
-  const refreshFields = async (categoryId) => {
+  const refreshFields = async (categoryId, mainCategoryIdOverride) => {
     if (!categoryId) return;
     setIsFieldsLoading(true);
     try {
-      await Promise.all([loadFieldDefinitions(), loadCategoryFields(categoryId)]);
+      await Promise.all([loadFieldDefinitions(), loadCategoryFields(categoryId, mainCategoryIdOverride)]);
     } catch (error) {
       setFieldMessage({ type: 'error', text: error.message || 'Failed to load fields.' });
     } finally {
@@ -381,6 +475,8 @@ function CategoryPage({ token }) {
     setFieldSearchQuery('');
     setSelectedExistingFieldId('');
     setExistingFieldRequired(false);
+    setEditingMappingId(null);
+    setMappingDraft({ required: false, filterable: false, searchable: false, active: true });
   };
 
   const closeModal = () => {
@@ -393,6 +489,7 @@ function CategoryPage({ token }) {
     setFieldsTargetCategory(null);
     setFieldDefinitions([]);
     setCategoryFields([]);
+    setInheritedFields([]);
     setAddFieldMode('existing');
     setFieldMessage({ type: 'info', text: '' });
     resetFieldEditor();
@@ -406,6 +503,7 @@ function CategoryPage({ token }) {
     setFieldsTargetCategory(null);
     setFieldDefinitions([]);
     setCategoryFields([]);
+    setInheritedFields([]);
     setModalTab('details');
     setAddFieldMode('existing');
     setFieldMessage({ type: 'info', text: '' });
@@ -438,7 +536,7 @@ function CategoryPage({ token }) {
     setModalTab('details');
     setShowCategoryModal(true);
     // Pre-load fields in background
-    if (canManageFields) refreshFields(item.id);
+    if (canManageFields) refreshFields(item.id, item.mainCategoryId ?? item.main_category_id);
   };
 
   const openFieldsModal = async (category) => {
@@ -453,7 +551,7 @@ function CategoryPage({ token }) {
     resetFieldEditor();
     setModalTab('fields');
     setShowCategoryModal(true);
-    await refreshFields(category.id);
+    await refreshFields(category.id, category.mainCategoryId ?? category.main_category_id);
   };
 
   /* ── Form submit (Details tab) ── */
@@ -647,7 +745,7 @@ function CategoryPage({ token }) {
       setFieldMessage({ type: 'success', text: `"${label}" field added.` });
       resetFieldEditor();
       setAddFieldMode('existing');
-      await refreshFields(targetId);
+      await refreshFields(targetId, fieldsTargetCategory?.mainCategoryId ?? fieldsTargetCategory?.main_category_id ?? form.mainCategoryId);
     } catch (error) {
       setFieldMessage({ type: 'error', text: error.message || 'Failed to save field.' });
     } finally {
@@ -690,9 +788,96 @@ function CategoryPage({ token }) {
       setFieldMessage({ type: 'success', text: `"${addedDef?.label || 'Field'}" added.` });
       setSelectedExistingFieldId('');
       setExistingFieldRequired(false);
-      await refreshFields(targetId);
+      await refreshFields(targetId, fieldsTargetCategory?.mainCategoryId ?? fieldsTargetCategory?.main_category_id ?? form.mainCategoryId);
     } catch (error) {
       setFieldMessage({ type: 'error', text: error.message || 'Failed to add field.' });
+    } finally {
+      setIsSavingField(false);
+    }
+  };
+
+  const buildMappingUpdatePayload = (field, overrides = {}) => {
+    const payload = {
+      attributeId: Number(field.attributeId),
+      categoryId: field.mappingObj?.categoryId ?? fieldsTargetCategory?.id ?? null,
+      required: field.required,
+      filterable: field.filterable,
+      searchable: field.searchable,
+      sortOrder: field.mappingObj?.sortOrder ?? field.sortOrder,
+      active: field.active,
+      ...overrides,
+    };
+    if (field.mappingObj?.mainCategoryId !== undefined) payload.mainCategoryId = field.mappingObj.mainCategoryId;
+    if (field.mappingObj?.subCategoryId !== undefined) payload.subCategoryId = field.mappingObj.subCategoryId;
+    if (field.mappingObj?.defaultValue !== undefined) payload.defaultValue = field.mappingObj.defaultValue;
+    if (field.mappingObj?.uiConfig !== undefined) payload.uiConfig = field.mappingObj.uiConfig;
+    return payload;
+  };
+
+  const openMappingEditor = (field) => {
+    setEditingMappingId(field.mappingId);
+    setMappingDraft({
+      required: field.required,
+      filterable: field.filterable,
+      searchable: field.searchable,
+      active: field.active,
+    });
+  };
+
+  const saveMappingEditor = async (field) => {
+    if (!canManageFields) {
+      setFieldMessage({ type: 'error', text: 'No permission to manage fields.' });
+      return;
+    }
+    try {
+      setIsSavingField(true);
+      await updateAttributeMapping(token, field.mappingId, buildMappingUpdatePayload(field, mappingDraft));
+      setFieldMessage({ type: 'success', text: `"${field.label}" settings updated.` });
+      setEditingMappingId(null);
+      await refreshFields(fieldsTargetCategory?.id, fieldsTargetCategory?.mainCategoryId ?? fieldsTargetCategory?.main_category_id ?? form.mainCategoryId);
+    } catch (error) {
+      setFieldMessage({ type: 'error', text: error.message || 'Failed to update field settings.' });
+    } finally {
+      setIsSavingField(false);
+    }
+  };
+
+  const handleToggleFieldActive = async (field) => {
+    if (!canManageFields) {
+      setFieldMessage({ type: 'error', text: 'No permission to manage fields.' });
+      return;
+    }
+    try {
+      setIsSavingField(true);
+      await updateAttributeMapping(token, field.mappingId, buildMappingUpdatePayload(field, { active: !field.active }));
+      setFieldMessage({
+        type: 'success',
+        text: field.active
+          ? `"${field.label}" deactivated. Existing product values are preserved.`
+          : `"${field.label}" activated.`,
+      });
+      await refreshFields(fieldsTargetCategory?.id, fieldsTargetCategory?.mainCategoryId ?? fieldsTargetCategory?.main_category_id ?? form.mainCategoryId);
+    } catch (error) {
+      setFieldMessage({ type: 'error', text: error.message || 'Failed to update field status.' });
+    } finally {
+      setIsSavingField(false);
+    }
+  };
+
+  const handleMoveField = async (field, direction) => {
+    const index = assignedFields.findIndex((item) => item.mappingId === field.mappingId);
+    const swapWith = assignedFields[index + direction];
+    if (!swapWith) return;
+    try {
+      setIsSavingField(true);
+      await Promise.all([
+        updateAttributeMapping(token, field.mappingId, buildMappingUpdatePayload(field, { sortOrder: swapWith.sortOrder })),
+        updateAttributeMapping(token, swapWith.mappingId, buildMappingUpdatePayload(swapWith, { sortOrder: field.sortOrder })),
+      ]);
+      setFieldMessage({ type: 'success', text: 'Field order updated.' });
+      await refreshFields(fieldsTargetCategory?.id, fieldsTargetCategory?.mainCategoryId ?? fieldsTargetCategory?.main_category_id ?? form.mainCategoryId);
+    } catch (error) {
+      setFieldMessage({ type: 'error', text: error.message || 'Failed to update field order.' });
     } finally {
       setIsSavingField(false);
     }
@@ -708,7 +893,7 @@ function CategoryPage({ token }) {
       setIsSavingField(true);
       await deleteAttributeMapping(token, mappingId);
       setFieldMessage({ type: 'success', text: 'Field removed.' });
-      await refreshFields(fieldsTargetCategory?.id);
+      await refreshFields(fieldsTargetCategory?.id, fieldsTargetCategory?.mainCategoryId ?? fieldsTargetCategory?.main_category_id ?? form.mainCategoryId);
     } catch (error) {
       setFieldMessage({ type: 'error', text: error.message || 'Failed to remove field.' });
     } finally {
@@ -741,6 +926,81 @@ function CategoryPage({ token }) {
   };
 
   /* ── Render: Modal ── */
+  const renderPreviewControl = (field) => {
+    const baseStyle = {
+      width: '100%',
+      boxSizing: 'border-box',
+      border: '1px solid #e2e8f0',
+      borderRadius: 10,
+      padding: '9px 11px',
+      fontSize: 13,
+      color: '#64748b',
+      background: '#f8fafc',
+    };
+    if (field.dataType === 'BOOLEAN') return <select disabled style={baseStyle}><option>Select yes or no</option></select>;
+    if (field.dataType === 'DATE') return <input disabled type="date" style={baseStyle} />;
+    if (field.dataType === 'ENUM') return <select disabled style={baseStyle}><option>{field.options?.[0] || 'Select option'}</option></select>;
+    return (
+      <input
+        disabled
+        type={field.dataType === 'NUMBER' ? 'number' : 'text'}
+        placeholder={field.unit ? `Enter ${field.label} (${field.unit})` : `Enter ${field.label}`}
+        style={baseStyle}
+      />
+    );
+  };
+
+  const renderFieldCard = (field, index) => {
+    const isEditing = editingMappingId === field.mappingId;
+    return (
+      <div key={field.mappingId} style={{ border: '1px solid #e2e8f0', borderRadius: 14, background: field.active ? '#fff' : '#f8fafc', opacity: field.active ? 1 : 0.72, padding: 14, boxShadow: '0 6px 18px rgba(15,23,42,0.04)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8' }}>#{index + 1}</span>
+              <h4 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: '#0f172a' }}>{field.label}</h4>
+              <TypeBadge type={field.type} />
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
+              {field.required ? <span style={pillStyle('#fef3c7', '#b45309')}>Required</span> : <span style={pillStyle('#f1f5f9', '#64748b')}>Optional</span>}
+              {field.filterable && <span style={pillStyle('#dcfce7', '#15803d')}>Buyer filter</span>}
+              {field.searchable && <span style={pillStyle('#dbeafe', '#1d4ed8')}>Searchable</span>}
+              {!field.active && <span style={pillStyle('#fee2e2', '#b91c1c')}>Inactive</span>}
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <button type="button" onClick={() => handleMoveField(field, -1)} disabled={index === 0 || isSavingField} style={{ ...fieldCardButton, cursor: index === 0 || isSavingField ? 'not-allowed' : 'pointer' }}>Up</button>
+            <button type="button" onClick={() => handleMoveField(field, 1)} disabled={index === assignedFields.length - 1 || isSavingField} style={{ ...fieldCardButton, cursor: index === assignedFields.length - 1 || isSavingField ? 'not-allowed' : 'pointer' }}>Down</button>
+            <button type="button" onClick={() => openMappingEditor(field)} disabled={isSavingField} style={fieldCardButton}>Edit</button>
+          </div>
+        </div>
+        {isEditing && (
+          <div style={{ marginTop: 14, padding: 12, borderRadius: 12, background: '#faf5ff', border: '1px solid #e9d5ff' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12 }}>
+              <ToggleSwitch id={`required-${field.mappingId}`} checked={mappingDraft.required} onChange={(v) => setMappingDraft((p) => ({ ...p, required: v }))} label="Seller must fill" />
+              <ToggleSwitch id={`filterable-${field.mappingId}`} checked={mappingDraft.filterable} onChange={(v) => setMappingDraft((p) => ({ ...p, filterable: v }))} label="Show as buyer filter" />
+              <ToggleSwitch id={`searchable-${field.mappingId}`} checked={mappingDraft.searchable} onChange={(v) => setMappingDraft((p) => ({ ...p, searchable: v }))} label="Include in search" />
+              <ToggleSwitch id={`active-${field.mappingId}`} checked={mappingDraft.active} onChange={(v) => setMappingDraft((p) => ({ ...p, active: v }))} label="Active in product form" />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
+              <button type="button" onClick={() => handleRemoveField(field.mappingId)} disabled={isSavingField} style={{ ...fieldCardButton, color: '#dc2626', borderColor: '#fecaca' }}>Hard remove</button>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button type="button" onClick={() => setEditingMappingId(null)} style={fieldCardButton}>Cancel</button>
+                <button type="button" onClick={() => saveMappingEditor(field)} disabled={isSavingField} style={{ ...fieldCardButton, borderColor: 'var(--accent)', background: 'var(--accent)', color: '#fff' }}>{isSavingField ? 'Saving...' : 'Save settings'}</button>
+              </div>
+            </div>
+          </div>
+        )}
+        {!isEditing && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
+            <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>{field.active ? 'Visible on seller product form.' : 'Hidden from new product forms; old values stay saved.'}</p>
+            <button type="button" onClick={() => handleToggleFieldActive(field)} disabled={isSavingField} style={{ ...fieldCardButton, color: field.active ? '#b45309' : '#15803d', borderColor: field.active ? '#fde68a' : '#bbf7d0' }}>{field.active ? 'Deactivate safely' : 'Reactivate'}</button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderModal = () => {
     if (!showCategoryModal) return null;
     const isCreating    = !editItem;
@@ -1305,104 +1565,99 @@ function CategoryPage({ token }) {
                   )}
                 </div>
 
-                {/* ─ Divider ─ */}
                 <div style={{ height: 1, background: '#f1f5f9', margin: '20px 0' }} />
 
-                {/* ─ Assigned Fields Table ─ */}
                 <div style={{ padding: '0 24px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <div>
-                      <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#1e293b' }}>Fields in this category</h4>
-                      <p style={{ margin: '2px 0 0', fontSize: 12, color: '#94a3b8' }}>
-                        These appear on the product form when this category is selected.
-                      </p>
-                    </div>
-                    <span style={{
-                      padding: '3px 10px', borderRadius: 999, background: '#ede9fe',
-                      color: 'var(--accent)', fontSize: 12, fontWeight: 700,
-                    }}>
-                      {assignedFields.length} {assignedFields.length === 1 ? 'field' : 'fields'}
-                    </span>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10, marginBottom: 16 }}>
+                    {[
+                      { label: 'This category', value: fieldStats.own, hint: 'direct fields' },
+                      { label: 'Inherited', value: fieldStats.inherited, hint: 'from main category' },
+                      { label: 'Required', value: fieldStats.required, hint: 'seller must fill' },
+                      { label: 'Buyer filters', value: fieldStats.filterable, hint: 'visible in filters' },
+                    ].map((stat) => (
+                      <div key={stat.label} style={{ border: '1px solid #e2e8f0', borderRadius: 12, padding: 12, background: '#fff' }}>
+                        <div style={{ fontSize: 20, fontWeight: 800, color: '#0f172a' }}>{stat.value}</div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: '#475569' }}>{stat.label}</div>
+                        <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{stat.hint}</div>
+                      </div>
+                    ))}
                   </div>
 
-                  {isFieldsLoading ? (
-                    <p style={{ color: '#94a3b8', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>Loading…</p>
-                  ) : assignedFields.length === 0 ? (
-                    <div style={{
-                      padding: '28px 20px', borderRadius: 12, border: '1.5px dashed #e2e8f0',
-                      background: '#f8fafc', textAlign: 'center',
-                    }}>
-                      <div style={{ fontSize: 28, marginBottom: 8 }}>📋</div>
-                      <p style={{ margin: 0, fontSize: 13, color: '#94a3b8' }}>
-                        No fields yet. Add fields above so products in this category collect the right information.
-                      </p>
-                      <p style={{ margin: '4px 0 0', fontSize: 12, color: '#c4b5fd' }}>Fields are optional — you can skip this step.</p>
-                    </div>
-                  ) : (
-                    <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                        <thead>
-                          <tr style={{ background: '#f8fafc' }}>
-                            {['#', 'Field Name', 'Type', 'Required', ''].map((h) => (
-                              <th key={h} style={{
-                                padding: '9px 12px', textAlign: 'left', fontSize: 11, fontWeight: 700,
-                                color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em',
-                                borderBottom: '1px solid #e2e8f0',
-                              }}>
-                                {h}
-                              </th>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(280px, 0.8fr)', gap: 18, alignItems: 'start' }}>
+                    <div>
+                      {inheritedAssignedFields.length > 0 && (
+                        <div style={{ marginBottom: 16, border: '1px solid #e9d5ff', borderRadius: 14, background: '#faf5ff', padding: 14 }}>
+                          <h4 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: '#4c1d95' }}>Inherited fields</h4>
+                          <p style={{ margin: '4px 0 10px', fontSize: 12, color: '#7c3aed' }}>
+                            These come from the selected main category. Category fields can override the same field in preview.
+                          </p>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            {inheritedAssignedFields.map((field) => (
+                              <div key={`inherited-${field.mappingId}`} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center', border: '1px solid #ede9fe', borderRadius: 10, background: '#fff', padding: '9px 11px' }}>
+                                <div>
+                                  <strong style={{ fontSize: 13, color: '#312e81' }}>{field.label}</strong>
+                                  <div style={{ fontSize: 11, color: '#8b5cf6', marginTop: 2 }}>Main category field</div>
+                                </div>
+                                <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                                  <TypeBadge type={field.type} />
+                                  {field.required && <span style={pillStyle('#fef3c7', '#b45309')}>Required</span>}
+                                </div>
+                              </div>
                             ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {assignedFields.map((field, idx) => (
-                            <tr
-                              key={field.mappingId}
-                              style={{
-                                background: idx % 2 === 0 ? '#fff' : '#fafafa',
-                                opacity: field.active ? 1 : 0.5,
-                              }}
-                            >
-                              <td style={{ padding: '10px 12px', fontSize: 13, color: '#94a3b8', fontWeight: 500, borderBottom: '1px solid #f1f5f9' }}>
-                                {idx + 1}
-                              </td>
-                              <td style={{ padding: '10px 12px', fontSize: 13, fontWeight: 600, color: '#1e293b', borderBottom: '1px solid #f1f5f9' }}>
-                                {field.label}
-                              </td>
-                              <td style={{ padding: '10px 12px', borderBottom: '1px solid #f1f5f9' }}>
-                                <TypeBadge type={field.type} />
-                              </td>
-                              <td style={{ padding: '10px 12px', borderBottom: '1px solid #f1f5f9' }}>
-                                {field.required ? (
-                                  <span style={{
-                                    fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 6,
-                                    background: '#fef3c7', color: '#d97706',
-                                  }}>Required</span>
-                                ) : (
-                                  <span style={{ fontSize: 12, color: '#94a3b8' }}>Optional</span>
-                                )}
-                              </td>
-                              <td style={{ padding: '10px 12px', borderBottom: '1px solid #f1f5f9', textAlign: 'right' }}>
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveField(field.mappingId)}
-                                  disabled={isSavingField}
-                                  title="Remove field"
-                                  style={{
-                                    width: 28, height: 28, borderRadius: 8, border: '1.5px solid #fee2e2',
-                                    background: '#fff', color: '#ef4444', cursor: isSavingField ? 'not-allowed' : 'pointer',
-                                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 14,
-                                  }}
-                                >
-                                  ×
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </div>
+                        </div>
+                      )}
+
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                        <div>
+                          <h4 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#1e293b' }}>Fields in this category</h4>
+                          <p style={{ margin: '2px 0 0', fontSize: 12, color: '#94a3b8' }}>
+                            Use deactivate when you want to hide a field without losing existing product values.
+                          </p>
+                        </div>
+                      </div>
+
+                      {isFieldsLoading ? (
+                        <p style={{ color: '#94a3b8', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>Loading...</p>
+                      ) : assignedFields.length === 0 ? (
+                        <div style={{ padding: '28px 20px', borderRadius: 12, border: '1.5px dashed #e2e8f0', background: '#f8fafc', textAlign: 'center' }}>
+                          <p style={{ margin: 0, fontSize: 13, color: '#64748b', fontWeight: 700 }}>No direct fields yet.</p>
+                          <p style={{ margin: '4px 0 0', fontSize: 12, color: '#94a3b8' }}>Add fields above when this category needs product details beyond inherited fields.</p>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                          {assignedFields.map((field, idx) => renderFieldCard(field, idx))}
+                        </div>
+                      )}
                     </div>
-                  )}
+
+                    <div style={{ position: 'sticky', top: 12, border: '1px solid #e2e8f0', borderRadius: 16, background: '#fff', padding: 16, boxShadow: '0 10px 28px rgba(15,23,42,0.06)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start', marginBottom: 12 }}>
+                        <div>
+                          <h4 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#0f172a' }}>Product form preview</h4>
+                          <p style={{ margin: '3px 0 0', fontSize: 12, color: '#94a3b8' }}>{targetCatName || 'Selected category'}</p>
+                        </div>
+                        <span style={pillStyle('#ede9fe', 'var(--accent)')}>{effectivePreviewFields.length} active</span>
+                      </div>
+                      {effectivePreviewFields.length === 0 ? (
+                        <div style={{ padding: '22px 12px', borderRadius: 12, background: '#f8fafc', textAlign: 'center', color: '#94a3b8', fontSize: 12 }}>
+                          No active fields for this category yet.
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                          {effectivePreviewFields.map((field) => (
+                            <label key={`${field.source}-${field.mappingId}`} style={{ display: 'block' }}>
+                              <span style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 12, fontWeight: 800, color: '#334155', marginBottom: 5 }}>
+                                <span>{field.label}{field.required && <span style={{ color: '#ef4444' }}> *</span>}</span>
+                                {field.source === 'mainCategory' && <span style={{ color: '#8b5cf6', fontWeight: 700 }}>Inherited</span>}
+                              </span>
+                              {renderPreviewControl(field)}
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Footer */}
