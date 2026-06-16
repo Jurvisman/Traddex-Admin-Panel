@@ -7,6 +7,7 @@ import {
   getSubCategory,
   getSubCategoryDeleteImpact,
   listCategories,
+  listMainCategories,
   listSubCategories,
   updateSubCategory,
 } from '../services/adminApi';
@@ -29,9 +30,19 @@ const StatusBadge = ({ active }) => (
   </span>
 );
 
+const buildCategoryOptionLabel = (category, mainCategoryById) => {
+  const mainCategory = mainCategoryById.get(String(category?.mainCategoryId ?? category?.main_category_id ?? ''));
+  return [
+    mainCategory?.industryName,
+    category?.mainCategoryName || category?.main_category_name || mainCategory?.name,
+    category?.name,
+  ].filter(Boolean).join(' > ') || category?.name || '-';
+};
+
 function SubCategoryPage({ token }) {
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [mainCategories, setMainCategories] = useState([]);
   const [form, setForm] = useState(initialForm);
   const [message, setMessage] = useState({ type: 'info', text: '' });
   const [isLoading, setIsLoading] = useState(false);
@@ -65,15 +76,17 @@ function SubCategoryPage({ token }) {
     setIsLoading(true);
     setMessage({ type: 'info', text: '' });
     try {
-      const [subCategoriesResult, categoriesResult] = await Promise.allSettled([
+      const [subCategoriesResult, categoriesResult, mainCategoriesResult] = await Promise.allSettled([
         listSubCategories(token),
         listCategories(token),
+        listMainCategories(token),
       ]);
       if (subCategoriesResult.status !== 'fulfilled') {
         throw subCategoriesResult.reason;
       }
       setItems(subCategoriesResult.value?.data || []);
       setCategories(categoriesResult.status === 'fulfilled' ? categoriesResult.value?.data || [] : []);
+      setMainCategories(mainCategoriesResult.status === 'fulfilled' ? mainCategoriesResult.value?.data || [] : []);
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to fetch sub-categories.' });
     } finally {
@@ -85,6 +98,14 @@ function SubCategoryPage({ token }) {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const mainCategoryById = useMemo(() => {
+    const map = new Map();
+    mainCategories.forEach((mainCategory) => {
+      if (mainCategory?.id != null) map.set(String(mainCategory.id), mainCategory);
+    });
+    return map;
+  }, [mainCategories]);
 
   const requestedOrdering = parseOrderingInput(form.ordering);
   const orderingConflict = useMemo(
@@ -498,7 +519,7 @@ function SubCategoryPage({ token }) {
                         <option value="">Select category</option>
                         {categories.map((category) => (
                           <option key={category.id} value={category.id}>
-                            {category.name}
+                            {buildCategoryOptionLabel(category, mainCategoryById)}
                           </option>
                         ))}
                       </select>

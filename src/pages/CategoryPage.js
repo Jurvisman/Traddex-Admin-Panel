@@ -78,6 +78,11 @@ const getCreatedDefinitionId = (res) =>
   res?.data?.definitionId ??
   null;
 
+const buildMainCategoryOptionLabel = (mainCategory) =>
+  [mainCategory?.industryName, mainCategory?.name]
+    .filter(Boolean)
+    .join(' > ') || mainCategory?.name || '-';
+
 /* ── Small toggle switch component ─────────────────────────── */
 function ToggleSwitch({ id, checked, onChange, label, disabled }) {
   return (
@@ -864,7 +869,7 @@ function CategoryPage({ token }) {
                     >
                       <option value="">Select main category</option>
                       {mainCategories.map((mc) => (
-                        <option key={mc.id} value={mc.id}>{mc.name}</option>
+                        <option key={mc.id} value={mc.id}>{buildMainCategoryOptionLabel(mc)}</option>
                       ))}
                     </select>
                     {fieldErr('mainCategoryId') && <span className="field-error-msg">{errors.mainCategoryId}</span>}
