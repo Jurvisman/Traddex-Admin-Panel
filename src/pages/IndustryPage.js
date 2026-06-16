@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Banner, TableRowActionMenu, ToggleSwitch } from '../components';
+import { Banner, TableRowActionMenu, TaxonomyDeleteImpactDialog, ToggleSwitch } from '../components';
 import CatalogBulkImportModal from '../components/CatalogBulkImportModal';
 import { usePermissions } from '../shared/permissions';
-import { createIndustry, deleteIndustry, getIndustry, listIndustries, updateIndustry } from '../services/adminApi';
+import { createIndustry, deleteIndustry, getIndustry, getIndustryDeleteImpact, listIndustries, updateIndustry } from '../services/adminApi';
 import { buildOrderingWarning, findNextAvailableOrdering, findOrderingConflict, parseOrderingInput } from '../utils/ordering';
 import { PRODUCT_MASTER_PERMISSIONS } from '../constants/adminPermissions';
 
@@ -38,10 +38,19 @@ function IndustryPage({ token }) {
   const [editItem, setEditItem] = useState(null);
   const [touched, setTouched] = useState({});
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [openActionRowId, setOpenActionRowId] = useState(null);
   const [showBulkImport, setShowBulkImport] = useState(false);
+  const [deleteDialog, setDeleteDialog] = useState({
+    open: false,
+    target: null,
+    impact: null,
+    loading: false,
+    deleting: false,
+    deactivating: false,
+  });
 
   // View panel state
   const [viewItem, setViewItem] = useState(null);      // { industry, mainCategories }
@@ -97,6 +106,9 @@ function IndustryPage({ token }) {
     const errs = {};
     if (!f.name.trim()) errs.name = 'Industry name is required.';
     else if (f.name.trim().length < 2) errs.name = 'Name must be at least 2 characters.';
+    else if (items.some((item) => String(item.id ?? item.industryId) !== String(editItem?.id ?? '') && String(item.name || '').trim().toLowerCase() === f.name.trim().toLowerCase())) {
+      errs.name = 'This industry name already exists.';
+    }
     if (f.ordering !== '' && f.ordering !== null) {
       const n = parseOrderingInput(f.ordering);
       if (Number.isNaN(n)) errs.ordering = 'Must be a whole number ≥ 1.';
@@ -198,23 +210,70 @@ function IndustryPage({ token }) {
     }
   };
 
+  const closeDeleteDialog = () => {
+    setDeleteDialog({ open: false, target: null, impact: null, loading: false, deleting: false, deactivating: false });
+  };
+
   const handleDelete = async (id) => {
     if (!canDelete) {
       setMessage({ type: 'error', text: 'You do not have permission to delete industries.' });
       return;
     }
+    const target = items.find((item) => String(item.id ?? item.industryId) === String(id)) || { id };
+    setDeleteDialog({ open: true, target, impact: null, loading: true, deleting: false, deactivating: false });
     try {
-      setIsLoading(true);
+      const response = await getIndustryDeleteImpact(token, id);
+      setDeleteDialog((prev) => ({ ...prev, impact: response?.data || null, loading: false }));
+    } catch (error) {
+      closeDeleteDialog();
+      setMessage({ type: 'error', text: error.message || 'Failed to check industry usage.' });
+    }
+  };
+
+  const confirmDelete = async () => {
+    const id = deleteDialog.target?.id ?? deleteDialog.target?.industryId;
+    if (!id) return;
+    try {
+      setDeleteDialog((prev) => ({ ...prev, deleting: true }));
       await deleteIndustry(token, id);
       if (viewItem?.industry?.id === id || viewItem?.industry?.industryId === id) {
         setViewItem(null);
       }
       await loadIndustries();
+      closeDeleteDialog();
       setMessage({ type: 'success', text: 'Industry deleted.' });
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to delete industry.' });
     } finally {
-      setIsLoading(false);
+      setDeleteDialog((prev) => ({ ...prev, deleting: false }));
+    }
+  };
+
+  const deactivateInstead = async () => {
+    const item = deleteDialog.target;
+    const id = item?.id ?? item?.industryId;
+    if (!id) return;
+    const payload = {
+      name: item.name,
+      industryIcon: item.industryIcon || null,
+      industryImage: item.industryImage || null,
+      ordering: item.ordering ?? null,
+      path: item.path || null,
+      active: 0,
+    };
+    try {
+      setDeleteDialog((prev) => ({ ...prev, deactivating: true }));
+      await updateIndustry(token, id, payload);
+      if (viewItem?.industry?.id === id || viewItem?.industry?.industryId === id) {
+        setViewItem((prev) => prev ? { ...prev, industry: { ...prev.industry, active: 0 } } : prev);
+      }
+      await loadIndustries();
+      closeDeleteDialog();
+      setMessage({ type: 'success', text: 'Industry deactivated. Existing records are preserved.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to deactivate industry.' });
+    } finally {
+      setDeleteDialog((prev) => ({ ...prev, deactivating: false }));
     }
   };
 
@@ -317,6 +376,7 @@ function IndustryPage({ token }) {
       if (!q) return true;
       return String(item.name || '').toLowerCase().includes(q);
     })
+    .filter((item) => statusFilter === 'all' || String(item.active ?? 1) === statusFilter)
     .sort((a, b) => (b.id ?? 0) - (a.id ?? 0));
 
   const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
@@ -506,6 +566,16 @@ function IndustryPage({ token }) {
               </div>
             </div>
             <div className="gsc-datatable-toolbar-right">
+              <select
+                className="gsc-toolbar-btn"
+                value={statusFilter}
+                onChange={(event) => { setStatusFilter(event.target.value); setPage(1); }}
+                aria-label="Filter industries by status"
+              >
+                <option value="all">All status</option>
+                <option value="1">Active only</option>
+                <option value="0">Inactive only</option>
+              </select>
               <div className="gsc-toolbar-search">
                 <input
                   type="search"
@@ -630,6 +700,17 @@ function IndustryPage({ token }) {
           }}
         />
       ) : null}
+      <TaxonomyDeleteImpactDialog
+        open={deleteDialog.open}
+        impact={deleteDialog.impact}
+        loading={deleteDialog.loading}
+        deleting={deleteDialog.deleting}
+        deactivating={deleteDialog.deactivating}
+        canDeactivate={canUpdate}
+        onCancel={closeDeleteDialog}
+        onDelete={confirmDelete}
+        onDeactivate={deactivateInstead}
+      />
     </div>
   );
 }

@@ -105,6 +105,9 @@ export const updateIndustry = (token, id, payload) =>
   request(`/industries/${id}`, { method: 'PUT', body: payload, token });
 export const updateIndustryOrder = (token, id, position) =>
   request(`/industries/${id}/order`, { method: 'POST', body: { position }, token });
+export const getIndustryDeleteImpact = (token, id) => request(`/industries/${id}/delete-impact`, { token });
+export const reassignIndustry = (token, id, targetId) =>
+  request(`/industries/${id}/reassign`, { method: 'POST', body: { targetId }, token });
 export const deleteIndustry = (token, id) => request(`/industries/${id}`, { method: 'DELETE', token });
 
 export const listMainCategories = (token) => request('/main-categories', { token });
@@ -115,6 +118,9 @@ export const updateMainCategory = (token, id, payload) =>
   request(`/main-categories/${id}`, { method: 'PUT', body: payload, token });
 export const updateMainCategoryOrder = (token, id, position, industryId) =>
   request(`/main-categories/${id}/order`, { method: 'POST', body: { position, industryId }, token });
+export const getMainCategoryDeleteImpact = (token, id) => request(`/main-categories/${id}/delete-impact`, { token });
+export const reassignMainCategory = (token, id, targetId) =>
+  request(`/main-categories/${id}/reassign`, { method: 'POST', body: { targetId }, token });
 export const deleteMainCategory = (token, id) => request(`/main-categories/${id}`, { method: 'DELETE', token });
 
 export const listCategories = (token, mainCategoryId) => {
@@ -127,6 +133,9 @@ export const updateCategory = (token, id, payload) =>
   request(`/categories/${id}`, { method: 'PUT', body: payload, token });
 export const updateCategoryOrder = (token, id, position, mainCategoryId) =>
   request(`/categories/${id}/order`, { method: 'POST', body: { position, mainCategoryId }, token });
+export const getCategoryDeleteImpact = (token, id) => request(`/categories/${id}/delete-impact`, { token });
+export const reassignCategory = (token, id, targetId) =>
+  request(`/categories/${id}/reassign`, { method: 'POST', body: { targetId }, token });
 export const deleteCategory = (token, id) => request(`/categories/${id}`, { method: 'DELETE', token });
 
 export const listProductCollections = (token, active) => {
@@ -151,6 +160,9 @@ export const updateSubCategory = (token, id, payload) =>
   request(`/sub-categories/${id}`, { method: 'PUT', body: payload, token });
 export const updateSubCategoryOrder = (token, id, position, categoryId) =>
   request(`/sub-categories/${id}/order`, { method: 'POST', body: { position, categoryId }, token });
+export const getSubCategoryDeleteImpact = (token, id) => request(`/sub-categories/${id}/delete-impact`, { token });
+export const reassignSubCategory = (token, id, targetId) =>
+  request(`/sub-categories/${id}/reassign`, { method: 'POST', body: { targetId }, token });
 export const deleteSubCategory = (token, id) => request(`/sub-categories/${id}`, { method: 'DELETE', token });
 
 export const listProducts = (token, filters = {}) => {

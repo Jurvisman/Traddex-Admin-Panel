@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Banner, TableRowActionMenu } from '../components';
+import { Banner, TableRowActionMenu, TaxonomyDeleteImpactDialog } from '../components';
 import { usePermissions } from '../shared/permissions';
 import {
   createAttributeDefinition,
@@ -8,6 +8,7 @@ import {
   deleteAttributeMapping,
   deleteCategory,
   getCategory,
+  getCategoryDeleteImpact,
   listAttributeDefinitions,
   listAttributeMappings,
   listCategories,
@@ -147,9 +148,18 @@ function CategoryPage({ token }) {
   const [message, setMessage]         = useState({ type: 'info', text: '' });
   const [isPageLoading, setIsPageLoading] = useState(false);
   const [categorySearchQuery, setCategorySearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [openActionRowId, setOpenActionRowId] = useState(null);
   const [page, setPage]               = useState(1);
   const [pageSize, setPageSize]       = useState(20);
+  const [deleteDialog, setDeleteDialog] = useState({
+    open: false,
+    target: null,
+    impact: null,
+    loading: false,
+    deleting: false,
+    deactivating: false,
+  });
 
   /* ── View panel ── */
   const [viewItem, setViewItem]       = useState(null);
@@ -280,6 +290,7 @@ function CategoryPage({ token }) {
       if (!q) return true;
       return `${item.name || ''} ${item.mainCategoryName || item.main_category_name || ''}`.toLowerCase().includes(q);
     })
+    .filter((item) => statusFilter === 'all' || String(item.active ?? 1) === statusFilter)
     .sort((a, b) => (b.id ?? 0) - (a.id ?? 0));
 
   const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
@@ -294,6 +305,11 @@ function CategoryPage({ token }) {
     const errs = {};
     if (!f.name.trim()) errs.name = 'Name is required.';
     else if (f.name.trim().length < 2) errs.name = 'Name must be at least 2 characters.';
+    else if (items.some((item) =>
+      String(item.id) !== String(editItem?.id ?? '') &&
+      String(item.mainCategoryId ?? item.main_category_id ?? '') === String(f.mainCategoryId ?? '') &&
+      String(item.name || '').trim().toLowerCase() === f.name.trim().toLowerCase()
+    )) errs.name = 'This category already exists under selected main category.';
     if (!f.mainCategoryId) errs.mainCategoryId = 'Main category is required.';
     if (f.ordering !== '' && f.ordering !== null) {
       const n = parseOrderingInput(f.ordering);
@@ -488,20 +504,70 @@ function CategoryPage({ token }) {
     }
   };
 
+  const closeDeleteDialog = () => {
+    setDeleteDialog({ open: false, target: null, impact: null, loading: false, deleting: false, deactivating: false });
+  };
+
   const handleDelete = async (id) => {
     if (!canDelete) {
       setMessage({ type: 'error', text: 'You do not have permission to delete categories.' });
       return;
     }
+    const target = items.find((item) => String(item.id) === String(id)) || { id };
+    setDeleteDialog({ open: true, target, impact: null, loading: true, deleting: false, deactivating: false });
     try {
-      setIsPageLoading(true);
+      const response = await getCategoryDeleteImpact(token, id);
+      setDeleteDialog((prev) => ({ ...prev, impact: response?.data || null, loading: false }));
+    } catch (error) {
+      closeDeleteDialog();
+      setMessage({ type: 'error', text: error.message || 'Failed to check category usage.' });
+    }
+  };
+
+  const confirmDelete = async () => {
+    const id = deleteDialog.target?.id;
+    if (!id) return;
+    try {
+      setDeleteDialog((prev) => ({ ...prev, deleting: true }));
       await deleteCategory(token, id);
+      if (viewItem?.category?.id === id || viewItem?.id === id) setViewItem(null);
       await loadData();
+      closeDeleteDialog();
       setMessage({ type: 'success', text: 'Category deleted.' });
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to delete category.' });
     } finally {
-      setIsPageLoading(false);
+      setDeleteDialog((prev) => ({ ...prev, deleting: false }));
+    }
+  };
+
+  const deactivateInstead = async () => {
+    const item = deleteDialog.target;
+    const id = item?.id;
+    if (!id) return;
+    const payload = {
+      name: item.name,
+      mainCategoryId: Number(item.mainCategoryId ?? item.main_category_id),
+      categoryIcon: item.categoryIcon ?? item.category_icon ?? null,
+      imageUrl: item.imageUrl ?? item.image_url ?? null,
+      ordering: item.ordering ?? null,
+      path: item.path ?? null,
+      active: 0,
+      hasSubCategory: Number(item.hasSubCategory ?? item.has_sub_category ?? 1),
+    };
+    try {
+      setDeleteDialog((prev) => ({ ...prev, deactivating: true }));
+      await updateCategory(token, id, payload);
+      if (viewItem?.category?.id === id || viewItem?.id === id) {
+        setViewItem((prev) => prev ? { ...prev, active: 0, category: prev.category ? { ...prev.category, active: 0 } : prev.category } : prev);
+      }
+      await loadData();
+      closeDeleteDialog();
+      setMessage({ type: 'success', text: 'Category deactivated. Existing records are preserved.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to deactivate category.' });
+    } finally {
+      setDeleteDialog((prev) => ({ ...prev, deactivating: false }));
     }
   };
 
@@ -1545,6 +1611,16 @@ function CategoryPage({ token }) {
               </div>
             </div>
             <div className="gsc-datatable-toolbar-right">
+              <select
+                className="gsc-toolbar-btn"
+                value={statusFilter}
+                onChange={(event) => { setStatusFilter(event.target.value); setPage(1); }}
+                aria-label="Filter categories by status"
+              >
+                <option value="all">All status</option>
+                <option value="1">Active only</option>
+                <option value="0">Inactive only</option>
+              </select>
               <div className="gsc-toolbar-search">
                 <input
                   type="search"
@@ -1657,6 +1733,17 @@ function CategoryPage({ token }) {
         {/* View panel */}
         {renderViewPanel()}
       </div>
+      <TaxonomyDeleteImpactDialog
+        open={deleteDialog.open}
+        impact={deleteDialog.impact}
+        loading={deleteDialog.loading}
+        deleting={deleteDialog.deleting}
+        deactivating={deleteDialog.deactivating}
+        canDeactivate={canUpdate}
+        onCancel={closeDeleteDialog}
+        onDelete={confirmDelete}
+        onDeactivate={deactivateInstead}
+      />
     </div>
   );
 }

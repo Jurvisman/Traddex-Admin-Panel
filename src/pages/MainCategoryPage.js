@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Banner, TableRowActionMenu, ToggleSwitch } from '../components';
+import { Banner, TableRowActionMenu, TaxonomyDeleteImpactDialog, ToggleSwitch } from '../components';
 import { usePermissions } from '../shared/permissions';
 import {
   createMainCategory,
   deleteMainCategory,
+  getMainCategoryDeleteImpact,
   getMainCategory,
   listIndustries,
   listMainCategories,
@@ -43,11 +44,20 @@ function MainCategoryPage({ token }) {
   const [isLoading, setIsLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [editItem, setEditItem] = useState(null);
   const [touched, setTouched] = useState({});
   const [openActionRowId, setOpenActionRowId] = useState(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [deleteDialog, setDeleteDialog] = useState({
+    open: false,
+    target: null,
+    impact: null,
+    loading: false,
+    deleting: false,
+    deactivating: false,
+  });
 
   // View panel state
   const [viewItem, setViewItem] = useState(null);      // { mainCategory: {...}, categories: [...] }
@@ -125,6 +135,11 @@ function MainCategoryPage({ token }) {
     const errs = {};
     if (!f.name.trim()) errs.name = 'Name is required.';
     else if (f.name.trim().length < 2) errs.name = 'Name must be at least 2 characters.';
+    else if (items.some((item) =>
+      String(item.id) !== String(editItem?.id ?? '') &&
+      String(item.industryId ?? '') === String(f.industryId ?? '') &&
+      String(item.name || '').trim().toLowerCase() === f.name.trim().toLowerCase()
+    )) errs.name = 'This main category already exists under selected industry.';
     if (!f.industryId) errs.industryId = 'Industry is required.';
     if (f.ordering !== '' && f.ordering !== null) {
       const n = parseOrderingInput(f.ordering);
@@ -234,21 +249,69 @@ function MainCategoryPage({ token }) {
     }
   };
 
+  const closeDeleteDialog = () => {
+    setDeleteDialog({ open: false, target: null, impact: null, loading: false, deleting: false, deactivating: false });
+  };
+
   const handleDelete = async (id) => {
     if (!canDelete) {
       setMessage({ type: 'error', text: 'You do not have permission to delete main categories.' });
       return;
     }
+    const target = items.find((item) => String(item.id) === String(id)) || { id };
+    setDeleteDialog({ open: true, target, impact: null, loading: true, deleting: false, deactivating: false });
     try {
-      setIsLoading(true);
+      const response = await getMainCategoryDeleteImpact(token, id);
+      setDeleteDialog((prev) => ({ ...prev, impact: response?.data || null, loading: false }));
+    } catch (error) {
+      closeDeleteDialog();
+      setMessage({ type: 'error', text: error.message || 'Failed to check main category usage.' });
+    }
+  };
+
+  const confirmDelete = async () => {
+    const id = deleteDialog.target?.id;
+    if (!id) return;
+    try {
+      setDeleteDialog((prev) => ({ ...prev, deleting: true }));
       await deleteMainCategory(token, id);
       if (viewItem?.mainCategory?.id === id) setViewItem(null);
       await loadData();
+      closeDeleteDialog();
       setMessage({ type: 'success', text: 'Main category deleted.' });
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to delete main category.' });
     } finally {
-      setIsLoading(false);
+      setDeleteDialog((prev) => ({ ...prev, deleting: false }));
+    }
+  };
+
+  const deactivateInstead = async () => {
+    const item = deleteDialog.target;
+    const id = item?.id;
+    if (!id) return;
+    const payload = {
+      name: item.name,
+      industryId: Number(item.industryId),
+      mainCategoryIcon: item.mainCategoryIcon || null,
+      imageUrl: item.imageUrl || null,
+      ordering: item.ordering ?? null,
+      path: item.path || null,
+      active: 0,
+    };
+    try {
+      setDeleteDialog((prev) => ({ ...prev, deactivating: true }));
+      await updateMainCategory(token, id, payload);
+      if (viewItem?.mainCategory?.id === id) {
+        setViewItem((prev) => prev ? { ...prev, mainCategory: { ...prev.mainCategory, active: 0 } } : prev);
+      }
+      await loadData();
+      closeDeleteDialog();
+      setMessage({ type: 'success', text: 'Main category deactivated. Existing records are preserved.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to deactivate main category.' });
+    } finally {
+      setDeleteDialog((prev) => ({ ...prev, deactivating: false }));
     }
   };
 
@@ -364,6 +427,7 @@ function MainCategoryPage({ token }) {
       const haystack = `${item.name || ''} ${industryNameById.get(item.industryId) || item.industryName || ''}`.toLowerCase();
       return haystack.includes(q);
     })
+    .filter((item) => statusFilter === 'all' || String(item.active ?? 1) === statusFilter)
     .sort((a, b) => (b.id ?? 0) - (a.id ?? 0));
 
   const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
@@ -573,6 +637,16 @@ function MainCategoryPage({ token }) {
               </div>
             </div>
             <div className="gsc-datatable-toolbar-right">
+              <select
+                className="gsc-toolbar-btn"
+                value={statusFilter}
+                onChange={(event) => { setStatusFilter(event.target.value); setPage(1); }}
+                aria-label="Filter main categories by status"
+              >
+                <option value="all">All status</option>
+                <option value="1">Active only</option>
+                <option value="0">Inactive only</option>
+              </select>
               <div className="gsc-toolbar-search">
                 <input
                   type="search"
@@ -682,6 +756,17 @@ function MainCategoryPage({ token }) {
         {/* ── View panel ── */}
         {renderViewPanel()}
       </div>
+      <TaxonomyDeleteImpactDialog
+        open={deleteDialog.open}
+        impact={deleteDialog.impact}
+        loading={deleteDialog.loading}
+        deleting={deleteDialog.deleting}
+        deactivating={deleteDialog.deactivating}
+        canDeactivate={canUpdate}
+        onCancel={closeDeleteDialog}
+        onDelete={confirmDelete}
+        onDeactivate={deactivateInstead}
+      />
     </div>
   );
 }
