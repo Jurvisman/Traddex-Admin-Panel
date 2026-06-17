@@ -1,8 +1,27 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Banner, TableRowActionMenu } from '../components';
-import { fetchUsers, sendOtp, updateUser, verifyOtp } from '../services/adminApi';
+import { deleteUsersBulk, fetchUsers, sendOtp, updateUser, verifyOtp } from '../services/adminApi';
 
 const normalize = (value) => String(value || '').toLowerCase();
+const USER_LIST_PAGE_SIZE_OPTIONS = [10, 25, 50];
+
+const paginateItems = (items, page, pageSize = USER_LIST_PAGE_SIZE_OPTIONS[0]) => {
+  const list = Array.isArray(items) ? items : [];
+  const totalItems = list.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const safePage = Math.min(Math.max(page, 0), totalPages - 1);
+  const start = safePage * pageSize;
+  const end = Math.min(start + pageSize, totalItems);
+
+  return {
+    items: list.slice(start, end),
+    totalItems,
+    totalPages,
+    page: safePage,
+    start,
+    end,
+  };
+};
 
 const formatDate = (value) => {
   if (!value) return '-';
@@ -472,6 +491,22 @@ function UserDirectoryPage({ token, allowedActions }) {
   const [selectedRows, setSelectedRows] = useState(new Set());
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [viewUser, setViewUser] = useState(null);
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [showColumnPicker, setShowColumnPicker] = useState(false);
+  const [filterStatus, setFilterStatus] = useState('');
+  const [userListPage, setUserListPage] = useState(0);
+  const [userListPageSize, setUserListPageSize] = useState(USER_LIST_PAGE_SIZE_OPTIONS[0]);
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [columnVisibility, setColumnVisibility] = useState({
+    srNo: true,
+    user: true,
+    type: true,
+    phone: true,
+    verification: true,
+    status: true,
+    joined: true,
+  });
 
   const allowedActionSet = useMemo(() => {
     const next = new Set();
@@ -487,6 +522,7 @@ function UserDirectoryPage({ token, allowedActions }) {
   const canUserRead = !hasActionModel || allowedActionSet.has('ADMIN_USERS_READ');
   const canUserUpdate = !hasActionModel || allowedActionSet.has('ADMIN_USERS_UPDATE');
   const canUserCreate = !hasActionModel || allowedActionSet.has('ADMIN_USERS_CREATE');
+  const canUserDelete = !hasActionModel || allowedActionSet.has('ADMIN_USERS_DELETE');
 
   const loadUsers = async () => {
     if (!canUserRead) {
@@ -537,6 +573,43 @@ function UserDirectoryPage({ token, allowedActions }) {
     });
   }, [query, users]);
 
+  const statusFilteredUsers = useMemo(() => {
+    return filteredUsers.filter((user) => {
+      if (filterStatus === 'active') return Number(user?.active) === 1;
+      if (filterStatus === 'inactive') return Number(user?.active) !== 1;
+      if (filterStatus === 'verified') return Number(user?.verify) === 1;
+      if (filterStatus === 'pending') return Number(user?.verify) !== 1;
+      return true;
+    });
+  }, [filterStatus, filteredUsers]);
+
+  const pagedUsers = useMemo(
+    () => paginateItems(statusFilteredUsers, userListPage, userListPageSize),
+    [statusFilteredUsers, userListPage, userListPageSize]
+  );
+
+  const visibleUserRowIds = useMemo(
+    () =>
+      pagedUsers.items
+        .map((user) => user?.id || user?.user_id)
+        .filter((value) => value !== null && value !== undefined && value !== ''),
+    [pagedUsers.items]
+  );
+
+  const allVisibleUsersSelected =
+    visibleUserRowIds.length > 0 &&
+    visibleUserRowIds.every((rowId) => selectedRows.has(rowId));
+
+  useEffect(() => {
+    setUserListPage(0);
+  }, [query, filterStatus]);
+
+  useEffect(() => {
+    if (userListPage !== pagedUsers.page) {
+      setUserListPage(pagedUsers.page);
+    }
+  }, [pagedUsers.page, userListPage]);
+
   const activeCount = useMemo(() => users.filter((u) => Number(u?.active) === 1).length, [users]);
   const inactiveCount = Math.max(0, users.length - activeCount);
   const verifiedCount = useMemo(() => users.filter((u) => Number(u?.verify) === 1).length, [users]);
@@ -574,6 +647,36 @@ function UserDirectoryPage({ token, allowedActions }) {
     setMessage({ type: 'success', text: msg });
     loadUsers();
     setShowCreateModal(false);
+  };
+
+  const handleBulkDelete = async () => {
+    if (!canUserDelete) {
+      setMessage({ type: 'error', text: 'You do not have permission to delete users.' });
+      return;
+    }
+    if (!selectedRows.size) return;
+
+    const ids = Array.from(selectedRows);
+    setIsDeleting(true);
+    setMessage({ type: 'info', text: '' });
+    try {
+      await deleteUsersBulk(token, ids);
+      setSelectedRows(new Set());
+      setShowBulkDeleteConfirm(false);
+      if (viewUser?.id && ids.includes(viewUser.id)) {
+        setViewUser(null);
+      }
+      await loadUsers();
+      setMessage({ type: 'success', text: `${ids.length} user(s) deleted successfully.` });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to delete users.' });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const toggleColumn = (key) => {
+    setColumnVisibility((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
   const renderViewPanel = () => {
@@ -669,19 +772,86 @@ function UserDirectoryPage({ token, allowedActions }) {
           <div className="panel-split">
             <div className="category-list-head-left">
               <div className="gsc-datatable-toolbar-left">
-                <button type="button" className="gsc-toolbar-btn" title="Filter">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M4 6h16M4 12h10M4 18h6" />
-                  </svg>
-                  Filter
-                </button>
-                <button type="button" className="gsc-toolbar-btn" title="Columns">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="3" y="3" width="7" height="18" rx="1" />
-                    <rect x="14" y="3" width="7" height="18" rx="1" />
-                  </svg>
-                  Columns
-                </button>
+                <div className="bdt-toolbar-wrap">
+                  <button
+                    type="button"
+                    className={`gsc-toolbar-btn ${showFilterPanel ? 'active' : ''}`}
+                    title="Filter"
+                    onClick={() => { setShowFilterPanel((value) => !value); setShowColumnPicker(false); }}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M4 6h16M4 12h10M4 18h6" />
+                    </svg>
+                    Filter{filterStatus ? ' •' : ''}
+                  </button>
+                  {showFilterPanel && (
+                    <div className="bdt-dropdown-panel">
+                      <p className="bdt-dropdown-label">User Status</p>
+                      {[
+                        { value: '', label: 'All Users' },
+                        { value: 'active', label: 'Active' },
+                        { value: 'inactive', label: 'Inactive' },
+                        { value: 'verified', label: 'Verified' },
+                        { value: 'pending', label: 'Pending Verification' },
+                      ].map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          className={`bdt-dropdown-option ${filterStatus === option.value ? 'selected' : ''}`}
+                          onClick={() => { setFilterStatus(option.value); setShowFilterPanel(false); }}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                      {filterStatus ? (
+                        <button
+                          type="button"
+                          className="bdt-dropdown-option danger"
+                          onClick={() => { setFilterStatus(''); setShowFilterPanel(false); }}
+                        >
+                          Clear Filter
+                        </button>
+                      ) : null}
+                    </div>
+                  )}
+                </div>
+                <div className="bdt-toolbar-wrap">
+                  <button
+                    type="button"
+                    className={`gsc-toolbar-btn ${showColumnPicker ? 'active' : ''}`}
+                    title="Columns"
+                    onClick={() => { setShowColumnPicker((value) => !value); setShowFilterPanel(false); }}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="3" y="3" width="7" height="18" rx="1" />
+                      <rect x="14" y="3" width="7" height="18" rx="1" />
+                    </svg>
+                    Columns
+                  </button>
+                  {showColumnPicker && (
+                    <div className="bdt-dropdown-panel bdt-column-picker">
+                      <p className="bdt-dropdown-label">Visible Columns</p>
+                      {[
+                        { key: 'srNo', label: 'Sr No' },
+                        { key: 'user', label: 'User' },
+                        { key: 'type', label: 'Type' },
+                        { key: 'phone', label: 'Phone' },
+                        { key: 'verification', label: 'Verification' },
+                        { key: 'status', label: 'Status' },
+                        { key: 'joined', label: 'Joined' },
+                      ].map((column) => (
+                        <label key={column.key} className="bdt-column-toggle">
+                          <input
+                            type="checkbox"
+                            checked={columnVisibility[column.key]}
+                            onChange={() => toggleColumn(column.key)}
+                          />
+                          {column.label}
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
             <div className="gsc-datatable-toolbar-right">
@@ -716,8 +886,53 @@ function UserDirectoryPage({ token, allowedActions }) {
             </div>
           </div>
 
-          {filteredUsers.length === 0 ? (
-            <p className="empty-state">No users found.</p>
+          {selectedRows.size > 0 && canUserDelete ? (
+            <div className="bdt-bulk-bar">
+              <div className="bdt-bulk-info">
+                <span className="bdt-bulk-count">{selectedRows.size}</span>
+                <span className="bdt-bulk-label">user(s) selected</span>
+              </div>
+              <div className="bdt-bulk-actions">
+                <button
+                  type="button"
+                  className="bdt-bulk-btn delete"
+                  onClick={() => setShowBulkDeleteConfirm(true)}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  </svg>
+                  Delete Selected
+                </button>
+                <button
+                  type="button"
+                  className="bdt-bulk-btn ghost"
+                  onClick={() => setSelectedRows(new Set())}
+                >
+                  Clear Selection
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          {showBulkDeleteConfirm ? (
+            <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
+              <div className="admin-modal confirm-modal">
+                <h3 className="panel-subheading">Delete {selectedRows.size} User(s)?</h3>
+                <p className="panel-subtitle">Are you sure you want to delete the selected user accounts? This will remove them from the active listings.</p>
+                <div className="form-actions" style={{ marginTop: 20 }}>
+                  <button type="button" className="ghost-btn" onClick={() => setShowBulkDeleteConfirm(false)} disabled={isDeleting}>
+                    Cancel
+                  </button>
+                  <button type="button" className="primary-btn danger" onClick={handleBulkDelete} disabled={isDeleting}>
+                    {isDeleting ? 'Deleting...' : 'Confirm Delete'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {statusFilteredUsers.length === 0 ? (
+            <p className="empty-state">{isLoading ? 'Loading...' : 'No users found.'}</p>
           ) : (
             <div className="table-shell business-table-shell">
               <table className="admin-table users-table business-datatable">
@@ -727,28 +942,37 @@ function UserDirectoryPage({ token, allowedActions }) {
                       <input
                         type="checkbox"
                         className="select-checkbox"
-                        checked={selectedRows.size === filteredUsers.length && filteredUsers.length > 0}
+                        checked={allVisibleUsersSelected}
                         onChange={(event) => {
+                          const pageRowIds = visibleUserRowIds;
                           if (event.target.checked) {
-                            setSelectedRows(new Set(filteredUsers.map((u) => u?.id || u?.user_id)));
+                            setSelectedRows((prev) => {
+                              const next = new Set(prev);
+                              pageRowIds.forEach((rowId) => next.add(rowId));
+                              return next;
+                            });
                           } else {
-                            setSelectedRows(new Set());
+                            setSelectedRows((prev) => {
+                              const next = new Set(prev);
+                              pageRowIds.forEach((rowId) => next.delete(rowId));
+                              return next;
+                            });
                           }
                         }}
                       />
                     </th>
-                    <th>Sr. No.</th>
-                    <th>User</th>
-                    <th>Type</th>
-                    <th>Phone</th>
-                    <th>Verification</th>
-                    <th>Status</th>
-                    <th>Joined</th>
+                    {columnVisibility.srNo && <th>Sr. No.</th>}
+                    {columnVisibility.user && <th>User</th>}
+                    {columnVisibility.type && <th>Type</th>}
+                    {columnVisibility.phone && <th>Phone</th>}
+                    {columnVisibility.verification && <th>Verification</th>}
+                    {columnVisibility.status && <th>Status</th>}
+                    {columnVisibility.joined && <th>Joined</th>}
                     <th className="table-actions">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredUsers.map((user, index) => {
+                  {pagedUsers.items.map((user, index) => {
                     const verificationMeta = resolveVerification(user);
                     const isActive = Number(user?.active) === 1;
                     const rowId = user?.id || user?.user_id;
@@ -781,33 +1005,41 @@ function UserDirectoryPage({ token, allowedActions }) {
                             }}
                           />
                         </td>
-                        <td>{index + 1}</td>
-                        <td>
-                          <div className="user-cell">
-                            <div>
-                              <span
-                                className="bdt-name-link"
-                                style={{ color: 'var(--gsc-primary, #6345ED)', fontWeight: 600, cursor: 'pointer' }}
-                              >
-                                {getUserName(user)}
-                              </span>
-                              <p className="user-email">{getUserEmail(user)}</p>
+                        {columnVisibility.srNo && <td>{pagedUsers.start + index + 1}</td>}
+                        {columnVisibility.user && (
+                          <td>
+                            <div className="user-cell">
+                              <div>
+                                <span
+                                  className="bdt-name-link"
+                                  style={{ color: 'var(--gsc-primary, #6345ED)', fontWeight: 600, cursor: 'pointer' }}
+                                >
+                                  {getUserName(user)}
+                                </span>
+                                <p className="user-email">{getUserEmail(user)}</p>
+                              </div>
                             </div>
-                          </div>
-                        </td>
-                        <td>
-                          <span className={`type-pill ${normalize(getUserType(user))}`}>{getUserType(user)}</span>
-                        </td>
-                        <td>{user?.number || user?.mobile || user?.phone || '-'}</td>
-                        <td>
-                          <span className={`verify-pill ${verificationMeta.className}`}>{verificationMeta.label}</span>
-                        </td>
-                        <td>
-                          <span className={`status-pill ${isActive ? 'approved' : 'rejected'}`}>
-                            {isActive ? 'Active' : 'Inactive'}
-                          </span>
-                        </td>
-                        <td>{formatDate(user?.created_at || user?.createdAt || user?.joined_at)}</td>
+                          </td>
+                        )}
+                        {columnVisibility.type && (
+                          <td>
+                            <span className={`type-pill ${normalize(getUserType(user))}`}>{getUserType(user)}</span>
+                          </td>
+                        )}
+                        {columnVisibility.phone && <td>{user?.number || user?.mobile || user?.phone || '-'}</td>}
+                        {columnVisibility.verification && (
+                          <td>
+                            <span className={`verify-pill ${verificationMeta.className}`}>{verificationMeta.label}</span>
+                          </td>
+                        )}
+                        {columnVisibility.status && (
+                          <td>
+                            <span className={`status-pill ${isActive ? 'approved' : 'rejected'}`}>
+                              {isActive ? 'Active' : 'Inactive'}
+                            </span>
+                          </td>
+                        )}
+                        {columnVisibility.joined && <td>{formatDate(user?.created_at || user?.createdAt || user?.joined_at)}</td>}
                         <td className="table-actions">
                           <div className="table-action-group">
                             {canUserUpdate ? (
@@ -834,6 +1066,51 @@ function UserDirectoryPage({ token, allowedActions }) {
                   })}
                 </tbody>
               </table>
+              <div className="bv-table-footer">
+                <div className="table-record-count">
+                  <span>
+                    Showing {pagedUsers.totalItems ? pagedUsers.start + 1 : 0}-{pagedUsers.end} of {statusFilteredUsers.length} users
+                  </span>
+                  {query || filterStatus ? <span className="bdt-no-more">Filtered from {users.length} total</span> : null}
+                </div>
+                <div className="product-pagination-controls">
+                  <label className="product-pagination-size">
+                    <span>Rows</span>
+                    <select
+                      value={userListPageSize}
+                      onChange={(event) => {
+                        setUserListPageSize(Number(event.target.value) || USER_LIST_PAGE_SIZE_OPTIONS[0]);
+                        setUserListPage(0);
+                      }}
+                    >
+                      {USER_LIST_PAGE_SIZE_OPTIONS.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <div className="bv-table-pagination">
+                    <button
+                      type="button"
+                      className="secondary-btn"
+                      disabled={pagedUsers.page === 0 || isLoading}
+                      onClick={() => setUserListPage((prev) => Math.max(prev - 1, 0))}
+                    >
+                      {'< Prev'}
+                    </button>
+                    <span>Page {pagedUsers.page + 1} / {pagedUsers.totalPages}</span>
+                    <button
+                      type="button"
+                      className="secondary-btn"
+                      disabled={pagedUsers.page >= pagedUsers.totalPages - 1 || isLoading}
+                      onClick={() => setUserListPage((prev) => Math.min(prev + 1, Math.max(pagedUsers.totalPages - 1, 0)))}
+                    >
+                      {'Next >'}
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>

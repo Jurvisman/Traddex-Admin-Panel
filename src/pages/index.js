@@ -26,6 +26,7 @@ export { default as SubscriptionPlanCreatePage } from './SubscriptionPlanCreateP
 export { default as SubscriptionPlanViewPage } from './SubscriptionPlanViewPage';
 export { default as SubscriptionAssignPage } from './SubscriptionAssignPage';
 export { default as AddonPricingPage } from './AddonPricingPage';
+export { default as SubscriptionCouponPage } from './SubscriptionCouponPage';
 export { default as EmployeePage } from './EmployeePage';
 export { default as RolePermissionPage } from './RolePermissionPage';
 export { default as AppConfigPage } from './AppConfigPage';
@@ -47,3 +48,7 @@ export { default as KycAssistancePage } from './KycAssistancePage';
 export { default as ServicePage } from './ServicePage';
 export { default as ServiceCreatePage } from './ServiceCreatePage';
 export { default as StorefrontManagementPage } from './StorefrontManagementPage';
+export { default as StorefrontTemplatesPage } from './StorefrontTemplatesPage';
+export { default as StorefrontWebsiteRequestsPage } from './StorefrontWebsiteRequestsPage';
+export { default as WaitlistLeadsPage } from './WaitlistLeadsPage';
+export { default as WebsiteCmsPage } from './WebsiteCmsPage';

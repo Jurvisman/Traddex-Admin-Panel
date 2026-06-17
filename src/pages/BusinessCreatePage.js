@@ -740,7 +740,7 @@ function BusinessCreatePage({ token }) {
       <div className="bc-page-header">
         <div className="bc-header-left">
           <button type="button" className="bv-back-link" onClick={() => navigate('/admin/businesses')}>
-            ← All Businesses
+            &lt;- Back
           </button>
         </div>
         <div className="bc-header-actions">
@@ -1158,7 +1158,7 @@ function BusinessCreatePage({ token }) {
           <div className="bc-tab-footer">
             {activeTabIndex > 0
               ? <button type="button" className="ghost-btn" onClick={handleBackClick}>
-                ← Back</button>
+                &lt;- Back</button>
               : <div />}
             {!isLastTab
               ? <button key="footer-next" type="button" className="primary-btn"

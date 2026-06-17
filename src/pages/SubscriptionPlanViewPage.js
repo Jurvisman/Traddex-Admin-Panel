@@ -70,10 +70,6 @@ function SubscriptionPlanViewPage({ token }) {
       .finally(() => setIsLoading(false));
   }, [numericId, token]);
 
-  const handleBack = () => {
-    navigate('/admin/subscription/plans');
-  };
-
   const handleEditPlan = () => {
     if (!selectedPlan?.id) return;
     navigate(`/admin/subscription/plans/${selectedPlan.id}/edit`);
@@ -196,12 +192,61 @@ function SubscriptionPlanViewPage({ token }) {
                   </div>
                 </div>
               </div>
+              {selectedPlan.promo_price !== undefined && selectedPlan.promo_price !== null && (
+                <div className="user-view-card">
+                  <p className="user-view-label">Offer price</p>
+                  <p className="user-view-value">₹ {selectedPlan.promo_price}</p>
+                </div>
+              )}
+              <div className="user-view-card">
+                <p className="user-view-label">Launch offer</p>
+                <p className="user-view-value">
+                  {selectedPlan.offer_active === true || Number(selectedPlan.offer_active) === 1
+                    ? 'Active'
+                    : 'Inactive'}
+                </p>
+              </div>
+              {selectedPlan.offer_duration_months ? (
+                <div className="user-view-card">
+                  <p className="user-view-label">Offer duration</p>
+                  <p className="user-view-value">{selectedPlan.offer_duration_months} month(s)</p>
+                </div>
+              ) : null}
+              {selectedPlan.promo_label && (
+                <div className="user-view-card">
+                  <p className="user-view-label">Promo Label / Badge</p>
+                  <p className="user-view-value">{selectedPlan.promo_label}</p>
+                </div>
+              )}
+              {selectedPlan.cta_label && (
+                <div className="user-view-card">
+                  <p className="user-view-label">CTA Label</p>
+                  <p className="user-view-value">{selectedPlan.cta_label}</p>
+                </div>
+              )}
+              {selectedPlan.best_for && (
+                <div className="user-view-card">
+                  <p className="user-view-label">Best For</p>
+                  <p className="user-view-value">{selectedPlan.best_for}</p>
+                </div>
+              )}
+              <div className="user-view-card">
+                <p className="user-view-label">Popular status</p>
+                <p className="user-view-value">{selectedPlan.popular === 1 ? 'Yes (Highlighted)' : 'No'}</p>
+              </div>
             </div>
 
             {selectedPlan.description ? (
               <div className="detail-section">
                 <p className="detail-section-title">Description</p>
                 <p className="user-view-value">{selectedPlan.description}</p>
+              </div>
+            ) : null}
+
+            {selectedPlan.offer_terms ? (
+              <div className="detail-section">
+                <p className="detail-section-title">Launch offer terms</p>
+                <p className="user-view-value">{selectedPlan.offer_terms}</p>
               </div>
             ) : null}
 
@@ -259,4 +304,3 @@ function SubscriptionPlanViewPage({ token }) {
 }
 
 export default SubscriptionPlanViewPage;
-

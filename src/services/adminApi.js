@@ -1,4 +1,6 @@
-const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:8080';
+import { API_ORIGIN } from '../config/runtime';
+
+const API_BASE = API_ORIGIN;
 const buildUrl = (path) => `${API_BASE}/api${path}`;
 
 const parseError = async (response) => {
@@ -21,6 +23,7 @@ const parseError = async (response) => {
 const request = async (path, { method = 'GET', body, token } = {}) => {
   const headers = {
     'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': 'true',
   };
   if (token) {
     headers.Authorization = `Bearer ${token}`;
@@ -102,6 +105,9 @@ export const updateIndustry = (token, id, payload) =>
   request(`/industries/${id}`, { method: 'PUT', body: payload, token });
 export const updateIndustryOrder = (token, id, position) =>
   request(`/industries/${id}/order`, { method: 'POST', body: { position }, token });
+export const getIndustryDeleteImpact = (token, id) => request(`/industries/${id}/delete-impact`, { token });
+export const reassignIndustry = (token, id, targetId) =>
+  request(`/industries/${id}/reassign`, { method: 'POST', body: { targetId }, token });
 export const deleteIndustry = (token, id) => request(`/industries/${id}`, { method: 'DELETE', token });
 
 export const listMainCategories = (token) => request('/main-categories', { token });
@@ -112,6 +118,9 @@ export const updateMainCategory = (token, id, payload) =>
   request(`/main-categories/${id}`, { method: 'PUT', body: payload, token });
 export const updateMainCategoryOrder = (token, id, position, industryId) =>
   request(`/main-categories/${id}/order`, { method: 'POST', body: { position, industryId }, token });
+export const getMainCategoryDeleteImpact = (token, id) => request(`/main-categories/${id}/delete-impact`, { token });
+export const reassignMainCategory = (token, id, targetId) =>
+  request(`/main-categories/${id}/reassign`, { method: 'POST', body: { targetId }, token });
 export const deleteMainCategory = (token, id) => request(`/main-categories/${id}`, { method: 'DELETE', token });
 
 export const listCategories = (token, mainCategoryId) => {
@@ -124,6 +133,9 @@ export const updateCategory = (token, id, payload) =>
   request(`/categories/${id}`, { method: 'PUT', body: payload, token });
 export const updateCategoryOrder = (token, id, position, mainCategoryId) =>
   request(`/categories/${id}/order`, { method: 'POST', body: { position, mainCategoryId }, token });
+export const getCategoryDeleteImpact = (token, id) => request(`/categories/${id}/delete-impact`, { token });
+export const reassignCategory = (token, id, targetId) =>
+  request(`/categories/${id}/reassign`, { method: 'POST', body: { targetId }, token });
 export const deleteCategory = (token, id) => request(`/categories/${id}`, { method: 'DELETE', token });
 
 export const listProductCollections = (token, active) => {
@@ -148,11 +160,16 @@ export const updateSubCategory = (token, id, payload) =>
   request(`/sub-categories/${id}`, { method: 'PUT', body: payload, token });
 export const updateSubCategoryOrder = (token, id, position, categoryId) =>
   request(`/sub-categories/${id}/order`, { method: 'POST', body: { position, categoryId }, token });
+export const getSubCategoryDeleteImpact = (token, id) => request(`/sub-categories/${id}/delete-impact`, { token });
+export const reassignSubCategory = (token, id, targetId) =>
+  request(`/sub-categories/${id}/reassign`, { method: 'POST', body: { targetId }, token });
 export const deleteSubCategory = (token, id) => request(`/sub-categories/${id}`, { method: 'DELETE', token });
 
 export const listProducts = (token, filters = {}) => {
   const params = new URLSearchParams();
   if (filters.status) params.set('status', filters.status);
+  if (filters.source) params.set('source', filters.source);
+  if (filters.appListingStatus) params.set('appListingStatus', filters.appListingStatus);
   if (filters.query) params.set('query', filters.query);
   if (filters.category) params.set('category', filters.category);
   if (filters.business) params.set('business', filters.business);
@@ -179,6 +196,8 @@ export const updateProductVariantStatus = (token, productId, variantId, payload)
   request(`/admin/product/${productId}/variants/${variantId}/status`, { method: 'PUT', body: payload, token });
 export const reviewProductBrand = (token, productId, payload) =>
   request(`/admin/product/${productId}/brand/review`, { method: 'PUT', body: payload, token });
+export const reviewProductAppListing = (token, productId, payload) =>
+  request(`/admin/product/${productId}/app-listing-review`, { method: 'PUT', body: payload, token });
 
 // --- Admin Service APIs ---
 
@@ -430,8 +449,39 @@ export const listSubscriptionAssignments = (token, filters = {}) => {
   return request(`/admin/subscription/list${query}`, { token });
 };
 
+export const activateBusinessSubscription = (token, subscriptionId, payload = {}) =>
+  request(`/admin/subscription/${subscriptionId}/activate`, { method: 'POST', body: payload, token });
+
 export const getBusinessFeatureUsage = (token, userId) =>
   request(`/admin/subscription/feature-usage?user_id=${userId}`, { token });
+
+// Subscription coupon management
+export const listSubscriptionCoupons = (token) =>
+  request('/admin/subscription/coupons', { token });
+export const getSubscriptionCoupon = (token, id) =>
+  request(`/admin/subscription/coupons/${id}`, { token });
+export const createSubscriptionCoupon = (token, payload) =>
+  request('/admin/subscription/coupons', { method: 'POST', body: payload, token });
+export const updateSubscriptionCoupon = (token, id, payload) =>
+  request(`/admin/subscription/coupons/${id}`, { method: 'PUT', body: payload, token });
+export const updateSubscriptionCouponStatus = (token, id, active) =>
+  request(`/admin/subscription/coupons/${id}/status`, { method: 'PATCH', body: { active }, token });
+export const deleteSubscriptionCoupon = (token, id) =>
+  request(`/admin/subscription/coupons/${id}`, { method: 'DELETE', token });
+export const listSubscriptionCouponRedemptions = (token, couponId, filters = {}) => {
+  const params = new URLSearchParams();
+  if (filters.status) params.set('status', filters.status);
+  if (filters.planId) params.set('planId', filters.planId);
+  if (filters.mobile) params.set('mobile', filters.mobile);
+  if (filters.query) params.set('query', filters.query);
+  const query = params.toString() ? `?${params.toString()}` : '';
+  return request(
+    couponId
+      ? `/admin/subscription/coupons/${couponId}/redemptions${query}`
+      : `/admin/subscription/coupon-redemptions${query}`,
+    { token },
+  );
+};
 
 // Addon pricing management
 export const upsertAddonPricing = (token, payload) =>
@@ -545,3 +595,39 @@ export const updateKycAssistanceStatus = (token, id, status, adminNote = null) =
 
 export const assignKycAssistanceRequest = (token, id, adminId) =>
   request(`/admin/support/kyc-assistance/${id}/assign`, { method: 'PATCH', body: { adminId }, token });
+
+export const fetchWaitlistLeads = (token) =>
+  request('/admin/support/waitlist', { token });
+
+export const updateWaitlistLeadStatus = (token, id, status) =>
+  request(`/admin/support/waitlist/${id}/status`, { method: 'PATCH', body: { status }, token });
+
+export const updateWaitlistLeadNotes = (token, id, notes) =>
+  request(`/admin/support/waitlist/${id}/notes`, { method: 'PATCH', body: { notes }, token });
+
+export const fetchWaitlistConfig = (token) =>
+  request('/admin/support/waitlist/config', { token });
+
+export const updateWaitlistConfigLimit = (token, limit) =>
+  request('/admin/support/waitlist/config', { method: 'PUT', body: { limit }, token });
+
+export const fetchWebsiteCmsPages = (token) =>
+  request('/admin/website-cms/pages', { token });
+
+export const fetchWebsiteCmsPage = (token, slug) =>
+  request(`/admin/website-cms/pages/${encodeURIComponent(slug)}`, { token });
+
+export const updateWebsiteCmsPage = (token, slug, payload) =>
+  request(`/admin/website-cms/pages/${encodeURIComponent(slug)}`, { method: 'PUT', body: payload, token });
+
+export const publishWebsiteCmsPage = (token, slug) =>
+  request(`/admin/website-cms/pages/${encodeURIComponent(slug)}/publish`, { method: 'POST', token });
+
+export const fetchWebsiteSocialLinks = (token) =>
+  request('/admin/website-cms/social-links', { token });
+
+export const saveWebsiteSocialLink = (token, payload) =>
+  request('/admin/website-cms/social-links', { method: 'POST', body: payload, token });
+
+export const deleteWebsiteSocialLink = (token, id) =>
+  request(`/admin/website-cms/social-links/${id}`, { method: 'DELETE', token });

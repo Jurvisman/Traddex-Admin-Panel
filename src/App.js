@@ -30,6 +30,7 @@ import {
   SubscriptionPlanPage,
   SubscriptionPlanCreatePage,
   SubscriptionPlanViewPage,
+  SubscriptionCouponPage,
   AdminUsersPage,
   UserDirectoryPage,
   EmployeePage,
@@ -50,6 +51,10 @@ import {
   ServicePage,
   ServiceCreatePage,
   StorefrontManagementPage,
+  StorefrontTemplatesPage,
+  StorefrontWebsiteRequestsPage,
+  WaitlistLeadsPage,
+  WebsiteCmsPage,
 } from './pages';
 import { fetchMyPermissions } from './services/adminApi';
 import { PermissionsContext } from './shared/permissions';
@@ -264,147 +269,130 @@ const ADMIN_META = [
   {
     matchPrefix: '/admin/businesses',
     title: 'Business',
-    // subtitle: 'Review business profiles, KYC tabs, and account status.',
   },
   {
-    match: '/admin/storefront',
-    title: 'Storefronts',
-    subtitle: 'Approve and publish merchant websites to live domains.',
+    matchPrefix: '/admin/storefront',
+    title: 'Storefront',
   },
   {
     matchPrefix: '/admin/users',
     title: 'Users',
-    subtitle: 'View non-business accounts and control active status.',
   },
   {
     match: '/admin/employees',
     title: 'Employee',
-    subtitle: 'Create internal admin employees and assign roles.',
   },
   {
     match: '/admin/catalog-manager',
     title: 'Product Masters',
-    subtitle: 'Manage the category hierarchy and the fields products should capture.',
   },
   {
     match: '/admin/catalog-manager/industries',
     title: 'Industry',
-    // subtitle: 'Create and maintain industry groups.',
   },
   {
     match: '/admin/catalog-manager/main-categories',
     title: 'Main Category',
-    // subtitle: 'Organize main categories under industries.',
   },
   {
     match: '/admin/catalog-manager/categories',
     title: 'Category',
-    subtitle: '',
   },
   {
     match: '/admin/catalog-manager/brands',
     title: 'Brand Master',
-    subtitle: 'Create, approve, and maintain canonical product brands.',
   },
   {
     match: '/admin/catalog-manager/collections',
     title: 'Collections',
-    // subtitle: 'Create curated or feed-based collection landing pages for app deep links.',
   },
   {
     match: '/admin/catalog-manager/sub-categories',
     title: 'Sub Category',
-    // subtitle: 'Attach sub-categories to categories.',
   },
   {
     match: '/admin/product-attribute',
     title: 'Reusable Fields',
-    subtitle: 'Advanced reusable field library for categories that share the same product fields.',
   },
   {
     matchPrefix: '/admin/products',
     title: 'Products',
-    subtitle: 'Create and manage products submitted by businesses.',
   },
   {
     matchPrefix: '/admin/services',
     title: 'Services',
-    subtitle: 'Review and moderate service listings submitted by businesses.',
   },
   {
     match: '/admin/inquiry/config',
     title: 'Inquiry Config',
-    subtitle: 'Tune premium vs normal distribution ratios.',
   },
   {
     match: '/admin/inquiry/report',
-    title: 'Inquiry Report',
-    subtitle: 'Monitor inquiry volume, assignments, and refunds.',
+    title: 'Inquiry Report'
   },
   {
     match: '/admin/subscription/features',
     title: 'Master',
-    // subtitle: 'Manage the feature master that powers subscription access.',
   },
   {
     match: '/admin/subscription/overview',
     title: 'Revenue Model',
-    // subtitle: 'Review subscription revenue performance and subscriber activity.',
   },
   {
     match: '/admin/subscription/plans',
     title: 'Subscription',
-   // subtitle: 'Create plans with pricing, durations, and feature limits.',
   },
   {
     match: '/admin/subscription/addon-pricing',
     title: 'Addon Pricing',
-    subtitle: 'Set per-unit addon pricing for features.',
+  },
+  {
+    match: '/admin/subscription/coupons',
+    title: 'Coupons',
   },
   {
     match: '/admin/subscription/assignments',
     title: 'Assign Subscriptions',
-    subtitle: 'Grant plans to users and review assignments.',
   },
   {
     match: '/admin/settings/roles',
     title: 'Role Permission',
-   // subtitle: 'Manage roles and map CRUD permissions by menu/submenu.',
   },
   {
     match: '/admin/app-config',
     title: 'CMS',
-    subtitle: 'Edit and publish dynamic app content and layout configuration.',
+  },
+  {
+    match: '/admin/website-cms',
+    title: 'Website CMS',
   },
   {
     match: '/admin/timezones',
     title: 'Timezone',
-    subtitle: 'Import IANA zone1970.tab to refresh timezone lookups.',
   },
   {
     match: '/admin/orders/disputes',
     title: 'Order Disputes',
-    subtitle: 'Review disputes and close them with clear resolutions.',
   },
   {
     match: '/admin/orders/returns',
     title: 'Order Returns',
-    subtitle: 'Override return requests and lock final outcomes.',
   },
   {
     match: '/admin/orders/reviews',
     title: 'Review Moderation',
-    subtitle: 'Moderate reported buyer reviews across products and businesses.',
   },
   {
     match: '/admin/support',
     title: 'Support',
-    subtitle: 'Customer tickets, inquiries, and complaint management.',
+  },
+  {
+    match: '/admin/support/waitlist',
+    title: 'Waitlist Leads',
   },
   {
     match: '/admin/revenue/subscription',
     title: 'Subscription Revenue',
-    subtitle: 'Breakdown of subscription payments and analytics.',
   },
   {
     match: '/admin/revenue/advertisement',
@@ -617,7 +605,17 @@ function AppRoutes() {
           { path: '/admin/businesses', label: 'Business', icon: ICONS.business, tone: NAV_TONES.business },
           { path: '/admin/products', label: 'Product', icon: ICONS.products, tone: NAV_TONES.products },
           { path: '/admin/services', label: 'Service', icon: ICONS.services, tone: NAV_TONES.services },
-          { path: '/admin/storefront', label: 'Storefront', icon: ICONS.dashboard, tone: NAV_TONES.dashboard },
+          {
+            key: 'storefront-root',
+            label: 'Storefront',
+            icon: ICONS.dashboard,
+            tone: NAV_TONES.dashboard,
+            children: [
+              { path: '/admin/storefront', label: 'Domains & Live Sites', icon: ICONS.dashboard, tone: NAV_TONES.dashboard, exact: true },
+              { path: '/admin/storefront/website-requests', label: 'Website Requests', icon: ICONS.dashboard, tone: NAV_TONES.dashboard },
+              { path: '/admin/storefront/templates', label: 'Builder Templates', icon: ICONS.dashboard, tone: NAV_TONES.dashboard },
+            ],
+          },
           {
             key: 'product-masters-root',
             label: 'Product Masters',
@@ -653,6 +651,7 @@ function AppRoutes() {
               { path: '/admin/subscription/features', label: 'Features', icon: ICONS.subFeatures, tone: NAV_TONES.subFeatures },
               { path: '/admin/subscription/plans', label: 'Plan', icon: ICONS.subPlans, tone: NAV_TONES.subPlans },
               { path: '/admin/subscription/addon-pricing', label: 'Addon Pricing', icon: ICONS.subPlans, tone: NAV_TONES.subAssignments },
+              { path: '/admin/subscription/coupons', label: 'Coupons', icon: ICONS.subAssignments, tone: NAV_TONES.subAssignments },
             ],
           },
           {
@@ -688,6 +687,7 @@ function AppRoutes() {
             ],
           },
           { path: '/admin/app-config', label: 'CMS', icon: ICONS.appConfig, tone: NAV_TONES.appConfig },
+          { path: '/admin/website-cms', label: 'Website CMS', icon: ICONS.appConfig, tone: NAV_TONES.appConfig },
           {
             key: 'location-root',
             label: 'Location',
@@ -716,6 +716,7 @@ function AppRoutes() {
             children: [
               { path: '/admin/support', label: 'Tickets', icon: ICONS.support, tone: NAV_TONES.support },
               { path: '/admin/support/kyc-assistance', label: 'KYC Assistance', icon: ICONS.support, tone: NAV_TONES.support },
+              { path: '/admin/support/waitlist', label: 'Waitlist Leads', icon: ICONS.support, tone: NAV_TONES.support },
             ],
           },
         ],
@@ -756,7 +757,13 @@ function AppRoutes() {
     if (isPermissionLoading) return true;
     if (!path) return true;
     if (allowedPaths.size === 0) return false;
-    if (path === '/admin/storefront' || path.startsWith('/admin/storefront/')) return true;
+    if (
+      path === '/admin/storefront' ||
+      path.startsWith('/admin/storefront/') ||
+      path === '/admin/support/waitlist' ||
+      path.startsWith('/admin/support/waitlist')
+    )
+      return true;
     return hasPathAccess(allowedPaths, path);
   };
 
@@ -1298,18 +1305,9 @@ function AppRoutes() {
             </PermissionGate>
           }
         />
-        <Route
-          path="storefront"
-          element={
-            <PermissionGate
-              isLoading={isPermissionLoading}
-              isAllowed={canAccessPath('/admin/storefront')}
-              fallbackPath={routeFallbackPath}
-            >
-              <StorefrontManagementPage token={authToken} />
-            </PermissionGate>
-          }
-        />
+        <Route path="storefront" element={<PermissionGate isLoading={isPermissionLoading} isAllowed={canAccessPath('/admin/storefront')} fallbackPath={routeFallbackPath}><StorefrontManagementPage token={authToken} /></PermissionGate>} />
+        <Route path="storefront/website-requests" element={<PermissionGate isLoading={isPermissionLoading} isAllowed={canAccessPath('/admin/storefront/website-requests')} fallbackPath={routeFallbackPath}><StorefrontWebsiteRequestsPage token={authToken} /></PermissionGate>} />
+        <Route path="storefront/templates" element={<PermissionGate isLoading={isPermissionLoading} isAllowed={canAccessPath('/admin/storefront/templates')} fallbackPath={routeFallbackPath}><StorefrontTemplatesPage token={authToken} /></PermissionGate>} />
         <Route
           path="inquiry/config"
           element={
@@ -1455,6 +1453,21 @@ function AppRoutes() {
           }
         />
         <Route
+          path="subscription/coupons"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={
+                canAccessPath('/admin/subscription/coupons') &&
+                allowedActionCodes.has('ADMIN_SUBSCRIPTION_COUPON_READ')
+              }
+              fallbackPath={routeFallbackPath}
+            >
+              <SubscriptionCouponPage token={authToken} />
+            </PermissionGate>
+          }
+        />
+        <Route
           path="settings/roles"
           element={
             <PermissionGate
@@ -1505,6 +1518,21 @@ function AppRoutes() {
               fallbackPath={routeFallbackPath}
             >
               <AppConfigPage token={authToken} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="website-cms"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={
+                canAccessPath('/admin/website-cms') &&
+                allowedActionCodes.has('ADMIN_WEBSITE_CMS_READ')
+              }
+              fallbackPath={routeFallbackPath}
+            >
+              <WebsiteCmsPage token={authToken} />
             </PermissionGate>
           }
         />
@@ -1685,6 +1713,18 @@ function AppRoutes() {
               fallbackPath={routeFallbackPath}
             >
               <KycAssistancePage token={authToken} currentUser={authUserId} allowedActions={allowedActionCodes} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="support/waitlist"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={canAccessPath('/admin/support/waitlist')}
+              fallbackPath={routeFallbackPath}
+            >
+              <WaitlistLeadsPage token={authToken} />
             </PermissionGate>
           }
         />

@@ -2099,13 +2099,15 @@ function AppConfigPage({ token }) {
       let resolvedMainCategoryId = normalizeCollectionId(sectionForm.sourceMainCategoryId);
       let allCategories = [];
       if (resolvedBlockType === 'category_icon_grid') {
-        if (!industryId) {
+        if (!industryId && !resolvedMainCategoryId) {
           throw new Error('Select industry first.');
         }
-        const industryMainCategories = mainCategories.filter(
-          (item) => normalizeMatchValue(resolveMainCategoryIndustryId(item)) === normalizeMatchValue(industryId)
-        );
-        if (!industryMainCategories.length) {
+        const industryMainCategories = industryId
+          ? mainCategories.filter(
+              (item) => normalizeMatchValue(resolveMainCategoryIndustryId(item)) === normalizeMatchValue(industryId)
+            )
+          : [];
+        if (!industryMainCategories.length && !resolvedMainCategoryId) {
           throw new Error('No main categories found for selected industry.');
         }
         const isTopSellingMode = feedMode === 'TOP_SELLING';
@@ -3578,7 +3580,12 @@ function AppConfigPage({ token }) {
   const isHeaderSearch = headerBlockType === 'searchBar';
   const isHeaderPills = headerBlockType === 'horizontalPills';
   const isGenericHeaderBlock = !isHeaderSearch && !isHeaderPills;
-  const screenBlockLabel = resolveBlockLabel(screenBlockType, sectionForm.type || 'Block');
+  const screenBlockLabel =
+    screenBlockType === 'brand_logo_grid'
+      ? (sectionForm.stylePreset === 'automobile' || sectionForm.stylePreset === 'kids'
+        ? 'Brand Logo Carousel'
+        : 'Brand Bento Box')
+      : resolveBlockLabel(screenBlockType, sectionForm.type || 'Block');
   const headerBlockLabel = resolveBlockLabel(headerBlockType, headerSectionForm.type || 'Block');
   const blockCapabilities = useMemo(() => {
     if (activePanel !== 'screen') {
@@ -5329,47 +5336,7 @@ function AppConfigPage({ token }) {
                                 </select>
                               </label>
                             ) : null}
-                            {isPhaseOneCategoryIconGrid ? (
-                              <>
-                                <label className="field">
-                                  <span>Industry</span>
-                                  <select
-                                    value={sectionForm.sourceIndustryId || ''}
-                                    onChange={(event) => handleCategoryBlockIndustryChange(event.target.value)}
-                                  >
-                                    <option value="">Select industry</option>
-                                    {industries.map((item) => {
-                                      const id = resolveIndustryId(item);
-                                      if (!id) return null;
-                                      return (
-                                        <option key={id} value={id}>
-                                          {resolveIndustryLabel(item)}
-                                        </option>
-                                      );
-                                    })}
-                                  </select>
-                                </label>
-                                <label className="field">
-                                  <span>Category source</span>
-                                  <select
-                                    value={resolvedCategoryFeedMode}
-                                    onChange={(event) =>
-                                      setSectionForm((prev) => ({
-                                        ...prev,
-                                        sourceType: 'CATEGORY_FEED',
-                                        sourceFeedMode: event.target.value,
-                                      }))
-                                    }
-                                  >
-                                    {CATEGORY_ICON_FEED_MODE_OPTIONS.map((opt) => (
-                                      <option key={opt.value} value={opt.value}>
-                                        {opt.label}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </label>
-                              </>
-                            ) : null}
+                            {isPhaseOneCategoryIconGrid ? null : null}
                                 {isPhaseOneCategoryShowcase ? (
                                   <>
                                     <label className="field">

@@ -12,6 +12,7 @@ import {
   resolveMainCategoryIndustryId,
   resolveMainCategoryName,
   resolveCategoryMainCategoryId,
+  resolveMainCategoryId,
   normalizeColumnTopLineStyle,
   parseAspectRatioValue,
   ensureBentoTiles,
@@ -165,6 +166,40 @@ const getPreviewBentoTiles = (section, collections, mainCategories, productColle
   }
 
   return ensureBentoTiles(section?.tiles).slice(0, limit);
+};
+
+const getPreviewCategoryFeedItems = (section, collections, mainCategories, fallbackCount = 8) => {
+  const sourceType = String(section?.sourceType || '').trim().toUpperCase();
+  const sourceFeedMode = String(section?.sourceFeedMode || 'MAIN_CATEGORY').trim().toUpperCase();
+  
+  if (sourceType === 'CATEGORY_FEED' && sourceFeedMode === 'MAIN_CATEGORY') {
+    const mainCategoryId = normalizeCollectionId(section?.sourceMainCategoryId);
+    if (mainCategoryId) {
+      const subCategories = (Array.isArray(collections) ? collections : [])
+        .filter(
+          (item) =>
+            normalizeCollectionId(resolveCategoryMainCategoryId(item)) === mainCategoryId
+        )
+        .map((item) => ({
+          ...item,
+          title: item?.name || item?.title || '',
+          imageUrl: item?.categoryIcon || item?.imageUrl || '',
+        }));
+      if (subCategories.length > 0) {
+        const limit = Number(section?.sourceLimit) || fallbackCount;
+        return subCategories.slice(0, limit);
+      }
+    }
+  }
+  
+  // Fallback to manual items
+  if (Array.isArray(section?.items) && section.items.length > 0) {
+    return section.items;
+  }
+  return Array.from({ length: fallbackCount }).map((_, index) => ({
+    _placeholder: true,
+    title: `Category ${index + 1}`,
+  }));
 };
 
 export const SortableSectionRow = ({ id, className, children }) => {
@@ -505,7 +540,9 @@ export const PreviewSection = ({
               ? 4
               : 3;
   let items = getPreviewItems(section, fallbackCount);
-  if ((blockType === 'multiItemGrid' || blockType === 'categoryPreviewGrid') && collectionIds.length > 0) {
+  if (blockType === 'category_icon_grid' || blockType === 'category_showcase') {
+    items = getPreviewCategoryFeedItems(section, collections, mainCategories, fallbackCount);
+  } else if ((blockType === 'multiItemGrid' || blockType === 'categoryPreviewGrid') && collectionIds.length > 0) {
     items = collectionIds.map((value) => ({ title: value || 'Collection' }));
   }
   const renderCard = (item, itemIndex) => {
@@ -789,11 +826,19 @@ export const PreviewSection = ({
 
   if (blockType === 'category_icon_grid') {
     const normalizedIconGridPreset = String(stylePreset || '').trim().toLowerCase();
+    const fallbackTitle = section?.sourceMainCategoryId
+      ? resolveMainCategoryName(
+          (mainCategories || []).find(
+            (item) => resolveMainCategoryId(item) === normalizeCollectionId(section.sourceMainCategoryId)
+          )
+        )
+      : '';
+    const displayTitle = title || fallbackTitle || 'Categories';
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
-        {title ? (
+        {displayTitle ? (
           <div className="preview-title preview-title-with-action">
-            <span>{title}</span>
+            <span>{displayTitle}</span>
             {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
           </div>
         ) : null}
@@ -884,11 +929,19 @@ export const PreviewSection = ({
       );
     }
 
+    const fallbackTitle = section?.sourceMainCategoryId
+      ? resolveMainCategoryName(
+          (mainCategories || []).find(
+            (item) => resolveMainCategoryId(item) === normalizeCollectionId(section.sourceMainCategoryId)
+          )
+        )
+      : '';
+    const displayTitle = title || fallbackTitle || '';
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
-        {title ? (
+        {displayTitle ? (
           <div className={buildPreviewTitleClass({ themeKey: normalizedShowcasePreset, surface: true })}>
-            <span>{title}</span>
+            <span>{displayTitle}</span>
             {section?.actionText ? <span className="preview-action-link">{section.actionText}</span> : null}
           </div>
         ) : null}
@@ -1364,6 +1417,20 @@ export const PreviewSection = ({
   if (blockType === 'shop_card_carousel') {
     const normalizedPreset = resolvePreviewThemeKey(stylePreset);
     const themeClass = normalizedPreset ? `is-${normalizedPreset}` : '';
+
+    const preset = String(stylePreset || '').trim().toLowerCase();
+    const ACCENT_COLORS = {
+      default: '#4F46E5',
+      beauty: '#C96C8A',
+      grocery: '#2E6B1F',
+      fashion: '#4E3823',
+      electronics: '#2563EB',
+      automobile: '#2563EB',
+      food: '#FC8019',
+      sports: '#D4F000',
+    };
+    const accentColor = ACCENT_COLORS[preset] || ACCENT_COLORS.default;
+
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
         {title ? (
@@ -1373,23 +1440,31 @@ export const PreviewSection = ({
           </div>
         ) : null}
         <div className={`preview-shop-card-row ${themeClass}`}>
-          {items.map((item, itemIndex) => (
-            <div key={`preview-shop-card-${index}-${itemIndex}`} className={`preview-shop-card ${themeClass}`}>
-              <div className="preview-shop-card-image">
-                {getPreviewImage(item) ? <img src={getPreviewImage(item)} alt="" /> : <div className="preview-image-placeholder" />}
+          {items.map((item, itemIndex) => {
+            const reviewsCount = item?.reviewsCount || item?.reviewCount || ((item?.id ? String(item.id).charCodeAt(0) * 3 : 150) % 200 + 45);
+            return (
+              <div key={`preview-shop-card-${index}-${itemIndex}`} className={`preview-shop-card ${themeClass}`}>
+                <div className="preview-shop-card-image">
+                  {getPreviewImage(item) ? <img src={getPreviewImage(item)} alt="" /> : <div className="preview-image-placeholder" />}
+                </div>
+                <div className="preview-shop-card-title">{item?.title || `Place ${itemIndex + 1}`}</div>
+                <div className="preview-shop-card-meta-row">
+                  <div className="preview-shop-card-rating">
+                    <span className="preview-shop-card-star">★</span>
+                    <span className="preview-shop-card-rating-val">{item?.rating || '4.5'}</span>
+                    <span className="preview-shop-card-reviews">{`(${reviewsCount})`}</span>
+                  </div>
+                  <div className="preview-shop-card-distance">{item?.distance || '1.2 km'}</div>
+                </div>
+                <div 
+                  className="preview-shop-card-visit-btn"
+                  style={{ borderColor: accentColor, color: accentColor }}
+                >
+                  Visit Store
+                </div>
               </div>
-              <div className="preview-shop-card-title">{item?.title || `Place ${itemIndex + 1}`}</div>
-              {item?.subtitle ? <div className="preview-shop-card-subtitle">{item.subtitle}</div> : null}
-              <div className="preview-shop-card-meta">
-                <span>{item?.rating || '4.8'}</span>
-                <span>{item?.distance || '2.4 km'}</span>
-              </div>
-              <div className="preview-shop-card-actions">
-                <span className="preview-shop-card-pill">View</span>
-                <span className="preview-shop-card-pill">Call</span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     );
@@ -2122,45 +2197,85 @@ export const PreviewSection = ({
     );
   }
 
-  if (blockType === 'brand_logo_grid') {
+   if (blockType === 'brand_logo_grid') {
     const normalizedPreset = resolvePreviewThemeKey(stylePreset);
-    if (normalizedPreset === 'kids') {
+    if (normalizedPreset === 'kids' || normalizedPreset === 'automobile') {
+      const isKids = normalizedPreset === 'kids';
       return (
         <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
-          {title ? <div className={buildPreviewTitleClass({ themeKey: 'kids', surface: true })}><span>{title}</span></div> : null}
+          {title ? <div className={buildPreviewTitleClass({ themeKey: normalizedPreset, surface: true })}><span>{title}</span></div> : null}
           <div className="preview-kids-brand-row">
-            {items.map((item, itemIndex) => (
-              <div key={`preview-kids-brand-${index}-${itemIndex}`} className="preview-kids-brand-card">
-                <div className="preview-kids-brand-logo">
-                  {getPreviewImage(item) ? <img src={getPreviewImage(item)} alt="" /> : <div className="preview-image-placeholder" />}
+            {items.map((item, itemIndex) => {
+              const logoBg = item?.imageShellBg || (isKids ? 'rgba(253, 186, 116, 0.18)' : '#F3F4F6');
+              return (
+                <div key={`preview-kids-brand-${index}-${itemIndex}`} className="preview-kids-brand-card">
+                  <div className="preview-kids-brand-logo" style={{ backgroundColor: logoBg }}>
+                    {getPreviewImage(item) ? <img src={getPreviewImage(item)} alt="" /> : <div className="preview-image-placeholder" />}
+                  </div>
+                  <div className="preview-kids-brand-title">{getPreviewTitle(item)}</div>
+                  {item?.subtitle ? <div className="preview-kids-brand-subtitle">{item.subtitle}</div> : null}
                 </div>
-                <div className="preview-kids-brand-title">{getPreviewTitle(item)}</div>
-                {item?.subtitle ? <div className="preview-kids-brand-subtitle">{item.subtitle}</div> : null}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       );
     }
-    const hero = items.find((item) => item?.kind === 'hero') || items[0] || null;
-    const cta = items.find((item) => item?.kind === 'cta') || items[items.length - 1] || null;
+    const preset = String(stylePreset || '').trim().toLowerCase();
+    const isFashion = preset === 'fashion';
+    const FASHION_BRAND_COLORS = {
+      sectionBg: '#FDF5ED',
+      heroBg: '#F6E8D8',
+      tileBg: '#F6E8D8',
+      tileBorder: 'rgba(78,56,35,0.16)',
+      tileText: '#412B18',
+      ctaBg: '#4E3823',
+    };
+    const bentoSectionBg = section?.sectionBgColor || (isFashion ? FASHION_BRAND_COLORS.sectionBg : '#d7ecff');
+    const bentoTileBg = section?.cardBgColor || (isFashion ? FASHION_BRAND_COLORS.tileBg : '#c6e5ff');
+    const bentoCtaBg = section?.badgeBgColor || (isFashion ? FASHION_BRAND_COLORS.ctaBg : '#1f5fbf');
+    const bentoTextColor = section?.titleColor || (isFashion ? FASHION_BRAND_COLORS.tileText : '#122033');
+    const bentoTileBorder = isFashion ? FASHION_BRAND_COLORS.tileBorder : 'rgba(18,48,74,0.10)';
+
+    let hero = items.find((item) => item?.kind === 'hero');
+    let cta = items.find((item) => item?.kind === 'cta');
     let tiles = items.filter((item) => item?.kind !== 'hero' && item?.kind !== 'cta');
-    if (!tiles.length) {
-      tiles = items.slice(1, 5);
+
+    const hasExplicitKinds = hero || cta;
+
+    if (!hasExplicitKinds) {
+      if (items.length >= 3) {
+        hero = items[0];
+        cta = items[items.length - 1];
+        tiles = items.slice(1, items.length - 1);
+      } else if (items.length === 2) {
+        hero = items[0];
+        cta = null;
+        tiles = [items[1]];
+      } else if (items.length === 1) {
+        hero = items[0];
+        cta = null;
+        tiles = [];
+      }
     }
+
     return (
       <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
-        {title ? <div className="preview-title">{title}</div> : null}
-        <div className="preview-phase-one-brand-wrap">
+        {title ? <div className="preview-title" style={{ color: bentoTextColor }}>{title}</div> : null}
+        <div className="preview-phase-one-brand-wrap" style={{ backgroundColor: bentoSectionBg }}>
           {hero ? (
-            <div className="preview-phase-one-brand-hero">
+            <div className="preview-phase-one-brand-hero" style={{ backgroundColor: bentoTileBg }}>
               {getPreviewImage(hero) ? <img src={getPreviewImage(hero)} alt="" /> : <div className="preview-banner-placeholder" />}
             </div>
           ) : null}
           <div className="preview-phase-one-brand-grid">
             {tiles.slice(0, 4).map((item, itemIndex) => (
-              <div key={`preview-brand-grid-${index}-${itemIndex}`} className="preview-phase-one-brand-card">
-                <div className="preview-phase-one-brand-title">{getPreviewTitle(item)}</div>
+              <div 
+                key={`brand-grid-${index}-${itemIndex}`} 
+                className="preview-phase-one-brand-card" 
+                style={{ backgroundColor: bentoTileBg, borderColor: bentoTileBorder }}
+              >
+                <div className="preview-phase-one-brand-title" style={{ color: bentoTextColor }}>{getPreviewTitle(item)}</div>
                 <div className="preview-phase-one-brand-image">
                   {getPreviewImage(item) ? <img src={getPreviewImage(item)} alt="" /> : <div className="preview-image-placeholder" />}
                 </div>
@@ -2168,7 +2283,7 @@ export const PreviewSection = ({
             ))}
           </div>
           {cta ? (
-            <div className="preview-phase-one-brand-cta">
+            <div className="preview-phase-one-brand-cta" style={{ backgroundColor: bentoCtaBg }}>
               {getPreviewImage(cta) ? <img src={getPreviewImage(cta)} alt="" /> : <div className="preview-banner-placeholder" />}
             </div>
           ) : null}

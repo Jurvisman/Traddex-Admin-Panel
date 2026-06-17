@@ -9,8 +9,9 @@ import {
   listCategories,
   listSubCategories,
 } from '../services/adminApi';
+import { API_ORIGIN } from '../config/runtime';
 
-const ADMIN_API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:8080';
+const ADMIN_API_BASE = API_ORIGIN;
 
 const resolveMediaUrl = (value) => {
   const trimmed = String(value || '').trim();
@@ -1445,14 +1446,7 @@ function ServicePage({ token, adminUserId }) {
         <div className="product-view-shell">
           {selectedService ? (
             <>
-              <div className="pvr-topbar">
-                <button
-                  type="button"
-                  className="pvr-back-btn"
-                  onClick={() => { setShowViewActionMenu(false); navigate('/admin/services'); }}
-                >
-                  ‹ Back
-                </button>
+              <div className="pvr-topbar pvr-topbar-actions-only">
                 <div className="gsc-product-view-menu-shell" ref={viewActionMenuRef}>
                   <button
                     type="button"

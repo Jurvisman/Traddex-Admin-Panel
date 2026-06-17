@@ -1,4 +1,4 @@
-﻿export const emptyMessage = { type: 'info', text: '' };
+export const emptyMessage = { type: 'info', text: '' };
 
 export const parseJson = (value) => {
   if (!value || !value.trim()) return { data: null, error: 'Config JSON is required.' };
@@ -62,13 +62,10 @@ export const screenSectionTypeOptions = [
   { value: 'category_icon_grid', label: 'Category icon grid (SDUI)' },
   { value: 'brand_logo_grid', label: 'Brand Bento Box (SDUI)' },
   { value: 'media_overlay_carousel', label: 'Media overlay carousel (SDUI)' },
-  { value: 'product_card_carousel', label: 'Product card carousel (SDUI)' },
   { value: 'info_list', label: 'Info list (SDUI)' },
-  { value: 'categoryPreviewGrid', label: 'Category preview grid' },
   { value: 'campaignBento', label: 'Campaign bento' },
   { value: 'list', label: 'List' },
   { value: 'banner', label: 'Banner' },
-  { value: 'card', label: 'Card' },
   { value: 'twoColumn', label: 'Two column' },
   { value: 'spacer', label: 'Spacer' },
   { value: 'title', label: 'Title' },
@@ -76,7 +73,6 @@ export const screenSectionTypeOptions = [
   { value: 'icon_list', label: 'Icon list' },
   { value: 'chip_scroll', label: 'Chip scroll' },
   { value: 'category_showcase', label: 'Category Showcase' },
-  { value: 'tabbed_product_shelf', label: 'Tabbed Product Shelf (SDUI)' },
   { value: 'shop_card_carousel', label: 'Shop card carousel (SDUI)' },
   { value: 'businessOfMonth', label: 'Business of the Month' },
   { value: 'servicesNearYou', label: 'Services Near You' },
@@ -88,7 +84,6 @@ export const defaultBlockTypeBySectionType = {
   split_promo_row: 'split_promo_row',
   title: 'sectionTitle',
   grid: 'multiItemGrid',
-  categoryPreviewGrid: 'categoryPreviewGrid',
   campaignBento: 'campaignBento',
   campaign: 'campaignBento',
   product_shelf_horizontal: 'product_shelf_horizontal',
@@ -4680,49 +4675,9 @@ export const screenToolboxItems = [
 
   // â”€â”€ Product Blocks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
-    key: 'productCardCarousel',
-    label: 'Product Cards',
-    hint: 'Horizontal scrollable product cards â€” supports live feed or manual items',
-    section: {
-      id: 'product_card_carousel',
-      type: 'horizontalList',
-      blockType: 'product_card_carousel',
-      title: 'Hot deals',
-      actionText: 'View all',
-      stylePreset: 'electronics',
-      items: ELECTRONICS_DEAL_SAMPLE.map((item) => ({ ...item })),
-    },
-  },
-  {
-    key: 'tabbedProductShelf',
-    label: 'Tabbed Product Shelf',
-    hint: 'Product cards grouped into tabs (e.g. Men / Women / Kids) â€” supports live feed',
-    section: {
-      id: 'tabbed_product_shelf',
-      blockType: 'tabbed_product_shelf',
-      title: 'Trending This Week',
-      enabled: true,
-      items: [],
-      dataSource: { sourceType: 'MANUAL' },
-    },
-  },
-  {
-    key: 'productShelf',
-    label: 'Product Shelf',
-    hint: 'Horizontal product list showing price and Add-to-cart button',
-    section: {
-      id: 'product_shelf_horizontal',
-      type: 'horizontalList',
-      blockType: 'product_shelf_horizontal',
-      title: 'Lowest prices ever',
-      itemsPath: '$.products',
-      dataSourceRef: 'home_top_selling_products',
-    },
-  },
-  {
     key: 'productGrid',
     label: 'Product Grid',
-    hint: '3-column live product grid â€” pulls from a feed endpoint',
+    hint: 'Dedicated 3-column product grid with role-based Add / Inquiry action',
     section: {
       id: 'multi_item_grid',
       type: 'grid',
@@ -4752,11 +4707,11 @@ export const screenToolboxItems = [
     },
   },
 
-  // â”€â”€ Category & Brand â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ⎯⎯ Category & Brand ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
   {
     key: 'categoryIconGrid',
     label: 'Category Icon Grid',
-    hint: '4-column category icons â€” auto-fetched from industry',
+    hint: '4-column category icons — auto-fetched from industry',
     section: {
       id: 'category_icon_grid',
       type: 'grid',
@@ -4773,7 +4728,7 @@ export const screenToolboxItems = [
   {
     key: 'categoryShowcase',
     label: 'Category Showcase',
-    hint: 'Circular or square category bubbles â€” auto-fetched from industry',
+    hint: 'Circular or square category bubbles — auto-fetched from industry',
     section: {
       id: 'category_showcase',
       type: 'category_showcase',
@@ -4787,23 +4742,9 @@ export const screenToolboxItems = [
     },
   },
   {
-    key: 'categoryPreviewGrid',
-    label: 'Category Preview Grid',
-    hint: 'Large 2-column category cards with image preview',
-    section: {
-      id: 'category_preview_grid',
-      type: 'grid',
-      blockType: 'categoryPreviewGrid',
-      title: 'Frequently bought',
-      collectionIds: [],
-      itemsPath: '$.categories',
-      columns: 2,
-    },
-  },
-  {
     key: 'columnGrid',
     label: 'Column Grid',
-    hint: '3-column cards with dual images â€” supports category feed or manual items',
+    hint: '3-column cards with dual images — supports category feed or manual items',
     section: {
       id: 'column_grid',
       type: 'grid',
@@ -4839,10 +4780,10 @@ export const screenToolboxItems = [
     hint: 'Brand campaign block with top banner, four tiles, and bottom CTA banner',
     section: {
       id: 'brand_showcase',
-      type: 'horizontalList',
+      type: 'grid',
       blockType: 'brand_logo_grid',
       title: 'Top Brands',
-      stylePreset: 'automobile',
+      stylePreset: 'default',
       enabled: true,
       dataSource: {
         sourceType: 'BRAND_FEED',

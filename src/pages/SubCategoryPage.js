@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Banner, TableRowActionMenu, ToggleSwitch } from '../components';
+import { Banner, TableRowActionMenu, TaxonomyDeleteImpactDialog, ToggleSwitch } from '../components';
 import { usePermissions } from '../shared/permissions';
 import {
   createSubCategory,
   deleteSubCategory,
   getSubCategory,
+  getSubCategoryDeleteImpact,
   listCategories,
+  listMainCategories,
   listSubCategories,
   updateSubCategory,
 } from '../services/adminApi';
@@ -28,19 +30,38 @@ const StatusBadge = ({ active }) => (
   </span>
 );
 
+const buildCategoryOptionLabel = (category, mainCategoryById) => {
+  const mainCategory = mainCategoryById.get(String(category?.mainCategoryId ?? category?.main_category_id ?? ''));
+  return [
+    mainCategory?.industryName,
+    category?.mainCategoryName || category?.main_category_name || mainCategory?.name,
+    category?.name,
+  ].filter(Boolean).join(' > ') || category?.name || '-';
+};
+
 function SubCategoryPage({ token }) {
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [mainCategories, setMainCategories] = useState([]);
   const [form, setForm] = useState(initialForm);
   const [message, setMessage] = useState({ type: 'info', text: '' });
   const [isLoading, setIsLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [editItem, setEditItem] = useState(null);
   const [touched, setTouched] = useState({});
   const [openActionRowId, setOpenActionRowId] = useState(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [deleteDialog, setDeleteDialog] = useState({
+    open: false,
+    target: null,
+    impact: null,
+    loading: false,
+    deleting: false,
+    deactivating: false,
+  });
 
   // View panel state
   const [viewItem, setViewItem] = useState(null);      // { subCategory, parentChain }
@@ -55,15 +76,17 @@ function SubCategoryPage({ token }) {
     setIsLoading(true);
     setMessage({ type: 'info', text: '' });
     try {
-      const [subCategoriesResult, categoriesResult] = await Promise.allSettled([
+      const [subCategoriesResult, categoriesResult, mainCategoriesResult] = await Promise.allSettled([
         listSubCategories(token),
         listCategories(token),
+        listMainCategories(token),
       ]);
       if (subCategoriesResult.status !== 'fulfilled') {
         throw subCategoriesResult.reason;
       }
       setItems(subCategoriesResult.value?.data || []);
       setCategories(categoriesResult.status === 'fulfilled' ? categoriesResult.value?.data || [] : []);
+      setMainCategories(mainCategoriesResult.status === 'fulfilled' ? mainCategoriesResult.value?.data || [] : []);
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to fetch sub-categories.' });
     } finally {
@@ -75,6 +98,14 @@ function SubCategoryPage({ token }) {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const mainCategoryById = useMemo(() => {
+    const map = new Map();
+    mainCategories.forEach((mainCategory) => {
+      if (mainCategory?.id != null) map.set(String(mainCategory.id), mainCategory);
+    });
+    return map;
+  }, [mainCategories]);
 
   const requestedOrdering = parseOrderingInput(form.ordering);
   const orderingConflict = useMemo(
@@ -102,6 +133,11 @@ function SubCategoryPage({ token }) {
     const errs = {};
     if (!f.name.trim()) errs.name = 'Name is required.';
     else if (f.name.trim().length < 2) errs.name = 'Name must be at least 2 characters.';
+    else if (items.some((item) =>
+      String(item.id) !== String(editItem?.id ?? '') &&
+      String(item.categoryId ?? item.category_id ?? '') === String(f.categoryId ?? '') &&
+      String(item.name || '').trim().toLowerCase() === f.name.trim().toLowerCase()
+    )) errs.name = 'This sub-category already exists under selected category.';
     if (!f.categoryId) errs.categoryId = 'Category is required.';
     if (f.ordering !== '' && f.ordering !== null) {
       const n = parseOrderingInput(f.ordering);
@@ -211,21 +247,69 @@ function SubCategoryPage({ token }) {
     }
   };
 
+  const closeDeleteDialog = () => {
+    setDeleteDialog({ open: false, target: null, impact: null, loading: false, deleting: false, deactivating: false });
+  };
+
   const handleDelete = async (id) => {
     if (!canDelete) {
       setMessage({ type: 'error', text: 'You do not have permission to delete sub-categories.' });
       return;
     }
+    const target = items.find((item) => String(item.id) === String(id)) || { id };
+    setDeleteDialog({ open: true, target, impact: null, loading: true, deleting: false, deactivating: false });
     try {
-      setIsLoading(true);
+      const response = await getSubCategoryDeleteImpact(token, id);
+      setDeleteDialog((prev) => ({ ...prev, impact: response?.data || null, loading: false }));
+    } catch (error) {
+      closeDeleteDialog();
+      setMessage({ type: 'error', text: error.message || 'Failed to check sub-category usage.' });
+    }
+  };
+
+  const confirmDelete = async () => {
+    const id = deleteDialog.target?.id;
+    if (!id) return;
+    try {
+      setDeleteDialog((prev) => ({ ...prev, deleting: true }));
       await deleteSubCategory(token, id);
       if (viewItem?.subCategory?.id === id) setViewItem(null);
       await loadData();
+      closeDeleteDialog();
       setMessage({ type: 'success', text: 'Sub-category deleted.' });
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to delete sub-category.' });
     } finally {
-      setIsLoading(false);
+      setDeleteDialog((prev) => ({ ...prev, deleting: false }));
+    }
+  };
+
+  const deactivateInstead = async () => {
+    const item = deleteDialog.target;
+    const id = item?.id;
+    if (!id) return;
+    const payload = {
+      name: item.name,
+      categoryId: Number(item.categoryId ?? item.category_id),
+      subCategoryIcon: item.subCategoryIcon ?? item.sub_category_icon ?? null,
+      imageUrl: item.imageUrl ?? item.image_url ?? null,
+      ordering: item.ordering ?? null,
+      path: item.path ?? null,
+      active: 0,
+    };
+    try {
+      setDeleteDialog((prev) => ({ ...prev, deactivating: true }));
+      await updateSubCategory(token, id, payload);
+      if (viewItem?.subCategory?.id === id) {
+        setViewItem((prev) => prev ? { ...prev, subCategory: { ...prev.subCategory, active: 0 } } : prev);
+      }
+      await loadData();
+      closeDeleteDialog();
+      setMessage({ type: 'success', text: 'Sub-category deactivated. Existing records are preserved.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to deactivate sub-category.' });
+    } finally {
+      setDeleteDialog((prev) => ({ ...prev, deactivating: false }));
     }
   };
 
@@ -355,6 +439,7 @@ function SubCategoryPage({ token }) {
       const haystack = `${item.name || ''} ${item.categoryName || item.category_name || ''}`.toLowerCase();
       return haystack.includes(q);
     })
+    .filter((item) => statusFilter === 'all' || String(item.active ?? 1) === statusFilter)
     .sort((a, b) => (b.id ?? 0) - (a.id ?? 0));
 
   const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
@@ -434,7 +519,7 @@ function SubCategoryPage({ token }) {
                         <option value="">Select category</option>
                         {categories.map((category) => (
                           <option key={category.id} value={category.id}>
-                            {category.name}
+                            {buildCategoryOptionLabel(category, mainCategoryById)}
                           </option>
                         ))}
                       </select>
@@ -564,6 +649,16 @@ function SubCategoryPage({ token }) {
               </div>
             </div>
             <div className="gsc-datatable-toolbar-right">
+              <select
+                className="gsc-toolbar-btn"
+                value={statusFilter}
+                onChange={(event) => { setStatusFilter(event.target.value); setPage(1); }}
+                aria-label="Filter sub-categories by status"
+              >
+                <option value="all">All status</option>
+                <option value="1">Active only</option>
+                <option value="0">Inactive only</option>
+              </select>
               <div className="gsc-toolbar-search">
                 <input
                   type="search"
@@ -673,6 +768,17 @@ function SubCategoryPage({ token }) {
         {/* ── View panel ── */}
         {renderViewPanel()}
       </div>
+      <TaxonomyDeleteImpactDialog
+        open={deleteDialog.open}
+        impact={deleteDialog.impact}
+        loading={deleteDialog.loading}
+        deleting={deleteDialog.deleting}
+        deactivating={deleteDialog.deactivating}
+        canDeactivate={canUpdate}
+        onCancel={closeDeleteDialog}
+        onDelete={confirmDelete}
+        onDeactivate={deactivateInstead}
+      />
     </div>
   );
 }

@@ -1,4 +1,6 @@
-const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:8080';
+import { API_ORIGIN } from '../config/runtime';
+
+const API_BASE = API_ORIGIN;
 
 const parseErrorMessage = async (response, fallback) => {
   try {
@@ -21,6 +23,7 @@ export const sendOtp = async (digits) => {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'ngrok-skip-browser-warning': 'true',
     },
     body: JSON.stringify({ mobileNumber: digits }),
   });
@@ -37,6 +40,7 @@ export const verifyOtp = async (digits, otpCode) => {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'ngrok-skip-browser-warning': 'true',
     },
     body: JSON.stringify({ mobileNumber: digits, otpCode }),
   });

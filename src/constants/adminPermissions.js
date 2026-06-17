@@ -44,6 +44,10 @@ export const BUSINESS_PERMISSIONS = {
   approve: 'ADMIN_BUSINESS_APPROVE',
 };
 
+export const SUBSCRIPTION_PERMISSIONS = {
+  activate: 'ADMIN_SUBSCRIPTION_ACTIVATE',
+};
+
 export const PRODUCT_PERMISSIONS = {
   create: 'ADMIN_PRODUCTS_CREATE',
   view: 'ADMIN_PRODUCTS_READ',
