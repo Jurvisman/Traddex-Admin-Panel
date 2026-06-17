@@ -269,162 +269,130 @@ const ADMIN_META = [
   {
     matchPrefix: '/admin/businesses',
     title: 'Business',
-    // subtitle: 'Review business profiles, KYC tabs, and account status.',
   },
   {
     matchPrefix: '/admin/storefront',
     title: 'Storefront',
-    subtitle: 'Manage website requests, builder templates, and live domains.',
   },
   {
     matchPrefix: '/admin/users',
     title: 'Users',
-    subtitle: 'View non-business accounts and control active status.',
   },
   {
     match: '/admin/employees',
     title: 'Employee',
-    subtitle: 'Create internal admin employees and assign roles.',
   },
   {
     match: '/admin/catalog-manager',
     title: 'Product Masters',
-    subtitle: 'Manage the category hierarchy and the fields products should capture.',
   },
   {
     match: '/admin/catalog-manager/industries',
     title: 'Industry',
-    // subtitle: 'Create and maintain industry groups.',
   },
   {
     match: '/admin/catalog-manager/main-categories',
     title: 'Main Category',
-    // subtitle: 'Organize main categories under industries.',
   },
   {
     match: '/admin/catalog-manager/categories',
     title: 'Category',
-    subtitle: '',
   },
   {
     match: '/admin/catalog-manager/brands',
     title: 'Brand Master',
-    subtitle: 'Create, approve, and maintain canonical product brands.',
   },
   {
     match: '/admin/catalog-manager/collections',
     title: 'Collections',
-    // subtitle: 'Create curated or feed-based collection landing pages for app deep links.',
   },
   {
     match: '/admin/catalog-manager/sub-categories',
     title: 'Sub Category',
-    // subtitle: 'Attach sub-categories to categories.',
   },
   {
     match: '/admin/product-attribute',
     title: 'Reusable Fields',
-    subtitle: 'Advanced reusable field library for categories that share the same product fields.',
   },
   {
     matchPrefix: '/admin/products',
     title: 'Products',
-    subtitle: 'Create and manage products submitted by businesses.',
   },
   {
     matchPrefix: '/admin/services',
     title: 'Services',
-    subtitle: 'Review and moderate service listings submitted by businesses.',
   },
   {
     match: '/admin/inquiry/config',
     title: 'Inquiry Config',
-    subtitle: 'Tune premium vs normal distribution ratios.',
   },
   {
     match: '/admin/inquiry/report',
-    title: 'Inquiry Report',
-    subtitle: 'Monitor inquiry volume, assignments, and refunds.',
+    title: 'Inquiry Report'
   },
   {
     match: '/admin/subscription/features',
     title: 'Master',
-    // subtitle: 'Manage the feature master that powers subscription access.',
   },
   {
     match: '/admin/subscription/overview',
     title: 'Revenue Model',
-    // subtitle: 'Review subscription revenue performance and subscriber activity.',
   },
   {
     match: '/admin/subscription/plans',
     title: 'Subscription',
-   // subtitle: 'Create plans with pricing, durations, and feature limits.',
   },
   {
     match: '/admin/subscription/addon-pricing',
     title: 'Addon Pricing',
-    subtitle: 'Set per-unit addon pricing for features.',
   },
   {
     match: '/admin/subscription/coupons',
     title: 'Coupons',
-    subtitle: 'Manage subscription promo codes and launch offer usage.',
   },
   {
     match: '/admin/subscription/assignments',
     title: 'Assign Subscriptions',
-    subtitle: 'Grant plans to users and review assignments.',
   },
   {
     match: '/admin/settings/roles',
     title: 'Role Permission',
-   // subtitle: 'Manage roles and map CRUD permissions by menu/submenu.',
   },
   {
     match: '/admin/app-config',
     title: 'CMS',
-    subtitle: 'Edit and publish dynamic app content and layout configuration.',
   },
   {
     match: '/admin/website-cms',
     title: 'Website CMS',
-    subtitle: 'Manage Deal360 website legal content and social platform links.',
   },
   {
     match: '/admin/timezones',
     title: 'Timezone',
-    subtitle: 'Import IANA zone1970.tab to refresh timezone lookups.',
   },
   {
     match: '/admin/orders/disputes',
     title: 'Order Disputes',
-    subtitle: 'Review disputes and close them with clear resolutions.',
   },
   {
     match: '/admin/orders/returns',
     title: 'Order Returns',
-    subtitle: 'Override return requests and lock final outcomes.',
   },
   {
     match: '/admin/orders/reviews',
     title: 'Review Moderation',
-    subtitle: 'Moderate reported buyer reviews across products and businesses.',
   },
   {
     match: '/admin/support',
     title: 'Support',
-    subtitle: 'Customer tickets, inquiries, and complaint management.',
   },
   {
     match: '/admin/support/waitlist',
     title: 'Waitlist Leads',
-    subtitle: 'Monitor and manage early access registrations and leads.',
   },
   {
     match: '/admin/revenue/subscription',
     title: 'Subscription Revenue',
-    subtitle: 'Breakdown of subscription payments and analytics.',
   },
   {
     match: '/admin/revenue/advertisement',

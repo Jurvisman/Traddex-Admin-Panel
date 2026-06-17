@@ -2388,12 +2388,6 @@ function ProductPage({ token, adminUserId }) {
     setEditingProductId(null);
   };
 
-  const handleBackToList = () => {
-    setSelectedProduct(null);
-    setMessage({ type: 'info', text: '' });
-    navigate('/admin/products');
-  };
-
   const mergeMediaList = (currentValue, nextUrls, append = true) => {
     const merged = append ? [...parseList(currentValue), ...nextUrls] : nextUrls;
     return Array.from(new Set(merged.filter(Boolean))).join(', ');
@@ -5104,7 +5098,6 @@ function ProductPage({ token, adminUserId }) {
               <button type="button" className="gsc-form-back-link" onClick={handleCloseForm}>
                 &lt; Back
               </button>
-              <p className="panel-subtitle gsc-form-description">Create and manage products submitted by businesses.</p>
               <span className="gsc-form-breadcrumb-secondary">Products / {isEditing ? 'Edit Product' : 'Create New'}</span>
             </div>
             <button type="button" className="primary-btn gsc-back-to-list-btn" onClick={handleCloseForm}>
@@ -6284,15 +6277,8 @@ function ProductPage({ token, adminUserId }) {
           {selectedProduct ? (
             <>
               {/* ── Topbar: Back + action menu ─────────────────────── */}
-              <div className="pvr-topbar">
-                <button
-                  type="button"
-                  className="pvr-back-btn"
-                  onClick={() => { setShowViewActionMenu(false); handleBackToList(); }}
-                >
-                  ‹ Back
-                </button>
-                {hasProductDetailActions ? (
+              {hasProductDetailActions ? (
+                <div className="pvr-topbar pvr-topbar-actions-only">
                   <div className="gsc-product-view-menu-shell" ref={viewActionMenuRef}>
                     <button
                       type="button"
@@ -6325,8 +6311,8 @@ function ProductPage({ token, adminUserId }) {
                       </div>
                     ) : null}
                   </div>
-                ) : null}
-              </div>
+                </div>
+              ) : null}
 
               {/* ── Hero: thumbnail + name + KPI cells ─────────────── */}
               <div className="pvr-hero panel card">

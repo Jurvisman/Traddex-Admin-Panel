@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 
 const MOBILE_BREAKPOINT = 1080;
 
@@ -33,6 +33,7 @@ const toStageLabel = (segment, fallbackTitle) => {
 
 function AdminShell({ navItems, onLogout, pageTitle, pageSubtitle, children }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const [expandedMenus, setExpandedMenus] = useState({});
   const [isMobile, setIsMobile] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -79,7 +80,7 @@ function AdminShell({ navItems, onLogout, pageTitle, pageSubtitle, children }) {
     : [pageTitle || 'Dashboard'];
   const shouldShowBack = routeSegments.length > 1;
   const shouldShowStageNote = Boolean(pageSubtitle) && routeSegments.length > 1;
-  const shouldHideStageHead = /^\/admin\/products\/[^/]+(?:\/edit)?$/i.test(location.pathname);
+  const shouldHideStageHead = /^\/admin\/products\/[^/]+\/edit$/i.test(location.pathname);
   const sidebarStateClass = isMobile
     ? isSidebarOpen
       ? 'is-open is-mobile'
@@ -302,6 +303,15 @@ function AdminShell({ navItems, onLogout, pageTitle, pageSubtitle, children }) {
           <div className="admin-stage">
             {!shouldHideStageHead ? (
               <div className={`admin-stage-head ${!shouldShowBack && !shouldShowStageNote ? 'is-compact' : ''}`}>
+                {shouldShowBack ? (
+                  <button type="button" className="admin-stage-back-btn" onClick={() => navigate(-1)}>
+                    <svg className="admin-stage-back-icon" viewBox="0 0 20 20" aria-hidden="true">
+                      <path d="M12.5 4.5 7 10l5.5 5.5" />
+                      <path d="M7.5 10H16" />
+                    </svg>
+                    <span>Back</span>
+                  </button>
+                ) : null}
                 <div className="admin-stage-copy">
                   <p className="admin-stage-path">{stageParts.join(' / ')}</p>
                   {shouldShowStageNote ? <p className="admin-stage-note">{pageSubtitle}</p> : null}

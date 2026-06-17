@@ -1446,14 +1446,7 @@ function ServicePage({ token, adminUserId }) {
         <div className="product-view-shell">
           {selectedService ? (
             <>
-              <div className="pvr-topbar">
-                <button
-                  type="button"
-                  className="pvr-back-btn"
-                  onClick={() => { setShowViewActionMenu(false); navigate('/admin/services'); }}
-                >
-                  ‹ Back
-                </button>
+              <div className="pvr-topbar pvr-topbar-actions-only">
                 <div className="gsc-product-view-menu-shell" ref={viewActionMenuRef}>
                   <button
                     type="button"

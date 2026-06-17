@@ -14135,6 +14135,10 @@ textarea {
 
 .admin-shell-gsc .admin-stage-head {
   padding: 0 4px 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .admin-shell-gsc .admin-stage-head.is-compact {
@@ -14144,6 +14148,39 @@ textarea {
 .admin-shell-gsc .admin-stage-copy {
   display: grid;
   gap: 3px;
+  min-width: 0;
+}
+
+.admin-shell-gsc .admin-stage-back-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #475467;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  cursor: pointer;
+  line-height: 1;
+  transition: color 0.15s ease;
+}
+
+.admin-shell-gsc .admin-stage-back-btn:hover {
+  color: var(--gsc-primary);
+}
+
+.admin-shell-gsc .admin-stage-back-icon {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transform: translateY(0.5px);
 }
 
 .admin-shell-gsc .admin-stage-path {
@@ -17745,13 +17782,14 @@ textarea {
 /* ── Hero card ─────────────────────────────────────────────── */
 .bv-hero-card {
   position: relative;
-  display: flex;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) 280px;
+  align-items: stretch;
   gap: 18px;
-  padding: 20px 22px 0;
+  padding: 18px 20px;
 }
 
-.bv-hero-left { flex-shrink: 0; padding-top: 2px; }
+.bv-hero-left { flex-shrink: 0; padding-top: 2px; grid-column: 1; }
 
 .bv-hero-avatar {
   width: 60px;
@@ -17772,20 +17810,49 @@ textarea {
   color: #fff;
 }
 
-.bv-hero-body { flex: 1; min-width: 0; padding-right: 240px; }
+.bv-hero-body { flex: 1; min-width: 0; grid-column: 2; }
 
 /* Action buttons — absolutely pinned top-right */
 .bv-hero-actions {
-  position: absolute;
-  top: 18px;
-  right: 20px;
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
+  gap: 10px;
+  align-items: stretch;
+  justify-content: flex-start;
+  grid-column: 3;
+  min-width: 0;
+}
+
+.bv-hero-action-row {
+  display: flex;
   gap: 8px;
   align-items: center;
-  flex-wrap: wrap;
   justify-content: flex-end;
+  flex-wrap: wrap;
 }
+
+.bv-hero-risk-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: 1px solid var(--admin-line, #e5e7eb);
+  border-radius: 10px;
+  background: #fff;
+  padding: 8px 10px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.bv-hero-risk-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+.bv-hero-risk-good { color: #15803d; font-size: 12.5px; }
+.bv-hero-risk-warn { color: #b45309; font-size: 12.5px; }
 
 .bv-hero-name-group {
   display: flex;
@@ -17805,7 +17872,7 @@ textarea {
 
 /* Single line: industry · phone · email · joined */
 .bv-hero-secondary {
-  margin: 0 0 14px;
+  margin: 0 0 10px;
   font-size: 12.5px;
   color: var(--admin-muted, #6b7280);
   font-weight: 500;
@@ -17815,18 +17882,64 @@ textarea {
   text-overflow: ellipsis;
 }
 
+.bv-hero-health-strip {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(110px, 1fr));
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.bv-hero-health-chip {
+  min-width: 0;
+  border: 1px solid var(--admin-line, #e5e7eb);
+  border-radius: 10px;
+  background: #fff;
+  padding: 6px 8px;
+}
+
+.bv-hero-health-chip span {
+  display: block;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  margin-bottom: 2px;
+}
+
+.bv-hero-health-chip strong {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #0f172a;
+  font-size: 12px;
+}
+
+.bv-hero-health-chip.good { background: #fff; border-color: #dbe4ee; }
+.bv-hero-health-chip.good strong { color: #15803d; }
+.bv-hero-health-chip.warn { background: #fff; border-color: #f3d59e; }
+.bv-hero-health-chip.warn strong { color: #b45309; }
+.bv-hero-health-chip.muted { background: #fff; }
+.bv-hero-meta-separator {
+  display: inline-block;
+  margin: 0 7px;
+  color: #cbd5e1;
+}
+
 /* KPI strip — full-width grid at bottom of hero body */
 .bv-hero-kpi-strip {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   border-top: 1px solid var(--admin-line, #e5e7eb);
-  margin-top: 2px;
+  margin-top: 0;
 }
 .bv-hero-kpi-cell {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  padding: 10px 0 14px;
+  padding: 9px 0 0;
   border-right: 1px solid var(--admin-line, #f3f4f6);
   padding-right: 12px;
   margin-right: 0;
@@ -17835,7 +17948,7 @@ textarea {
 .bv-hero-kpi-cell:last-child { border-right: none; }
 
 .bv-kpi-val {
-  font-size: 19px;
+  font-size: 18px;
   font-weight: 800;
   color: var(--admin-ink, #111827);
   line-height: 1.1;
@@ -18362,13 +18475,19 @@ textarea {
 
 /* Responsive tweaks for hero */
 @media (max-width: 900px) {
+  .bv-hero-card { grid-template-columns: auto minmax(0, 1fr); }
+  .bv-hero-actions { grid-column: 1 / -1; }
+  .bv-hero-action-row { justify-content: flex-start; }
+  .bv-hero-health-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .bv-hero-kpi-strip { grid-template-columns: repeat(3, 1fr); }
   .bv-hero-body { padding-right: 0; }
   .bv-hero-actions { position: static; margin-top: 12px; }
 }
 @media (max-width: 640px) {
-  .bv-hero-card { flex-direction: column; padding: 16px 16px 0; }
+  .bv-hero-card { grid-template-columns: 1fr; padding: 16px; }
+  .bv-hero-left, .bv-hero-body, .bv-hero-actions { grid-column: 1; }
   .bv-hero-avatar { width: 50px; height: 50px; font-size: 18px; }
+  .bv-hero-health-strip { grid-template-columns: 1fr; }
   .bv-hero-kpi-strip { grid-template-columns: repeat(2, 1fr); }
   .bv-hero-secondary { white-space: normal; }
   .bv-tab-btn { padding: 11px 12px; font-size: 12px; }
@@ -20675,6 +20794,18 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+.pvr-topbar.pvr-topbar-actions-only {
+  justify-content: flex-end;
+}
+.admin-shell-gsc .product-view-shell > .pvr-topbar-actions-only:first-child {
+  position: relative;
+  z-index: 2;
+  min-height: 24px;
+  height: 24px;
+  margin-top: -42px;
+  margin-bottom: -8px;
+  padding-right: 4px;
 }
 .pvr-back-btn {
   display: inline-flex; align-items: center; gap: 4px;
