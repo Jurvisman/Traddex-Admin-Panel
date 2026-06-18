@@ -74,6 +74,7 @@ export const screenSectionTypeOptions = [
   { value: 'chip_scroll', label: 'Chip scroll' },
   { value: 'category_showcase', label: 'Category Showcase' },
   { value: 'shop_card_carousel', label: 'Shop card carousel (SDUI)' },
+  { value: 'service_card_carousel', label: 'Service card carousel (SDUI)' },
   { value: 'businessOfMonth', label: 'Business of the Month' },
   { value: 'servicesNearYou', label: 'Services Near You' },
 ];
@@ -90,6 +91,7 @@ export const defaultBlockTypeBySectionType = {
   quick_action_row: 'quick_action_row',
   media_overlay_carousel: 'media_overlay_carousel',
   product_card_carousel: 'product_card_carousel',
+  service_card_carousel: 'service_card_carousel',
   deal_card_carousel: 'product_card_carousel',
   info_list: 'info_list',
   icon_list: 'icon_list',
@@ -4842,6 +4844,28 @@ export const screenToolboxItems = [
       dataSource: { sourceType: 'SHOP_FEED' },
     },
   },
+  {
+    key: 'trendingServices',
+    label: 'Trending Services',
+    hint: 'Horizontal service cards with Book Now CTA; supports Trending, Latest, and Most Booked feeds',
+    section: {
+      id: 'trending_services',
+      type: 'horizontalList',
+      blockType: 'service_card_carousel',
+      title: 'Trending Services',
+      actionText: 'View all.',
+      actionLink: 'app://services',
+      ctaText: 'Book Now',
+      enabled: true,
+      dataSourceRef: 'home_trending_services',
+      dataSource: {
+        sourceType: 'SERVICE_FEED',
+        feedMode: 'TRENDING',
+        limit: 7,
+      },
+    },
+  },
+
 
   // â”€â”€ Actions & Navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
@@ -4997,6 +5021,7 @@ export const blockLabels = {
   tabbed_product_shelf: 'Tabbed Product Shelf',
   shops_near_you: 'Shops Near You',
   shop_card_carousel: 'Shop Card Carousel',
+  service_card_carousel: 'Service Card Carousel',
 };
 
 export const resolveBlockLabel = (blockType, fallback) =>
@@ -5205,6 +5230,7 @@ export const phaseOneBlockTypes = new Set([
   'brand_logo_grid',
   'media_overlay_carousel',
   'product_card_carousel',
+  'service_card_carousel',
   'deal_card_carousel',
   'info_list',
   'promo_banner',
@@ -5972,6 +5998,18 @@ export const MULTI_ITEM_GRID_FEED_OPTIONS = [
   { value: 'BESTSELLER', label: 'Bestseller', dataSourceRef: 'home_bestseller_products' },
 ];
 
+export const SERVICE_FEED_MODE_OPTIONS = [
+  { value: 'TRENDING', label: 'Trending', dataSourceRef: 'home_trending_services' },
+  { value: 'LATEST', label: 'Latest', dataSourceRef: 'home_latest_services' },
+  { value: 'MOST_BOOKED', label: 'Most booked', dataSourceRef: 'home_most_booked_services' },
+];
+
+export const resolveServiceDataSourceRef = (mode) => {
+  const normalizedMode = String(mode || '').trim().toUpperCase();
+  const match = SERVICE_FEED_MODE_OPTIONS.find((option) => option.value === normalizedMode);
+  return match?.dataSourceRef || SERVICE_FEED_MODE_OPTIONS[0].dataSourceRef;
+};
+
 export const resolveMultiItemGridDataSourceRef = (mode) => {
   const normalizedMode = String(mode || '').trim().toUpperCase();
   const match = MULTI_ITEM_GRID_FEED_OPTIONS.find((option) => option.value === normalizedMode);
@@ -6349,6 +6387,9 @@ export const buildDataSources = (pagePresets = []) => {
   sources.home_lowest_price_products = { method: 'GET', url: '/api/home/products/lowest-price' };
   sources.home_trending_products = { method: 'GET', url: '/api/home/products/trending' };
   sources.home_bestseller_products = { method: 'GET', url: '/api/home/products/bestseller' };
+  sources.home_trending_services = { method: 'GET', url: '/api/home/services/trending' };
+  sources.home_latest_services = { method: 'GET', url: '/api/home/services/latest' };
+  sources.home_most_booked_services = { method: 'GET', url: '/api/home/services/most-booked' };
   return sources;
 };
 
@@ -6510,6 +6551,7 @@ export const defaultSectionForm = {
   text: '',
   actionText: '',
   actionLink: '',
+  ctaText: '',
   bannerVariant: 'image',
   showcaseVariant: 'circle',
   imageUrl: '',

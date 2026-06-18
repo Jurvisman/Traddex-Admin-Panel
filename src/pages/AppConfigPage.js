@@ -90,6 +90,7 @@ import {
   TABBED_SHELF_SOURCE_OPTIONS,
   SHOP_BLOCK_SOURCE_OPTIONS,
   PRODUCT_FEED_MODE_OPTIONS,
+  SERVICE_FEED_MODE_OPTIONS,
   TAB_FIELD_OPTIONS,
   SHOWCASE_VARIANT_OPTIONS,
   STYLE_PRESET_OPTIONS,
@@ -3494,6 +3495,7 @@ function AppConfigPage({ token }) {
   const isBeautySalonCarousel = screenBlockType === 'beauty_salon_carousel';
   const isTabbedProductShelf = screenBlockType === 'tabbed_product_shelf';
   const isShopCardCarousel = screenBlockType === 'shop_card_carousel';
+  const isServiceCardCarousel = screenBlockType === 'service_card_carousel';
   const infoListPreset = String(sectionForm.stylePreset || 'launch_rows').trim().toLowerCase();
   const isLaunchInfoList = infoListPreset === 'launch_rows';
   const mediaOverlayPreset = String(sectionForm.stylePreset || 'electronics').trim().toLowerCase();
@@ -6503,6 +6505,66 @@ function AppConfigPage({ token }) {
                                 </p>
                               </div>
                             </div>
+                            </div>
+                          </div>
+                        ) : null}
+                        {isServiceCardCarousel ? (
+                          <div className={`prop-group${collapsedGroups.serviceSource ? ' is-collapsed' : ''}`}>
+                            <div
+                              className="prop-group-header"
+                              onClick={() => togglePropGroup('serviceSource')}
+                              role="button"
+                              tabIndex={0}
+                              onKeyDown={(e) => e.key === 'Enter' && togglePropGroup('serviceSource')}
+                            >
+                              <div className="prop-group-left">
+                                <span className="prop-group-title">Service Feed</span>
+                                <span className="prop-group-badge live">Live Feed</span>
+                              </div>
+                              <span className="prop-group-toggle">?</span>
+                            </div>
+                            <div className="prop-group-body">
+                              <div className="field-grid source-config-grid">
+                                <label className="field">
+                                  <span>Feed mode</span>
+                                  <select
+                                    value={sectionForm.blockFeedMode || 'TRENDING'}
+                                    onChange={(event) =>
+                                      setSectionForm((prev) => ({
+                                        ...prev,
+                                        blockFeedMode: event.target.value,
+                                      }))
+                                    }
+                                  >
+                                    {SERVICE_FEED_MODE_OPTIONS.map((option) => (
+                                      <option key={option.value} value={option.value}>
+                                        {option.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </label>
+                                <label className="field">
+                                  <span>Max services</span>
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    max="30"
+                                    value={sectionForm.blockLimit || '7'}
+                                    onChange={(event) =>
+                                      setSectionForm((prev) => ({
+                                        ...prev,
+                                        blockLimit: event.target.value,
+                                      }))
+                                    }
+                                  />
+                                </label>
+                                <div className="field field-span">
+                                  <p className="field-help">
+                                    Services are fetched live from approved services. Feed mode controls backend sorting:
+                                    Trending, Latest, or Most Booked.
+                                  </p>
+                                </div>
+                              </div>
                             </div>
                           </div>
                         ) : null}
