@@ -38,6 +38,16 @@ const INITIAL_FORM = {
   sellingPrice: '', mrp: '', gstRate: '', minimumOrderQuantity: '',
   thumbnailImage: '', galleryImagesText: '',
   baseUomId: '', defaultStockInUomId: '', defaultStockOutUomId: '',
+  sellingStyle: 'PIECE',
+  sellingModel: 'FIXED_PRICE',
+  sellingUnit: 'PCS',
+  quantityStep: '1',
+  packQuantity: '',
+  packBaseUnit: 'PCS',
+  packQuantityVaries: false,
+  leadTime: '',
+  deliveryAvailable: true,
+  pickupAvailable: true,
 };
 
 const FIELD_TAB_MAP = {
@@ -90,6 +100,16 @@ const FORM_FIELD_TAB_MAP = {
   baseUomId: 'pricing',
   defaultStockInUomId: 'pricing',
   defaultStockOutUomId: 'pricing',
+  sellingStyle: 'pricing',
+  sellingModel: 'pricing',
+  sellingUnit: 'pricing',
+  quantityStep: 'pricing',
+  packQuantity: 'pricing',
+  packBaseUnit: 'pricing',
+  packQuantityVaries: 'pricing',
+  leadTime: 'pricing',
+  deliveryAvailable: 'pricing',
+  pickupAvailable: 'pricing',
 };
 
 const ADMIN_API_BASE = API_ORIGIN;
@@ -664,6 +684,17 @@ function ProductCreatePage({ token }) {
         }
       });
 
+      if (form.sellingStyle) dynamicAttributes.selling_style = form.sellingStyle;
+      if (form.sellingModel) dynamicAttributes.selling_model = form.sellingModel;
+      if (form.sellingUnit) dynamicAttributes.selling_unit = form.sellingUnit;
+      if (form.quantityStep) dynamicAttributes.quantity_step = form.quantityStep;
+      if (form.packQuantity) dynamicAttributes.pack_quantity = form.packQuantity;
+      if (form.packBaseUnit) dynamicAttributes.pack_base_unit = form.packBaseUnit;
+      if (form.packQuantityVaries !== undefined) dynamicAttributes.pack_quantity_varies = form.packQuantityVaries;
+      if (form.leadTime) dynamicAttributes.lead_time = form.leadTime;
+      if (form.deliveryAvailable !== undefined) dynamicAttributes.delivery_available = form.deliveryAvailable;
+      if (form.pickupAvailable !== undefined) dynamicAttributes.pickup_available = form.pickupAvailable;
+
       const payload = {
         userId: Number(form.userId),
         productType: form.productType?.trim() || 'Physical',
@@ -1019,6 +1050,88 @@ function ProductCreatePage({ token }) {
                 <Field label="Minimum Order Qty">
                   <input type="number" placeholder="e.g. 1" min="1" {...inp('minimumOrderQuantity')} />
                 </Field>
+              </div>
+
+              <p className="pcc-section-label" style={{ marginTop: 16 }}>Logistics & Selling Setup</p>
+              <div className="pcc-fgrid">
+                <Field label="Selling Style">
+                  <select {...inp('sellingStyle')}>
+                    <option value="PIECE">Per piece / item</option>
+                    <option value="WEIGHT">By weight</option>
+                    <option value="LENGTH">By length</option>
+                    <option value="VOLUME">By volume</option>
+                    <option value="PACK">In pack / box / bag / roll</option>
+                  </select>
+                </Field>
+                <Field label="Selling Model">
+                  <select {...inp('sellingModel')}>
+                    <option value="FIXED_PRICE">Fixed price</option>
+                    <option value="PRICE_RANGE">Price range</option>
+                    <option value="BULK_PRICE">Bulk price</option>
+                    <option value="DAILY_MARKET_PRICE">Daily market price</option>
+                    <option value="ASK_FOR_PRICE">Ask for price</option>
+                  </select>
+                </Field>
+                <Field label="Selling Unit">
+                  <select {...inp('sellingUnit')}>
+                    <option value="PCS">Piece</option>
+                    <option value="KG">Kilogram</option>
+                    <option value="GM">Gram</option>
+                    <option value="LTR">Liter</option>
+                    <option value="ML">Milliliter</option>
+                    <option value="MTR">Meter</option>
+                    <option value="FT">Feet</option>
+                    <option value="BOX">Box</option>
+                    <option value="DOZEN">Dozen</option>
+                    <option value="BAG">Bag</option>
+                    <option value="ROLL">Roll</option>
+                    <option value="CARTON">Carton</option>
+                    <option value="CUSTOM">Custom</option>
+                  </select>
+                </Field>
+                <Field label="Quantity Step">
+                  <input type="number" placeholder="e.g. 1" min="1" {...inp('quantityStep')} />
+                </Field>
+                <Field label="Lead Time">
+                  <input type="text" placeholder="e.g. 2 days" {...inp('leadTime')} />
+                </Field>
+                <Field label="Delivery Available">
+                  <select value={form.deliveryAvailable ? 'true' : 'false'} onChange={(e) => handleChange('deliveryAvailable', e.target.value === 'true')}>
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                </Field>
+                <Field label="Pickup Available">
+                  <select value={form.pickupAvailable ? 'true' : 'false'} onChange={(e) => handleChange('pickupAvailable', e.target.value === 'true')}>
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                </Field>
+                {form.sellingStyle === 'PACK' && (
+                  <>
+                    <Field label="Pack Quantity">
+                      <input type="number" placeholder="e.g. 12" min="1" {...inp('packQuantity')} />
+                    </Field>
+                    <Field label="Pack Base Unit">
+                      <select {...inp('packBaseUnit')}>
+                        <option value="PCS">Piece</option>
+                        <option value="KG">Kilogram</option>
+                        <option value="GM">Gram</option>
+                        <option value="LTR">Liter</option>
+                        <option value="ML">Milliliter</option>
+                        <option value="MTR">Meter</option>
+                        <option value="FT">Feet</option>
+                        <option value="CUSTOM">Custom</option>
+                      </select>
+                    </Field>
+                    <Field label="Pack Qty Varies">
+                      <select value={form.packQuantityVaries ? 'true' : 'false'} onChange={(e) => handleChange('packQuantityVaries', e.target.value === 'true')}>
+                        <option value="false">No</option>
+                        <option value="true">Yes</option>
+                      </select>
+                    </Field>
+                  </>
+                )}
               </div>
 
               <div className="pcc-section-label-row">
