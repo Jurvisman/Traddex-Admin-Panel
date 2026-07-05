@@ -319,6 +319,16 @@ const initialForm = {
   salesUoms: [],
   uiConfig: '',
   variants: [],
+  sellingStyle: 'PIECE',
+  sellingModel: 'FIXED_PRICE',
+  sellingUnit: 'PCS',
+  quantityStep: '1',
+  packQuantity: '',
+  packBaseUnit: 'PCS',
+  packQuantityVaries: false,
+  leadTime: '',
+  deliveryAvailable: true,
+  pickupAvailable: true,
 };
 
 const createReviewForm = () => ({
@@ -2302,6 +2312,16 @@ function ProductPage({ token, adminUserId }) {
       purchaseUoms: mirroredUoms.purchaseUoms,
       salesUoms: mirroredUoms.salesUoms,
       uiConfig: Object.keys(productUiConfig || {}).length > 0 ? JSON.stringify(productUiConfig) : '',
+      sellingStyle: product.dynamicAttributes?.selling_style || 'PIECE',
+      sellingModel: product.dynamicAttributes?.selling_model || 'FIXED_PRICE',
+      sellingUnit: product.dynamicAttributes?.selling_unit || 'PCS',
+      quantityStep: product.dynamicAttributes?.quantity_step || '1',
+      packQuantity: product.dynamicAttributes?.pack_quantity || '',
+      packBaseUnit: product.dynamicAttributes?.pack_base_unit || 'PCS',
+      packQuantityVaries: product.dynamicAttributes?.pack_quantity_varies || false,
+      leadTime: product.dynamicAttributes?.lead_time || '',
+      deliveryAvailable: product.dynamicAttributes?.delivery_available !== false,
+      pickupAvailable: product.dynamicAttributes?.pickup_available !== false,
       variants: Array.isArray(product.variants)
         ? product.variants.map((variant) => ({
             variantName: variant.variantName || '',
@@ -2560,8 +2580,20 @@ function ProductPage({ token, adminUserId }) {
       if (nextUiConfig) {
         payload.uiConfig = nextUiConfig;
       }
-      if (dynamicAttributes && Object.keys(dynamicAttributes).length > 0) {
-        payload.dynamicAttributes = dynamicAttributes;
+      const finalDynamicAttributes = { ...(dynamicAttributes || {}) };
+      if (form.sellingStyle) finalDynamicAttributes.selling_style = form.sellingStyle;
+      if (form.sellingModel) finalDynamicAttributes.selling_model = form.sellingModel;
+      if (form.sellingUnit) finalDynamicAttributes.selling_unit = form.sellingUnit;
+      if (form.quantityStep) finalDynamicAttributes.quantity_step = form.quantityStep;
+      if (form.packQuantity) finalDynamicAttributes.pack_quantity = form.packQuantity;
+      if (form.packBaseUnit) finalDynamicAttributes.pack_base_unit = form.packBaseUnit;
+      if (form.packQuantityVaries !== undefined) finalDynamicAttributes.pack_quantity_varies = form.packQuantityVaries;
+      if (form.leadTime) finalDynamicAttributes.lead_time = form.leadTime;
+      if (form.deliveryAvailable !== undefined) finalDynamicAttributes.delivery_available = form.deliveryAvailable;
+      if (form.pickupAvailable !== undefined) finalDynamicAttributes.pickup_available = form.pickupAvailable;
+
+      if (Object.keys(finalDynamicAttributes).length > 0) {
+        payload.dynamicAttributes = finalDynamicAttributes;
       }
 
       if (Array.isArray(form.variants) && form.variants.length > 0) {
@@ -3624,6 +3656,105 @@ function ProductPage({ token, adminUserId }) {
                 </ProductEditorField>
               </div>
 
+              <p className="pcc-section-label" style={{ marginTop: 16 }}>Logistics & Selling Setup</p>
+              <div className="pcc-fgrid">
+                <ProductEditorField label="Selling Style">
+                  <select value={form.sellingStyle} onChange={(event) => handleChange('sellingStyle', event.target.value)}>
+                    <option value="PIECE">Per piece / item</option>
+                    <option value="WEIGHT">By weight</option>
+                    <option value="LENGTH">By length</option>
+                    <option value="VOLUME">By volume</option>
+                    <option value="PACK">In pack / box / bag / roll</option>
+                  </select>
+                </ProductEditorField>
+                <ProductEditorField label="Selling Model">
+                  <select value={form.sellingModel} onChange={(event) => handleChange('sellingModel', event.target.value)}>
+                    <option value="FIXED_PRICE">Fixed price</option>
+                    <option value="PRICE_RANGE">Price range</option>
+                    <option value="BULK_PRICE">Bulk price</option>
+                    <option value="DAILY_MARKET_PRICE">Daily market price</option>
+                    <option value="ASK_FOR_PRICE">Ask for price</option>
+                  </select>
+                </ProductEditorField>
+                <ProductEditorField label="Selling Unit">
+                  <select value={form.sellingUnit} onChange={(event) => handleChange('sellingUnit', event.target.value)}>
+                    <option value="PCS">Piece</option>
+                    <option value="KG">Kilogram</option>
+                    <option value="GM">Gram</option>
+                    <option value="LTR">Liter</option>
+                    <option value="ML">Milliliter</option>
+                    <option value="MTR">Meter</option>
+                    <option value="FT">Feet</option>
+                    <option value="BOX">Box</option>
+                    <option value="DOZEN">Dozen</option>
+                    <option value="BAG">Bag</option>
+                    <option value="ROLL">Roll</option>
+                    <option value="CARTON">Carton</option>
+                    <option value="CUSTOM">Custom</option>
+                  </select>
+                </ProductEditorField>
+                <ProductEditorField label="Quantity Step">
+                  <input
+                    type="number"
+                    value={form.quantityStep}
+                    onChange={(event) => handleChange('quantityStep', event.target.value)}
+                    placeholder="e.g. 1"
+                    min="1"
+                  />
+                </ProductEditorField>
+                <ProductEditorField label="Lead Time">
+                  <input
+                    type="text"
+                    value={form.leadTime}
+                    onChange={(event) => handleChange('leadTime', event.target.value)}
+                    placeholder="e.g. 2 days"
+                  />
+                </ProductEditorField>
+                <ProductEditorField label="Delivery Available">
+                  <select value={form.deliveryAvailable ? 'true' : 'false'} onChange={(e) => handleChange('deliveryAvailable', e.target.value === 'true')}>
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                </ProductEditorField>
+                <ProductEditorField label="Pickup Available">
+                  <select value={form.pickupAvailable ? 'true' : 'false'} onChange={(e) => handleChange('pickupAvailable', e.target.value === 'true')}>
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                </ProductEditorField>
+                {form.sellingStyle === 'PACK' && (
+                  <>
+                    <ProductEditorField label="Pack Quantity">
+                      <input
+                        type="number"
+                        value={form.packQuantity}
+                        onChange={(event) => handleChange('packQuantity', event.target.value)}
+                        placeholder="e.g. 12"
+                        min="1"
+                      />
+                    </ProductEditorField>
+                    <ProductEditorField label="Pack Base Unit">
+                      <select value={form.packBaseUnit} onChange={(event) => handleChange('packBaseUnit', event.target.value)}>
+                        <option value="PCS">Piece</option>
+                        <option value="KG">Kilogram</option>
+                        <option value="GM">Gram</option>
+                        <option value="LTR">Liter</option>
+                        <option value="ML">Milliliter</option>
+                        <option value="MTR">Meter</option>
+                        <option value="FT">Feet</option>
+                        <option value="CUSTOM">Custom</option>
+                      </select>
+                    </ProductEditorField>
+                    <ProductEditorField label="Pack Qty Varies">
+                      <select value={form.packQuantityVaries ? 'true' : 'false'} onChange={(e) => handleChange('packQuantityVaries', e.target.value === 'true')}>
+                        <option value="false">No</option>
+                        <option value="true">Yes</option>
+                      </select>
+                    </ProductEditorField>
+                  </>
+                )}
+              </div>
+
               <div className="pcc-section-label-row">
                 <span className="pcc-section-label" style={{ marginBottom: 0 }}>Unit of Measure (UOM)</span>
                 <button
@@ -4319,6 +4450,18 @@ function ProductPage({ token, adminUserId }) {
     { label: 'Internal Notes', value: formatValue(selectedProduct?.internalNotes), spanFull: true },
     { label: 'Review Note', value: formatValue(selectedProduct?.reviewRemarks), spanFull: true },
   ];
+  const logisticsViewFields = [
+    { label: 'Selling Style', value: formatValue(selectedProduct?.dynamicAttributes?.selling_style) },
+    { label: 'Selling Model', value: formatValue(selectedProduct?.dynamicAttributes?.selling_model) },
+    { label: 'Selling Unit', value: formatValue(selectedProduct?.dynamicAttributes?.selling_unit) },
+    { label: 'Quantity Step', value: formatValue(selectedProduct?.dynamicAttributes?.quantity_step) },
+    { label: 'Pack Quantity', value: formatValue(selectedProduct?.dynamicAttributes?.pack_quantity) },
+    { label: 'Pack Base Unit', value: formatValue(selectedProduct?.dynamicAttributes?.pack_base_unit) },
+    { label: 'Pack Quantity Varies', value: formatValue(selectedProduct?.dynamicAttributes?.pack_quantity_varies) },
+    { label: 'Lead Time', value: formatValue(selectedProduct?.dynamicAttributes?.lead_time) },
+    { label: 'Delivery Available', value: formatValue(selectedProduct?.dynamicAttributes?.delivery_available) },
+    { label: 'Pickup Available', value: formatValue(selectedProduct?.dynamicAttributes?.pickup_available) },
+  ];
   const productReviewSummaryCards = [
     {
       label: 'Average Rating',
@@ -4842,6 +4985,7 @@ function ProductPage({ token, adminUserId }) {
           {renderPvDetailSection('General Information', generalViewFields)}
           {renderPvDetailSection('Description', descriptionViewFields)}
           {renderPvDetailSection('Classification & Attributes', classificationViewFields)}
+          {renderPvDetailSection('Logistics & Selling Setup', logisticsViewFields)}
           {/* Dynamic Specifications */}
           {false ? (
             <div className="pvr-section">
