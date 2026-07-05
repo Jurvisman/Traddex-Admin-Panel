@@ -11,6 +11,7 @@ const initialForm = {
   feature_code: '',
   feature_name: '',
   feature_type: 'COUNT',
+  limit_type: 'MONTHLY_CREDIT',
   is_active: '1',
 };
 
@@ -18,6 +19,11 @@ const FEATURE_TYPES = [
   { value: 'COUNT', label: 'Count' },
   { value: 'ACCESS', label: 'Access' },
   { value: 'PRIORITY', label: 'Priority' },
+];
+
+const LIMIT_TYPES = [
+  { value: 'MONTHLY_CREDIT', label: 'Monthly Credit' },
+  { value: 'ACTIVE_LIMIT', label: 'Active Limit' },
 ];
 
 function SubscriptionFeaturePage({ token }) {
@@ -76,6 +82,7 @@ function SubscriptionFeaturePage({ token }) {
       feature_code: form.feature_code.trim(),
       feature_name: form.feature_name.trim(),
       feature_type: form.feature_type,
+      limit_type: form.limit_type,
       is_active: Number(form.is_active),
     };
 
@@ -103,6 +110,7 @@ function SubscriptionFeaturePage({ token }) {
       feature_code: feature.code || '',
       feature_name: feature.name || '',
       feature_type: feature.type || 'COUNT',
+      limit_type: feature.limit_type || feature.feature_limit_type || feature.limitType || 'MONTHLY_CREDIT',
       is_active: feature.is_active !== null && feature.is_active !== undefined ? String(feature.is_active) : '1',
     });
     setEditingId(feature.id);
@@ -183,6 +191,19 @@ function SubscriptionFeaturePage({ token }) {
                 </select>
               </label>
               <label className="field">
+                <span>Limit rule</span>
+                <select
+                  value={form.limit_type}
+                  onChange={(event) => handleChange('limit_type', event.target.value)}
+                >
+                  {LIMIT_TYPES.map((type) => (
+                    <option key={type.value} value={type.value}>
+                      {type.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
                 <span>Status</span>
                 <select value={form.is_active} onChange={(event) => handleChange('is_active', event.target.value)}>
                   <option value="1">Active</option>
@@ -256,6 +277,7 @@ function SubscriptionFeaturePage({ token }) {
                     <th>Code</th>
                     <th>Name</th>
                     <th>Type</th>
+                    <th>Limit Rule</th>
                     <th>Status</th>
                     <th className="table-actions">Actions</th>
                   </tr>
@@ -269,6 +291,7 @@ function SubscriptionFeaturePage({ token }) {
                         <td>{feature.code}</td>
                         <td>{feature.name}</td>
                         <td>{feature.type}</td>
+                        <td>{(feature.limit_type || feature.feature_limit_type || feature.limitType || 'MONTHLY_CREDIT').replace(/_/g, ' ')}</td>
                         <td>
                           <span className={`status-pill ${isActive ? 'approved' : 'rejected'}`}>
                             {isActive ? 'Active' : 'Inactive'}

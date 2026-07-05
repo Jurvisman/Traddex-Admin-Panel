@@ -70,7 +70,6 @@ const SERVICE_TABLE_COLUMN_OPTIONS = [
   { key: 'subCategory', label: 'Sub-Category', minWidth: 170 },
   { key: 'serviceType', label: 'Service Type', minWidth: 150 },
   { key: 'pricingModel', label: 'Pricing Model', minWidth: 150 },
-  { key: 'bookingMode', label: 'Booking Flow', minWidth: 150 },
   { key: 'serviceUom', label: 'UOM', minWidth: 110 },
   { key: 'basePrice', label: 'Base Price', minWidth: 130 },
   { key: 'priceUnit', label: 'Price Unit', minWidth: 130 },
@@ -93,7 +92,6 @@ const INITIAL_SERVICE_COLUMN_VISIBILITY = {
   subCategory: false,
   serviceType: true,
   pricingModel: true,
-  bookingMode: false,
   serviceUom: true,
   basePrice: true,
   priceUnit: false,
@@ -431,7 +429,7 @@ function ServicePage({ token, adminUserId }) {
     const pricingModel = String(svc.pricingModel || '').toUpperCase();
     const quoteOnly = pricingModel === 'ASK_QUOTE';
     const hasPrice = quoteOnly || (svc.basePrice !== null && svc.basePrice !== undefined && svc.basePrice !== '');
-    const hasServiceSetup = Boolean(svc.serviceType && svc.serviceLocationType && svc.bookingMode);
+    const hasServiceSetup = Boolean(svc.serviceType && svc.serviceLocationType);
     const hasDescription = Boolean(svc.shortDescription || svc.fullDescription);
     const hasScope = Boolean(svc.includedItems || svc.customerRequirements || svc.keyFeatures || svc.fullDescription);
     const categoryDetail = reviewCategoryComplete
@@ -450,8 +448,8 @@ function ServicePage({ token, adminUserId }) {
         label: 'Service Setup',
         status: hasServiceSetup ? 'ready' : 'missing',
         detail: hasServiceSetup
-          ? [formatValue(svc.serviceType), formatValue(svc.serviceLocationType), formatValue(svc.bookingMode)].join(' / ')
-          : 'Service type, work location and booking flow should be selected.',
+          ? [formatValue(svc.serviceType), formatValue(svc.serviceLocationType)].join(' / ')
+          : 'Service type and work location should be selected.',
       },
       {
         label: 'Service Details',
@@ -787,8 +785,6 @@ function ServicePage({ token, adminUserId }) {
         return <span className="product-table-primary">{formatEnum(svc?.serviceType)}</span>;
       case 'pricingModel':
         return <span className="product-table-primary">{formatEnum(svc?.pricingModel)}</span>;
-      case 'bookingMode':
-        return <span className="product-table-primary">{formatEnum(svc?.bookingMode)}</span>;
       case 'serviceUom':
         return <span className="product-table-primary">{formatValue(svc?.serviceUom)}</span>;
       case 'basePrice':
@@ -1004,7 +1000,6 @@ function ServicePage({ token, adminUserId }) {
           <div className="field-grid">
             <div className="field"><span>Service Type</span><strong>{formatEnum(selectedService.serviceType)}</strong></div>
             <div className="field"><span>Work Location</span><strong>{formatEnum(selectedService.serviceLocationType)}</strong></div>
-            <div className="field"><span>Booking Flow</span><strong>{formatEnum(selectedService.bookingMode)}</strong></div>
             <div className="field"><span>Lead Time</span><strong>{formatValue(selectedService.leadTime)}</strong></div>
             <div className="field"><span>Coverage Area</span><strong>{formatValue(selectedService.coverageArea)}</strong></div>
             <div className="field"><span>Radius</span><strong>{selectedService.serviceRadiusKm ? `${selectedService.serviceRadiusKm} km` : '—'}</strong></div>

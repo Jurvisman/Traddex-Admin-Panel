@@ -43,6 +43,7 @@ import {
   AdvertisementRevenuePage,
   PurchaseOrdersPage,
   SalesOrdersPage,
+  EscrowPayoutsPage,
   AdvertisementReviewPage,
   AdvertisementViewPage,
   AdPricingConfigPage,
@@ -422,6 +423,11 @@ const ADMIN_META = [
     title: 'Sales Orders',
     subtitle: 'Orders from the seller/business perspective.',
   },
+  {
+    match: '/admin/orders/payouts',
+    title: 'Escrow Payouts',
+    subtitle: 'Manage seller escrow funds and payouts (Held, Due, Paid).',
+  },
 ];
 
 const getAdminMeta = (pathname) => {
@@ -514,19 +520,306 @@ function RequireAuth({ token, children }) {
   return children;
 }
 
-function AdminLayout({ navItems, onLogout }) {
+function AdminLayout({ navItems, onLogout, token }) {
   const location = useLocation();
   const pageMeta = useMemo(() => getAdminMeta(location.pathname), [location.pathname]);
+  const [refundAlert, setRefundAlert] = useState(null);
+  const [manualPaymentId, setManualPaymentId] = useState('');
+  const [audioInterval, setAudioInterval] = useState(null);
+
+  // Helper to start the dynamic audio alert (alarm tune) using Web Audio API
+  const startAlarmSound = () => {
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+      const ctx = new AudioContext();
+
+      // Play beeps in intervals
+      const intervalId = setInterval(() => {
+        try {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(880, ctx.currentTime); // A5 note
+          gain.gain.setValueAtTime(0.15, ctx.currentTime);
+
+          osc.start();
+          osc.stop(ctx.currentTime + 0.2); // beep for 200ms
+        } catch (err) {
+          console.error("Audio error", err);
+        }
+      }, 500); // every 500ms
+
+      setAudioInterval((prev) => {
+        if (prev) clearInterval(prev);
+        return intervalId;
+      });
+    } catch (e) {
+      console.error("AudioContext initialization failed", e);
+    }
+  };
+
+  // Helper to stop the audio alert
+  const stopAlarmSound = () => {
+    setAudioInterval((prev) => {
+      if (prev) {
+        clearInterval(prev);
+      }
+      return null;
+    });
+  };
+
+  useEffect(() => {
+    if (!token) return;
+
+    let socket = null;
+    let reconnectTimeout = null;
+
+    const getWebSocketUrl = (tok) => {
+      const base = process.env.REACT_APP_API_BASE || 'http://localhost:8080';
+      const wsProto = base.startsWith('https') ? 'wss' : 'ws';
+      const host = base.replace(/^https?:\/\//, '');
+      return `${wsProto}://${host}/ws?token=${encodeURIComponent(tok)}`;
+    };
+
+    const connectWs = () => {
+      try {
+        const url = getWebSocketUrl(token);
+        socket = new WebSocket(url);
+
+        socket.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'ESCROW_REFUND_ALERT') {
+              setRefundAlert(data);
+              setManualPaymentId(data.paymentId || '');
+              startAlarmSound();
+            }
+          } catch (err) {
+            console.error("WebSocket message error", err);
+          }
+        };
+
+        socket.onclose = () => {
+          reconnectTimeout = setTimeout(connectWs, 5000);
+        };
+
+        socket.onerror = (err) => {
+          console.error("WebSocket error", err);
+        };
+      } catch (err) {
+        console.error("WebSocket connection initiation failed", err);
+      }
+    };
+
+    connectWs();
+
+    return () => {
+      if (socket) {
+        socket.onclose = null;
+        socket.close();
+      }
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+      stopAlarmSound();
+    };
+  }, [token]);
+
+  const handleRefund = async (orderNumber, paymentId) => {
+    if (!paymentId || !paymentId.trim()) {
+      alert("Please provide the Razorpay Payment ID to trigger the refund.");
+      return;
+    }
+    try {
+      const apiBase = process.env.REACT_APP_API_BASE || 'http://localhost:8080';
+      const response = await fetch(`${apiBase}/admin/storefront/orders/${orderNumber}/refund`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ razorpayPaymentId: paymentId.trim() })
+      });
+      const resData = await response.json();
+      if (response.ok) {
+        alert("Refund triggered successfully via Razorpay!");
+        stopAlarmSound();
+        setRefundAlert(null);
+      } else {
+        alert("Refund trigger failed: " + (resData.message || "Unknown error"));
+      }
+    } catch (err) {
+      alert("Error calling refund API: " + err.message);
+    }
+  };
+
+  const handleAcknowledge = () => {
+    stopAlarmSound();
+    setRefundAlert(null);
+  };
 
   return (
-    <AdminShell
-      navItems={navItems}
-      onLogout={onLogout}
-      pageTitle={pageMeta.title}
-      pageSubtitle={pageMeta.subtitle}
-    >
-      <Outlet />
-    </AdminShell>
+    <>
+      <AdminShell
+        navItems={navItems}
+        onLogout={onLogout}
+        pageTitle={pageMeta.title}
+        pageSubtitle={pageMeta.subtitle}
+      >
+        <Outlet />
+      </AdminShell>
+
+      {/* Escrow Refund Overlay Modal */}
+      {refundAlert && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'rgba(15, 12, 22, 0.75)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 99999
+        }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #1f1b2e 0%, #171424 100%)',
+            border: '2px solid rgba(239, 68, 68, 0.4)',
+            borderRadius: '16px',
+            padding: '32px',
+            maxWidth: '480px',
+            width: '90%',
+            boxShadow: '0 8px 32px rgba(239, 68, 68, 0.25), 0 0 20px rgba(0, 0, 0, 0.5)',
+            textAlign: 'center',
+            color: '#f3f4f6',
+            fontFamily: 'system-ui, -apple-system, sans-serif'
+          }}>
+            {/* Pulsing Alarm Ring */}
+            <div style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(239, 68, 68, 0.15)',
+              border: '2px solid #ef4444',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              margin: '0 auto 20px'
+            }}>
+              <svg style={{ width: '32px', height: '32px', color: '#ef4444' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '22px', fontWeight: '700', color: '#f3f4f6' }}>
+              ESCROW REFUND ALERT
+            </h3>
+            <p style={{ margin: '0 0 20px 0', fontSize: '14px', color: '#9ca3af' }}>
+              A customer payment needs immediate refunding due to a canceled storefront order.
+            </p>
+
+            {/* Alert Details Table */}
+            <div style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+              borderRadius: '8px',
+              padding: '16px',
+              textAlign: 'left',
+              fontSize: '14px',
+              marginBottom: '24px',
+              border: '1px solid rgba(255, 255, 255, 0.1)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ color: '#9ca3af' }}>Order Number:</span>
+                <span style={{ fontWeight: '600', color: '#ef4444' }}>{refundAlert.orderNumber}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ color: '#9ca3af' }}>Amount:</span>
+                <span style={{ fontWeight: '600', color: '#10b981' }}>₹{Number(refundAlert.amount).toFixed(2)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ color: '#9ca3af' }}>Reason:</span>
+                <span style={{ color: '#f3f4f6' }}>{refundAlert.reason}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ color: '#9ca3af' }}>Buyer Name:</span>
+                <span style={{ color: '#f3f4f6' }}>{refundAlert.buyerName}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: '#9ca3af' }}>Buyer Phone:</span>
+                <span style={{ color: '#f3f4f6' }}>{refundAlert.buyerPhone}</span>
+              </div>
+            </div>
+
+            {/* Manual Payment ID Input */}
+            <div style={{ marginBottom: '24px', textAlign: 'left' }}>
+              <label style={{ display: 'block', fontSize: '13px', color: '#9ca3af', marginBottom: '6px', fontWeight: '500' }}>
+                Confirm Razorpay Payment ID:
+              </label>
+              <input
+                type="text"
+                value={manualPaymentId}
+                onChange={(e) => setManualPaymentId(e.target.value)}
+                placeholder="e.g. pay_N2hK8zJ9xQW"
+                style={{
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                  color: '#f3f4f6',
+                  fontSize: '14px',
+                  outline: 'none'
+                }}
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                type="button"
+                onClick={() => handleRefund(refundAlert.orderNumber, manualPaymentId)}
+                style={{
+                  flex: 1,
+                  padding: '12px 16px',
+                  backgroundColor: '#ef4444',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                Refund Instantly
+              </button>
+              <button
+                type="button"
+                onClick={handleAcknowledge}
+                style={{
+                  padding: '12px 16px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  color: '#9ca3af',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                Acknowledge & Mute
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -703,6 +996,7 @@ function AppRoutes() {
             children: [
               { path: '/admin/orders/purchase', label: 'Purchase Orders', icon: ICONS.orders, tone: NAV_TONES.orders },
               { path: '/admin/orders/sales', label: 'Sales Orders', icon: ICONS.orders, tone: NAV_TONES.orders },
+              { path: '/admin/orders/payouts', label: 'Escrow Payouts', icon: ICONS.revenue, tone: NAV_TONES.orders },
               { path: '/admin/orders/disputes', label: 'Order Disputes', icon: ICONS.disputes, tone: NAV_TONES.orders },
               { path: '/admin/orders/returns', label: 'Order Returns', icon: ICONS.returns, tone: NAV_TONES.orders },
               { path: '/admin/orders/reviews', label: 'Review Moderation', icon: ICONS.settingsRole, tone: NAV_TONES.orders },
@@ -761,7 +1055,9 @@ function AppRoutes() {
       path === '/admin/storefront' ||
       path.startsWith('/admin/storefront/') ||
       path === '/admin/support/waitlist' ||
-      path.startsWith('/admin/support/waitlist')
+      path.startsWith('/admin/support/waitlist') ||
+      path === '/admin/orders/payouts' ||
+      path.startsWith('/admin/orders/payouts')
     )
       return true;
     return hasPathAccess(allowedPaths, path);
@@ -774,6 +1070,7 @@ function AppRoutes() {
 
     const canSeeNavPath = (path) => {
       if (!path) return true;
+      if (path === '/admin/orders/payouts') return true;
       return hasPathAccess(allowedPaths, path);
     };
 
@@ -887,7 +1184,7 @@ function AppRoutes() {
         element={
           <RequireAuth token={authToken}>
             <PermissionsContext.Provider value={permissionsValue}>
-              <AdminLayout navItems={navItems} onLogout={handleLogout} />
+              <AdminLayout navItems={navItems} onLogout={handleLogout} token={authToken} />
             </PermissionsContext.Provider>
           </RequireAuth>
         }
@@ -1602,6 +1899,18 @@ function AppRoutes() {
               fallbackPath={routeFallbackPath}
             >
               <PurchaseOrdersPage token={authToken} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="orders/payouts"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={canAccessPath('/admin/orders/payouts')}
+              fallbackPath={routeFallbackPath}
+            >
+              <EscrowPayoutsPage token={authToken} />
             </PermissionGate>
           }
         />

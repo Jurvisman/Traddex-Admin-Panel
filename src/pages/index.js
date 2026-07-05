@@ -40,6 +40,7 @@ export { default as SubscriptionRevenuePage } from './SubscriptionRevenuePage';
 export { default as AdvertisementRevenuePage } from './AdvertisementRevenuePage';
 export { default as PurchaseOrdersPage } from './PurchaseOrdersPage';
 export { default as SalesOrdersPage } from './SalesOrdersPage';
+export { default as EscrowPayoutsPage } from './EscrowPayoutsPage';
 export { default as AdvertisementReviewPage } from './AdvertisementReviewPage';
 export { default as AdvertisementViewPage } from './AdvertisementViewPage';
 export { default as AdPricingConfigPage } from './AdPricingConfigPage';

@@ -7,6 +7,7 @@ import {
   toNumberOrNull,
   resolveMultiItemGridDataSourceRef,
   resolveMultiItemGridFeedMode,
+  resolveServiceDataSourceRef,
   resolveDefaultCategoryFeedMode,
   parseCsvList,
   fromLocalInputValue,
@@ -67,6 +68,7 @@ export const buildSectionFromForm = (base, form) => {
   const isCampaignBentoBlock = resolvedBlockType === 'campaignBento';
   const isPhaseOneProductShelfBlock = resolvedBlockType === 'product_shelf_horizontal';
   const isProductCardCarouselBlock = resolvedBlockType === 'product_card_carousel';
+  const isServiceCardCarouselBlock = resolvedBlockType === 'service_card_carousel';
   const isCategoryIconGridBlock = resolvedBlockType === 'category_icon_grid';
   const isPlaceCardCarouselBlock = resolvedBlockType === 'beauty_salon_carousel';
   const isTabbedProductShelfBlock = resolvedBlockType === 'tabbed_product_shelf';
@@ -76,6 +78,7 @@ export const buildSectionFromForm = (base, form) => {
     isCampaignBentoBlock ||
     isPhaseOneProductShelfBlock ||
     isProductCardCarouselBlock ||
+    isServiceCardCarouselBlock ||
     isCategoryIconGridBlock ||
     isPlaceCardCarouselBlock ||
     isTabbedProductShelfBlock ||
@@ -101,6 +104,7 @@ export const buildSectionFromForm = (base, form) => {
   setOrDelete('text', form.text?.trim());
   setOrDelete('actionText', form.actionText?.trim());
   setOrDelete('actionLink', form.actionLink?.trim());
+  setOrDelete('ctaText', form.ctaText?.trim());
   if (resolvedBlockType === 'quick_action_row') {
     setOrDelete('quickActionPreset', form.quickActionPreset?.trim() || 'electronics');
   } else {
@@ -428,6 +432,27 @@ export const buildSectionFromForm = (base, form) => {
       delete next.itemsPath;
     }
   }
+  if (isServiceCardCarouselBlock) {
+    delete next.mapping;
+    const feedMode = String(form.blockFeedMode || form.productFeedMode || 'TRENDING').trim().toUpperCase();
+    const limit = toSafeLimit(form.blockLimit || form.productLimit, 1, 30, 7);
+    const sourceIndustryId = normalizeCollectionId(form.sourceIndustryId);
+    const sourceMainCategoryId = normalizeCollectionId(form.sourceMainCategoryId);
+    const sourceCategoryIds = Array.isArray(form.sourceCategoryIds)
+      ? form.sourceCategoryIds.map((value) => normalizeCollectionId(value)).filter(Boolean)
+      : [];
+    next.dataSourceRef = resolveServiceDataSourceRef(feedMode);
+    next.itemsPath = '$.services';
+    next.dataSource = {
+      sourceType: 'SERVICE_FEED',
+      feedMode,
+      limit,
+      ...(sourceIndustryId ? { industryId: sourceIndustryId } : {}),
+      ...(sourceMainCategoryId ? { mainCategoryId: sourceMainCategoryId } : {}),
+      ...(sourceCategoryIds.length ? { categoryIds: sourceCategoryIds } : {}),
+    };
+    delete next.items;
+  }
   if (isPhaseOneProductShelfBlock) {
     const hasFeedSource = Boolean(String(form.dataSourceRef || '').trim());
     if (hasFeedSource) {
@@ -624,6 +649,7 @@ export const buildSectionFormFromConfig = (section, fallbackType) => {
     text: section?.text || '',
     actionText: section?.actionText || '',
     actionLink: section?.actionLink || '',
+    ctaText: section?.ctaText || defaultSectionForm.ctaText,
     quickActionPreset:
       section?.quickActionPreset ||
       (legacyBlockType === 'beauty_quick_actions' ? 'beauty' : defaultSectionForm.quickActionPreset),
@@ -755,19 +781,25 @@ export const buildSectionFormFromConfig = (section, fallbackType) => {
     blockDataSourceType:
       resolvedBlockType === 'tabbed_product_shelf'
         ? String(source?.sourceType || 'MANUAL').trim().toUpperCase()
+        : resolvedBlockType === 'service_card_carousel'
+          ? String(source?.sourceType || 'SERVICE_FEED').trim().toUpperCase()
         : resolvedBlockType === 'shop_card_carousel'
           ? String(source?.sourceType || 'SHOP_FEED').trim().toUpperCase()
           : defaultSectionForm.blockDataSourceType,
     blockFeedMode:
       resolvedBlockType === 'tabbed_product_shelf'
         ? String(source?.feedMode || 'BESTSELLER').trim().toUpperCase()
+        : resolvedBlockType === 'service_card_carousel'
+          ? String(source?.feedMode || 'TRENDING').trim().toUpperCase()
         : defaultSectionForm.blockFeedMode,
     blockTabField:
       resolvedBlockType === 'tabbed_product_shelf'
         ? String(source?.tabField || 'mainCategoryName').trim()
         : defaultSectionForm.blockTabField,
     blockLimit:
-      (resolvedBlockType === 'tabbed_product_shelf' || resolvedBlockType === 'shop_card_carousel') &&
+      (resolvedBlockType === 'tabbed_product_shelf' ||
+        resolvedBlockType === 'shop_card_carousel' ||
+        resolvedBlockType === 'service_card_carousel') &&
       source?.limit !== undefined && source?.limit !== null
         ? String(source.limit)
         : defaultSectionForm.blockLimit,

@@ -505,6 +505,13 @@ export const listOrderReturns = (token, status) => {
 export const overrideOrderReturn = (token, returnId, payload) =>
   request(`/admin/orders/returns/${returnId}/override`, { method: 'POST', body: payload, token });
 
+export const listPayoutOrders = (token, payoutStatus) => {
+  const query = payoutStatus ? `?payoutStatus=${encodeURIComponent(payoutStatus)}` : '';
+  return request(`/admin/orders/payouts${query}`, { token });
+};
+export const confirmPayout = (token, id, isStorefront) =>
+  request(`/admin/orders/payouts/${id}/confirm${isStorefront ? '?isStorefront=true' : ''}`, { method: 'POST', token });
+
 export const getUserBusinessScore = (token, userId) =>
   request(`/admin/business-score?user_id=${userId}`, { token });
 
