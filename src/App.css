@@ -44,33 +44,30 @@ textarea {
 }
 
 .auth-viewport {
-  min-height: 100vh;
+  height: 100vh;
+  width: 100vw;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  background: #f8fafc;
+  align-items: stretch;
+  justify-content: stretch;
+  background: #ffffff;
   position: relative;
   overflow: hidden;
 }
 
 .login-layout {
-  max-width: 1200px;
   width: 100%;
-  min-height: 580px;
+  height: 100vh;
   display: grid;
-  grid-template-columns: 1.2fr 1fr;
+  grid-template-columns: 1.3fr 1fr;
   background: #ffffff;
-  border-radius: 40px;
-  overflow: hidden;
-  box-shadow: 0 50px 100px -20px rgba(0, 0, 0, 0.08), 0 30px 60px -30px rgba(0, 0, 0, 0.1);
   position: relative;
   z-index: 10;
+  overflow: hidden;
 }
 
 .login-illustration-pane {
   background: #ffffff;
-  padding: 40px;
+  padding: 60px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -85,20 +82,18 @@ textarea {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0px;
+  gap: 32px;
 }
 
 .login-logo-center-group {
-  margin-bottom: 0px;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
 .login-logo-image-center {
-  height: 300px;
+  height: 70px;
   width: auto;
-  margin-bottom: -100px;
   filter: none;
 }
 
@@ -116,7 +111,7 @@ textarea {
 
 .login-main-illustration {
   width: 100%;
-  max-width: 440px;
+  max-width: 640px;
   margin: 0 auto;
   display: block;
 }
@@ -128,7 +123,7 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-left: 1px solid #f1f5f9;
+  height: 100vh;
 }
 
 .login-form-shell {
@@ -209,17 +204,15 @@ textarea {
   border: none;
   cursor: pointer;
   width: 100%;
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  box-shadow: 0 10px 20px rgba(123, 97, 255, 0.3);
+  transition: all 0.2s ease;
 }
 
 .pill-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 15px 30px rgba(123, 97, 255, 0.4);
+  opacity: 0.9;
 }
 
 .pill-btn:active {
-  transform: translateY(0);
+  transform: scale(0.98);
 }
 
 .app-visibility-page {
@@ -497,7 +490,7 @@ textarea {
 
 @media (max-width: 1024px) {
   .login-layout {
-    max-width: 900px;
+    max-width: none;
     grid-template-columns: 1fr 1.2fr;
   }
 }
@@ -505,8 +498,8 @@ textarea {
 @media (max-width: 768px) {
   .login-layout {
     grid-template-columns: 1fr;
-    max-width: 480px;
-    border-radius: 30px;
+    max-width: none;
+    border-radius: 0;
   }
 
   .login-illustration-pane {
@@ -514,7 +507,7 @@ textarea {
   }
 
   .login-form-pane {
-    padding: 40px 30px;
+    padding: 40px 24px;
   }
 }
 
