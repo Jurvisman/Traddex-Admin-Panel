@@ -329,6 +329,7 @@ const initialForm = {
   leadTime: '',
   deliveryAvailable: true,
   pickupAvailable: true,
+  weight: '0.5',
 };
 
 const createReviewForm = () => ({
@@ -2322,6 +2323,7 @@ function ProductPage({ token, adminUserId }) {
       leadTime: product.dynamicAttributes?.lead_time || '',
       deliveryAvailable: product.dynamicAttributes?.delivery_available !== false,
       pickupAvailable: product.dynamicAttributes?.pickup_available !== false,
+      weight: product.weight !== null && product.weight !== undefined ? String(product.weight) : '0.5',
       variants: Array.isArray(product.variants)
         ? product.variants.map((variant) => ({
             variantName: variant.variantName || '',
@@ -2536,6 +2538,7 @@ function ProductPage({ token, adminUserId }) {
         sellingPrice: Number(form.sellingPrice),
         mrp: Number(form.mrp),
         gstRate: Number(form.gstRate),
+        weight: form.weight ? Number(form.weight) : 0.5,
       };
       if (form.subCategoryId) {
         payload.subCategoryId = Number(form.subCategoryId);
@@ -3716,6 +3719,18 @@ function ProductPage({ token, adminUserId }) {
                     <option value="false">No</option>
                   </select>
                 </ProductEditorField>
+                {form.deliveryAvailable && (
+                  <ProductEditorField label="Weight (in kg)">
+                    <input
+                      type="number"
+                      value={form.weight}
+                      onChange={(event) => handleChange('weight', event.target.value)}
+                      placeholder="e.g. 0.5"
+                      min="0.01"
+                      step="0.01"
+                    />
+                  </ProductEditorField>
+                )}
                 <ProductEditorField label="Pickup Available">
                   <select value={form.pickupAvailable ? 'true' : 'false'} onChange={(e) => handleChange('pickupAvailable', e.target.value === 'true')}>
                     <option value="true">Yes</option>
@@ -4424,6 +4439,7 @@ function ProductPage({ token, adminUserId }) {
     { label: 'Rack / Bin', value: formatValue(selectedProduct?.rackBinNumber) },
     { label: 'Shipping Available', value: formatValue(selectedProduct?.shippingAvailable) },
     { label: 'Shipping Type', value: formatValue(selectedProduct?.shippingType) },
+    { label: 'Weight', value: selectedProduct?.weight !== null && selectedProduct?.weight !== undefined ? `${selectedProduct.weight} kg` : '-' },
     { label: 'Return Policy', value: formatValue(selectedProduct?.returnPolicy), spanFull: true },
   ];
   const companyViewFields = [

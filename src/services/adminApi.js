@@ -512,6 +512,26 @@ export const listPayoutOrders = (token, payoutStatus) => {
 export const confirmPayout = (token, id, isStorefront) =>
   request(`/admin/orders/payouts/${id}/confirm${isStorefront ? '?isStorefront=true' : ''}`, { method: 'POST', token });
 
+export const listManualDeliveryClaims = (token, status) => {
+  const query = status ? `?status=${encodeURIComponent(status)}` : '';
+  return request(`/admin/orders/payouts/manual-delivery-claims${query}`, { token });
+};
+
+export const reviewManualDeliveryClaim = (token, claimId, payload = {}) => {
+  const params = new URLSearchParams();
+  params.set('status', payload.status || 'APPROVED');
+  if (payload.approvedAmount !== undefined && payload.approvedAmount !== null && payload.approvedAmount !== '') {
+    params.set('approvedAmount', payload.approvedAmount);
+  }
+  if (payload.adminNote) {
+    params.set('adminNote', payload.adminNote);
+  }
+  return request(`/admin/orders/payouts/manual-delivery-claims/${claimId}/review?${params.toString()}`, {
+    method: 'POST',
+    token,
+  });
+};
+
 export const getUserBusinessScore = (token, userId) =>
   request(`/admin/business-score?user_id=${userId}`, { token });
 
