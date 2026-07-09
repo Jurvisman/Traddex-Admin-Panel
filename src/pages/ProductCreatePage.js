@@ -48,6 +48,7 @@ const INITIAL_FORM = {
   leadTime: '',
   deliveryAvailable: true,
   pickupAvailable: true,
+  weight: '0.5',
 };
 
 const FIELD_TAB_MAP = {
@@ -110,6 +111,7 @@ const FORM_FIELD_TAB_MAP = {
   leadTime: 'pricing',
   deliveryAvailable: 'pricing',
   pickupAvailable: 'pricing',
+  weight: 'pricing',
 };
 
 const ADMIN_API_BASE = API_ORIGIN;
@@ -721,6 +723,7 @@ function ProductCreatePage({ token }) {
         mrp: Number(form.mrp),
         gstRate: Number(form.gstRate),
         minimumOrderQuantity: form.minimumOrderQuantity ? Number(form.minimumOrderQuantity) : null,
+        weight: form.weight ? Number(form.weight) : 0.5,
         thumbnailImage: form.thumbnailImage.trim() || '',
         galleryImages: parseList(form.galleryImagesText),
         approvalStatus: mode === 'submit' ? 'PENDING_REVIEW' : 'DRAFT',
@@ -1101,6 +1104,17 @@ function ProductCreatePage({ token }) {
                     <option value="false">No</option>
                   </select>
                 </Field>
+                {form.deliveryAvailable && (
+                  <Field label="Weight (in kg)">
+                    <input
+                      type="number"
+                      placeholder="e.g. 0.5"
+                      min="0.01"
+                      step="0.01"
+                      {...inp('weight')}
+                    />
+                  </Field>
+                )}
                 <Field label="Pickup Available">
                   <select value={form.pickupAvailable ? 'true' : 'false'} onChange={(e) => handleChange('pickupAvailable', e.target.value === 'true')}>
                     <option value="true">Yes</option>
