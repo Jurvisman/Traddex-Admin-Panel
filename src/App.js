@@ -56,6 +56,7 @@ import {
   StorefrontWebsiteRequestsPage,
   WaitlistLeadsPage,
   WebsiteCmsPage,
+  LeadManagementPage,
 } from './pages';
 import { fetchMyPermissions } from './services/adminApi';
 import { PermissionsContext } from './shared/permissions';
@@ -330,6 +331,10 @@ const ADMIN_META = [
   {
     match: '/admin/inquiry/report',
     title: 'Inquiry Report'
+  },
+  {
+    matchPrefix: '/admin/inquiry/leads',
+    title: 'Lead Management'
   },
   {
     match: '/admin/subscription/features',
@@ -932,6 +937,7 @@ function AppRoutes() {
             children: [
               { path: '/admin/inquiry/config', label: 'Inquiry Config', icon: ICONS.inquiryConfig, tone: NAV_TONES.inquiryConfig },
               { path: '/admin/inquiry/report', label: 'Inquiry Report', icon: ICONS.inquiryReport, tone: NAV_TONES.inquiryReport },
+              { path: '/admin/inquiry/leads', label: 'Lead Management', icon: ICONS.inquiryReport, tone: NAV_TONES.inquiryReport },
             ],
           },
           {
@@ -1057,7 +1063,9 @@ function AppRoutes() {
       path === '/admin/support/waitlist' ||
       path.startsWith('/admin/support/waitlist') ||
       path === '/admin/orders/payouts' ||
-      path.startsWith('/admin/orders/payouts')
+      path.startsWith('/admin/orders/payouts') ||
+      path === '/admin/inquiry/leads' ||
+      path.startsWith('/admin/inquiry/leads')
     )
       return true;
     return hasPathAccess(allowedPaths, path);
@@ -1069,9 +1077,7 @@ function AppRoutes() {
     if (allowedPaths.size === 0) return [];
 
     const canSeeNavPath = (path) => {
-      if (!path) return true;
-      if (path === '/admin/orders/payouts') return true;
-      return hasPathAccess(allowedPaths, path);
+      return canAccessPath(path);
     };
 
     return allNavItems
@@ -1632,6 +1638,21 @@ function AppRoutes() {
               fallbackPath={routeFallbackPath}
             >
               <InquiryReportPage token={authToken} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="inquiry/leads"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={
+                canAccessPath('/admin/inquiry/leads') &&
+                allowedActionCodes.has('ADMIN_INQUIRY_REPORT_READ')
+              }
+              fallbackPath={routeFallbackPath}
+            >
+              <LeadManagementPage token={authToken} />
             </PermissionGate>
           }
         />

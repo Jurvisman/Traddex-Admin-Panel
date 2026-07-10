@@ -661,3 +661,41 @@ export const saveWebsiteSocialLink = (token, payload) =>
 
 export const deleteWebsiteSocialLink = (token, id) =>
   request(`/admin/website-cms/social-links/${id}`, { method: 'DELETE', token });
+
+export const listAdminLeads = (token, filters = {}) => {
+  const params = new URLSearchParams();
+  if (filters.page) params.set('page', String(filters.page));
+  if (filters.limit) params.set('limit', String(filters.limit));
+  if (filters.source) params.set('source', filters.source);
+  if (filters.buyerVisible !== undefined && filters.buyerVisible !== null && filters.buyerVisible !== '') {
+    params.set('buyerVisible', String(filters.buyerVisible));
+  }
+  if (filters.creditConsumed !== undefined && filters.creditConsumed !== null && filters.creditConsumed !== '') {
+    params.set('creditConsumed', String(filters.creditConsumed));
+  }
+  if (filters.sellerId) params.set('sellerId', String(filters.sellerId));
+  if (filters.query) params.set('query', filters.query);
+  const query = params.toString() ? `?${params.toString()}` : '';
+  return request(`/admin/leads/intents${query}`, { token });
+};
+
+export const getAdminLeadDetail = (token, id) =>
+  request(`/admin/leads/intents/${id}`, { token });
+
+export const assignLeadManually = (token, intentId, sellerId) =>
+  request(`/admin/leads/intents/${intentId}/assign`, { method: 'POST', body: { sellerId }, token });
+
+export const deleteLeadAssignment = (token, assignmentId) =>
+  request(`/admin/leads/assignments/${assignmentId}`, { method: 'DELETE', token });
+
+export const getCreditAudit = (token) =>
+  request('/admin/leads/credit-audit', { token });
+
+export const getContactUnlockAudit = (token) =>
+  request('/admin/leads/contact-unlock-audit', { token });
+
+export const getSpamReports = (token) =>
+  request('/admin/leads/spam-reports', { token });
+
+export const searchSellers = (token, query) =>
+  request(`/admin/leads/search-sellers?query=${encodeURIComponent(query)}`, { token });
