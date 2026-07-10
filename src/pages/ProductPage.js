@@ -395,7 +395,7 @@ const INITIAL_PRODUCT_COLUMN_VISIBILITY = {
   name: true,
   business: true,
   source: true,
-  appListing: true,
+  appListing: false,
   mainCategory: true,
   category: true,
   subCategory: false,
@@ -1160,12 +1160,43 @@ function ProductPage({ token, adminUserId }) {
         return <span className="product-table-primary">{formatValue(getProductRatingCount(product))}</span>;
       case 'reviewCount':
         return <span className="product-table-primary">{formatValue(getProductReviewCount(product))}</span>;
-      case 'status':
+      case 'status': {
+        const isAppSource = String(product?.productSource || '').toUpperCase() === 'TRADDEX_APP';
+        const appListingStatus = String(product?.appListingStatus || '').toUpperCase();
+        if (isAppSource && statusValue === 'APPROVED') {
+          if (appListingStatus === 'PENDING_REVIEW') {
+            return (
+              <span className="status-pill product-status-pill pending-review">
+                App Listing Pending
+              </span>
+            );
+          }
+          if (appListingStatus === 'APPROVED') {
+            return (
+              <span className="status-pill product-status-pill approved">
+                App Listed
+              </span>
+            );
+          }
+          if (appListingStatus === 'REJECTED') {
+            return (
+              <span className="status-pill product-status-pill rejected">
+                App Listing Rejected
+              </span>
+            );
+          }
+          return (
+            <span className="status-pill product-status-pill draft">
+              App Listing Not Requested
+            </span>
+          );
+        }
         return (
           <span className={`status-pill product-status-pill ${statusValue ? statusValue.toLowerCase().replace(/_/g, '-') : 'pending'}`}>
             {formatStatus(statusValue)}
           </span>
         );
+      }
       case 'createdOn':
         return <span className="product-table-primary">{formatDateTime(createdAt)}</span>;
       case 'updatedOn':
@@ -1431,7 +1462,7 @@ function ProductPage({ token, adminUserId }) {
     return payload;
   };
 
-  const buildDynamicAttributes = () => {
+  const buildDynamicAttributes = (ignoreRequired = false) => {
     if (attributeMappings.length === 0) return null;
     const payload = {};
     const errors = [];
@@ -1446,7 +1477,7 @@ function ProductPage({ token, adminUserId }) {
         (type === 'LIST' && Array.isArray(rawValue) && rawValue.length === 0);
 
       if (isEmpty) {
-        if (mapping.required) {
+        if (mapping.required && !ignoreRequired) {
           errors.push(`${mapping.label || key} is required`);
         }
         return;
@@ -2522,7 +2553,7 @@ function ProductPage({ token, adminUserId }) {
 
     try {
       setIsLoading(true);
-      const dynamicAttributes = buildDynamicAttributes();
+      const dynamicAttributes = buildDynamicAttributes(true);
       if (attributeMappings.length > 0 && dynamicAttributes === null) {
         setIsLoading(false);
         return;

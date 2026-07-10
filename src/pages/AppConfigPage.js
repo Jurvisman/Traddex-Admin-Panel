@@ -89,6 +89,7 @@ import {
   SOURCE_TYPE_OPTIONS,
   TABBED_SHELF_SOURCE_OPTIONS,
   SHOP_BLOCK_SOURCE_OPTIONS,
+  SHOP_FEED_MODE_OPTIONS,
   PRODUCT_FEED_MODE_OPTIONS,
   SERVICE_FEED_MODE_OPTIONS,
   TAB_FIELD_OPTIONS,
@@ -166,7 +167,10 @@ const NAVIGATION_TARGET_OPTIONS = [
   { value: 'COLLECTION', label: 'Collection' },
   { value: 'CAMPAIGN', label: 'Campaign' },
   { value: 'PRODUCT', label: 'Product' },
-  { value: 'CATEGORY', label: 'Category' },
+  { value: 'CATEGORY', label: 'Category page' },
+  { value: 'MAIN_CATEGORY_PRODUCTS', label: 'Main category products' },
+  { value: 'CATEGORY_PRODUCTS', label: 'Category products' },
+  { value: 'BUSINESS_PRODUCTS', label: 'Business products' },
   { value: 'EXTERNAL_URL', label: 'External URL' },
   { value: 'CUSTOM', label: 'Custom deep link' },
 ];
@@ -180,6 +184,9 @@ const NAVIGATION_TARGET_PLACEHOLDERS = {
   CAMPAIGN: 'beauty-fest',
   PRODUCT: '12345',
   CATEGORY: '987',
+  MAIN_CATEGORY_PRODUCTS: '987',
+  CATEGORY_PRODUCTS: '123',
+  BUSINESS_PRODUCTS: '456',
   EXTERNAL_URL: 'https://example.com/offer',
   CUSTOM: 'app://collection/summer-serums',
 };
@@ -363,6 +370,9 @@ const parseNavigationTarget = (value, explicitType, explicitValue) => {
     if (segment === 'campaign') return { type: 'CAMPAIGN', value: resolvedValue, raw: current };
     if (segment === 'product') return { type: 'PRODUCT', value: resolvedValue, raw: current };
     if (segment === 'category') return { type: 'CATEGORY', value: resolvedValue, raw: current };
+    if (segment === 'main-category-products') return { type: 'MAIN_CATEGORY_PRODUCTS', value: resolvedValue, raw: current };
+    if (segment === 'category-products') return { type: 'CATEGORY_PRODUCTS', value: resolvedValue, raw: current };
+    if (segment === 'business-products') return { type: 'BUSINESS_PRODUCTS', value: resolvedValue, raw: current };
   }
   return { type: 'CUSTOM', value: current, raw: current };
 };
@@ -379,6 +389,9 @@ const buildNavigationTargetLink = (targetType, targetValue) => {
   if (normalizedType === 'CAMPAIGN') return `app://campaign/${encodedValue}`;
   if (normalizedType === 'PRODUCT') return `app://product/${encodedValue}`;
   if (normalizedType === 'CATEGORY') return `app://category/${encodedValue}`;
+  if (normalizedType === 'MAIN_CATEGORY_PRODUCTS') return `app://main-category-products/${encodedValue}`;
+  if (normalizedType === 'CATEGORY_PRODUCTS') return `app://category-products/${encodedValue}`;
+  if (normalizedType === 'BUSINESS_PRODUCTS') return `app://business-products/${encodedValue}`;
   return value;
 };
 
@@ -388,12 +401,36 @@ const getNavigationTargetPlaceholder = (targetType) =>
 
 const normalizeSearchText = (value) => String(value || '').trim().toLowerCase();
 
+const getProductIndustryId = (product) =>
+  normalizeCollectionId(
+    product?.industryId ||
+      product?.industry_id ||
+      product?.category?.industryId ||
+      product?.category?.industry_id ||
+      product?.industry?.id ||
+      product?.industry?.industryId
+  );
+
+const getProductMainCategoryId = (product) =>
+  normalizeCollectionId(
+    product?.mainCategoryId ||
+      product?.main_category_id ||
+      product?.category?.mainCategoryId ||
+      product?.category?.main_category_id
+  );
+
 const formatDestinationProductLabel = (product) => {
   const productName = product?.productName || product?.name || `Product ${product?.id || ''}`;
   const productId = product?.id != null ? `#${product.id}` : '';
   const status = product?.approvalStatus ? ` Â· ${String(product.approvalStatus).replaceAll('_', ' ')}` : '';
   return `${productName}${productId ? ` (${productId})` : ''}${status}`;
 };
+
+const formatScopedDestinationProductLabel = (product) =>
+  formatDestinationProductLabel(product)
+    .replace(/\s*Ã\S*\s*/g, ' - ')
+    .replace(/\s+-\s+/g, ' - ')
+    .trim();
 
 const getDestinationProductSearchText = (product) =>
   [
@@ -409,6 +446,14 @@ const getDestinationProductSearchText = (product) =>
   ]
     .map((value) => String(value || '').toLowerCase())
     .join(' ');
+
+const formatCleanDestinationProductLabel = (product) => {
+  void formatScopedDestinationProductLabel;
+  const productName = product?.productName || product?.name || `Product ${product?.id || ''}`;
+  const productId = product?.id != null ? `#${product.id}` : '';
+  const status = product?.approvalStatus ? ` - ${String(product.approvalStatus).replaceAll('_', ' ')}` : '';
+  return `${productName}${productId ? ` (${productId})` : ''}${status}`;
+};
 
 const formatDestinationCollectionLabel = (collection) => {
   const title = collection?.title || collection?.name || collection?.label || 'Collection';
@@ -443,6 +488,32 @@ const getBusinessSelectionSearchText = (business) =>
   ]
     .map((value) => String(value || '').toLowerCase())
     .join(' ');
+
+const resolveBusinessDirectoryId = (business) =>
+  normalizeCollectionId(business?.id || business?.userId || business?.businessUserId || business?.profileId);
+
+const resolveBusinessDirectoryName = (business) =>
+  String(business?.businessName || business?.name || business?.companyName || '').trim();
+
+const formatBusinessDestinationLabel = (business) => {
+  const title = resolveBusinessDirectoryName(business) || `Business ${resolveBusinessDirectoryId(business)}`;
+  const phone = business?.mobile || business?.phone || business?.number || business?.contactNumber || '';
+  const type = business?.businessType ? ` - ${business.businessType}` : '';
+  const mobile = phone ? ` - ${phone}` : '';
+  const location = [business?.cityCode, business?.stateCode].filter(Boolean).join(', ');
+  const suffix = location ? ` - ${location}` : '';
+  return `${title}${mobile}${type}${suffix}`;
+};
+
+const buildBusinessProductsDeepLink = (businessId, business) => {
+  const id = normalizeCollectionId(businessId);
+  if (!id) return '';
+  const name = resolveBusinessDirectoryName(business);
+  const query = new URLSearchParams();
+  if (name) query.set('title', `${name} products`);
+  const serialized = query.toString();
+  return `app://business-products/${encodeURIComponent(id)}${serialized ? `?${serialized}` : ''}`;
+};
 
 function AppConfigPage({ token }) {
   const [draftText, setDraftText] = useState('');
@@ -494,12 +565,14 @@ function AppConfigPage({ token }) {
   const [productCollections, setProductCollections] = useState([]);
   const [isLoadingProductCollections, setIsLoadingProductCollections] = useState(false);
   const [destinationProducts, setDestinationProducts] = useState([]);
+  const [destinationProductsScope, setDestinationProductsScope] = useState('');
   const [isLoadingDestinationProducts, setIsLoadingDestinationProducts] = useState(false);
   const [businessDirectory, setBusinessDirectory] = useState([]);
   const [isLoadingBusinessDirectory, setIsLoadingBusinessDirectory] = useState(false);
   const [placeCardBusinessQuery, setPlaceCardBusinessQuery] = useState('');
   const [placeCardBusinessPick, setPlaceCardBusinessPick] = useState('');
   const [heroDestinationQueries, setHeroDestinationQueries] = useState({});
+  const [businessDestinationQueries, setBusinessDestinationQueries] = useState({});
   const [sectionDestinationQuery, setSectionDestinationQuery] = useState('');
   const [bentoTileProductQueries, setBentoTileProductQueries] = useState({});
   const [mainCategories, setMainCategories] = useState([]);
@@ -1028,21 +1101,60 @@ function AppConfigPage({ token }) {
   };
 
   const loadDestinationProducts = async (force = false) => {
-    if (!force && Array.isArray(destinationProducts) && destinationProducts.length > 0) {
+    const scopedIndustryId = normalizeCollectionId(sectionForm.sourceIndustryId || resolveIndustryId(pageIndustry));
+    const scopedMainCategoryId = normalizeCollectionId(sectionForm.sourceMainCategoryId);
+    const scopedCategoryId =
+      Array.isArray(sectionForm.sourceCategoryIds) && sectionForm.sourceCategoryIds.length === 1
+        ? normalizeCollectionId(sectionForm.sourceCategoryIds[0])
+        : '';
+    const allowedMainCategoryIds = new Set(
+      (Array.isArray(mainCategories) ? mainCategories : [])
+        .filter(
+          (item) =>
+            scopedIndustryId &&
+            normalizeMatchValue(resolveMainCategoryIndustryId(item)) === normalizeMatchValue(scopedIndustryId)
+        )
+        .map((item) => normalizeCollectionId(resolveMainCategoryId(item)))
+        .filter(Boolean)
+    );
+    const scopeKey = [scopedIndustryId || 'all', scopedMainCategoryId || 'all', scopedCategoryId || 'all'].join(':');
+    if (
+      !force &&
+      destinationProductsScope === scopeKey &&
+      Array.isArray(destinationProducts) &&
+      destinationProducts.length > 0
+    ) {
       return;
     }
     setIsLoadingDestinationProducts(true);
     try {
-      const response = await listProducts(token);
+      const response = await listProducts(token, {
+        ...(scopedIndustryId ? { industryId: scopedIndustryId } : {}),
+        ...(scopedMainCategoryId ? { mainCategoryId: scopedMainCategoryId } : {}),
+        ...(scopedCategoryId ? { categoryId: scopedCategoryId } : {}),
+        size: 300,
+      });
       const items = response?.data?.products || response?.data || [];
       const sorted = Array.isArray(items)
-        ? [...items].sort((a, b) =>
+        ? [...items]
+            .filter((product) => {
+              if (!scopedIndustryId) return true;
+              const productIndustryId = getProductIndustryId(product);
+              if (productIndustryId) {
+                return normalizeMatchValue(productIndustryId) === normalizeMatchValue(scopedIndustryId);
+              }
+              const productMainCategoryId = getProductMainCategoryId(product);
+              return productMainCategoryId && allowedMainCategoryIds.has(productMainCategoryId);
+            })
+            .sort((a, b) =>
             String(a?.productName || a?.name || '').localeCompare(String(b?.productName || b?.name || ''))
           )
         : [];
       setDestinationProducts(sorted);
+      setDestinationProductsScope(scopeKey);
     } catch (error) {
       setDestinationProducts([]);
+      setDestinationProductsScope(scopeKey);
     } finally {
       setIsLoadingDestinationProducts(false);
     }
@@ -1707,6 +1819,28 @@ function AppConfigPage({ token }) {
     });
   };
 
+  const updateItemBusinessProductsTarget = (index, businessId, usesCtaDestination = false) => {
+    const normalizedBusinessId = normalizeCollectionId(businessId);
+    const selectedBusiness = (Array.isArray(businessDirectory) ? businessDirectory : []).find(
+      (business) => resolveBusinessDirectoryId(business) === normalizedBusinessId
+    );
+    const resolvedLink = buildBusinessProductsDeepLink(normalizedBusinessId, selectedBusiness);
+    setSectionForm((prev) => {
+      const blockType = prev.blockType || prev.type || '';
+      const nextItems = normalizePhaseOneItems(prev.sduiItems, blockType);
+      const currentItem = nextItems[index] || {};
+      nextItems[index] = {
+        ...currentItem,
+        destinationType: 'BUSINESS_PRODUCTS',
+        destinationValue: normalizedBusinessId,
+        businessName: resolveBusinessDirectoryName(selectedBusiness) || currentItem.businessName,
+        ...(usesCtaDestination ? { ctaLink: resolvedLink } : {}),
+        deepLink: resolvedLink,
+      };
+      return { ...prev, sduiItems: nextItems };
+    });
+  };
+
   const updateItemNavigationTargetType = (index, nextType) => {
     setSectionForm((prev) => {
       const blockType = prev.blockType || prev.type || '';
@@ -1739,6 +1873,8 @@ function AppConfigPage({ token }) {
     const normalizedType = String(nextType || DEFAULT_NAVIGATION_TARGET).trim().toUpperCase();
     if (normalizedType === 'PRODUCT') {
       loadDestinationProducts();
+    } else if (normalizedType === 'BUSINESS_PRODUCTS') {
+      loadBusinessDirectory();
     }
   };
 
@@ -1779,6 +1915,8 @@ function AppConfigPage({ token }) {
     const normalizedType = String(nextType || DEFAULT_NAVIGATION_TARGET).trim().toUpperCase();
     if (normalizedType === 'PRODUCT') {
       loadDestinationProducts();
+    } else if (normalizedType === 'BUSINESS_PRODUCTS') {
+      loadBusinessDirectory();
     }
   };
 
@@ -1835,11 +1973,17 @@ function AppConfigPage({ token }) {
     const normalizedType = String(nextType || DEFAULT_NAVIGATION_TARGET).trim().toUpperCase();
     if (normalizedType === 'PRODUCT') {
       loadDestinationProducts();
+    } else if (normalizedType === 'BUSINESS_PRODUCTS') {
+      loadBusinessDirectory();
     }
   };
 
   const updateHeroDestinationQuery = (index, value) => {
     setHeroDestinationQueries((prev) => ({ ...prev, [index]: value }));
+  };
+
+  const updateBusinessDestinationQuery = (index, value) => {
+    setBusinessDestinationQueries((prev) => ({ ...prev, [index]: value }));
   };
 
   const addSelectedPlaceBusiness = async (userId) => {
@@ -3517,6 +3661,11 @@ function AppConfigPage({ token }) {
   const isPhaseOneDataSourceEligible =
     isPhaseOneHeroCarousel || isMediaOverlayCarousel || isPromoHeroBanner;
   const isPhaseOneHybridEligible = isPromoHeroBanner;
+  const showBlockDataSourcePanel =
+    isPhaseOneBlock &&
+    !isPhaseOneHeroCarousel &&
+    !isPromoHeroBanner &&
+    !isShopCardCarousel;
   const phaseOneSourceType =
     isPhaseOneCategoryIconGrid || isPhaseOneCategoryShowcase
       ? 'CATEGORY_FEED'
@@ -3527,11 +3676,14 @@ function AppConfigPage({ token }) {
     const shouldLoadProducts =
       (isHeroBanner && sectionNavigationTarget.type === 'PRODUCT') ||
       (
-        ['hero_carousel', 'promo_hero_banner', 'beauty_hero_banner', 'media_overlay_carousel', 'split_promo_row'].includes(screenBlockType) &&
+        ['hero_carousel', 'horizontal_scroll_list', 'promo_hero_banner', 'beauty_hero_banner', 'media_overlay_carousel', 'split_promo_row'].includes(screenBlockType) &&
         normalizePhaseOneItems(sectionForm.sduiItems, screenBlockType).some(
           (item) =>
             parseNavigationTarget(
-              screenBlockType === 'hero_carousel' || screenBlockType === 'media_overlay_carousel' || screenBlockType === 'split_promo_row'
+              screenBlockType === 'hero_carousel' ||
+                screenBlockType === 'horizontal_scroll_list' ||
+                screenBlockType === 'media_overlay_carousel' ||
+                screenBlockType === 'split_promo_row'
                 ? item?.deepLink || ''
                 : item?.ctaLink || item?.deepLink || '',
               item?.destinationType,
@@ -3541,6 +3693,27 @@ function AppConfigPage({ token }) {
       );
     if (shouldLoadProducts) {
       loadDestinationProducts();
+    }
+    const shouldLoadBusinesses =
+      (isHeroBanner && sectionNavigationTarget.type === 'BUSINESS_PRODUCTS') ||
+      (
+        ['hero_carousel', 'horizontal_scroll_list', 'promo_hero_banner', 'beauty_hero_banner', 'media_overlay_carousel', 'split_promo_row'].includes(screenBlockType) &&
+        normalizePhaseOneItems(sectionForm.sduiItems, screenBlockType).some(
+          (item) =>
+            parseNavigationTarget(
+              screenBlockType === 'hero_carousel' ||
+                screenBlockType === 'horizontal_scroll_list' ||
+                screenBlockType === 'media_overlay_carousel' ||
+                screenBlockType === 'split_promo_row'
+                ? item?.deepLink || ''
+                : item?.ctaLink || item?.deepLink || '',
+              item?.destinationType,
+              item?.destinationValue
+            ).type === 'BUSINESS_PRODUCTS'
+        )
+      );
+    if (shouldLoadBusinesses) {
+      loadBusinessDirectory();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isHeroBanner, screenBlockType, sectionForm.destinationType, sectionForm.destinationValue, sectionForm.deepLink, sectionForm.sduiItems]);
@@ -3577,6 +3750,10 @@ function AppConfigPage({ token }) {
     (screenBlockType === 'multiItemGrid' ||
       isCategoryPreviewGrid);
   const isSectionTitleBlock = screenBlockType === 'sectionTitle' || sectionForm.type === 'title';
+  const showAppearancePanel =
+    (supportsStylePreset || isPhaseOneProductShelf || isProductCardCarousel || isSectionTitleBlock) &&
+    !isPhaseOneCategoryIconGrid &&
+    !isShopCardCarousel;
   const isScreenSpacer = sectionForm.type === 'spacer';
   const isScreenVideo = sectionForm.type === 'video';
   const isHeaderSearch = headerBlockType === 'searchBar';
@@ -4815,7 +4992,7 @@ function AppConfigPage({ token }) {
                       </div>
                     </div>
                     {/* -- Appearance ------------------------------------- */}
-                    {(supportsStylePreset || isPhaseOneProductShelf || isProductCardCarousel || isSectionTitleBlock) ? (
+                    {showAppearancePanel ? (
                       <div className={`prop-group${collapsedGroups.appearance ? ' is-collapsed' : ''}`}>
                         <div className="prop-group-header" onClick={() => togglePropGroup('appearance')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && togglePropGroup('appearance')}>
                           <div className="prop-group-left">
@@ -5129,7 +5306,7 @@ function AppConfigPage({ token }) {
                                 ) : null}
                                 {filteredSectionProductOptions.map((product) => (
                                   <option key={`section-product-${product?.id}`} value={String(product?.id || '')}>
-                                    {formatDestinationProductLabel(product)}
+                                    {formatCleanDestinationProductLabel(product)}
                                   </option>
                                 ))}
                               </select>
@@ -5143,12 +5320,19 @@ function AppConfigPage({ token }) {
                             </label>
                           </>
                         ) : null}
-                        {sectionNavigationTarget.type === 'CATEGORY' ? (
+                        {(sectionNavigationTarget.type === 'CATEGORY' ||
+                          sectionNavigationTarget.type === 'MAIN_CATEGORY_PRODUCTS') ? (
                           <label className="field field-span">
-                            <span>Main category</span>
+                            <span>
+                              {sectionNavigationTarget.type === 'MAIN_CATEGORY_PRODUCTS'
+                                ? 'Main category products'
+                                : 'Category page'}
+                            </span>
                             <select
                               value={sectionNavigationTarget.value}
-                              onChange={(event) => updateSectionNavigationTarget('CATEGORY', event.target.value)}
+                              onChange={(event) =>
+                                updateSectionNavigationTarget(sectionNavigationTarget.type, event.target.value)
+                              }
                             >
                               <option value="">Select main category</option>
                               {!destinationMainCategoryOptions.some(
@@ -5165,8 +5349,30 @@ function AppConfigPage({ token }) {
                               ))}
                             </select>
                             <p className="field-help">
-                              Current app routing treats `Category` destination as `IndustryCategory` by `mainCategoryId`.
-                              Resolved link: {buildNavigationTargetLink('CATEGORY', sectionNavigationTarget.value) || '(empty)'}
+                              Resolved link:{' '}
+                              {buildNavigationTargetLink(sectionNavigationTarget.type, sectionNavigationTarget.value) || '(empty)'}
+                            </p>
+                          </label>
+                        ) : null}
+                        {(sectionNavigationTarget.type === 'CATEGORY_PRODUCTS' ||
+                          sectionNavigationTarget.type === 'BUSINESS_PRODUCTS') ? (
+                          <label className="field field-span">
+                            <span>
+                              {sectionNavigationTarget.type === 'BUSINESS_PRODUCTS'
+                                ? 'Business ID'
+                                : 'Category ID'}
+                            </span>
+                            <input
+                              type="text"
+                              value={sectionNavigationTarget.value}
+                              onChange={(event) =>
+                                updateSectionNavigationTarget(sectionNavigationTarget.type, event.target.value)
+                              }
+                              placeholder={getNavigationTargetPlaceholder(sectionNavigationTarget.type)}
+                            />
+                            <p className="field-help">
+                              Resolved link:{' '}
+                              {buildNavigationTargetLink(sectionNavigationTarget.type, sectionNavigationTarget.value) || '(empty)'}
                             </p>
                           </label>
                         ) : null}
@@ -5229,7 +5435,7 @@ function AppConfigPage({ token }) {
                       </div>
                     ) : null}
                     {/* -- Data Source ------------------------------------- */}
-                    {isPhaseOneBlock ? (
+                    {showBlockDataSourcePanel ? (
                       <div className={`prop-group${collapsedGroups.dataSource ? ' is-collapsed' : ''}`}>
                         <div className="prop-group-header" onClick={() => togglePropGroup('dataSource')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && togglePropGroup('dataSource')}>
                           <div className="prop-group-left">
@@ -5245,16 +5451,20 @@ function AppConfigPage({ token }) {
                             {isPhaseOneProductShelf ? (
                               <>
                                 <label className="field field-span">
-                                  <span>Product feed</span>
+                                  <span>What should this grid show?</span>
                                   <select
                                     value={sectionForm.dataSourceRef || ''}
                                     onChange={(event) =>
                                       setSectionForm((prev) => {
                                         const nextSourceRef = event.target.value;
+                                        const selectedFeed = MULTI_ITEM_GRID_FEED_OPTIONS.find(
+                                          (option) => option.dataSourceRef === nextSourceRef
+                                        );
                                         const pageIndustryId = String(resolveIndustryId(pageIndustry) || '');
                                         return {
                                           ...prev,
                                           dataSourceRef: nextSourceRef,
+                                          productFeedMode: selectedFeed?.value || prev.productFeedMode,
                                           itemsPath: nextSourceRef ? (prev.itemsPath || '$.products') : '',
                                           sourceIndustryId:
                                             nextSourceRef && !prev.sourceIndustryId
@@ -5267,44 +5477,114 @@ function AppConfigPage({ token }) {
                                     }
                                   >
                                     <option value="">Manual (no API)</option>
-                                    <option value="todaydealproducts">Today&apos;s deals</option>
-                                    <option value="home_top_selling_products">Top selling products</option>
-                                    <option value="home_most_rated_products">Most rated products</option>
-                                    <option value="home_recommended_products">Recommended products</option>
+                                    {MULTI_ITEM_GRID_FEED_OPTIONS.map((option) => (
+                                      <option key={`product-shelf-feed-${option.value}`} value={option.dataSourceRef}>
+                                        {option.label}
+                                      </option>
+                                    ))}
                                   </select>
                                   <p className="field-help">
-                                    Products are loaded from the selected feed. In manual mode you can edit the item list below.
+                                    Pick the feed first, then optionally narrow it by industry, main category, or category.
                                   </p>
                                 </label>
                                 {sectionForm.dataSourceRef ? (
-                                  <label className="field">
-                                    <span>Industry</span>
-                                    <select
-                                      value={sectionForm.sourceIndustryId || ''}
-                                      onChange={(event) =>
-                                        setSectionForm((prev) => ({
-                                          ...prev,
-                                          sourceIndustryId: event.target.value,
-                                          sourceMainCategoryId: '',
-                                          sourceCategoryIds: [],
-                                        }))
-                                      }
-                                    >
-                                      <option value="">All industries</option>
-                                      {industries.map((item) => {
-                                        const id = resolveIndustryId(item);
-                                        if (!id) return null;
-                                        return (
-                                          <option key={id} value={id}>
-                                            {resolveIndustryLabel(item)}
-                                          </option>
-                                        );
-                                      })}
-                                    </select>
-                                    <p className="field-help">
-                                      Select an industry to scope live products. Leave blank to keep the feed global.
-                                    </p>
-                                  </label>
+                                  <>
+                                    <label className="field">
+                                      <span>Industry</span>
+                                      <select
+                                        value={sectionForm.sourceIndustryId || ''}
+                                        onChange={(event) =>
+                                          setSectionForm((prev) => ({
+                                            ...prev,
+                                            sourceIndustryId: event.target.value,
+                                            sourceMainCategoryId: '',
+                                            sourceCategoryIds: [],
+                                          }))
+                                        }
+                                      >
+                                        <option value="">All industries</option>
+                                        {industries.map((item) => {
+                                          const id = resolveIndustryId(item);
+                                          if (!id) return null;
+                                          return (
+                                            <option key={id} value={id}>
+                                              {resolveIndustryLabel(item)}
+                                            </option>
+                                          );
+                                        })}
+                                      </select>
+                                      <p className="field-help">
+                                        Select an industry to scope live products. Leave blank to keep the feed global.
+                                      </p>
+                                    </label>
+                                    <label className="field">
+                                      <span>Main category</span>
+                                      <select
+                                        value={sectionForm.sourceMainCategoryId || ''}
+                                        onChange={(event) =>
+                                          setSectionForm((prev) => ({
+                                            ...prev,
+                                            sourceMainCategoryId: event.target.value,
+                                            sourceCategoryIds: [],
+                                          }))
+                                        }
+                                      >
+                                        <option value="">All main categories</option>
+                                        {(sectionForm.sourceIndustryId ? filteredMainCategoryOptions : mainCategories).map((item) => {
+                                          const id = resolveMainCategoryId(item);
+                                          if (!id) return null;
+                                          return (
+                                            <option key={id} value={id}>
+                                              {resolveMainCategoryName(item)}
+                                            </option>
+                                          );
+                                        })}
+                                      </select>
+                                    </label>
+                                    {sectionForm.sourceMainCategoryId ? (
+                                      <label className="field field-span">
+                                        <span>Categories</span>
+                                        {isLoadingSourceCategories ? (
+                                          <p className="field-help">Loading categories...</p>
+                                        ) : sourceCategories.length ? (
+                                          <div className="checkbox-grid">
+                                            {sourceCategories.map((item) => {
+                                              const id = resolveCategoryId(item);
+                                              if (!id) return null;
+                                              const checked = Array.isArray(sectionForm.sourceCategoryIds)
+                                                ? sectionForm.sourceCategoryIds.includes(id)
+                                                : false;
+                                              return (
+                                                <label key={`product-shelf-category-${id}`} className="checkbox-row">
+                                                  <input
+                                                    type="checkbox"
+                                                    checked={checked}
+                                                    onChange={() =>
+                                                      setSectionForm((prev) => {
+                                                        const current = Array.isArray(prev.sourceCategoryIds)
+                                                          ? prev.sourceCategoryIds
+                                                          : [];
+                                                        const next = new Set(current);
+                                                        if (next.has(id)) {
+                                                          next.delete(id);
+                                                        } else {
+                                                          next.add(id);
+                                                        }
+                                                        return { ...prev, sourceCategoryIds: Array.from(next) };
+                                                      })
+                                                    }
+                                                  />
+                                                  {resolveCategoryName(item)}
+                                                </label>
+                                              );
+                                            })}
+                                          </div>
+                                        ) : (
+                                          <p className="field-help">No categories found under this main category.</p>
+                                        )}
+                                      </label>
+                                    ) : null}
+                                  </>
                                 ) : null}
                               </>
                             ) : (
@@ -6456,7 +6736,7 @@ function AppConfigPage({ token }) {
                               onKeyDown={(e) => e.key === 'Enter' && togglePropGroup('shopSource')}
                             >
                               <div className="prop-group-left">
-                                <span className="prop-group-title">Data Source</span>
+                                <span className="prop-group-title">Live Feed Source</span>
                                 <span className={`prop-group-badge${(sectionForm.blockDataSourceType || 'SHOP_FEED') !== 'MANUAL' ? ' live' : ''}`}>
                                   {(sectionForm.blockDataSourceType || 'SHOP_FEED') !== 'MANUAL' ? 'Live Feed' : 'Manual'}
                                 </span>
@@ -6466,7 +6746,7 @@ function AppConfigPage({ token }) {
                             <div className="prop-group-body">
                             <div className="field-grid source-config-grid">
                               <label className="field">
-                                <span>Shops source</span>
+                                <span>What shops should show?</span>
                                 <select
                                   value={sectionForm.blockDataSourceType || 'SHOP_FEED'}
                                   onChange={(event) =>
@@ -6483,6 +6763,26 @@ function AppConfigPage({ token }) {
                                   ))}
                                 </select>
                               </label>
+                              {(sectionForm.blockDataSourceType || 'SHOP_FEED') !== 'MANUAL' ? (
+                                <label className="field">
+                                  <span>Feed type</span>
+                                  <select
+                                    value={sectionForm.blockFeedMode || 'NEARBY'}
+                                    onChange={(event) =>
+                                      setSectionForm((prev) => ({
+                                        ...prev,
+                                        blockFeedMode: event.target.value,
+                                      }))
+                                    }
+                                  >
+                                    {SHOP_FEED_MODE_OPTIONS.map((option) => (
+                                      <option key={`shop-feed-mode-${option.value}`} value={option.value}>
+                                        {option.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </label>
+                              ) : null}
                               <label className="field">
                                 <span>Max shops</span>
                                 <input
@@ -6768,7 +7068,11 @@ function AppConfigPage({ token }) {
                               phaseOneImageWarnings[getWarningKey(idx, 'secondaryImageUrl')];
                             const usesCtaDestination = isBeautyHeroBanner || isPromoHeroBanner;
                             const showHeroDestinationPicker =
-                              isPhaseOneHeroCarousel || isMediaOverlayCarousel || isSplitPromoRow || usesCtaDestination;
+                              isPhaseOneHeroCarousel ||
+                              isPhaseOneHorizontalList ||
+                              isMediaOverlayCarousel ||
+                              isSplitPromoRow ||
+                              usesCtaDestination;
                             const navigationTarget = parseNavigationTarget(
                               usesCtaDestination ? item.ctaLink || item.deepLink || '' : item.deepLink || '',
                               item.destinationType,
@@ -6781,6 +7085,17 @@ function AppConfigPage({ token }) {
                                     if (!heroDestinationQuery.trim()) return true;
                                     return getDestinationProductSearchText(product).includes(
                                       normalizeSearchText(heroDestinationQuery)
+                                    );
+                                  })
+                                  .slice(0, 80)
+                              : [];
+                            const businessDestinationQuery = businessDestinationQueries[idx] || '';
+                            const filteredBusinessDestinationOptions = showHeroDestinationPicker
+                              ? (Array.isArray(businessDirectory) ? businessDirectory : [])
+                                  .filter((business) => {
+                                    if (!businessDestinationQuery.trim()) return true;
+                                    return getBusinessSelectionSearchText(business).includes(
+                                      normalizeSearchText(businessDestinationQuery)
                                     );
                                   })
                                   .slice(0, 80)
@@ -7639,7 +7954,7 @@ function AppConfigPage({ token }) {
                                                 key={`hero-product-${product?.id}`}
                                                 value={String(product?.id || '')}
                                               >
-                                                {formatDestinationProductLabel(product)}
+                                                {formatCleanDestinationProductLabel(product)}
                                               </option>
                                             ))}
                                           </select>
@@ -7653,15 +7968,20 @@ function AppConfigPage({ token }) {
                                         </label>
                                       </>
                                     ) : null}
-                                    {navigationTarget.type === 'CATEGORY' ? (
+                                    {(navigationTarget.type === 'CATEGORY' ||
+                                      navigationTarget.type === 'MAIN_CATEGORY_PRODUCTS') ? (
                                       <label className="field field-span">
-                                        <span>Main category</span>
+                                        <span>
+                                          {navigationTarget.type === 'MAIN_CATEGORY_PRODUCTS'
+                                            ? 'Main category products'
+                                            : 'Category page'}
+                                        </span>
                                         <select
                                           value={navigationTarget.value}
                                           onChange={(event) =>
                                             usesCtaDestination
-                                              ? updateItemCtaNavigationTarget(idx, 'CATEGORY', event.target.value)
-                                              : updateItemNavigationTarget(idx, 'CATEGORY', event.target.value)
+                                              ? updateItemCtaNavigationTarget(idx, navigationTarget.type, event.target.value)
+                                              : updateItemNavigationTarget(idx, navigationTarget.type, event.target.value)
                                           }
                                         >
                                           <option value="">Select main category</option>
@@ -7679,11 +7999,89 @@ function AppConfigPage({ token }) {
                                           ))}
                                         </select>
                                         <p className="field-help">
-                                          Current app routing treats `Category` destination as `IndustryCategory` by
-                                          `mainCategoryId`. {usesCtaDestination ? 'Resolved CTA link' : 'Resolved link'}:{' '}
-                                          {buildNavigationTargetLink('CATEGORY', navigationTarget.value) || '(empty)'}
+                                          {usesCtaDestination ? 'Resolved CTA link' : 'Resolved link'}:{' '}
+                                          {buildNavigationTargetLink(navigationTarget.type, navigationTarget.value) || '(empty)'}
                                         </p>
                                       </label>
+                                    ) : null}
+                                    {navigationTarget.type === 'CATEGORY_PRODUCTS' ? (
+                                      <label className="field field-span">
+                                        <span>Category ID</span>
+                                        <input
+                                          type="text"
+                                          value={navigationTarget.value}
+                                          onChange={(event) =>
+                                            usesCtaDestination
+                                              ? updateItemCtaNavigationTarget(
+                                                  idx,
+                                                  navigationTarget.type,
+                                                  event.target.value
+                                                )
+                                              : updateItemNavigationTarget(
+                                                  idx,
+                                                  navigationTarget.type,
+                                                  event.target.value
+                                                )
+                                          }
+                                          placeholder={getNavigationTargetPlaceholder(navigationTarget.type)}
+                                        />
+                                        <p className="field-help">
+                                          {usesCtaDestination ? 'Resolved CTA link' : 'Resolved link'}:{' '}
+                                          {buildNavigationTargetLink(navigationTarget.type, navigationTarget.value) || '(empty)'}
+                                        </p>
+                                      </label>
+                                    ) : null}
+                                    {navigationTarget.type === 'BUSINESS_PRODUCTS' ? (
+                                      <>
+                                        <label className="field">
+                                          <span>Search business</span>
+                                          <input
+                                            type="search"
+                                            value={businessDestinationQuery}
+                                            onChange={(event) => updateBusinessDestinationQuery(idx, event.target.value)}
+                                            onFocus={() => loadBusinessDirectory()}
+                                            placeholder="Search business name, mobile, city"
+                                          />
+                                        </label>
+                                        <label className="field field-span">
+                                          <span>Business</span>
+                                          <select
+                                            value={navigationTarget.value}
+                                            onFocus={() => loadBusinessDirectory()}
+                                            onChange={(event) =>
+                                              updateItemBusinessProductsTarget(
+                                                idx,
+                                                event.target.value,
+                                                usesCtaDestination
+                                              )
+                                            }
+                                          >
+                                            <option value="">
+                                              {isLoadingBusinessDirectory ? 'Loading businesses...' : 'Select business'}
+                                            </option>
+                                            {!filteredBusinessDestinationOptions.some(
+                                              (business) => resolveBusinessDirectoryId(business) === navigationTarget.value
+                                            ) && navigationTarget.value ? (
+                                              <option value={navigationTarget.value}>
+                                                Current business #{navigationTarget.value}
+                                              </option>
+                                            ) : null}
+                                            {filteredBusinessDestinationOptions.map((business) => {
+                                              const businessId = resolveBusinessDirectoryId(business);
+                                              if (!businessId) return null;
+                                              return (
+                                                <option key={`business-products-${businessId}`} value={businessId}>
+                                                  {formatBusinessDestinationLabel(business)}
+                                                </option>
+                                              );
+                                            })}
+                                          </select>
+                                          <p className="field-help">
+                                            {usesCtaDestination ? 'Resolved CTA link' : 'Resolved link'}:{' '}
+                                            {item.deepLink || buildNavigationTargetLink('BUSINESS_PRODUCTS', navigationTarget.value) || '(empty)'}
+                                          </p>
+                                        </label>
+                                      </>
                                     ) : null}
                                     {(navigationTarget.type === 'CAMPAIGN' ||
                                       navigationTarget.type === 'EXTERNAL_URL' ||
@@ -8888,7 +9286,7 @@ function AppConfigPage({ token }) {
                                           ) : null}
                                           {filteredTileProducts.map((p) => (
                                             <option key={p.id} value={String(p.id || '')}>
-                                              {formatDestinationProductLabel(p)}
+                                              {formatCleanDestinationProductLabel(p)}
                                             </option>
                                           ))}
                                         </select>
@@ -8965,7 +9363,7 @@ function AppConfigPage({ token }) {
                       </div>
                     </div>
                     {/* -- Advanced ---------------------------------------- */}
-                    {(!isEditingFixed && !isPhaseOneBlock) ? (
+                    {(!isEditingFixed && !isPhaseOneBlock && !isMultiItemGrid) ? (
                       <div className={`prop-group${collapsedGroups.advanced ? ' is-collapsed' : ''}`}>
                         <div className="prop-group-header" onClick={() => togglePropGroup('advanced')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && togglePropGroup('advanced')}>
                           <div className="prop-group-left">
