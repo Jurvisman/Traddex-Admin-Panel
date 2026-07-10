@@ -174,6 +174,9 @@ export const listProducts = (token, filters = {}) => {
   if (filters.category) params.set('category', filters.category);
   if (filters.business) params.set('business', filters.business);
   if (filters.brand) params.set('brand', filters.brand);
+  if (filters.industryId) params.set('industryId', String(filters.industryId));
+  if (filters.mainCategoryId) params.set('mainCategoryId', String(filters.mainCategoryId));
+  if (filters.categoryId) params.set('categoryId', String(filters.categoryId));
   if (filters.page !== null && filters.page !== undefined) params.set('page', String(filters.page));
   if (filters.size !== null && filters.size !== undefined) params.set('size', String(filters.size));
   const query = params.toString() ? `?${params.toString()}` : '';

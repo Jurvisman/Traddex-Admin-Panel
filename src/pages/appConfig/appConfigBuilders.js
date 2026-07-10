@@ -70,6 +70,7 @@ export const buildSectionFromForm = (base, form) => {
   const isProductCardCarouselBlock = resolvedBlockType === 'product_card_carousel';
   const isServiceCardCarouselBlock = resolvedBlockType === 'service_card_carousel';
   const isCategoryIconGridBlock = resolvedBlockType === 'category_icon_grid';
+  const isCategoryShowcaseBlock = resolvedBlockType === 'category_showcase';
   const isPlaceCardCarouselBlock = resolvedBlockType === 'beauty_salon_carousel';
   const isTabbedProductShelfBlock = resolvedBlockType === 'tabbed_product_shelf';
   const isShopCardCarouselBlock = resolvedBlockType === 'shop_card_carousel';
@@ -80,6 +81,7 @@ export const buildSectionFromForm = (base, form) => {
     isProductCardCarouselBlock ||
     isServiceCardCarouselBlock ||
     isCategoryIconGridBlock ||
+    isCategoryShowcaseBlock ||
     isPlaceCardCarouselBlock ||
     isTabbedProductShelfBlock ||
     isShopCardCarouselBlock ||
@@ -500,9 +502,19 @@ export const buildSectionFromForm = (base, form) => {
   if (isShopCardCarouselBlock) {
     const dsType = String(form.blockDataSourceType || 'SHOP_FEED').trim().toUpperCase();
     const limit = toSafeLimit(form.blockLimit, 1, 60, 10);
+    const feedMode = String(form.blockFeedMode || 'NEARBY').trim().toUpperCase();
+    const sourceIndustryId = normalizeCollectionId(form.sourceIndustryId);
+    const sourceMainCategoryId = normalizeCollectionId(form.sourceMainCategoryId);
+    const sourceCategoryIds = Array.isArray(form.sourceCategoryIds)
+      ? form.sourceCategoryIds.map((value) => normalizeCollectionId(value)).filter(Boolean)
+      : [];
     next.dataSource = {
       sourceType: dsType === 'MANUAL' ? 'MANUAL' : 'SHOP_FEED',
+      ...(dsType === 'MANUAL' ? {} : { feedMode }),
       ...(limit !== 10 ? { limit } : {}),
+      ...(sourceIndustryId ? { industryId: sourceIndustryId } : {}),
+      ...(sourceMainCategoryId ? { mainCategoryId: sourceMainCategoryId } : {}),
+      ...(sourceCategoryIds.length ? { categoryIds: sourceCategoryIds } : {}),
     };
   }
   if (isLegacyMultiItemGrid) {
@@ -791,6 +803,8 @@ export const buildSectionFormFromConfig = (section, fallbackType) => {
         ? String(source?.feedMode || 'BESTSELLER').trim().toUpperCase()
         : resolvedBlockType === 'service_card_carousel'
           ? String(source?.feedMode || 'TRENDING').trim().toUpperCase()
+        : resolvedBlockType === 'shop_card_carousel'
+          ? String(source?.feedMode || 'NEARBY').trim().toUpperCase()
         : defaultSectionForm.blockFeedMode,
     blockTabField:
       resolvedBlockType === 'tabbed_product_shelf'

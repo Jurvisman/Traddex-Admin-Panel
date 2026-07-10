@@ -5800,6 +5800,12 @@ export const SHOP_BLOCK_SOURCE_OPTIONS = [
   { value: 'SHOP_FEED', label: 'Shop Feed (nearby shops, auto)' },
   { value: 'MANUAL', label: 'Manual (CMS items only)' },
 ];
+export const SHOP_FEED_MODE_OPTIONS = [
+  { value: 'NEARBY', label: 'Shops near user' },
+  { value: 'VERIFIED', label: 'Verified shops' },
+  { value: 'TOP_RATED', label: 'Top rated shops' },
+  { value: 'NEW', label: 'New shops' },
+];
 export const PRODUCT_FEED_MODE_OPTIONS = [
   { value: 'BESTSELLER', label: 'Bestsellers' },
   { value: 'TRENDING', label: 'Trending' },
