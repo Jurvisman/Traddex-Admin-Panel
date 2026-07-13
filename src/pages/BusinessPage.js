@@ -889,6 +889,16 @@ function BusinessPage({ token, allowedActions }) {
     }
     if (!viewBusinessProfile?.profileId) return;
 
+    const pendingSubscription = viewSubscriptions.find((sub) => normalizeStatus(sub?.status) === 'PENDING_ACTIVATION');
+    if (pendingSubscription) {
+      setMessage({
+        type: 'error',
+        text: 'Please activate this business subscription before approving KYC.',
+      });
+      openActivationModal(pendingSubscription);
+      return;
+    }
+
     setIsBusinessSaving(true);
     setMessage({ type: 'info', text: '' });
     try {
