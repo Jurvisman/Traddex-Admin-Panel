@@ -52,7 +52,6 @@ import {
   ServicePage,
   ServiceCreatePage,
   StorefrontManagementPage,
-  StorefrontTemplatesPage,
   StorefrontWebsiteRequestsPage,
   WaitlistLeadsPage,
   WebsiteCmsPage,
@@ -911,7 +910,6 @@ function AppRoutes() {
             children: [
               { path: '/admin/storefront', label: 'Domains & Live Sites', icon: ICONS.dashboard, tone: NAV_TONES.dashboard, exact: true },
               { path: '/admin/storefront/website-requests', label: 'Website Requests', icon: ICONS.dashboard, tone: NAV_TONES.dashboard },
-              { path: '/admin/storefront/templates', label: 'Builder Templates', icon: ICONS.dashboard, tone: NAV_TONES.dashboard },
             ],
           },
           {
@@ -1610,7 +1608,6 @@ function AppRoutes() {
         />
         <Route path="storefront" element={<PermissionGate isLoading={isPermissionLoading} isAllowed={canAccessPath('/admin/storefront')} fallbackPath={routeFallbackPath}><StorefrontManagementPage token={authToken} /></PermissionGate>} />
         <Route path="storefront/website-requests" element={<PermissionGate isLoading={isPermissionLoading} isAllowed={canAccessPath('/admin/storefront/website-requests')} fallbackPath={routeFallbackPath}><StorefrontWebsiteRequestsPage token={authToken} /></PermissionGate>} />
-        <Route path="storefront/templates" element={<PermissionGate isLoading={isPermissionLoading} isAllowed={canAccessPath('/admin/storefront/templates')} fallbackPath={routeFallbackPath}><StorefrontTemplatesPage token={authToken} /></PermissionGate>} />
         <Route
           path="inquiry/config"
           element={
