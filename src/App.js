@@ -879,6 +879,13 @@ function AppRoutes() {
       } catch (error) {
         if (!active) return;
         setPermissionPayload({ menuPermissions: [] });
+        if (error?.status === 401) {
+          setAuthToken('');
+          setAuthUserId(null);
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('authUserId');
+          navigate('/login', { replace: true });
+        }
       } finally {
         if (active) {
           setIsPermissionLoading(false);

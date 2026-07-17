@@ -35,7 +35,9 @@ const request = async (path, { method = 'GET', body, token } = {}) => {
   });
 
   if (!response.ok) {
-    throw new Error(await parseError(response));
+    const err = new Error(await parseError(response));
+    err.status = response.status;
+    throw err;
   }
 
   if (response.status === 204) return null;
@@ -381,7 +383,9 @@ export const uploadBannerImages = async (token, files) => {
   });
 
   if (!response.ok) {
-    throw new Error(await parseError(response));
+    const err = new Error(await parseError(response));
+    err.status = response.status;
+    throw err;
   }
   if (response.status === 204) return null;
   return response.json();
@@ -407,7 +411,9 @@ export const importTimeZones = async (token, file, replace = true) => {
   );
 
   if (!response.ok) {
-    throw new Error(await parseError(response));
+    const err = new Error(await parseError(response));
+    err.status = response.status;
+    throw err;
   }
   if (response.status === 204) return null;
 
