@@ -142,8 +142,19 @@ const BUSINESS_PROFILE_FIELDS = [
   { key: 'industry', label: 'Industry' },
   { key: 'businessType', label: 'Business Type' },
   { key: 'gstNumber', label: 'GST Number' },
+  { key: 'gstChoice', label: 'GST Choice' },
+  { key: 'gstLegalName', label: 'GST Legal Name' },
+  { key: 'gstTradeName', label: 'GST Trade Name' },
+  { key: 'gstRegisteredAddress', label: 'GST Registered Address' },
+  { key: 'gstPan', label: 'GST PAN' },
   { key: 'businessPan', label: 'Business PAN' },
   { key: 'udyam', label: 'Udyam' },
+  { key: 'onboardingSource', label: 'Onboarding Source' },
+  { key: 'operatingAddress', label: 'Operating Address' },
+  { key: 'operatingAddressSameAsRegistered', label: 'Operating Address Same As GST' },
+  { key: 'operatingAddressProofUrl', label: 'Operating Address Proof' },
+  { key: 'kycRiskStatus', label: 'KYC Risk Status' },
+  { key: 'profileCompletionPercent', label: 'Profile Completion' },
   { key: 'primaryCategoryId', label: 'Primary Category ID', type: 'number' },
   { key: 'primarySubCategoryId', label: 'Primary Sub-Category ID', type: 'number' },
   { key: 'address', label: 'Address', type: 'textarea', span: true },
@@ -200,7 +211,16 @@ const PERSONAL_INFO_KEYS = new Set([
   'mapLink',
 ]);
 
-const BANK_INFO_KEYS = new Set(['accountHolderName', 'bankName', 'accountNumber', 'ifscCode', 'razorpayKey']);
+const BANK_INFO_KEYS = new Set([
+  'accountHolderName',
+  'bankName',
+  'accountNumber',
+  'ifscCode',
+  'sellerUpiId',
+  'razorpayKey',
+  'bankProofType',
+  'bankProofDocUrl',
+]);
 
 /* ── Create Business ─────────────────────────────────────── */
 const CB_PHONE_RE = /^[0-9]{10}$/;
@@ -442,7 +462,7 @@ function BusinessPage({ token, allowedActions }) {
   const canActivateSubscription = !hasActionModel || allowedActionSet.has(SUBSCRIPTION_PERMISSIONS.activate);
   const canViewReviewModeration = hasPermission(REVIEW_MODERATION_PERMISSIONS.read);
 
-  const loadBusinesses = async () => {
+  const loadBusinesses = async (page = businessListPage, size = businessListPageSize) => {
     if (!canRead) {
       setBusinesses([]);
       setMessage({ type: 'error', text: 'You do not have permission to view businesses.' });
@@ -452,15 +472,16 @@ function BusinessPage({ token, allowedActions }) {
     setIsLoading(true);
     setMessage({ type: 'info', text: '' });
     try {
-      const response = await fetchBusinesses(token);
-      const list = Array.isArray(response?.data) ? response.data : [];
-      const filtered = list
-        .filter((user) => isBusinessUser(user))
-        .sort((a, b) => {
-          const aDate = new Date(a?.createdAt || a?.created_at || 0).getTime();
-          const bDate = new Date(b?.createdAt || b?.created_at || 0).getTime();
-          return bDate - aDate;
-        });
+      const response = await fetchBusinesses(token, { page, size });
+      const rawData = response?.data;
+      const list = Array.isArray(rawData?.businesses)
+        ? rawData.businesses
+        : Array.isArray(rawData?.content)
+        ? rawData.content
+        : Array.isArray(rawData)
+        ? rawData
+        : [];
+      const filtered = list.filter((user) => isBusinessUser(user));
       setBusinesses(filtered);
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to load businesses.' });
@@ -980,6 +1001,33 @@ function BusinessPage({ token, allowedActions }) {
     return pickObjectFields(viewBusinessProfile, (key) => BANK_INFO_KEYS.has(key));
   }, [viewBusinessProfile]);
 
+  const kycReviewFields = useMemo(() => {
+    const bp = viewBusinessProfile || {};
+    const formatBool = (value) => {
+      if (value === true || value === 1) return 'Yes';
+      if (value === false || value === 0) return 'No';
+      return '-';
+    };
+    return [
+      { key: 'onboardingSource', label: 'Onboarding Source', value: bp.onboardingSource || '-' },
+      { key: 'gstChoice', label: 'GST Selected', value: bp.gstChoice || (bp.gstNumber ? 'YES' : 'NO') },
+      { key: 'gstNumber', label: 'GST Number', value: bp.gstNumber || '-' },
+      { key: 'gstLegalName', label: 'GST Legal Name', value: bp.gstLegalName || '-' },
+      { key: 'gstTradeName', label: 'GST Trade Name', value: bp.gstTradeName || '-' },
+      { key: 'gstRegisteredAddress', label: 'GST Registered Address', value: bp.gstRegisteredAddress || '-' },
+      { key: 'gstPan', label: 'PAN From GST', value: bp.gstPan || '-' },
+      { key: 'businessPan', label: 'Submitted PAN', value: bp.businessPan || '-' },
+      { key: 'operatingAddressSameAsRegistered', label: 'Operating Address Same As GST', value: formatBool(bp.operatingAddressSameAsRegistered) },
+      { key: 'operatingAddress', label: 'Operating Address', value: bp.operatingAddress || bp.address || '-' },
+      { key: 'operatingAddressProofUrl', label: 'Operating Address Proof', value: bp.operatingAddressProofUrl || bp.addressProofDocUrl || '-' },
+      { key: 'bankProofType', label: 'Bank Proof Type', value: bp.bankProofType || '-' },
+      { key: 'bankProofDocUrl', label: 'Bank Proof Document', value: bp.bankProofDocUrl || '-' },
+      { key: 'bankProofReview', label: 'Bank Review', value: bp.bankProofDocUrl ? 'Proof uploaded - admin review required' : 'Proof missing' },
+      { key: 'kycRiskStatus', label: 'Risk Status', value: bp.kycRiskStatus || '-' },
+      { key: 'profileCompletionPercent', label: 'Profile Completion', value: `${bp.profileCompletionPercent ?? 0}%` },
+    ];
+  }, [viewBusinessProfile]);
+
   const productPendingCount = useMemo(() => (
     viewProducts.filter((product) => normalizeStatus(product?.approvalStatus || product?.status || product?.productStatus) === 'PENDING_REVIEW').length
   ), [viewProducts]);
@@ -1094,6 +1142,7 @@ function BusinessPage({ token, allowedActions }) {
     { key: 'personal', label: 'Personal' },
     { key: 'business', label: 'Business' },
     { key: 'bank', label: 'Banking' },
+    { key: 'kycreview', label: 'KYC Review' },
     { key: 'kycdocs', label: 'KYC Documents' },
     { key: 'media', label: 'Media' },
     { key: 'products', label: 'Products', count: viewProducts.length, badgeCount: productPendingCount, badgeTone: 'danger' },
@@ -1679,6 +1728,9 @@ function BusinessPage({ token, allowedActions }) {
                   {/* Banking Details */}
                   {activeTab === 'bank' ? renderFieldGrid(bankFields, 'No bank details available.') : null}
 
+                  {/* KYC Review */}
+                  {activeTab === 'kycreview' ? renderFieldGrid(kycReviewFields, 'No KYC review data available.') : null}
+
                   {/* KYC Documents */}
                   {activeTab === 'kycdocs' ? (() => {
                     const bp  = viewBusinessProfile || {};
@@ -1720,7 +1772,7 @@ function BusinessPage({ token, allowedActions }) {
                       udyam:          { id: 'udyam',          label: 'Udyam Certificate',      url: pick('udyamDocUrl','udyam_doc_url'),                 verified: pickBool('udyamVerified','udyam_verified'),       verifiedLabel: 'Udyam Verified',  meta: pick('udyam','udyamNumber','udyam_number') },
                       businessProof:  { id: 'businessProof',  label: 'Business Proof / License', url: pick('businessProofDocUrl','business_proof_doc_url'), verified: false, meta: pick('licenseNumber','license_number') },
                       addressProof:   { id: 'addressProof',   label: (() => { const t = pick('addressProofType','address_proof_type'); return t ? `Address Proof — ${String(t).replace(/_/g,' ')}` : 'Address Proof'; })(), url: pick('addressProofDocUrl','address_proof_doc_url'), verified: false },
-                      bankProof:      { id: 'bankProof',      label: (() => { const t = pick('bankProofType','bank_proof_type'); return t ? `Bank Proof — ${String(t).replace(/_/g,' ')}` : 'Bank Proof'; })(),           url: pick('bankProofDocUrl','bank_proof_doc_url'),      verified: pickBool('pennyDropVerified','penny_drop_verified'), verifiedLabel: 'Penny Drop ✓' },
+                      bankProof:      { id: 'bankProof',      label: (() => { const t = pick('bankProofType','bank_proof_type'); return t ? `Bank Proof — ${String(t).replace(/_/g,' ')}` : 'Bank Proof'; })(),           url: pick('bankProofDocUrl','bank_proof_doc_url'),      verified: Boolean(pick('bankProofDocUrl','bank_proof_doc_url')), verifiedLabel: 'Uploaded' },
                     };
 
                     const ENTITY_REQUIRED = {
@@ -1820,7 +1872,7 @@ function BusinessPage({ token, allowedActions }) {
                               { label: 'PAN',        done: pickBool('panVerified','pan_verified') },
                               { label: 'GST',        done: pickBool('gstVerified','gst_verified'),   show: requiredIds.includes('gst') },
                               { label: 'Udyam',      done: pickBool('udyamVerified','udyam_verified'), show: requiredIds.includes('udyam') },
-                              { label: 'Penny Drop', done: pickBool('pennyDropVerified','penny_drop_verified') },
+                              { label: 'Bank Proof', done: Boolean(pick('bankProofDocUrl','bank_proof_doc_url')) },
                             ].filter((t) => t.show !== false).map(({ label, done }) => (
                               <span key={label} className={`bv-kyc-pill ${done ? 'bv-kyc-pill-done' : 'bv-kyc-pill-pending'}`}>
                                 {done ? '✓' : '○'} {label}

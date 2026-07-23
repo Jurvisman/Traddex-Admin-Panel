@@ -73,7 +73,17 @@ export const saveAppVisibilityScope = (token, scope, items) =>
 export const fetchUserDetails = (token, id) => request(`/users/${id}/details`, { token });
 export const fetchBusinessDetails = (token, id) => request(`/admin/businesses/${id}/details`, { token });
 export const logoutUser = (token, id) => request(`/users/${id}/logout`, { method: 'POST', token });
-export const fetchBusinesses = (token) => request('/admin/businesses', { token });
+export const fetchBusinesses = (token, params = {}) => {
+  const urlParams = new URLSearchParams();
+  if (typeof params === 'object' && params !== null) {
+    if (params.page !== undefined && params.page !== null) urlParams.set('page', String(params.page));
+    if (params.size !== undefined && params.size !== null) urlParams.set('size', String(params.size));
+    if (params.search) urlParams.set('search', params.search);
+    if (params.status) urlParams.set('status', params.status);
+  }
+  const query = urlParams.toString() ? `?${urlParams.toString()}` : '';
+  return request(`/admin/businesses${query}`, { token });
+};
 export const updateBusinessAccount = (token, id, payload) =>
   request(`/admin/businesses/${id}`, { method: 'PUT', body: payload, token });
 export const updateBusinessProfile = (token, userId, payload, status) => {
