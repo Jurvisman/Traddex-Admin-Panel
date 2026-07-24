@@ -6940,7 +6940,7 @@ function ProductPage({ token, adminUserId }) {
             <span className="icon icon-search" />
             <input
               type="search"
-              placeholder="Search products by name, brand, or business..."
+              placeholder="Search products"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
             />
