@@ -36,6 +36,7 @@ const BUSINESS_PROFILE_FIELDS = [
   { key: 'businessType',        label: 'Business Type',          type: 'businessType', required: true },
   { key: 'gstNumber',           label: 'GST Number',             required: true },
   { key: 'businessPan',         label: 'Business PAN',           required: true },
+  { key: 'aadhaar',             label: 'Aadhaar Number' },
   { key: 'udyam',               label: 'Udyam Registration' },
   { key: 'nature',              label: 'Nature of Business',     type: 'nature' },
   { key: 'experience',          label: 'Experience' },
@@ -76,7 +77,7 @@ const BUSINESS_PROFILE_FIELDS = [
 const getEditTabForField = (key) => {
   const generalKeys = new Set([
     'businessName', 'ownerName', 'contactNumber', 'whatsappNumber', 'email',
-    'industry', 'businessSegment', 'businessType', 'gstNumber', 'businessPan', 'udyam',
+    'industry', 'businessSegment', 'businessType', 'gstNumber', 'businessPan', 'aadhaar', 'udyam',
     'nature', 'experience', 'hours', 'serviceArea', 'serviceRadius', 'modeOfService',
     'languagesSupported', 'logo', 'website', 'licenseNumber', 'description',
     'primaryCategoryId', 'primarySubCategoryId',

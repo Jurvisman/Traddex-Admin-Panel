@@ -148,6 +148,7 @@ const BUSINESS_PROFILE_FIELDS = [
   { key: 'gstRegisteredAddress', label: 'GST Registered Address' },
   { key: 'gstPan', label: 'GST PAN' },
   { key: 'businessPan', label: 'Business PAN' },
+  { key: 'aadhaar', label: 'Aadhaar Number' },
   { key: 'udyam', label: 'Udyam' },
   { key: 'onboardingSource', label: 'Onboarding Source' },
   { key: 'operatingAddress', label: 'Operating Address' },
