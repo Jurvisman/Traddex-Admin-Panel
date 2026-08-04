@@ -14,6 +14,7 @@ const initialForm = {
   user_type: 'BUSINESS',
   business_type: 'ALL',
   price: '',
+  yearly_discount_percent: '',
   duration_months: '',
   description: '',
   icon_url: '',
@@ -63,6 +64,19 @@ const toNumber = (value) => {
   return Number.isNaN(num) ? null : num;
 };
 
+const formatPlanDate = (value) =>
+  value.toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+
+const addMonths = (date, months) => {
+  const copy = new Date(date);
+  copy.setMonth(copy.getMonth() + months);
+  return copy;
+};
+
 function SubscriptionPlanPage({ token }) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -78,8 +92,26 @@ function SubscriptionPlanPage({ token }) {
   const didInitRef = useRef(false);
   const [openActionRowId, setOpenActionRowId] = useState(null);
 
+  const regularMonthlyPrice = toNumber(form.price) || 0;
+  const offerMonthlyPrice = toNumber(form.promo_price);
+  const offerDurationMonths = toNumber(form.offer_duration_months) || 0;
+  const isLaunchOfferActive =
+    form.offer_active === '1' &&
+    offerMonthlyPrice !== null &&
+    offerDurationMonths > 0 &&
+    offerMonthlyPrice >= 0 &&
+    offerMonthlyPrice <= regularMonthlyPrice;
   const monthlyPrice = form.price ? String(form.price) : '';
-  const yearlyPrice = form.price ? String(Math.round(Number(form.price) * 12)) : '';
+  const yearlyBasePrice = (isLaunchOfferActive ? offerMonthlyPrice : regularMonthlyPrice) * 12;
+  const yearlyDiscountPercent = Math.max(0, Math.min(100, Number(form.yearly_discount_percent || 0)));
+  const yearlyPrice = yearlyBasePrice
+    ? String(Math.round(yearlyBasePrice - (yearlyBasePrice * yearlyDiscountPercent) / 100))
+    : '';
+  const regularYearlyBasePrice = regularMonthlyPrice * 12;
+  const afterOfferYearlyPrice = regularYearlyBasePrice
+    ? String(Math.round(regularYearlyBasePrice - (regularYearlyBasePrice * yearlyDiscountPercent) / 100))
+    : '';
+  const offerEndDate = isLaunchOfferActive ? formatPlanDate(addMonths(new Date(), offerDurationMonths)) : '';
 
   const featureMap = useMemo(() => {
     const map = new Map();
@@ -182,6 +214,7 @@ function SubscriptionPlanPage({ token }) {
       user_type: form.user_type,
       business_type: businessType,
       price: toNumber(form.price),
+      yearly_discount_percent: toNumber(form.yearly_discount_percent),
       duration_months: toNumber(form.duration_months),
       description: form.description.trim() || null,
       icon_url: form.icon_url.trim() || null,
@@ -225,6 +258,11 @@ function SubscriptionPlanPage({ token }) {
       setMessage({ type: 'error', text: 'Plan duration is required.' });
       return;
     }
+    const yearlyDiscount = toNumber(form.yearly_discount_percent);
+    if (yearlyDiscount !== null && (yearlyDiscount < 0 || yearlyDiscount > 100)) {
+      setMessage({ type: 'error', text: 'Yearly discount must be between 0 and 100%.' });
+      return;
+    }
     if (form.offer_active === '1') {
       const offerPrice = toNumber(form.promo_price);
       const regularPrice = toNumber(form.price);
@@ -265,6 +303,7 @@ function SubscriptionPlanPage({ token }) {
       user_type: plan.user_type || 'BUSINESS',
       business_type: plan.business_type || 'ALL',
       price: plan.price ?? '',
+      yearly_discount_percent: plan.yearly_discount_percent ?? '',
       duration_months: plan.duration_months ?? plan.duration ?? '',
       description: plan.description || '',
       icon_url: plan.icon_url || '',
@@ -664,6 +703,17 @@ function SubscriptionPlanPage({ token }) {
                     <input type="number" value={yearlyPrice} readOnly placeholder="11988" />
                   </label>
                   <label className="field">
+                    <span>Yearly discount %</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={form.yearly_discount_percent}
+                      onChange={(event) => handleChange('yearly_discount_percent', event.target.value)}
+                      placeholder="0"
+                    />
+                  </label>
+                  <label className="field">
                     <span>Launch Offer</span>
                     <select value={form.offer_active} onChange={(event) => handleChange('offer_active', event.target.value)}>
                       <option value="0">Inactive - charge regular price</option>
@@ -691,6 +741,20 @@ function SubscriptionPlanPage({ token }) {
                       placeholder="e.g. 3 or 24"
                     />
                   </label>
+                  {isLaunchOfferActive && (
+                    <div className="field field-span plan-offer-summary">
+                      <div>
+                        <span>Offer ends</span>
+                        <strong>{offerEndDate}</strong>
+                        <small>Actual date is counted from each subscriber's start date.</small>
+                      </div>
+                      <div>
+                        <span>Yearly price after offer</span>
+                        <strong>₹ {afterOfferYearlyPrice || '0'}/yr</strong>
+                        <small>Regular monthly price with yearly discount applied.</small>
+                      </div>
+                    </div>
+                  )}
                   <label className="field">
                     <span>Promo Label / Badge (Optional)</span>
                     <input

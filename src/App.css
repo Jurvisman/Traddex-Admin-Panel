@@ -3249,6 +3249,38 @@ textarea {
   font-size: 10px;
 }
 
+.plan-offer-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #d8ccff;
+  border-radius: 14px;
+  background: #fbfaff;
+}
+
+.plan-offer-summary div {
+  display: grid;
+  gap: 4px;
+}
+
+.plan-offer-summary span {
+  color: #667085;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.plan-offer-summary strong {
+  color: #101828;
+  font-size: 16px;
+}
+
+.plan-offer-summary small {
+  color: #667085;
+  font-size: 12px;
+}
+
 .plan-description-card {
   gap: 10px;
 }

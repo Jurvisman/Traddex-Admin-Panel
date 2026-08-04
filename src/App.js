@@ -31,6 +31,7 @@ import {
   SubscriptionPlanCreatePage,
   SubscriptionPlanViewPage,
   SubscriptionCouponPage,
+  GrowthCoinsPage,
   AdminUsersPage,
   UserDirectoryPage,
   EmployeePage,
@@ -354,6 +355,11 @@ const ADMIN_META = [
   {
     match: '/admin/subscription/coupons',
     title: 'Coupons',
+  },
+  {
+    match: '/admin/growth-coins',
+    title: 'Growth Coins',
+    subtitle: 'Manage referral coin rules, wallets, referrals and ledger audit.',
   },
   {
     match: '/admin/subscription/assignments',
@@ -956,6 +962,7 @@ function AppRoutes() {
               { path: '/admin/subscription/plans', label: 'Plan', icon: ICONS.subPlans, tone: NAV_TONES.subPlans },
               { path: '/admin/subscription/addon-pricing', label: 'Addon Pricing', icon: ICONS.subPlans, tone: NAV_TONES.subAssignments },
               { path: '/admin/subscription/coupons', label: 'Coupons', icon: ICONS.subAssignments, tone: NAV_TONES.subAssignments },
+              { path: '/admin/growth-coins', label: 'Growth Coins', icon: ICONS.revenue, tone: NAV_TONES.subAssignments },
             ],
           },
           {
@@ -1786,6 +1793,21 @@ function AppRoutes() {
               fallbackPath={routeFallbackPath}
             >
               <SubscriptionCouponPage token={authToken} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="growth-coins"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={
+                canAccessPath('/admin/growth-coins') &&
+                allowedActionCodes.has('ADMIN_GROWTH_COINS_READ')
+              }
+              fallbackPath={routeFallbackPath}
+            >
+              <GrowthCoinsPage token={authToken} />
             </PermissionGate>
           }
         />

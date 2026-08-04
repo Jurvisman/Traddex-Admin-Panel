@@ -502,6 +502,12 @@ export const listSubscriptionCouponRedemptions = (token, couponId, filters = {})
   );
 };
 
+// Growth coins and referral program
+export const getGrowthCoinsOverview = (token) => request('/admin/growth-coins/overview', { token });
+export const listGrowthCoinRules = (token) => request('/admin/growth-coins/rules', { token });
+export const updateGrowthCoinRule = (token, ruleCode, payload) =>
+  request(`/admin/growth-coins/rules/${encodeURIComponent(ruleCode)}`, { method: 'PUT', body: payload, token });
+
 // Addon pricing management
 export const upsertAddonPricing = (token, payload) =>
   request('/admin/addon/pricing', { method: 'POST', body: payload, token });
