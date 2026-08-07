@@ -22959,3 +22959,144 @@ textarea {
     justify-content: center;
   }
 }
+
+/* ==========================================================================
+   MOBILE & TABLET RESPONSIVE SYSTEM FOR DEAL360 ADMIN PANEL
+   ========================================================================== */
+
+/* 1. Global Table Touch-Scroll Containers */
+.table-responsive,
+.admin-table-container,
+.table-wrapper,
+.bv-table-wrap,
+.catalog-table-wrap {
+  width: 100%;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+.table-responsive table,
+.admin-table-container table,
+.table-wrapper table {
+  min-width: 650px;
+}
+
+/* 2. Responsive Filters, Search Bars & Actions */
+@media (max-width: 900px) {
+  .admin-filters-bar,
+  .filter-controls,
+  .search-filter-row,
+  .page-action-header,
+  .header-actions,
+  .catalog-filter-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    width: 100% !important;
+    gap: 10px !important;
+  }
+
+  .admin-filters-bar input,
+  .admin-filters-bar select,
+  .admin-filters-bar button,
+  .filter-controls input,
+  .filter-controls select,
+  .filter-controls button,
+  .search-box,
+  .search-input-wrap {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+  }
+}
+
+/* 3. Analytics KPI Cards & Chart Containers */
+@media (max-width: 1024px) {
+  .stats-grid,
+  .dashboard-cards,
+  .kpi-cards-grid,
+  .analytics-kpi-grid,
+  .overview-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .stats-grid,
+  .dashboard-cards,
+  .kpi-cards-grid,
+  .analytics-kpi-grid,
+  .overview-stats-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  .analytics-card,
+  .chart-card,
+  .revenue-chart-card,
+  .analytics-panel {
+    width: 100% !important;
+    overflow-x: auto;
+    padding: 14px 12px !important;
+    border-radius: 14px !important;
+  }
+
+  .chart-container,
+  .recharts-responsive-container {
+    min-height: 240px !important;
+  }
+
+  .chart-legend,
+  .metric-pills-row {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+}
+
+/* 4. Responsive Modals, Dialogs & Slide-overs */
+@media (max-width: 768px) {
+  .confirm-dialog,
+  .modal-content,
+  .drawer-content,
+  .bv-modal-card {
+    width: min(92vw, 440px) !important;
+    max-height: 88vh !important;
+    overflow-y: auto !important;
+    padding: 20px 16px !important;
+    border-radius: 16px !important;
+    margin: 10px auto !important;
+  }
+
+  .modal-actions,
+  .dialog-actions,
+  .confirm-dialog-actions {
+    flex-direction: column-reverse !important;
+    width: 100% !important;
+    gap: 8px !important;
+  }
+
+  .modal-actions button,
+  .dialog-actions button,
+  .confirm-dialog-actions button {
+    width: 100% !important;
+    min-height: 44px !important;
+  }
+}
+
+/* 5. Mobile Shell & Navigation Touch Enhancements */
+@media (max-width: 1080px) {
+  .admin-shell-content {
+    padding: 12px 10px !important;
+  }
+
+  .admin-header {
+    padding: 10px 14px !important;
+  }
+
+  .admin-nav-item,
+  .admin-nav-subitem {
+    min-height: 44px !important;
+  }
+}
