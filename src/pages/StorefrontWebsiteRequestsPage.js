@@ -7,9 +7,13 @@ const buildUrl = (path) => `${API_BASE}/api${path}`;
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All Requests' },
-  { value: 'NEW', label: 'New' },
+  { value: 'PENDING', label: 'Pending' },
+  { value: 'CONTACTED', label: 'Contacted' },
+  { value: 'REQUIREMENT_COLLECTED', label: 'Requirement Collected' },
   { value: 'IN_PROGRESS', label: 'In Progress' },
-  { value: 'COMPLETED', label: 'Completed' },
+  { value: 'PREVIEW_READY', label: 'Preview Ready' },
+  { value: 'REVISION', label: 'Revision' },
+  { value: 'LIVE', label: 'Live' },
   { value: 'CANCELLED', label: 'Cancelled' },
 ];
 
@@ -34,10 +38,19 @@ const formatDate = (value) => {
 
 const statusPillClass = (status) => {
   const normalized = String(status || '').toUpperCase();
-  if (normalized === 'COMPLETED') return 'status-active';
-  if (normalized === 'NEW') return 'storefront-status-warn';
-  if (normalized === 'IN_PROGRESS') return 'status-primary';
-  return 'status-inactive';
+  if (normalized === 'LIVE' || normalized === 'COMPLETED') return 'live';
+  if (normalized === 'PENDING' || normalized === 'NEW') return 'pending';
+  if (normalized === 'IN_PROGRESS' || normalized === 'CONTACTED' || normalized === 'REQUIREMENT_COLLECTED') return 'in-review';
+  if (normalized === 'PREVIEW_READY' || normalized === 'REVISION') return 'pending-review';
+  if (normalized === 'CANCELLED') return 'rejected';
+  return 'inactive';
+};
+
+const formatDateOnly = (value) => {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+  return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
 const DetailRow = ({ label, value }) => (
@@ -92,7 +105,9 @@ function StorefrontWebsiteRequestsPage({ token }) {
         req.businessProfileId,
         req.contactNumber,
         req.email,
-        req.selectedTemplateName,
+        req.requestCode,
+        req.planName,
+        req.assignedTo,
         req.status,
       ].join(' ').toLowerCase();
       return text.includes(q);
@@ -135,74 +150,177 @@ function StorefrontWebsiteRequestsPage({ token }) {
     }
   };
 
+  const handleRequestUpdate = async (updates) => {
+    if (!viewItem) return;
+    setUpdatingId(viewItem.id);
+    setMessage({ type: 'info', text: '' });
+    try {
+      const response = await fetch(buildUrl(`/admin/website-requests/${viewItem.id}/status`), {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updates),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Failed to update request.');
+      }
+      setMessage({ type: 'success', text: 'Request updated successfully.' });
+      setViewItem(data.data);
+      await loadRequests();
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to update request.' });
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
   const renderViewPanel = () => {
     if (!viewItem) return null;
-    let colors = {};
-    try {
-      if (viewItem.brandColorsJson) colors = JSON.parse(viewItem.brandColorsJson);
-    } catch(e) {}
-    
     return (
-      <div className="mv-panel card">
+      <div className="mv-panel card storefront-request-panel">
         <div className="mv-panel-header">
-          <div className="mv-panel-title-row">
+          <div className="request-panel-heading">
             <button type="button" className="mv-back-btn" onClick={() => setViewItem(null)}>
               Back
             </button>
-            <h3 className="mv-panel-title">{viewItem.businessName || 'Request Details'}</h3>
-            <span className={statusPillClass(viewItem.status)}>{formatStatus(viewItem.status)}</span>
+            <div className="request-panel-title-stack">
+              <span className="request-panel-kicker">{viewItem.requestCode || `#${viewItem.id}`}</span>
+              <h3 className="mv-panel-title">{viewItem.businessName || 'Request Details'}</h3>
+            </div>
+            <span className={`status-pill storefront-status ${statusPillClass(viewItem.status)}`}>
+              {formatStatus(viewItem.status)}
+            </span>
           </div>
-          <div style={{display: 'flex', gap: '8px', marginTop: '12px'}}>
-             {viewItem.status === 'NEW' && (
-                <button className="primary-btn compact" onClick={() => handleStatusUpdate(viewItem, 'IN_PROGRESS')}>Start Work</button>
-             )}
-             {viewItem.status === 'IN_PROGRESS' && (
-                <button className="primary-btn compact" onClick={() => handleStatusUpdate(viewItem, 'COMPLETED')}>Mark Completed</button>
-             )}
+          <div className="request-panel-toolbar">
+            <label className="request-status-field">
+              <span>Status</span>
+              <select
+                className="request-control-select"
+                value={viewItem.status || 'PENDING'}
+                onChange={(event) => handleStatusUpdate(viewItem, event.target.value)}
+              >
+                {STATUS_OPTIONS.filter((option) => option.value).map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </label>
+            <button
+              className="secondary-btn compact request-notify-btn"
+              disabled={updatingId === viewItem.id}
+              onClick={() => handleRequestUpdate({ markNotified: 'true' })}
+            >
+              Mark Update Sent
+            </button>
           </div>
         </div>
 
         <div className="mv-section">
-          <p className="mv-section-label">Contact Info</p>
+          <p className="mv-section-label">Request & Plan</p>
           <div className="mv-detail-grid">
-            <DetailRow label="Business" value={viewItem.businessName} />
-            <DetailRow label="Mobile" value={viewItem.contactNumber} />
-            <DetailRow label="Email" value={viewItem.email} />
-            <DetailRow label="Domain Req" value={viewItem.preferredDomainName} />
+            <DetailRow label="Request ID" value={viewItem.requestCode || `#${viewItem.id}`} />
+            <DetailRow label="Plan" value={viewItem.planName} />
+            <DetailRow label="Validity" value={`${formatDateOnly(viewItem.validFrom)} - ${formatDateOnly(viewItem.validTill)}`} />
             <DetailRow label="Created At" value={formatDate(viewItem.createdAt)} />
           </div>
         </div>
 
         <div className="mv-section">
-          <p className="mv-section-label">Template Details</p>
+          <p className="mv-section-label">Business Contact</p>
           <div className="mv-detail-grid">
-            <DetailRow label="Template Name" value={viewItem.selectedTemplateName} />
-            <DetailRow label="Template Key" value={viewItem.selectedTemplateKey} />
+            <DetailRow label="Business" value={viewItem.businessName} />
+            <DetailRow label="Mobile" value={viewItem.contactNumber} />
+            <DetailRow label="Email" value={viewItem.email} />
+            <DetailRow label="Assigned To" value={viewItem.assignedTo} />
           </div>
         </div>
 
         <div className="mv-section">
-          <p className="mv-section-label">Branding</p>
-          <div className="mv-detail-grid">
-            <div className="mv-detail-row" style={{gridColumn: '1 / -1'}}>
-              <span className="mv-detail-label">Logo</span>
-              <span className="mv-detail-value">
-                {viewItem.logoUrl ? <img src={viewItem.logoUrl} style={{maxHeight: 40}} alt="Logo" /> : '-'}
-              </span>
-            </div>
-            <DetailRow label="Primary Color" value={colors.primary ? <span style={{display: 'inline-block', width: 20, height: 20, background: colors.primary, borderRadius: 4, verticalAlign: 'middle', marginRight: 8}}></span> : '-'} />
-            <DetailRow label="Secondary Color" value={colors.secondary ? <span style={{display: 'inline-block', width: 20, height: 20, background: colors.secondary, borderRadius: 4, verticalAlign: 'middle', marginRight: 8}}></span> : '-'} />
+          <p className="mv-section-label">Work Management</p>
+          <div className="request-form-grid">
+            <label className="request-field">
+              <span>Assigned To</span>
+              <input
+                className="request-input"
+                value={viewItem.assignedTo || ''}
+                onChange={(event) => setViewItem({ ...viewItem, assignedTo: event.target.value })}
+                placeholder="Team member name"
+              />
+            </label>
+            <label className="request-field">
+              <span>MOM / Requirements</span>
+              <textarea
+                className="request-textarea"
+                rows={5}
+                value={viewItem.adminNotes || ''}
+                onChange={(event) => setViewItem({ ...viewItem, adminNotes: event.target.value })}
+                placeholder="Write call notes, website requirements, pages, colors, domain preference..."
+              />
+            </label>
+            <label className="request-field">
+              <span>Customer Notes</span>
+              <textarea
+                className="request-textarea"
+                rows={3}
+                value={viewItem.notes || ''}
+                onChange={(event) => setViewItem({ ...viewItem, notes: event.target.value })}
+              />
+            </label>
           </div>
         </div>
-        
-        {viewItem.notes && (
-          <div className="mv-section">
-            <p className="mv-section-label">Customer Notes</p>
-            <div style={{padding: '12px', background: '#f8fafc', borderRadius: '6px', fontSize: '13px'}}>
-                {viewItem.notes}
-            </div>
+
+        <div className="mv-section">
+          <p className="mv-section-label">Website Link</p>
+          <div className="request-form-grid">
+            <label className="request-field">
+              <span>Preview URL</span>
+              <input
+                className="request-input"
+                value={viewItem.previewUrl || ''}
+                onChange={(event) => setViewItem({ ...viewItem, previewUrl: event.target.value })}
+                placeholder="https://preview..."
+              />
+            </label>
+            <label className="request-field">
+              <span>Final Website URL</span>
+              <input
+                className="request-input"
+                value={viewItem.finalWebsiteUrl || ''}
+                onChange={(event) => setViewItem({ ...viewItem, finalWebsiteUrl: event.target.value })}
+                placeholder="https://ramji.traddex.in"
+              />
+            </label>
+            <label className="request-field">
+              <span>Linked Site ID</span>
+              <input
+                className="request-input"
+                value={viewItem.siteId || ''}
+                onChange={(event) => setViewItem({ ...viewItem, siteId: event.target.value })}
+                placeholder="Storefront site id after launch"
+              />
+            </label>
           </div>
-        )}
+        </div>
+
+        <div className="request-panel-actions">
+          <button
+            className="primary-btn compact"
+            disabled={updatingId === viewItem.id}
+            onClick={() => handleRequestUpdate({
+              status: viewItem.status,
+              assignedTo: viewItem.assignedTo || '',
+              adminNotes: viewItem.adminNotes || '',
+              notes: viewItem.notes || '',
+              previewUrl: viewItem.previewUrl || '',
+              finalWebsiteUrl: viewItem.finalWebsiteUrl || '',
+              siteId: viewItem.siteId ? String(viewItem.siteId) : '',
+            })}
+          >
+            Save Request
+          </button>
+        </div>
       </div>
     );
   };
@@ -250,12 +368,13 @@ function StorefrontWebsiteRequestsPage({ token }) {
               <table className="admin-table storefront-master-table">
                 <thead>
                   <tr>
-                    <th>Req. ID</th>
+                    <th>Request ID</th>
                     <th>Business</th>
                     <th>Mobile</th>
-                    <th>Template</th>
-                    <th>Requested Domain</th>
+                    <th>Plan</th>
+                    <th>Validity</th>
                     <th>Status</th>
+                    <th>Assigned</th>
                     <th>Created</th>
                     <th>Actions</th>
                   </tr>
@@ -267,12 +386,17 @@ function StorefrontWebsiteRequestsPage({ token }) {
                       className={viewItem?.id === req.id ? 'mv-row-active' : ''}
                       onClick={() => handleView(req)}
                     >
-                      <td>#{req.id}</td>
+                      <td>{req.requestCode || `#${req.id}`}</td>
                       <td>{req.businessName || '-'}</td>
                       <td>{req.contactNumber || '-'}</td>
-                      <td>{req.selectedTemplateName || req.selectedTemplateKey || '-'}</td>
-                      <td>{req.preferredDomainName || '-'}</td>
-                      <td><span className={statusPillClass(req.status)}>{formatStatus(req.status)}</span></td>
+                      <td>{req.planName || '-'}</td>
+                      <td>{formatDateOnly(req.validFrom)} - {formatDateOnly(req.validTill)}</td>
+                      <td>
+                        <span className={`status-pill storefront-status ${statusPillClass(req.status)}`}>
+                          {formatStatus(req.status)}
+                        </span>
+                      </td>
+                      <td>{req.assignedTo || '-'}</td>
                       <td>{formatDate(req.createdAt)}</td>
                       <td onClick={(event) => event.stopPropagation()}>
                         <TableRowActionMenu
@@ -289,7 +413,21 @@ function StorefrontWebsiteRequestsPage({ token }) {
                 </tbody>
               </table>
               <div className="bv-table-footer">
-                 <div className="product-pagination-controls">
+                <span>
+                  Showing {pagedRequests.length} of {filteredRequests.length} requests
+                </span>
+                <div className="product-pagination-controls">
+                  <label>
+                    Rows
+                    <select
+                      value={pageSize}
+                      onChange={(event) => { setPageSize(Number(event.target.value)); setPage(1); }}
+                    >
+                      {[10, 20, 50].map((size) => (
+                        <option key={size} value={size}>{size}</option>
+                      ))}
+                    </select>
+                  </label>
                   <div className="bv-table-pagination">
                     <button type="button" className="secondary-btn" disabled={safePage === 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>{'< Prev'}</button>
                     <span>Page {safePage} / {totalPages}</span>

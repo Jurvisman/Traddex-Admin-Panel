@@ -35,7 +35,9 @@ const request = async (path, { method = 'GET', body, token } = {}) => {
   });
 
   if (!response.ok) {
-    throw new Error(await parseError(response));
+    const err = new Error(await parseError(response));
+    err.status = response.status;
+    throw err;
   }
 
   if (response.status === 204) return null;
@@ -71,7 +73,17 @@ export const saveAppVisibilityScope = (token, scope, items) =>
 export const fetchUserDetails = (token, id) => request(`/users/${id}/details`, { token });
 export const fetchBusinessDetails = (token, id) => request(`/admin/businesses/${id}/details`, { token });
 export const logoutUser = (token, id) => request(`/users/${id}/logout`, { method: 'POST', token });
-export const fetchBusinesses = (token) => request('/admin/businesses', { token });
+export const fetchBusinesses = (token, params = {}) => {
+  const urlParams = new URLSearchParams();
+  if (typeof params === 'object' && params !== null) {
+    if (params.page !== undefined && params.page !== null) urlParams.set('page', String(params.page));
+    if (params.size !== undefined && params.size !== null) urlParams.set('size', String(params.size));
+    if (params.search) urlParams.set('search', params.search);
+    if (params.status) urlParams.set('status', params.status);
+  }
+  const query = urlParams.toString() ? `?${urlParams.toString()}` : '';
+  return request(`/admin/businesses${query}`, { token });
+};
 export const updateBusinessAccount = (token, id, payload) =>
   request(`/admin/businesses/${id}`, { method: 'PUT', body: payload, token });
 export const updateBusinessProfile = (token, userId, payload, status) => {
@@ -381,7 +393,9 @@ export const uploadBannerImages = async (token, files) => {
   });
 
   if (!response.ok) {
-    throw new Error(await parseError(response));
+    const err = new Error(await parseError(response));
+    err.status = response.status;
+    throw err;
   }
   if (response.status === 204) return null;
   return response.json();
@@ -407,7 +421,9 @@ export const importTimeZones = async (token, file, replace = true) => {
   );
 
   if (!response.ok) {
-    throw new Error(await parseError(response));
+    const err = new Error(await parseError(response));
+    err.status = response.status;
+    throw err;
   }
   if (response.status === 204) return null;
 
@@ -485,6 +501,12 @@ export const listSubscriptionCouponRedemptions = (token, couponId, filters = {})
     { token },
   );
 };
+
+// Growth coins and referral program
+export const getGrowthCoinsOverview = (token) => request('/admin/growth-coins/overview', { token });
+export const listGrowthCoinRules = (token) => request('/admin/growth-coins/rules', { token });
+export const updateGrowthCoinRule = (token, ruleCode, payload) =>
+  request(`/admin/growth-coins/rules/${encodeURIComponent(ruleCode)}`, { method: 'PUT', body: payload, token });
 
 // Addon pricing management
 export const upsertAddonPricing = (token, payload) =>

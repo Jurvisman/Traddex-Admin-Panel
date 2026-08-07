@@ -420,6 +420,8 @@ const PRODUCT_STATUS_FILTER_OPTIONS = [
   { value: 'DRAFT', label: 'Draft' },
   { value: 'PENDING_REVIEW', label: 'Pending Review' },
   { value: 'APPROVED', label: 'Approved' },
+  { value: 'APPROVED_DETAILS_PENDING', label: 'Approved - Details Pending' },
+  { value: 'LIVE', label: 'Live' },
   { value: 'CHANGES_REQUIRED', label: 'Changes Required' },
   { value: 'REJECTED', label: 'Rejected' },
 ];
@@ -435,6 +437,8 @@ const PRODUCT_APP_LISTING_FILTER_OPTIONS = [
   { value: 'NOT_REQUESTED', label: 'Not Requested' },
   { value: 'PENDING_REVIEW', label: 'Pending Review' },
   { value: 'APPROVED', label: 'Approved' },
+  { value: 'APPROVED_DETAILS_PENDING', label: 'Approved - Details Pending' },
+  { value: 'LIVE', label: 'Live' },
   { value: 'REJECTED', label: 'Rejected' },
 ];
 
@@ -460,13 +464,15 @@ const getProductSourceLabel = (product) =>
 const getAppListingStatusLabel = (product) => {
   const status = String(product?.appListingStatus || '').toUpperCase();
   if (status === 'PENDING_REVIEW') return 'Pending Review';
+  if (status === 'APPROVED_DETAILS_PENDING') return 'Approved - Details Pending';
+  if (status === 'LIVE') return 'Live';
   if (status === 'APPROVED') return 'Approved';
   if (status === 'REJECTED') return 'Rejected';
   return 'Not Requested';
 };
 const getAppListingStatusClass = (product) => {
   const status = String(product?.appListingStatus || '').toUpperCase();
-  if (status === 'APPROVED') return 'approved';
+  if (status === 'APPROVED' || status === 'APPROVED_DETAILS_PENDING' || status === 'LIVE') return 'approved';
   if (status === 'REJECTED') return 'rejected';
   if (status === 'PENDING_REVIEW') return 'pending-review';
   return 'draft';
@@ -6934,7 +6940,7 @@ function ProductPage({ token, adminUserId }) {
             <span className="icon icon-search" />
             <input
               type="search"
-              placeholder="Search products by name, brand, or business..."
+              placeholder="Search products"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
             />

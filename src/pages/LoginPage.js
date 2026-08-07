@@ -15,15 +15,31 @@ function LoginPage({ initialPhone = '', onOtpSent }) {
 
   const handleFieldChange = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
+    if (key === 'phone') {
+      const digits = normalizePhone(value);
+      if (digits.length > 0 && !/^[6-9]/.test(digits)) {
+        setMessage({
+          type: 'error',
+          text: 'Mobile number must start with 6, 7, 8 or 9.',
+        });
+      } else if (digits.length > 0 && digits.length < 10) {
+        setMessage({
+          type: 'error',
+          text: 'Enter a valid 10-digit mobile number.',
+        });
+      } else {
+        setMessage({ type: 'info', text: '' });
+      }
+    }
   };
 
   const handleSendOtp = async (event) => {
     event.preventDefault();
     const digits = normalizePhone(form.phone);
-    if (!/^[0-9]{10}$/.test(digits)) {
+    if (!/^[6-9]\d{9}$/.test(digits)) {
       setMessage({
         type: 'error',
-        text: 'Enter a valid 10-digit mobile number.',
+        text: 'Enter a valid 10-digit Indian mobile number starting with 6, 7, 8 or 9.',
       });
       return;
     }

@@ -6,9 +6,9 @@ import {
 } from '../services/adminApi';
 
 const PRICING_KEYS = [
-  { key: 'BASE_RATE_FULL_BANNER', label: 'Base Rate: Full Banner (₹/hr)', category: 'Base Rates' },
-  { key: 'BASE_RATE_MID_CARD',    label: 'Base Rate: Mid Card (₹/hr)',    category: 'Base Rates' },
-  { key: 'BASE_RATE_BOTTOM_STRIP', label: 'Base Rate: Bottom Strip (₹/hr)', category: 'Base Rates' },
+  { key: 'BASE_RATE_FULL_BANNER', label: 'Base Coins: Full Banner (coins/hr)', category: 'Base Rates' },
+  { key: 'BASE_RATE_MID_CARD',    label: 'Base Coins: Mid Card (coins/hr)',    category: 'Base Rates' },
+  { key: 'BASE_RATE_BOTTOM_STRIP', label: 'Base Coins: Bottom Strip (coins/hr)', category: 'Base Rates' },
   
   { key: 'TARGET_MULT_GLOBAL',  label: 'Multiplier: Global',  category: 'Target Multipliers' },
   { key: 'TARGET_MULT_COUNTRY', label: 'Multiplier: Country', category: 'Target Multipliers' },
@@ -60,7 +60,7 @@ function AdPricingConfigPage({ token }) {
              const base = parseFloat(config[br.key] || 0);
              const total = (base * multiplier).toFixed(2);
              const label = br.label.split(':')[1].split('(')[0].trim();
-             return <span key={br.key}>{label}: ₹{total}</span>;
+             return <span key={br.key}>{label}: {total} coins/hr</span>;
           })}
         </div>
       </div>
@@ -97,7 +97,7 @@ function AdPricingConfigPage({ token }) {
           <div className="panel-header">
             <h3 className="panel-subheading">Advertisement Pricing Engine</h3>
             <p className="muted" style={{ fontSize: 13, marginTop: 4 }}>
-              Configure base hourly rates and targeting multipliers. Total cost = Base Rate × Multiplier × Hours.
+              Configure base hourly coin rates and targeting multipliers. Total cost = Base Coins x Multiplier x Hours.
             </p>
           </div>
 

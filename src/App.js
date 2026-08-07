@@ -31,6 +31,7 @@ import {
   SubscriptionPlanCreatePage,
   SubscriptionPlanViewPage,
   SubscriptionCouponPage,
+  GrowthCoinsPage,
   AdminUsersPage,
   UserDirectoryPage,
   EmployeePage,
@@ -52,7 +53,6 @@ import {
   ServicePage,
   ServiceCreatePage,
   StorefrontManagementPage,
-  StorefrontTemplatesPage,
   StorefrontWebsiteRequestsPage,
   WaitlistLeadsPage,
   WebsiteCmsPage,
@@ -355,6 +355,11 @@ const ADMIN_META = [
   {
     match: '/admin/subscription/coupons',
     title: 'Coupons',
+  },
+  {
+    match: '/admin/growth-coins',
+    title: 'Growth Coins',
+    subtitle: 'Manage referral coin rules, wallets, referrals and ledger audit.',
   },
   {
     match: '/admin/subscription/assignments',
@@ -880,6 +885,13 @@ function AppRoutes() {
       } catch (error) {
         if (!active) return;
         setPermissionPayload({ menuPermissions: [] });
+        if (error?.status === 401) {
+          setAuthToken('');
+          setAuthUserId(null);
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('authUserId');
+          navigate('/login', { replace: true });
+        }
       } finally {
         if (active) {
           setIsPermissionLoading(false);
@@ -911,7 +923,6 @@ function AppRoutes() {
             children: [
               { path: '/admin/storefront', label: 'Domains & Live Sites', icon: ICONS.dashboard, tone: NAV_TONES.dashboard, exact: true },
               { path: '/admin/storefront/website-requests', label: 'Website Requests', icon: ICONS.dashboard, tone: NAV_TONES.dashboard },
-              { path: '/admin/storefront/templates', label: 'Builder Templates', icon: ICONS.dashboard, tone: NAV_TONES.dashboard },
             ],
           },
           {
@@ -951,6 +962,7 @@ function AppRoutes() {
               { path: '/admin/subscription/plans', label: 'Plan', icon: ICONS.subPlans, tone: NAV_TONES.subPlans },
               { path: '/admin/subscription/addon-pricing', label: 'Addon Pricing', icon: ICONS.subPlans, tone: NAV_TONES.subAssignments },
               { path: '/admin/subscription/coupons', label: 'Coupons', icon: ICONS.subAssignments, tone: NAV_TONES.subAssignments },
+              { path: '/admin/growth-coins', label: 'Growth Coins', icon: ICONS.revenue, tone: NAV_TONES.subAssignments },
             ],
           },
           {
@@ -1610,7 +1622,6 @@ function AppRoutes() {
         />
         <Route path="storefront" element={<PermissionGate isLoading={isPermissionLoading} isAllowed={canAccessPath('/admin/storefront')} fallbackPath={routeFallbackPath}><StorefrontManagementPage token={authToken} /></PermissionGate>} />
         <Route path="storefront/website-requests" element={<PermissionGate isLoading={isPermissionLoading} isAllowed={canAccessPath('/admin/storefront/website-requests')} fallbackPath={routeFallbackPath}><StorefrontWebsiteRequestsPage token={authToken} /></PermissionGate>} />
-        <Route path="storefront/templates" element={<PermissionGate isLoading={isPermissionLoading} isAllowed={canAccessPath('/admin/storefront/templates')} fallbackPath={routeFallbackPath}><StorefrontTemplatesPage token={authToken} /></PermissionGate>} />
         <Route
           path="inquiry/config"
           element={
@@ -1782,6 +1793,21 @@ function AppRoutes() {
               fallbackPath={routeFallbackPath}
             >
               <SubscriptionCouponPage token={authToken} />
+            </PermissionGate>
+          }
+        />
+        <Route
+          path="growth-coins"
+          element={
+            <PermissionGate
+              isLoading={isPermissionLoading}
+              isAllowed={
+                canAccessPath('/admin/growth-coins') &&
+                allowedActionCodes.has('ADMIN_GROWTH_COINS_READ')
+              }
+              fallbackPath={routeFallbackPath}
+            >
+              <GrowthCoinsPage token={authToken} />
             </PermissionGate>
           }
         />
