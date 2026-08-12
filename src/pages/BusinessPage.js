@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Banner, TableRowActionMenu } from '../components';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
+  createIndustry,
+  listIndustries,
   createUserAccount,
   deleteUsersBulk,
   activateBusinessSubscription,
@@ -443,6 +445,114 @@ function BusinessPage({ token, allowedActions }) {
   const [leadStatusFilter, setLeadStatusFilter] = useState('');
   const [orderStatusFilter, setOrderStatusFilter] = useState('');
   const [orderPaymentStatusFilter, setOrderPaymentStatusFilter] = useState('');
+
+  // Smart Custom Industry resolution state
+  const [masterIndustries, setMasterIndustries] = useState([]);
+  const [showCreateMasterModal, setShowCreateMasterModal] = useState(false);
+  const [showRemapIndustryModal, setShowRemapIndustryModal] = useState(false);
+  const [masterIndustryForm, setMasterIndustryForm] = useState({ name: '', ordering: '18', active: '1' });
+  const [selectedTargetIndustry, setSelectedTargetIndustry] = useState('');
+  const [isSavingCustomIndAction, setIsSavingCustomIndAction] = useState(false);
+  const [isCustomResolved, setIsCustomResolved] = useState(false);
+
+  useEffect(() => {
+    if (isDetailRoute) {
+      setIsCustomResolved(false);
+      listIndustries(token)
+        .then((res) => {
+          const list = (res?.data || []).filter((item) => String(item.name || '').trim().toLowerCase() !== 'home');
+          setMasterIndustries(list);
+        })
+        .catch(() => setMasterIndustries([]));
+    }
+  }, [isDetailRoute, token]);
+
+  const handleOpenCreateMasterModal = (customName) => {
+    setMasterIndustryForm({ name: customName || '', ordering: '18', active: '1' });
+    setShowCreateMasterModal(true);
+  };
+
+  const handleOpenRemapModal = () => {
+    setShowRemapIndustryModal(true);
+  };
+
+  const handleCreateMasterFromCustom = async (e) => {
+    e.preventDefault();
+    if (!masterIndustryForm.name.trim()) return;
+    setIsSavingCustomIndAction(true);
+    try {
+      const newIndName = masterIndustryForm.name.trim();
+      await createIndustry(token, {
+        name: newIndName,
+        ordering: Number(masterIndustryForm.ordering || 1),
+        active: Number(masterIndustryForm.active || 1),
+      });
+      const targetUserId = viewDetails?.user?.id || viewUser?.id || routeBusinessId;
+      const profId = viewBusinessProfile?.profileId || viewBusinessProfile?.id;
+
+      await Promise.allSettled([
+        updateBusinessAccount(token, targetUserId, { industry: newIndName }),
+        profId ? updateBusinessProfile(token, targetUserId, { industry: newIndName }) : null,
+      ]);
+
+      setIsCustomResolved(true);
+      if (viewDetails) {
+        setViewDetails((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            user: prev.user ? { ...prev.user, industry: newIndName } : prev.user,
+            businessProfile: prev.businessProfile ? { ...prev.businessProfile, industry: newIndName } : prev.businessProfile,
+          };
+        });
+      }
+      setShowCreateMasterModal(false);
+      setMessage({ type: 'success', text: `Successfully created "${newIndName}" as Master Industry and updated business!` });
+      await loadBusinessDetails(targetUserId);
+    } catch (err) {
+      setIsCustomResolved(true);
+      setShowCreateMasterModal(false);
+      setMessage({ type: 'error', text: err.message || 'Failed to complete master industry action.' });
+    } finally {
+      setIsSavingCustomIndAction(false);
+    }
+  };
+
+  const handleRemapCustomIndustry = async (e) => {
+    e.preventDefault();
+    if (!selectedTargetIndustry) return;
+    setIsSavingCustomIndAction(true);
+    try {
+      const targetUserId = viewDetails?.user?.id || viewUser?.id || routeBusinessId;
+      const profId = viewBusinessProfile?.profileId || viewBusinessProfile?.id;
+
+      await Promise.allSettled([
+        updateBusinessAccount(token, targetUserId, { industry: selectedTargetIndustry }),
+        profId ? updateBusinessProfile(token, targetUserId, { industry: selectedTargetIndustry }) : null,
+      ]);
+
+      setIsCustomResolved(true);
+      if (viewDetails) {
+        setViewDetails((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            user: prev.user ? { ...prev.user, industry: selectedTargetIndustry } : prev.user,
+            businessProfile: prev.businessProfile ? { ...prev.businessProfile, industry: selectedTargetIndustry } : prev.businessProfile,
+          };
+        });
+      }
+      setShowRemapIndustryModal(false);
+      setMessage({ type: 'success', text: `Successfully remapped business industry to "${selectedTargetIndustry}"!` });
+      await loadBusinessDetails(targetUserId);
+    } catch (err) {
+      setIsCustomResolved(true);
+      setShowRemapIndustryModal(false);
+      setMessage({ type: 'error', text: err.message || 'Failed to remap industry.' });
+    } finally {
+      setIsSavingCustomIndAction(false);
+    }
+  };
 
   const allowedActionSet = useMemo(() => {
     const next = new Set();
@@ -1491,6 +1601,11 @@ function BusinessPage({ token, allowedActions }) {
                                 onKeyDown={(e) => e.key === 'Enter' && handleView(user)}>
                                 {user?.businessName || bp?.businessName || getUserName(user)}
                               </span>
+                              {(bp?.industry || user?.industry) && (
+                                <span style={{ display: 'inline-block', marginLeft: 8, padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 700, background: '#e0e7ff', color: '#3730a3', border: '1px solid #c7d2fe' }}>
+                                  🏷️ {bp?.industry || user?.industry}
+                                </span>
+                              )}
                             </td>
                           )}
                           {columnVisibility.businessEmail && <td className="bdt-email-cell">{user?.businessEmail || bp?.email || '-'}</td>}
@@ -1697,6 +1812,141 @@ function BusinessPage({ token, allowedActions }) {
                   </div>
                 </div>
               ) : null}
+
+              {/* Smart Custom Industry Resolution Banner */}
+              {(() => {
+                const customIndName = viewBusinessProfile?.customIndustryName || viewBusinessProfile?.industry || viewUser?.industry || '';
+                const isMasterIndustry = masterIndustries.some(
+                  (m) => String(m.name || '').trim().toLowerCase() === String(customIndName).trim().toLowerCase()
+                );
+
+                // ONLY show banner if business has a custom industry that is NOT in DB master list yet!
+                if (isCustomResolved || !customIndName || isMasterIndustry) return null;
+
+                return (
+                  <div style={{
+                    background: 'linear-gradient(135deg, #eef2ff 0%, #fae8ff 100%)',
+                    border: '1.5px solid #a5b4fc',
+                    borderRadius: 16,
+                    padding: '16px 20px',
+                    marginBottom: 20,
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: 12,
+                    boxShadow: '0 4px 12px rgba(99, 102, 241, 0.08)'
+                  }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        <span style={{ fontSize: 16 }}>⚡</span>
+                        <strong style={{ fontSize: 15, color: '#3730a3' }}>Industry Classification Action Required</strong>
+                        <span style={{ background: '#6366f1', color: '#ffffff', padding: '2px 10px', borderRadius: 12, fontSize: 12, fontWeight: 700 }}>
+                          "{customIndName}"
+                        </span>
+                      </div>
+                      <p style={{ margin: 0, fontSize: 13, color: '#475569' }}>
+                        Merchant submitted industry: <strong>"{customIndName}"</strong>. Would you like to create it as a new Master Industry or remap it to an existing standard category?
+                      </p>
+                    </div>
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <button
+                        type="button"
+                        className="primary-btn"
+                        style={{ background: '#10b981', borderColor: '#10b981', fontSize: 13, padding: '8px 16px', cursor: 'pointer' }}
+                        onClick={() => handleOpenCreateMasterModal(customIndName)}
+                      >
+                        ➕ Create as Master Industry
+                      </button>
+                      <button
+                        type="button"
+                        className="primary-btn"
+                        style={{ background: '#4f46e5', borderColor: '#4f46e5', fontSize: 13, padding: '8px 16px', cursor: 'pointer' }}
+                        onClick={handleOpenRemapModal}
+                      >
+                        🔄 Remap to Existing Industry
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Create Master Industry Modal */}
+              {showCreateMasterModal && (
+                <div className="admin-modal-backdrop" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 }}>
+                  <div style={{ background: '#ffffff', padding: 24, borderRadius: 16, width: 450, maxWidth: '90%' }}>
+                    <h4 style={{ margin: '0 0 8px 0', fontSize: 18, color: '#0f172a' }}>➕ Create Official Master Industry</h4>
+                    <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 16px 0' }}>
+                      Add <strong>"{masterIndustryForm.name}"</strong> as an official Master Industry in the database so all merchants can select it.
+                    </p>
+                    <form onSubmit={handleCreateMasterFromCustom}>
+                      <label className="field" style={{ display: 'block', marginBottom: 14 }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 4 }}>Industry Name:</span>
+                        <input
+                          type="text"
+                          value={masterIndustryForm.name}
+                          onChange={(e) => setMasterIndustryForm((prev) => ({ ...prev, name: e.target.value }))}
+                          required
+                          style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #cbd5e1' }}
+                        />
+                      </label>
+                      <label className="field" style={{ display: 'block', marginBottom: 16 }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 4 }}>Display Ordering Number:</span>
+                        <input
+                          type="number"
+                          value={masterIndustryForm.ordering}
+                          onChange={(e) => setMasterIndustryForm((prev) => ({ ...prev, ordering: e.target.value }))}
+                          style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #cbd5e1' }}
+                        />
+                      </label>
+                      <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                        <button type="button" className="ghost-btn" onClick={() => setShowCreateMasterModal(false)} disabled={isSavingCustomIndAction}>
+                          Cancel
+                        </button>
+                        <button type="submit" className="primary-btn" style={{ background: '#10b981', borderColor: '#10b981' }} disabled={isSavingCustomIndAction}>
+                          {isSavingCustomIndAction ? 'Saving...' : 'Confirm & Save Master Industry'}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+
+              {/* Remap Industry Modal */}
+              {showRemapIndustryModal && (
+                <div className="admin-modal-backdrop" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 }}>
+                  <div style={{ background: '#ffffff', padding: 24, borderRadius: 16, width: 450, maxWidth: '90%' }}>
+                    <h4 style={{ margin: '0 0 8px 0', fontSize: 18, color: '#0f172a' }}>🔄 Remap Industry to Existing</h4>
+                    <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 16px 0' }}>
+                      Change merchant's industry from <strong>"{viewBusinessProfile?.industry || viewUser?.industry}"</strong> to an existing master industry:
+                    </p>
+                    <form onSubmit={handleRemapCustomIndustry}>
+                      <label className="field" style={{ display: 'block', marginBottom: 16 }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 4 }}>Select Master Industry:</span>
+                        <select
+                          value={selectedTargetIndustry}
+                          onChange={(e) => setSelectedTargetIndustry(e.target.value)}
+                          required
+                          style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #cbd5e1' }}
+                        >
+                          <option value="">-- Select Industry --</option>
+                          {masterIndustries.map((ind) => (
+                            <option key={ind.id} value={ind.name}>{ind.name}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                        <button type="button" className="ghost-btn" onClick={() => setShowRemapIndustryModal(false)} disabled={isSavingCustomIndAction}>
+                          Cancel
+                        </button>
+                        <button type="submit" className="primary-btn" disabled={isSavingCustomIndAction}>
+                          {isSavingCustomIndAction ? 'Remapping...' : 'Confirm Remap'}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
 
               {/* ── Tab panel ──────────────────────────────────────── */}
               <div className="bv-panel panel card">

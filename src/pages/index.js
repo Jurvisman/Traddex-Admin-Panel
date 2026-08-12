@@ -7,7 +7,6 @@ export { default as BusinessPage } from './BusinessPage';
 export { default as BusinessCreatePage } from './BusinessCreatePage';
 export { default as BusinessProfileEditPage } from './BusinessProfileEditPage';
 export { default as BusinessAnalyticsPage } from './BusinessAnalyticsPage';
-export { default as CatalogManagerPage } from './CatalogManagerPage';
 export { default as IndustryPage } from './IndustryPage';
 export { default as MainCategoryPage } from './MainCategoryPage';
 export { default as CategoryPage } from './CategoryPage';
