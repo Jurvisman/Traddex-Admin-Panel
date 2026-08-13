@@ -42,14 +42,112 @@ const createEmptySection = () => ({
   body: [''],
 });
 
-const normalizePageForm = (page) => ({
-  slug: page?.slug || '',
-  title: page?.title || '',
-  lastUpdatedLabel: page?.lastUpdatedLabel || '',
-  intro: page?.intro || '',
-  status: page?.status || 'DRAFT',
-  sections: parseContentSections(page?.contentJson || '[]'),
-});
+const DEFAULT_FALLBACK_POLICIES = {
+  terms: {
+    title: 'Terms & Conditions',
+    updated: 'May 29, 2026',
+    intro: 'Welcome to Deal360. Deal360 is built to help Indian businesses grow with fair leads, digital presence, better order records, payment options, delivery support and Mini ERP tools. These Terms explain how Deal360 works, what support we provide and what responsibilities users should follow while using our website, application, merchant admin panel, lead engine, website builder, payment tools, delivery integrations and Mini ERP features.',
+    sections: [
+      { heading: '1. Acceptance Of Terms', body: ['By using Deal360, creating an account, submitting a lead, listing a product or service, accepting an offer, making payment, using merchant admin or accessing any Deal360 service, you agree to these Terms.', 'If you are using Deal360 on behalf of a business, you confirm that you are authorized to represent that business.'] },
+      { heading: '2. What Deal360 Provides', body: ['Deal360 provides technology tools for buyer and seller discovery, lead and inquiry management, product and service listing, offer and negotiation workflow, purchase order and sales order records, payment options, delivery partner integrations, business website setup, merchant admin panel and Mini ERP features.', 'Deal360 works as a platform and support system. The actual commercial transaction remains between the buyer and seller.'] },
+      { heading: '3. Fair Lead Distribution', body: ['Deal360 uses smart matching to help genuine buyer requirements reach relevant businesses. Leads may be matched based on buyer search or intent, product or service relevance, category, location, service area, business profile quality, activity, subscription plan, cooldown bucket logic and rules designed to reduce spam.', 'Higher subscription plans may receive higher limits, better visibility or priority as mentioned in the plan. However, Deal360\'s goal is to keep opportunity distribution fair and useful for all eligible businesses.', 'A lead is an opportunity to connect. It is not a guaranteed sale, confirmed order or assured revenue. If a business receives fake, irrelevant or abusive leads, they can report it to Deal360 support for review.'] },
+      { heading: '4. Buyer And Seller Responsibilities', body: ['Buyers and sellers are expected to act honestly and professionally. Users are responsible for correct business information, genuine product or service details, price, quantity, MOQ, GST or tax details, payment terms, credit terms, dispatch commitments, delivery expectations, returns and communication with the other party.', 'Deal360 may provide records and support tools, but users must verify commercial terms before confirming any deal.'] },
+      { heading: '5. Product And Service Listings', body: ['Merchants must ensure that listed products or services are legal, genuine, accurately described and available as shown.', 'Deal360 may review, hide, reject or remove listings that are misleading, illegal, unsafe, counterfeit, abusive or against platform rules.'] },
+      { heading: '6. Product Visibility And Mini ERP', body: ['Deal360 may allow products to be managed under visibility states such as ERP Only, Website Visible, App Listing Requested, App Approved or App Rejected.', 'A product created in Mini ERP does not automatically become visible in the Deal360 marketplace. The merchant stays in control of where the product should appear, and app marketplace listing may require request and approval.'] },
+      { heading: '7. Payments', body: ['Deal360 may provide online payment options through trusted payment partners to make transactions easier to track. Online payment is a convenience feature and may not be compulsory unless a specific plan, feature or transaction clearly requires it.', 'Buyer and seller may mutually choose offline settlement through UPI, bank transfer, cash or another agreed method. In such cases, both parties should keep proper proof and confirm terms clearly.'] },
+      { heading: '8. Order Lifecycle', body: ['Deal360 provides a structured order flow for offer acceptance, purchase order, sales order, proforma invoice, payment proof, payment confirmation, dispatch, delivery, return request and dispute request.', 'These tools are designed to reduce confusion and improve trust. Actual product quality, dispatch, delivery handover, payment confirmation and return handling depend on the buyer, seller and delivery partner involved.'] },
+      { heading: '9. Delivery And Logistics', body: ['Deal360 may connect users with third-party logistics partners such as Borzo, Shiprocket or other providers. Delivery charges, serviceability, pickup time, delivery estimate, tracking status and final delivery performance are provided by the logistics partner.'] },
+      { heading: '10. Website Builder And Business Websites', body: ['Deal360 may provide business website setup, templates, subdomains, catalog pages, banners, website orders and related tools.', 'Merchants are responsible for their website content, logo, images, product details, offers, pricing, business claims and legal compliance.'] },
+      { heading: '11. Mini ERP And Reports', body: ['Deal360 Mini ERP helps merchants manage products, stock, purchases, sales, bills, contacts and reports. These tools are designed for better business organization.'] },
+      { heading: '12. Subscriptions, Plans And Feature Access', body: ['Deal360 may offer free, paid or promotional plans. Plan features, limits, lead access, website access, product limits, visibility priority, support level and pricing may vary by plan.'] },
+      { heading: '13. Refunds And Cancellations', body: ['Refunds, cancellations, duplicate payments, failed payments, subscription charges, website setup fees, ad charges and service charges will be handled as per Deal360\'s Refund & Cancellation Policy.'] },
+      { heading: '14. Advertisement And Promotions', body: ['Deal360 may provide advertisement, banner or paid visibility features. Approval or purchase of promotional placement does not guarantee impressions, clicks, leads, orders, revenue or profit.'] },
+      { heading: '15. Prohibited Use', body: ['Users must not upload, post, or list any content containing nudity, sexual or adult material, graphic violence, hate speech, counterfeit goods, illegal products, fake leads, spam, fraud, false payment proof, abusive communication, stolen content, misleading claims, unauthorized data collection, security attacks, or anything that violates applicable law.', 'Deal360 reserves the absolute right to reject, block, suspend, or terminate any product, advertisement, image, website, or user account immediately if such prohibited content or misuse is detected by our automated AI gatekeeper or moderation team.'] },
+      { heading: '16. Support And Issue Resolution', body: ['Deal360 is built to support fair and transparent business. If a problem occurs, users can contact support. Our team may review available platform records such as leads, offers, order steps, payment proofs, dispatch proofs and delivery updates.'] },
+      { heading: '17. Third-Party Services', body: ['Deal360 may use or connect with third-party services for payments, delivery, maps, SMS or OTP, cloud storage, analytics, hosting or other platform functions.'] },
+      { heading: '18. Communication Consent', body: ['By using Deal360, users agree to receive service-related communication through phone, SMS, WhatsApp, email, app notifications or other channels for OTP, onboarding, support, leads, orders, payments, delivery, subscription and platform updates.'] },
+      { heading: '19. Data And Privacy', body: ['Use of personal and business information is explained in our Privacy Policy. By using Deal360, users agree to the collection and processing of information required to operate the platform and provide requested services.'] },
+      { heading: '20. Platform Availability', body: ['Deal360 works to keep the platform reliable. Temporary downtime may happen due to maintenance, updates, network issues, hosting issues or third-party service failures.'] },
+      { heading: '21. Limitation Of Liability', body: ['Deal360 provides tools, support and platform records to help users do business more transparently. However, Deal360 cannot guarantee business outcomes such as lead conversion, order confirmation, profit, payment collection, delivery success or dispute-free transactions.'] },
+      { heading: '22. Grievance And Support', body: ['Grievance Officer: Deal360 Grievance Team', 'Email: support.deal360@gmail.com', 'Location: Ahmedabad, Gujarat'] },
+      { heading: '23. Governing Law', body: ['These Terms are governed by the laws of India. Courts located in Ahmedabad, Gujarat will have jurisdiction, subject to applicable law.'] }
+    ]
+  },
+  privacy: {
+    title: 'Privacy Policy',
+    updated: 'May 29, 2026',
+    intro: 'Deal360 respects your privacy and business trust. This Privacy Policy explains how we collect, use, share, store and protect information when you use our website, mobile application, merchant admin panel, lead engine, website builder, marketplace tools, payment features, delivery integrations and Mini ERP services.',
+    sections: [
+      { heading: '1. Information We Collect', body: ['We may collect information such as name, mobile number, email address, city, address, business name, business type, GST, PAN, license and KYC details where required, product and service details, lead and inquiry activity, offers, negotiation and order records, payment proof, payment status, dispatch proof, delivery records, website content, banners, business media, inventory, bill and report data, device information, IP address, location information where required, support conversations and feedback.'] },
+      { heading: '2. Why We Collect Information', body: ['We use information to create and manage accounts, verify OTP login, manage business profiles, improve lead matching, show relevant products and services, process inquiries, offers and orders, provide website builder features, support payment and delivery workflows, manage merchant admin and Mini ERP tools, provide support and issue resolution, prevent fraud, improve safety and comply with legal requirements.'] },
+      { heading: '3. Lead Matching And Personalization', body: ['Deal360 may use search intent, category interest, product or service data, location, business profile, subscription plan and platform activity to match leads with relevant businesses.'] },
+      { heading: '4. Sharing Of Information', body: ['We may share necessary information with buyers and sellers involved in a transaction, payment gateway providers, logistics partners, OTP, SMS, email or WhatsApp providers, cloud hosting and storage providers, analytics and security tools, support and onboarding teams, and legal, regulatory or government authorities where required.'] },
+      { heading: '5. Payment Information', body: ['Payments may be processed by third-party payment gateways. Deal360 does not store full card numbers, UPI PINs, net banking passwords or sensitive payment credentials.'] },
+      { heading: '6. Delivery Information', body: ['If a user chooses delivery support, order and address details may be shared with delivery partners to check serviceability, calculate charges, arrange pickup, generate tracking and complete delivery.'] },
+      { heading: '7. Documents And Uploads', body: ['Business documents, KYC files, product images, banners, payment proofs, dispatch proofs, PODs and return proofs may be stored securely on Deal360 systems or trusted cloud storage providers.'] },
+      { heading: '8. Communication', body: ['We may contact users through phone, SMS, WhatsApp, email, app notifications or other channels for OTP and login, onboarding, lead alerts, order updates, payment updates, delivery updates, support, subscription reminders, platform announcements and promotional offers where permitted.'] },
+      { heading: '9. Data Security', body: ['We use reasonable technical and organizational measures to protect information, including secure transmission, controlled access and trusted infrastructure.'] },
+      { heading: '10. Data Retention', body: ['We retain information as long as needed for account operation, transaction records, legal compliance, tax and accounting purposes, dispute support, fraud prevention, audit, security and platform improvement.'] },
+      { heading: '11. User Rights', body: ['Subject to applicable law, users may request access to certain personal data, correction of inaccurate information, update of business details, withdrawal of consent where applicable, deletion of data where legally possible and grievance redressal.'] },
+      { heading: '12. Consent', body: ['By using Deal360, creating an account, submitting details, posting requirements, listing products, accepting offers or using platform features, users consent to the collection and processing of information as described in this Privacy Policy.'] },
+      { heading: '13. Children', body: ['Deal360 is intended for business and commercial users. Users below the legally permitted age should not use Deal360 without proper guardian consent where applicable.'] },
+      { heading: '14. Third-Party Links And Services', body: ['Deal360 may include links or integrations with third-party services such as payment gateways, delivery partners, maps or external websites.'] },
+      { heading: '15. Updates To This Policy', body: ['We may update this Privacy Policy from time to time. Updated versions will be posted on our website, app or merchant panel.'] },
+      { heading: '16. Contact And Grievance', body: ['Grievance Officer: Deal360 Grievance Team', 'Email: support.deal360@gmail.com', 'Location: Ahmedabad, Gujarat'] }
+    ]
+  },
+  'refund-policy': {
+    title: 'Refund & Cancellation Policy',
+    updated: 'May 29, 2026',
+    intro: 'Deal360 aims to keep pricing, subscriptions and payment-related support transparent for businesses.',
+    sections: [
+      { heading: '1. Subscription Payments', body: ['Subscription fees are charged for access to Deal360 features as per the selected plan. Once a subscription period has started, subscription charges may be non-refundable except where required by law or approved by Deal360 in special cases.'] },
+      { heading: '2. Duplicate Or Failed Payments', body: ['If a user is charged twice or payment is deducted but service is not activated, the user should contact Deal360 support with payment proof.'] },
+      { heading: '3. Website Setup Fees', body: ['Website setup or template fees may be non-refundable once setup work, template allocation, subdomain reservation or website configuration has started.'] },
+      { heading: '4. Advertisement Charges', body: ['Ad or promotion charges may be non-refundable once the campaign is submitted, reviewed, scheduled, approved or made live.'] },
+      { heading: '5. Delivery Charges', body: ['Delivery charges are handled as per the logistics partner\'s policy. Once pickup is assigned or delivery is initiated, delivery charges may not be refundable.'] },
+      { heading: '6. Refund Timeline', body: ['Approved refunds may take 7 to 10 business days or as per payment gateway and bank timelines.'] },
+      { heading: '7. Cancellation', body: ['Users may cancel renewal or stop using paid features by contacting support or using available account options.'] }
+    ]
+  },
+  'lead-distribution-policy': {
+    title: 'Lead Distribution Policy',
+    updated: 'May 29, 2026',
+    intro: 'Deal360 is designed to provide fair and useful business opportunities while reducing spam and low-quality lead flow.',
+    sections: [
+      { heading: '1. How Leads Are Generated', body: ['Leads may be generated from buyer search, buyer requirement posting, product or service interest, business profile discovery, website inquiry, category or location-based matching and marketplace activity.'] },
+      { heading: '2. How Leads Are Matched', body: ['Deal360 may use category relevance, location relevance, product or service match, business activity, profile quality, subscription plan, cooldown bucket logic, lead limits, system availability and anti-spam checks to match leads with businesses.'] }
+    ]
+  },
+  'shipping-delivery-policy': {
+    title: 'Shipping & Delivery Policy',
+    updated: 'May 29, 2026',
+    intro: 'Deal360 provides logistics partner integrations to help merchants and buyers handle orders efficiently.',
+    sections: [
+      { heading: '1. Serviceability', body: ['Delivery serviceability depends on pickup and delivery pincodes, package size, weight and partner coverage.'] },
+      { heading: '2. Dispatch And Handover', body: ['Merchants are responsible for timely packaging, accurate details and handing over items to the assigned delivery executive.'] }
+    ]
+  }
+};
+
+const normalizePageForm = (page, currentSlug = '') => {
+  const targetSlug = page?.slug || currentSlug;
+  const parsedSections = parseContentSections(page?.contentJson || '[]');
+  const fallback = DEFAULT_FALLBACK_POLICIES[targetSlug];
+  
+  const finalSections = parsedSections.length > 0 ? parsedSections : (fallback?.sections || []);
+  const finalIntro = page?.intro || fallback?.intro || '';
+  const finalTitle = page?.title || fallback?.title || '';
+
+  return {
+    slug: targetSlug,
+    title: finalTitle,
+    lastUpdatedLabel: page?.lastUpdatedLabel || fallback?.updated || 'May 29, 2026',
+    intro: finalIntro,
+    status: page?.status || 'DRAFT',
+    sections: finalSections,
+  };
+};
 
 const serializeSections = (sections = []) =>
   sections
@@ -105,7 +203,7 @@ function WebsiteCmsPage({ token }) {
     if (!selectedSlug) return;
     try {
       const response = await fetchWebsiteCmsPage(token, selectedSlug);
-      setPageForm(normalizePageForm(unwrap(response, null)));
+      setPageForm(normalizePageForm(unwrap(response, null), selectedSlug));
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to load selected CMS page.' });
     }

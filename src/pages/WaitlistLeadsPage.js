@@ -257,52 +257,8 @@ function WaitlistLeadsPage({ token }) {
     <div className="users-page business-page">
       <Banner message={message} />
 
-      {/* ── Top Config Card & Status Counters ───────────────────────── */}
+      {/* ── Status Counters ───────────────────────── */}
       <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginBottom: 20 }}>
-        {/* Spot configuration panel */}
-        <div className="panel card" style={{ flex: '1 1 360px', padding: '18px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: 0 }}>
-          <div>
-            <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Free Onboarding Campaign</span>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 4 }}>
-              <span style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)' }}>{leads.length}</span>
-              <span style={{ color: 'var(--muted)' }}>/</span>
-              {isEditingLimit ? (
-                <form onSubmit={handleSaveConfigLimit} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                  <input
-                    type="number"
-                    value={editLimit}
-                    onChange={(e) => setEditLimit(e.target.value)}
-                    style={{ width: 80, padding: '4px 8px', borderRadius: 6, border: '1px solid var(--line)', fontSize: 16, fontWeight: 700 }}
-                    min="0"
-                    required
-                  />
-                  <button type="submit" className="primary-btn" style={{ padding: '6px 12px', fontSize: 12 }}>Save</button>
-                  <button type="button" className="ghost-btn" style={{ padding: '6px 12px', fontSize: 12 }} onClick={() => setIsEditingLimit(false)}>Cancel</button>
-                </form>
-              ) : (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)' }}>{config.maxFreeLimit}</span>
-                  <span style={{ fontSize: 12, color: 'var(--muted)' }}>spots limit</span>
-                  <button 
-                    onClick={() => { setEditLimit(String(config.maxFreeLimit)); setIsEditingLimit(true); }}
-                    className="ghost-btn"
-                    style={{ padding: '2px 8px', fontSize: 11, background: '#f1f5f9', border: 'none', borderRadius: 4, cursor: 'pointer' }}
-                  >
-                    ✏️ Edit
-                  </button>
-                </div>
-              )}
-            </div>
-            <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>
-              {config.isLocked ? (
-                <span style={{ color: 'var(--red)', fontWeight: 600 }}>🔒 Hype Locked (Spot limit fully claimed on landing page)</span>
-              ) : (
-                <span style={{ color: '#16a34a', fontWeight: 600 }}>🔓 Active (Only {config.spotsLeft} free spots left!)</span>
-              )}
-            </div>
-          </div>
-        </div>
-
         {/* Counter chips */}
         <div style={{ flex: '1 1 300px', display: 'flex', gap: 12, alignItems: 'center', margin: 0 }}>
           <span className="status-chip pending" style={{ padding: '16px 20px', flex: 1, textAlign: 'center', margin: 0 }}>{statusCounts.PENDING} Pending</span>
@@ -449,7 +405,7 @@ function WaitlistLeadsPage({ token }) {
                         <span style={{ fontSize: 12, color: 'var(--muted)', wordBreak: 'break-all' }}>{lead.email}</span>
                       </div>
                     </td>
-                    <td>{lead.city}</td>
+                    <td>{lead.city || '-'}{lead.state ? `, ${lead.state}` : ''}</td>
                     <td>{getBusinessTypeLabel(lead.businessType)}</td>
                     <td>
                       {lead.selectedPlanName || <span style={{ color: '#cbd5e1' }}>-</span>}
@@ -551,106 +507,119 @@ function WaitlistLeadsPage({ token }) {
               </button>
             </div>
 
-            <div className="drawer-content">
-              {/* Status Section */}
-              <div style={{ background: '#f8fafc', padding: 16, borderRadius: 12, marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div className="drawer-content" style={{ padding: '20px 24px' }}>
+              {/* Status Header Banner */}
+              <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '16px 20px', borderRadius: 14, marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', display: 'block' }}>Current Status</span>
-                  <span className={`status-pill ${getStatusPillClass(selectedLead.status)}`} style={{ marginTop: 6, display: 'inline-block', fontSize: 13, padding: '4px 10px' }}>
+                  <span style={{ fontSize: 11, color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 4 }}>Current Status</span>
+                  <span className={`status-pill ${getStatusPillClass(selectedLead.status)}`} style={{ fontSize: 13, fontWeight: 700, padding: '4px 12px', borderRadius: 20 }}>
                     {getStatusLabel(selectedLead.status)}
                   </span>
                 </div>
                 
                 {/* Status action shortcuts */}
-                <div style={{ display: 'flex', gap: 6 }}>
+                <div style={{ display: 'flex', gap: 8 }}>
                   {String(selectedLead.status).toUpperCase() === 'PENDING' && (
                     <>
-                      <button onClick={() => handleUpdateStatus(selectedLead.id, 'CALLED')} className="secondary-btn" style={{ padding: '6px 10px', fontSize: 12, background: '#eff6ff', color: '#1d4ed8', border: 'none' }}>Called</button>
-                      <button onClick={() => handleUpdateStatus(selectedLead.id, 'ONBOARDED')} className="secondary-btn" style={{ padding: '6px 10px', fontSize: 12, background: '#f0fdf4', color: '#166534', border: 'none' }}>Onboard</button>
+                      <button onClick={() => handleUpdateStatus(selectedLead.id, 'CALLED')} className="secondary-btn" style={{ padding: '7px 14px', fontSize: 12, fontWeight: 600, background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE', borderRadius: 8, cursor: 'pointer' }}>Mark Called</button>
+                      <button onClick={() => handleUpdateStatus(selectedLead.id, 'ONBOARDED')} className="secondary-btn" style={{ padding: '7px 14px', fontSize: 12, fontWeight: 600, background: '#ECFDF5', color: '#047857', border: '1px solid #A7F3D0', borderRadius: 8, cursor: 'pointer' }}>Mark Onboarded</button>
                     </>
                   )}
                   {String(selectedLead.status).toUpperCase() === 'CALLED' && (
                     <>
-                      <button onClick={() => handleUpdateStatus(selectedLead.id, 'ONBOARDED')} className="secondary-btn" style={{ padding: '6px 10px', fontSize: 12, background: '#f0fdf4', color: '#166534', border: 'none' }}>Onboard</button>
-                      <button onClick={() => handleUpdateStatus(selectedLead.id, 'PENDING')} className="secondary-btn" style={{ padding: '6px 10px', fontSize: 12, background: '#fffbeb', color: '#b45309', border: 'none' }}>Reset</button>
+                      <button onClick={() => handleUpdateStatus(selectedLead.id, 'ONBOARDED')} className="secondary-btn" style={{ padding: '7px 14px', fontSize: 12, fontWeight: 600, background: '#ECFDF5', color: '#047857', border: '1px solid #A7F3D0', borderRadius: 8, cursor: 'pointer' }}>Mark Onboarded</button>
+                      <button onClick={() => handleUpdateStatus(selectedLead.id, 'PENDING')} className="secondary-btn" style={{ padding: '7px 14px', fontSize: 12, fontWeight: 600, background: '#FEF3C7', color: '#B45309', border: '1px solid #FDE68A', borderRadius: 8, cursor: 'pointer' }}>Reset</button>
                     </>
                   )}
                   {String(selectedLead.status).toUpperCase() === 'ONBOARDED' && (
-                    <button onClick={() => handleUpdateStatus(selectedLead.id, 'PENDING')} className="secondary-btn" style={{ padding: '6px 10px', fontSize: 12, background: '#fffbeb', color: '#b45309', border: 'none' }}>Reset to Pending</button>
+                    <button onClick={() => handleUpdateStatus(selectedLead.id, 'PENDING')} className="secondary-btn" style={{ padding: '7px 14px', fontSize: 12, fontWeight: 600, background: '#FEF3C7', color: '#B45309', border: '1px solid #FDE68A', borderRadius: 8, cursor: 'pointer' }}>Reset to Pending</button>
                   )}
                 </div>
               </div>
 
-              {/* Lead Details Grid */}
-              <div className="drawer-field">
-                <label>Contact Name</label>
-                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>{selectedLead.name}</div>
-              </div>
+              {/* 2-Column Info Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+                {/* Contact Information Group */}
+                <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 14, padding: 18 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 14, paddingBottom: 8, borderBottom: '1px solid #F1F5F9' }}>
+                    👤 Contact Details
+                  </div>
 
-              <div className="drawer-field">
-                <label>Phone Number</label>
-                <div>
-                  <a href={`tel:${selectedLead.phone}`} style={{ color: 'var(--primary)', fontWeight: 600, textDecoration: 'none' }}>
-                    📞 {selectedLead.phone}
-                  </a>
+                  <div style={{ marginBottom: 14 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Contact Name</span>
+                    <span style={{ fontSize: 15, fontWeight: 700, color: '#0F172A' }}>{selectedLead.name || '-'}</span>
+                  </div>
+
+                  <div style={{ marginBottom: 14 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Phone Number</span>
+                    <a href={`tel:${selectedLead.phone}`} style={{ fontSize: 14, fontWeight: 600, color: '#2563EB', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      📞 {selectedLead.phone || '-'}
+                    </a>
+                  </div>
+
+                  <div style={{ marginBottom: 14 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Business Email</span>
+                    <a href={`mailto:${selectedLead.email}`} style={{ fontSize: 13, fontWeight: 600, color: '#2563EB', textDecoration: 'none', wordBreak: 'break-all' }}>
+                      ✉️ {selectedLead.email || '-'}
+                    </a>
+                  </div>
+
+                  <div>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>State & City / Area</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: '#334155' }}>
+                      📍 {selectedLead.city || '-'}{selectedLead.state ? `, ${selectedLead.state}` : ''}
+                    </span>
+                  </div>
                 </div>
-              </div>
 
-              <div className="drawer-field">
-                <label>Business Email</label>
-                <div>
-                  <a href={`mailto:${selectedLead.email}`} style={{ color: 'var(--primary)', fontWeight: 600, textDecoration: 'none' }}>
-                    ✉️ {selectedLead.email}
-                  </a>
+                {/* Plan & Lead Source Group */}
+                <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 14, padding: 18 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 14, paddingBottom: 8, borderBottom: '1px solid #F1F5F9' }}>
+                    🏢 Business & Plan Info
+                  </div>
+
+                  <div style={{ marginBottom: 14 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Business Segment</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>🏬 {getBusinessTypeLabel(selectedLead.businessType)}</span>
+                  </div>
+
+                  <div style={{ marginBottom: 14 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Selected Plan</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: '#7C3AED', background: '#F5F3FF', padding: '3px 8px', borderRadius: 6, display: 'inline-block' }}>
+                      {selectedLead.selectedPlanName || 'Starter'}
+                    </span>
+                  </div>
+
+                  <div style={{ marginBottom: 14 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Pricing Source</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>{selectedLead.source || 'WEBSITE_WAITLIST'}</span>
+                  </div>
+
+                  <div>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Registered Date</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>📅 {formatDateTime(selectedLead.createdAt)}</span>
+                  </div>
                 </div>
-              </div>
-
-              <div className="drawer-field">
-                <label>City / Location</label>
-                <div>📍 {selectedLead.city}</div>
-              </div>
-
-              <div className="drawer-field">
-                <label>Business Segment</label>
-                <div>🏬 {getBusinessTypeLabel(selectedLead.businessType)}</div>
-              </div>
-
-              <div className="drawer-field">
-                <label>Pricing Source</label>
-                <div>{selectedLead.source || '-'}</div>
-              </div>
-
-              <div className="drawer-field">
-                <label>Selected Plan</label>
-                <div>{selectedLead.selectedPlanName || '-'}</div>
-              </div>
-
-              <div className="drawer-field">
-                <label>Payment / Coupon</label>
-                <div>{selectedLead.paymentStatus || '-'}{selectedLead.couponCode ? ` / ${selectedLead.couponCode}` : ''}</div>
-              </div>
-
-              <div className="drawer-field">
-                <label>Registered Date</label>
-                <div>📅 {formatDateTime(selectedLead.createdAt)}</div>
               </div>
 
               {/* Notes Area */}
-              <div className="drawer-field" style={{ marginTop: 32 }}>
-                <label>Lead Notes & Interaction History</label>
+              <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 14, padding: 18 }}>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 10 }}>
+                  📝 Lead Notes & Interaction History
+                </label>
                 <textarea
-                  rows={6}
+                  rows={5}
                   value={leadNotes}
                   onChange={(e) => setLeadNotes(e.target.value)}
                   placeholder="Record calling feedback, B2B/B2C interest, package discussed, or demo timing details here..."
-                  style={{ width: '100%', padding: '12px', border: '1px solid var(--line)', borderRadius: '8px', outline: 'none', resize: 'vertical', fontSize: 13, fontFamily: 'inherit', color: 'var(--ink)' }}
+                  style={{ width: '100%', padding: '12px 14px', border: '1px solid #CBD5E1', borderRadius: 10, outline: 'none', resize: 'vertical', fontSize: 13, fontFamily: 'inherit', color: '#0F172A', background: '#F8FAFC', lineHeight: 1.5 }}
                 />
                 <button 
                   onClick={handleSaveNotes}
                   className="primary-btn"
-                  style={{ marginTop: 10, width: '100%', padding: 10 }}
+                  style={{ marginTop: 12, width: '100%', padding: '10px 16px', fontSize: 13, fontWeight: 700, borderRadius: 10, cursor: 'pointer' }}
                 >
-                  Save Notes
+                  Save Lead Notes
                 </button>
               </div>
             </div>
@@ -663,7 +632,7 @@ function WaitlistLeadsPage({ token }) {
         .waitlist-drawer-backdrop {
           position: fixed;
           inset: 0;
-          background: rgba(15, 23, 42, 0.4);
+          background: rgba(15, 23, 42, 0.45);
           backdrop-filter: blur(4px);
           z-index: 9999;
           display: flex;
@@ -671,10 +640,10 @@ function WaitlistLeadsPage({ token }) {
         }
         .waitlist-drawer {
           width: 100%;
-          max-width: 480px;
+          max-width: 580px;
           background: white;
           height: 100%;
-          box-shadow: -10px 0 30px -5px rgba(0,0,0,0.15);
+          box-shadow: -10px 0 30px -5px rgba(0,0,0,0.18);
           display: flex;
           flex-direction: column;
           animation: slide-in 0.25s cubic-bezier(0.16, 1, 0.3, 1);
@@ -684,33 +653,11 @@ function WaitlistLeadsPage({ token }) {
           to { transform: translateX(0); }
         }
         .drawer-header {
-          padding: 24px;
+          padding: 20px 24px;
           border-bottom: 1px solid var(--line);
           display: flex;
           justify-content: space-between;
           align-items: center;
-        }
-        .drawer-content {
-          padding: 24px;
-          overflow-y: auto;
-          flex: 1;
-        }
-        .drawer-field {
-          margin-bottom: 20px;
-        }
-        .drawer-field label {
-          display: block;
-          font-size: 10px;
-          font-weight: 700;
-          color: var(--muted);
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          margin-bottom: 4px;
-        }
-        .drawer-field div {
-          font-size: 14px;
-          color: var(--ink);
-          font-weight: 500;
         }
       `}</style>
     </div>
