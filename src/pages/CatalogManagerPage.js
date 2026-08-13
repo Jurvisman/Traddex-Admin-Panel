@@ -87,6 +87,37 @@ function CatalogManagerPage({ token }) {
   const [editingCategoryId, setEditingCategoryId] = useState(null);
   const [editingSubId, setEditingSubId] = useState(null);
   const [showBulkImport, setShowBulkImport] = useState(false);
+  const [activeTab, setActiveTab] = useState('catalog'); // 'catalog' | 'unmapped'
+  const [unmappedRequests, setUnmappedRequests] = useState([
+    { id: 1, businessName: 'SolarTech Solutions', mobile: '9876543210', customType: 'Industry', customName: 'Solar Energy', date: '2 mins ago' },
+    { id: 2, businessName: 'EV Charge Point', mobile: '9812345678', customType: 'Industry', customName: 'EV Charging Infrastructure', date: '1 hour ago' },
+  ]);
+  const [remapModal, setRemapModal] = useState({ open: false, item: null, targetIndustryId: '' });
+
+  const handleApproveCustomAsMaster = (item) => {
+    setActiveTab('catalog');
+    setActiveForm('industry');
+    setEditingIndustryId(null);
+    setIndustryForm({
+      ...initialIndustryForm,
+      name: item.customName,
+      ordering: findNextAvailableOrdering(industries).toString(),
+      active: '1',
+    });
+    setMessage({ type: 'info', text: `Pre-filled "${item.customName}" into Industry Form. Review ordering and click "Add industry" to approve as Master!` });
+  };
+
+  const handleConfirmRemap = (event) => {
+    event.preventDefault();
+    if (!remapModal.targetIndustryId) {
+      setMessage({ type: 'error', text: 'Select an existing industry to remap.' });
+      return;
+    }
+    const targetInd = industries.find((i) => String(i.id) === String(remapModal.targetIndustryId));
+    setUnmappedRequests((prev) => prev.filter((r) => r.id !== remapModal.item.id));
+    setRemapModal({ open: false, item: null, targetIndustryId: '' });
+    setMessage({ type: 'success', text: `Successfully remapped custom entry "${remapModal.item.customName}" to existing industry "${targetInd?.name || 'Selected'}"!` });
+  };
 
   const loadIndustries = async (keepSelection = true) => {
     setIsLoading(true);
@@ -1020,7 +1051,7 @@ function CatalogManagerPage({ token }) {
 
       <Banner message={message} />
 
-      <div className="stat-grid">
+      <div className="stat-grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
         <div className="stat-card admin-stat" style={{ '--stat-accent': '#F59E0B' }}>
           <p className="stat-label">Industries</p>
           <p className="stat-value">{industries.length}</p>
@@ -1041,8 +1072,162 @@ function CatalogManagerPage({ token }) {
           <p className="stat-value">{subCategories.length}</p>
           <p className="stat-sub">Under selected category</p>
         </div>
+        <div 
+          className="stat-card admin-stat" 
+          style={{ '--stat-accent': '#EC4899', cursor: 'pointer', border: activeTab === 'unmapped' ? '2px solid #EC4899' : '1px solid #e2e8f0' }}
+          onClick={() => setActiveTab('unmapped')}
+        >
+          <p className="stat-label">Unmapped Requests</p>
+          <p className="stat-value" style={{ color: '#EC4899' }}>{unmappedRequests.length}</p>
+          <p className="stat-sub">Merchant "Other" Entries</p>
+        </div>
       </div>
 
+      {/* Main Tab Navigation */}
+      <div style={{ display: 'flex', gap: 12, margin: '20px 0 10px 0', borderBottom: '2px solid #e2e8f0' }}>
+        <button
+          type="button"
+          onClick={() => setActiveTab('catalog')}
+          style={{
+            padding: '10px 20px',
+            fontSize: 14,
+            fontWeight: 700,
+            border: 'none',
+            background: 'none',
+            borderBottom: activeTab === 'catalog' ? '3px solid #6366f1' : '3px solid transparent',
+            color: activeTab === 'catalog' ? '#6366f1' : '#64748b',
+            cursor: 'pointer'
+          }}
+        >
+          Master Catalog Control
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('unmapped')}
+          style={{
+            padding: '10px 20px',
+            fontSize: 14,
+            fontWeight: 700,
+            border: 'none',
+            background: 'none',
+            borderBottom: activeTab === 'unmapped' ? '3px solid #EC4899' : '3px solid transparent',
+            color: activeTab === 'unmapped' ? '#EC4899' : '#64748b',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8
+          }}
+        >
+          Unmapped / Custom Category Requests
+          {unmappedRequests.length > 0 && (
+            <span style={{ background: '#EC4899', color: '#ffffff', padding: '2px 8px', borderRadius: 12, fontSize: 11 }}>
+              {unmappedRequests.length} New
+            </span>
+          )}
+        </button>
+      </div>
+
+      {activeTab === 'unmapped' ? (
+        <div className="catalog-card" style={{ marginTop: 20, padding: 20 }}>
+          <div className="catalog-card-head" style={{ marginBottom: 16 }}>
+            <div>
+              <h3 style={{ fontSize: 18, color: '#EC4899', fontWeight: 800 }}>Custom "Other" Submissions Queue</h3>
+              <p>Review custom entries typed by merchants on website checkout/app. Approve as new Master or Remap to existing.</p>
+            </div>
+            <span className="catalog-chip" style={{ background: '#fce7f3', color: '#be185d' }}>{unmappedRequests.length} Pending</span>
+          </div>
+
+          <div className="table-shell">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Business Name</th>
+                  <th>Mobile</th>
+                  <th>Submitted Type</th>
+                  <th>Custom Name Typed</th>
+                  <th>Date</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {unmappedRequests.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="empty-cell" style={{ padding: 30, textStyle: 'italic', textAlign: 'center' }}>
+                      🎉 No pending custom category requests! All merchant entries are mapped to master taxonomy.
+                    </td>
+                  </tr>
+                ) : (
+                  unmappedRequests.map((req) => (
+                    <tr key={req.id}>
+                      <td><strong>{req.businessName}</strong></td>
+                      <td>{req.mobile}</td>
+                      <td><span style={{ padding: '2px 8px', borderRadius: 6, background: '#eff6ff', color: '#2563eb', fontSize: 12, fontWeight: 700 }}>{req.customType}</span></td>
+                      <td><strong style={{ color: '#4f46e5', fontSize: 14 }}>"{req.customName}"</strong></td>
+                      <td><small>{req.date}</small></td>
+                      <td style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                          <button
+                            type="button"
+                            className="primary-btn"
+                            style={{ background: '#10b981', borderColor: '#10b981', fontSize: 12, padding: '6px 12px' }}
+                            onClick={() => handleApproveCustomAsMaster(req)}
+                          >
+                            + Approve as Master Industry
+                          </button>
+                          <button
+                            type="button"
+                            className="ghost-btn"
+                            style={{ fontSize: 12, padding: '6px 12px' }}
+                            onClick={() => setRemapModal({ open: true, item: req, targetIndustryId: '' })}
+                          >
+                            Remap Category
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Remap Modal */}
+          {remapModal.open && (
+            <div className="modal-backdrop" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 }}>
+              <div style={{ background: '#ffffff', padding: 24, borderRadius: 16, width: 450, maxWidth: '90%' }}>
+                <h4 style={{ margin: '0 0 8px 0', fontSize: 18, color: '#0f172a' }}>Remap Custom Entry</h4>
+                <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 16px 0' }}>
+                  Remap <strong>"{remapModal.item?.customName}"</strong> (submitted by {remapModal.item?.businessName}) to an existing master industry:
+                </p>
+                <form onSubmit={handleConfirmRemap}>
+                  <label className="field" style={{ display: 'block', marginBottom: 16 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 4 }}>Select Target Industry:</span>
+                    <select
+                      value={remapModal.targetIndustryId}
+                      onChange={(e) => setRemapModal((prev) => ({ ...prev, targetIndustryId: e.target.value }))}
+                      required
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #cbd5e1' }}
+                    >
+                      <option value="">-- Choose Industry --</option>
+                      {industries.map((ind) => (
+                        <option key={ind.id} value={ind.id}>{ind.name}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                    <button type="button" className="ghost-btn" onClick={() => setRemapModal({ open: false, item: null, targetIndustryId: '' })}>
+                      Cancel
+                    </button>
+                    <button type="submit" className="primary-btn">
+                      Confirm Remap
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
       <div className="catalog-layout">
         <section className="catalog-tree">
           <div className="catalog-card">
@@ -1294,6 +1479,7 @@ function CatalogManagerPage({ token }) {
           </div>
         </aside>
       </div>
+      )}
 
       {showBulkImport ? (
         <CatalogBulkImportModal

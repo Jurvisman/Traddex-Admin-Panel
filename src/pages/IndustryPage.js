@@ -66,7 +66,7 @@ function IndustryPage({ token }) {
     setMessage({ type: 'info', text: '' });
     try {
       const response = await listIndustries(token);
-      const data = response?.data || [];
+      const data = (response?.data || []).filter((item) => String(item.name || '').trim().toLowerCase() !== 'home');
       setItems(data.map((item) => ({ ...item, id: item.id ?? item.industryId })));
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to fetch industries.' });

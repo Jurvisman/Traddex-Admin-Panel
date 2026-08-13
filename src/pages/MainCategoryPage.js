@@ -80,7 +80,8 @@ function MainCategoryPage({ token }) {
         throw mainCategoriesResult.reason;
       }
       setItems(mainCategoriesResult.value?.data || []);
-      const industryData = industriesResult.status === 'fulfilled' ? industriesResult.value?.data || [] : [];
+      const industryData = (industriesResult.status === 'fulfilled' ? industriesResult.value?.data || [] : [])
+        .filter((ind) => String(ind.name || ind.industryName || '').trim().toLowerCase() !== 'home');
       setIndustries(
         industryData.map((industry) => ({
           ...industry,
