@@ -1,19 +1,12 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Banner, TableRowActionMenu } from '../components';
-import { fetchKycAssistanceRequests, updateKycAssistanceStatus, fetchEmployees } from '../services/adminApi';
+import { Banner, TableRowActionMenu, DataTable } from '../components';
+import { fetchKycAssistanceRequests, updateKycAssistanceStatus } from '../services/adminApi';
 
 /* ── Helpers ─────────────────────────────────────────────────── */
-const PAGE_SIZE_OPTIONS = [10, 25, 50];
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 const normalizeStatus = (value) => String(value || '').trim().toUpperCase().replace(/\s+/g, '_');
-
-const formatDate = (value) => {
-  if (!value) return '-';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
-  return date.toLocaleDateString();
-};
 
 const formatDateTime = (value) => {
   if (!value) return '-';
@@ -37,16 +30,6 @@ const getStatusLabel = (status) => {
   return s.replace(/_/g, ' ');
 };
 
-const paginateItems = (items, page, pageSize = 10) => {
-  const list = Array.isArray(items) ? items : [];
-  const totalItems = list.length;
-  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
-  const safePage = Math.min(Math.max(page, 0), totalPages - 1);
-  const start = safePage * pageSize;
-  const end = Math.min(start + pageSize, totalItems);
-  return { items: list.slice(start, end), totalItems, totalPages, page: safePage, start, end };
-};
-
 /* ── Status filter options ────────────────────────────────────── */
 const STATUS_FILTER_OPTIONS = [
   { value: '', label: 'All' },
@@ -64,7 +47,6 @@ function KycAssistancePage({ token, allowedActions }) {
 
   /* ── Data state ──────────────────────────────────────────────── */
   const [requests, setRequests] = useState([]);
-  const [employees, setEmployees] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState({ type: 'info', text: '' });
 
@@ -85,12 +67,8 @@ function KycAssistancePage({ token, allowedActions }) {
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [reqRes, empRes] = await Promise.all([
-        fetchKycAssistanceRequests(token).catch(() => ({ data: [] })),
-        fetchEmployees(token).catch(() => ({ data: [] })),
-      ]);
+      const reqRes = await fetchKycAssistanceRequests(token).catch(() => ({ data: [] }));
       setRequests(reqRes?.data || []);
-      setEmployees(empRes?.data || []);
     } catch (err) {
       setMessage({ type: 'error', text: 'Failed to load requests.' });
     } finally {
@@ -100,11 +78,10 @@ function KycAssistancePage({ token, allowedActions }) {
 
   useEffect(() => {
     loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+  }, [loadData]);
 
   /* ── Handlers ────────────────────────────────────────────────── */
-  const handleUpdateStatus = async (id, status, note = null) => {
+  const handleUpdateStatus = useCallback(async (id, status, note = null) => {
     try {
       await updateKycAssistanceStatus(token, id, status, note);
       setMessage({ type: 'success', text: `Status updated to "${getStatusLabel(status)}".` });
@@ -112,13 +89,13 @@ function KycAssistancePage({ token, allowedActions }) {
     } catch (err) {
       setMessage({ type: 'error', text: err.message || 'Failed to update status.' });
     }
-  };
+  }, [token, loadData]);
 
-  const handleOpenNoteModal = (request) => {
+  const handleOpenNoteModal = useCallback((request) => {
     setSelectedRequest(request);
     setAdminNote(request.adminNote || '');
     setIsNoteModalOpen(true);
-  };
+  }, []);
 
   const handleSaveNote = async () => {
     if (!selectedRequest) return;
@@ -132,16 +109,14 @@ function KycAssistancePage({ token, allowedActions }) {
     }
   };
 
-  /* ── Filtering & pagination ──────────────────────────────────── */
+  /* ── Filtering ───────────────────────────────────────────────── */
   const filteredRequests = useMemo(() => {
     let result = Array.isArray(requests) ? requests : [];
 
-    // Status filter
     if (filterStatus) {
       result = result.filter((r) => normalizeStatus(r.status) === filterStatus);
     }
 
-    // Search query
     if (query.trim()) {
       const q = query.trim().toLowerCase();
       result = result.filter((r) =>
@@ -155,9 +130,6 @@ function KycAssistancePage({ token, allowedActions }) {
     return result;
   }, [requests, filterStatus, query]);
 
-  const pagedRequests = useMemo(() => paginateItems(filteredRequests, page, pageSize), [filteredRequests, page, pageSize]);
-
-  // Reset page when filter/query change
   useEffect(() => { setPage(0); }, [filterStatus, query]);
 
   /* ── Status chip counts ──────────────────────────────────────── */
@@ -171,10 +143,9 @@ function KycAssistancePage({ token, allowedActions }) {
   }, [requests]);
 
   /* ── Action Handlers ─────────────────────────────────────────── */
-  const getRowActions = (r) => {
+  const getRowActions = useCallback((r) => {
     const actions = [];
     const s = normalizeStatus(r.status);
-    
     const hasUpdatePerm = allowedActions?.has('ADMIN_KYC_ASSISTANCE_UPDATE') ?? false;
 
     if (hasUpdatePerm) {
@@ -187,12 +158,95 @@ function KycAssistancePage({ token, allowedActions }) {
       if (s === 'IN_PROGRESS') {
         actions.push({ label: 'Complete', onClick: () => handleUpdateStatus(r.id, 'COMPLETED') });
       }
-
       actions.push({ label: 'Add Note', onClick: () => handleOpenNoteModal(r) });
     }
 
     return actions;
-  };
+  }, [allowedActions, handleUpdateStatus, handleOpenNoteModal]);
+
+  /* ── Columns definition ──────────────────────────────────────── */
+  const columns = useMemo(() => [
+    {
+      key: 'id',
+      header: 'Sr No',
+      width: '80px',
+      render: (_, __, index) => page * pageSize + index + 1,
+    },
+    {
+      key: 'businessName',
+      header: 'Business Name',
+      sortable: true,
+      render: (_, r) => (
+        <span
+          className="bdt-name-link"
+          style={{ fontWeight: 600 }}
+          onClick={() => navigate(`/admin/businesses/${r.userId}`)}
+          role="button"
+          tabIndex={0}
+        >
+          {r.businessName || '-'}
+        </span>
+      ),
+    },
+    {
+      key: 'phoneNumber',
+      header: 'Phone',
+      render: (_, r) => (
+        <a href={`tel:${r.phoneNumber}`} className="bdt-phone-link">
+          {r.phoneNumber || '-'}
+        </a>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      sortable: true,
+      render: (_, r) => (
+        <span className={`status-pill ${getStatusPillClass(r.status)}`}>
+          {getStatusLabel(r.status)}
+        </span>
+      ),
+    },
+    {
+      key: 'assignedToName',
+      header: 'Assigned To',
+      render: (_, r) => r.assignedToName || <span style={{ color: '#94a3b8' }}>Unassigned</span>,
+    },
+    {
+      key: 'adminNote',
+      header: 'Note',
+      render: (_, r) => (
+        <span className="bdt-email-cell" style={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block' }}>
+          {r.adminNote || <span style={{ color: '#cbd5e1' }}>—</span>}
+        </span>
+      ),
+    },
+    {
+      key: 'createdAt',
+      header: 'Requested',
+      sortable: true,
+      render: (_, r) => formatDateTime(r.createdAt),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      render: (_, r) => {
+        const rowActions = getRowActions(r);
+        if (!rowActions.length) return '-';
+        return (
+          <div className="table-actions" onClick={(e) => e.stopPropagation()}>
+            <TableRowActionMenu
+              rowId={r.id}
+              openRowId={openActionRowId}
+              onToggle={setOpenActionRowId}
+              actions={rowActions}
+            />
+          </div>
+        );
+      },
+    },
+  ], [navigate, page, pageSize, openActionRowId, getRowActions]);
 
   /* ── Render ──────────────────────────────────────────────────── */
   return (
@@ -207,187 +261,61 @@ function KycAssistancePage({ token, allowedActions }) {
         <span className="status-chip login">{statusCounts.COMPLETED} Completed</span>
       </div>
 
-      {/* ── Table card ──────────────────────────────────────────── */}
-      <div className="panel card users-table-card">
-        {/* Toolbar */}
-        <div className="panel-split">
-          <div className="category-list-head-left">
-            <div className="gsc-datatable-toolbar-left">
-              {/* Filter button */}
-              <div className="bdt-toolbar-wrap">
-                <button
-                  type="button"
-                  className={`gsc-toolbar-btn ${showFilterPanel ? 'active' : ''}`}
-                  title="Filter"
-                  onClick={() => setShowFilterPanel((v) => !v)}
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M4 6h16M4 12h10M4 18h6" />
-                  </svg>
-                  Filter{filterStatus ? ' •' : ''}
-                </button>
-                {showFilterPanel && (
-                  <div className="bdt-dropdown-panel">
-                    <p className="bdt-dropdown-label">Status</p>
-                    {STATUS_FILTER_OPTIONS.map((opt) => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        className={`bdt-dropdown-option ${filterStatus === opt.value ? 'selected' : ''}`}
-                        onClick={() => { setFilterStatus(opt.value); setShowFilterPanel(false); }}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                    {filterStatus ? (
-                      <button
-                        type="button"
-                        className="bdt-dropdown-option danger"
-                        onClick={() => { setFilterStatus(''); setShowFilterPanel(false); }}
-                      >
-                        Clear Filter
-                      </button>
-                    ) : null}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="gsc-datatable-toolbar-right">
-            <div className="gsc-toolbar-search">
-              <input
-                type="search"
-                placeholder="Search by name, phone..."
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                aria-label="Search KYC requests"
-              />
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 18, height: 18, color: '#6b7280', flexShrink: 0 }}>
-                <circle cx="11" cy="11" r="8" />
-                <path d="m21 21-4.35-4.35" />
+      {/* ── Unified DataTable ─────────────────────────────────────── */}
+      <DataTable
+        columns={columns}
+        data={filteredRequests}
+        isLoading={isLoading}
+        search={query}
+        onSearchChange={setQuery}
+        searchPlaceholder="Search by name, phone..."
+        page={page}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={(newSize) => { setPageSize(newSize); setPage(0); }}
+        pageSizeOptions={PAGE_SIZE_OPTIONS}
+        emptyTitle="No KYC assistance requests"
+        emptyDescription={requests.length === 0 ? "No KYC assistance requests have been submitted yet." : "No requests match your current filters."}
+        toolbarLeft={
+          <div className="bdt-toolbar-wrap" style={{ position: 'relative' }}>
+            <button
+              type="button"
+              className={`gsc-toolbar-btn ${showFilterPanel ? 'active' : ''}`}
+              title="Filter"
+              onClick={() => setShowFilterPanel((v) => !v)}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 15, height: 15 }}>
+                <path d="M4 6h16M4 12h10M4 18h6" />
               </svg>
-            </div>
-          </div>
-        </div>
-
-        {/* Table */}
-        {isLoading ? (
-          <p className="empty-state">Loading requests...</p>
-        ) : filteredRequests.length === 0 ? (
-          <p className="empty-state">{requests.length === 0 ? 'No KYC assistance requests yet.' : 'No requests match the current filter.'}</p>
-        ) : (
-          <div className="table-shell business-table-shell">
-            <table className="admin-table users-table business-datatable">
-              <thead>
-                <tr>
-                  <th className="bdt-checkbox-col">
-                    <input type="checkbox" className="select-checkbox" disabled />
-                  </th>
-                  <th>Sr No</th>
-                  <th>Business Name</th>
-                  <th>Phone</th>
-                  <th>Status</th>
-                  <th>Assigned To</th>
-                  <th>Note</th>
-                  <th>Requested</th>
-                  <th className="table-actions">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pagedRequests.items.map((r, index) => (
-                  <tr key={r.id}>
-                    <td className="bdt-checkbox-col">
-                      <input type="checkbox" className="select-checkbox" disabled />
-                    </td>
-                    <td>{pagedRequests.start + index + 1}</td>
-                    <td>
-                      <span
-                        className="bdt-name-link"
-                        onClick={() => navigate(`/admin/businesses/${r.userId}`)}
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={(e) => e.key === 'Enter' && navigate(`/admin/businesses/${r.userId}`)}
-                      >
-                        {r.businessName || '-'}
-                      </span>
-                    </td>
-                    <td>
-                      <a href={`tel:${r.phoneNumber}`} className="bdt-phone-link">
-                        {r.phoneNumber || '-'}
-                      </a>
-                    </td>
-                    <td>
-                      <span className={`status-pill ${getStatusPillClass(r.status)}`}>
-                        {getStatusLabel(r.status)}
-                      </span>
-                    </td>
-                    <td>{r.assignedToName || <span style={{ color: '#94a3b8' }}>Unassigned</span>}</td>
-                    <td className="bdt-email-cell">{r.adminNote || <span style={{ color: '#cbd5e1' }}>—</span>}</td>
-                    <td>{formatDateTime(r.createdAt)}</td>
-                    <td className="table-actions">
-                      {getRowActions(r).length > 0 && (
-                        <div className="table-action-group">
-                          <TableRowActionMenu
-                            rowId={r.id}
-                            openRowId={openActionRowId}
-                            onToggle={setOpenActionRowId}
-                            actions={getRowActions(r)}
-                          />
-                        </div>
-                      )}
-                    </td>
-                  </tr>
+              Filter{filterStatus ? ` • ${filterStatus}` : ''}
+            </button>
+            {showFilterPanel && (
+              <div className="bdt-dropdown-panel" style={{ zIndex: 100, position: 'absolute', top: '100%', left: 0, marginTop: 4 }}>
+                <p className="bdt-dropdown-label">Status</p>
+                {STATUS_FILTER_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    className={`bdt-dropdown-option ${filterStatus === opt.value ? 'selected' : ''}`}
+                    onClick={() => { setFilterStatus(opt.value); setShowFilterPanel(false); }}
+                  >
+                    {opt.label}
+                  </button>
                 ))}
-              </tbody>
-            </table>
-
-            {/* ── Pagination footer ───────────────────────────────── */}
-            <div className="bv-table-footer">
-              <div className="table-record-count">
-                <span>
-                  Showing {pagedRequests.totalItems ? pagedRequests.start + 1 : 0}–{pagedRequests.end} of {filteredRequests.length} requests
-                </span>
-                {query || filterStatus ? (
-                  <span className="bdt-no-more">Filtered from {requests.length} total</span>
+                {filterStatus ? (
+                  <button
+                    type="button"
+                    className="bdt-dropdown-option danger"
+                    onClick={() => { setFilterStatus(''); setShowFilterPanel(false); }}
+                  >
+                    Clear Filter
+                  </button>
                 ) : null}
               </div>
-              <div className="product-pagination-controls">
-                <label className="product-pagination-size">
-                  <span>Rows</span>
-                  <select
-                    value={pageSize}
-                    onChange={(e) => { setPageSize(Number(e.target.value) || 10); setPage(0); }}
-                  >
-                    {PAGE_SIZE_OPTIONS.map((opt) => (
-                      <option key={opt} value={opt}>{opt}</option>
-                    ))}
-                  </select>
-                </label>
-                <div className="bv-table-pagination">
-                  <button
-                    type="button"
-                    className="secondary-btn"
-                    disabled={pagedRequests.page === 0 || isLoading}
-                    onClick={() => setPage((p) => Math.max(p - 1, 0))}
-                  >
-                    {'< Prev'}
-                  </button>
-                  <span>Page {pagedRequests.page + 1} / {pagedRequests.totalPages}</span>
-                  <button
-                    type="button"
-                    className="secondary-btn"
-                    disabled={pagedRequests.page >= pagedRequests.totalPages - 1 || isLoading}
-                    onClick={() => setPage((p) => Math.min(p + 1, Math.max(pagedRequests.totalPages - 1, 0)))}
-                  >
-                    {'Next >'}
-                  </button>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
-        )}
-      </div>
+        }
+      />
 
       {/* ── Note modal ──────────────────────────────────────────── */}
       {isNoteModalOpen && selectedRequest ? (

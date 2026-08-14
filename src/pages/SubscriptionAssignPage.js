@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Banner } from '../components';
+import { Banner, DataTable } from '../components';
 import {
   assignSubscriptionPlan,
   fetchUsers,
@@ -221,34 +221,52 @@ function SubscriptionAssignPage({ token }) {
               </div>
             </div>
           </div>
-          {assignments.length === 0 ? (
-            <p className="empty-state">No assignments yet.</p>
-          ) : (
-            <div className="table-shell">
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>User</th>
-                    <th>Plan</th>
-                    <th>Status</th>
-                    <th>Start</th>
-                    <th>End</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {assignments.map((item) => (
-                    <tr key={item.id}>
-                      <td>{item.user_label || `User #${item.user_id}`}</td>
-                      <td>{item.plan_name || '-'}</td>
-                      <td>{item.status}</td>
-                      <td>{formatDate(item.start_date)}</td>
-                      <td>{formatDate(item.end_date)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <DataTable
+            columns={[
+              {
+                key: 'user',
+                header: 'User',
+                sortable: true,
+                render: (_, item) => (
+                  <span className="bdt-name-link" style={{ color: '#6345ED', fontWeight: 600 }}>
+                    {item.user_label || `User #${item.user_id}`}
+                  </span>
+                ),
+              },
+              {
+                key: 'plan_name',
+                header: 'Plan',
+                sortable: true,
+                render: (val) => val || '-',
+              },
+              {
+                key: 'status',
+                header: 'Status',
+                sortable: true,
+                render: (val) => (
+                  <span className={`status-pill ${String(val).toLowerCase() === 'active' ? 'approved' : 'pending'}`}>
+                    {val || '-'}
+                  </span>
+                ),
+              },
+              {
+                key: 'start_date',
+                header: 'Start',
+                sortable: true,
+                render: (val) => formatDate(val),
+              },
+              {
+                key: 'end_date',
+                header: 'End',
+                sortable: true,
+                render: (val) => formatDate(val),
+              },
+            ]}
+            data={assignments}
+            isLoading={isLoading}
+            emptyTitle="No assignments yet"
+            emptyDescription="No plan assignments found."
+          />
         </div>
       </div>
     </div>

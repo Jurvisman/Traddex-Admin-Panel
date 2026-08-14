@@ -1,7 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Banner, TableRowActionMenu } from '../components';
-import { deleteSubscriptionPlan, listSubscriptionFeatures, listSubscriptionPlans } from '../services/adminApi';
+import {
+  deleteSubscriptionPlan,
+  listSubscriptionFeatures,
+  listSubscriptionPlans,
+  updateSubscriptionPlan,
+} from '../services/adminApi';
 
 function SubscriptionPlanViewPage({ token }) {
   const { id } = useParams();
@@ -50,41 +55,72 @@ function SubscriptionPlanViewPage({ token }) {
     });
   }, [selectedPlan, featureMap]);
 
-  useEffect(() => {
-    if (didInitRef.current) return;
-    didInitRef.current = true;
+  const loadData = useCallback(async () => {
     if (!numericId) {
       setMessage({ type: 'error', text: 'Invalid subscription plan id.' });
       return;
     }
     setIsLoading(true);
     setMessage({ type: 'info', text: '' });
-    Promise.all([listSubscriptionPlans(token), listSubscriptionFeatures(token)])
-      .then(([plansResponse, featuresResponse]) => {
-        setPlans(plansResponse?.data?.plans || []);
-        setFeatures(featuresResponse?.data?.features || []);
-      })
-      .catch((error) => {
-        setMessage({ type: 'error', text: error.message || 'Failed to load subscription plan.' });
-      })
-      .finally(() => setIsLoading(false));
+    try {
+      const [plansResponse, featuresResponse] = await Promise.all([
+        listSubscriptionPlans(token),
+        listSubscriptionFeatures(token),
+      ]);
+      setPlans(plansResponse?.data?.plans || []);
+      setFeatures(featuresResponse?.data?.features || []);
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to load subscription plan.' });
+    } finally {
+      setIsLoading(false);
+    }
   }, [numericId, token]);
+
+  useEffect(() => {
+    if (didInitRef.current) return;
+    didInitRef.current = true;
+    loadData();
+  }, [loadData]);
 
   const handleEditPlan = () => {
     if (!selectedPlan?.id) return;
     navigate(`/admin/subscription/plans/${selectedPlan.id}/edit`);
   };
 
-  const handleDeletePlan = async () => {
+  const handleTogglePlanStatus = async () => {
     if (!selectedPlan?.id) return;
     setIsLoading(true);
     setMessage({ type: 'info', text: '' });
+    const isCurrentlyActive = Number(selectedPlan.is_active) === 1 || selectedPlan.is_active === true;
     try {
-      await deleteSubscriptionPlan(token, selectedPlan.id);
-      setMessage({ type: 'success', text: 'Plan deactivated.' });
-      navigate('/admin/subscription/plans');
+      if (isCurrentlyActive) {
+        await deleteSubscriptionPlan(token, selectedPlan.id);
+        setMessage({ type: 'success', text: 'Plan deactivated successfully.' });
+      } else {
+        const payload = {
+          plan_name: selectedPlan.plan_name,
+          user_type: selectedPlan.user_type,
+          business_type: selectedPlan.business_type,
+          price: selectedPlan.price,
+          duration_months: selectedPlan.duration_months || selectedPlan.duration,
+          yearly_discount_percent: selectedPlan.yearly_discount_percent,
+          promo_price: selectedPlan.promo_price,
+          offer_active: Boolean(selectedPlan.offer_active),
+          offer_duration_months: selectedPlan.offer_duration_months,
+          offer_terms: selectedPlan.offer_terms,
+          promo_label: selectedPlan.promo_label,
+          cta_label: selectedPlan.cta_label,
+          popular: selectedPlan.popular,
+          best_for: selectedPlan.best_for,
+          waitlist_enabled: Boolean(selectedPlan.waitlist_enabled),
+          is_active: 1,
+        };
+        await updateSubscriptionPlan(token, selectedPlan.id, payload);
+        setMessage({ type: 'success', text: 'Plan activated successfully.' });
+      }
+      await loadData();
     } catch (error) {
-      setMessage({ type: 'error', text: error.message || 'Failed to deactivate plan.' });
+      setMessage({ type: 'error', text: error.message || 'Failed to update plan status.' });
     } finally {
       setIsLoading(false);
     }
@@ -132,9 +168,9 @@ function SubscriptionPlanViewPage({ token }) {
                       onClick: handleEditPlan,
                     },
                     {
-                      label: 'Deactivate',
-                      onClick: handleDeletePlan,
-                      danger: true,
+                      label: (Number(selectedPlan.is_active) === 1 || selectedPlan.is_active === true) ? 'Deactivate' : 'Activate',
+                      onClick: handleTogglePlanStatus,
+                      danger: Number(selectedPlan.is_active) === 1 || selectedPlan.is_active === true,
                     },
                   ]}
                 />

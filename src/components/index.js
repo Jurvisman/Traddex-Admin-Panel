@@ -9,3 +9,4 @@ export { default as PolicyCard } from './PolicyCard';
 export { default as Stepper } from './Stepper';
 export { default as TableRowActionMenu } from './TableRowActionMenu';
 export { default as ToggleSwitch } from './ToggleSwitch';
+export { default as DataTable } from './DataTable';

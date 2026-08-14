@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Banner, TableRowActionMenu } from '../components';
+import { Banner, TableRowActionMenu, DataTable } from '../components';
 import {
   createSubscriptionPlan,
   deleteSubscriptionPlan,
@@ -335,15 +335,40 @@ function SubscriptionPlanPage({ token }) {
     setIsFormVisible(true);
   };
 
-  const handleDelete = async (id) => {
+  const handleToggleStatus = async (plan) => {
+    if (!plan?.id) return;
     setIsLoading(true);
     setMessage({ type: 'info', text: '' });
+    const isCurrentlyActive = Number(plan.is_active) === 1 || plan.is_active === true;
     try {
-      await deleteSubscriptionPlan(token, id);
+      if (isCurrentlyActive) {
+        await deleteSubscriptionPlan(token, plan.id);
+        setMessage({ type: 'success', text: `Plan '${plan.plan_name || ''}' deactivated successfully.` });
+      } else {
+        const payload = {
+          plan_name: plan.plan_name,
+          user_type: plan.user_type,
+          business_type: plan.business_type,
+          price: plan.price,
+          duration_months: plan.duration_months || plan.duration,
+          yearly_discount_percent: plan.yearly_discount_percent,
+          promo_price: plan.promo_price,
+          offer_active: Boolean(plan.offer_active),
+          offer_duration_months: plan.offer_duration_months,
+          offer_terms: plan.offer_terms,
+          promo_label: plan.promo_label,
+          cta_label: plan.cta_label,
+          popular: plan.popular,
+          best_for: plan.best_for,
+          waitlist_enabled: Boolean(plan.waitlist_enabled),
+          is_active: 1,
+        };
+        await updateSubscriptionPlan(token, plan.id, payload);
+        setMessage({ type: 'success', text: `Plan '${plan.plan_name || ''}' activated successfully.` });
+      }
       await loadPlans();
-      setMessage({ type: 'success', text: 'Plan deactivated.' });
     } catch (error) {
-      setMessage({ type: 'error', text: error.message || 'Failed to deactivate plan.' });
+      setMessage({ type: 'error', text: error.message || 'Failed to update plan status.' });
     } finally {
       setIsLoading(false);
     }
@@ -406,29 +431,93 @@ function SubscriptionPlanPage({ token }) {
       <Banner message={message} />
 
       <div className="panel-grid subscription-plan-list-grid">
-        <div className="subscription-plan-list-card">
-          <div className="panel-split">
-            <h3 className="panel-subheading">Plan list</h3>
-            <div className="gsc-datatable-toolbar-right">
-              <div className="gsc-toolbar-search">
-                <input
-                  type="search"
-                  placeholder="Search"
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  aria-label="Search subscription plans"
-                />
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  style={{ width: 18, height: 18, color: '#6b7280', flexShrink: 0 }}
-                >
-                  <circle cx="11" cy="11" r="8" />
-                  <path d="m21 21-4.35-4.35" />
-                </svg>
-              </div>
+        <div className="subscription-plan-list-card" style={{ width: '100%' }}>
+          <DataTable
+            columns={[
+              {
+                key: 'id',
+                header: 'Sr. No.',
+                width: '70px',
+                render: (_, __, index) => index + 1,
+              },
+              {
+                key: 'plan_name',
+                header: 'Name',
+                sortable: true,
+                render: (val, plan) => (
+                  <span
+                    className="bdt-name-link"
+                    style={{ fontWeight: 600, color: 'var(--gsc-primary, #6345ED)', cursor: 'pointer' }}
+                    onClick={() => startViewPlan(plan)}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    {val}
+                  </span>
+                ),
+              },
+              {
+                key: 'user_type',
+                header: 'User Type',
+                sortable: true,
+                render: (val) => val || '-',
+              },
+              {
+                key: 'price',
+                header: 'Price (₹)',
+                sortable: true,
+                render: (val) => <strong>₹ {Number(val || 0).toLocaleString('en-IN')}</strong>,
+              },
+              {
+                key: 'duration_months',
+                header: 'Duration',
+                render: (val, plan) => `${val || plan.duration || '-'} mo`,
+              },
+              {
+                key: 'is_active',
+                header: 'Status',
+                sortable: true,
+                render: (val) => (
+                  <span className={`status-pill ${val === 1 ? 'approved' : 'rejected'}`}>
+                    {val === 1 ? 'Active' : 'Inactive'}
+                  </span>
+                ),
+              },
+              {
+                key: 'actions',
+                header: 'Actions',
+                align: 'right',
+                render: (_, plan) => (
+                  <div className="table-actions" onClick={(e) => e.stopPropagation()}>
+                    <TableRowActionMenu
+                      rowId={plan.id}
+                      openRowId={openActionRowId}
+                      onToggle={setOpenActionRowId}
+                      actions={[
+                        {
+                          label: 'Edit',
+                          onClick: () => navigate(`/admin/subscription/plans/${plan.id}/edit`),
+                        },
+                        {
+                          label: Number(plan.is_active) === 1 ? 'Deactivate' : 'Activate',
+                          onClick: () => handleToggleStatus(plan),
+                          danger: Number(plan.is_active) === 1,
+                        },
+                      ]}
+                    />
+                  </div>
+                ),
+              },
+            ]}
+            data={filteredPlans}
+            isLoading={isLoading}
+            search={searchQuery}
+            onSearchChange={setSearchQuery}
+            searchPlaceholder="Search plans..."
+            onRowClick={(plan) => startViewPlan(plan)}
+            emptyTitle="No subscription plans found"
+            emptyDescription={plans.length === 0 ? "No subscription plans created yet." : "No plans match your search."}
+            toolbarRight={
               <button
                 type="button"
                 className="gsc-create-btn"
@@ -447,80 +536,8 @@ function SubscriptionPlanPage({ token }) {
                   <path d="M12 5v14M5 12h14" />
                 </svg>
               </button>
-            </div>
-          </div>
-          {filteredPlans.length === 0 ? (
-            <p className="empty-state">
-              {plans.length === 0 ? 'No subscription plans yet.' : 'No plans match your search.'}
-            </p>
-          ) : (
-            <div className="table-shell">
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>Sr. No.</th>
-                    <th>Name</th>
-                    <th>User type</th>
-                    <th>Price</th>
-                    <th>Duration</th>
-                    <th>Status</th>
-                    <th className="table-actions">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredPlans.map((plan, index) => (
-                    <tr key={plan.id}>
-                      <td className="feature-srno-cell">{index + 1}</td>
-                      <td>
-                        <span
-                          className="bdt-name-link"
-                          onClick={() => startViewPlan(plan)}
-                          role="button"
-                          tabIndex={0}
-                          onKeyDown={(event) => {
-                            if (event.key === 'Enter' || event.key === ' ') {
-                              event.preventDefault();
-                              startViewPlan(plan);
-                            }
-                          }}
-                        >
-                          {plan.plan_name}
-                        </span>
-                      </td>
-                      <td>{plan.user_type}</td>
-                      <td>{plan.price}</td>
-                      <td>{plan.duration_months || plan.duration}</td>
-                      <td>
-                        <span className={`status-pill ${plan.is_active === 1 ? 'approved' : 'rejected'}`}>
-                          {plan.is_active === 1 ? 'Active' : 'Inactive'}
-                        </span>
-                      </td>
-                      <td className="table-actions">
-                        <div className="table-action-group">
-                          <TableRowActionMenu
-                            rowId={plan.id}
-                            openRowId={openActionRowId}
-                            onToggle={setOpenActionRowId}
-                            actions={[
-                              {
-                                label: 'Edit',
-                                onClick: () => navigate(`/admin/subscription/plans/${plan.id}/edit`),
-                              },
-                              {
-                                label: plan.is_active === 1 ? 'Deactivate' : 'Activate',
-                                onClick: () => handleDelete(plan.id),
-                                danger: plan.is_active === 1,
-                              },
-                            ]}
-                          />
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+            }
+          />
         </div>
       </div>
 

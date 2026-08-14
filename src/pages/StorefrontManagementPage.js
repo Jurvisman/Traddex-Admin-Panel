@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Banner, TableRowActionMenu } from '../components';
+import { Banner, DataTable, TableRowActionMenu } from '../components';
 import { API_ORIGIN, STOREFRONT_BASE_URL } from '../config/runtime';
 
 const API_BASE = API_ORIGIN;
@@ -277,121 +277,116 @@ function StorefrontManagementPage({ token }) {
 
       <div className={`mv-layout${viewItem ? ' mv-layout--split' : ''}`}>
         <div className="panel card users-table-card">
-          <div className="panel-split">
-            <div className="category-list-head-left">
-              <h3 className="panel-subheading">Storefront list</h3>
-              <div className="gsc-datatable-toolbar-left">
-                <button type="button" className="gsc-toolbar-btn" title="Filter">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M4 6h16M4 12h10M4 18h6" />
-                  </svg>
-                  Filter
-                </button>
-                <select
-                  value={statusFilter}
-                  onChange={(event) => { setStatusFilter(event.target.value); setPage(1); }}
-                  className="gsc-toolbar-btn storefront-filter-select"
-                >
-                  {STATUS_OPTIONS.map((option) => (
-                    <option key={option.value || 'all'} value={option.value}>{option.label}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="gsc-datatable-toolbar-right">
-              <div className="gsc-toolbar-search">
-                <input
-                  type="search"
-                  placeholder="Search"
-                  value={searchQuery}
-                  onChange={(event) => { setSearchQuery(event.target.value); setPage(1); }}
-                  aria-label="Search storefronts"
-                />
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                  style={{ width: 18, height: 18, color: '#6b7280', flexShrink: 0 }}>
-                  <circle cx="11" cy="11" r="8" />
-                  <path d="m21 21-4.35-4.35" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          {isLoading ? (
-            <div className="loading-state">Loading storefront sites...</div>
-          ) : filteredSites.length === 0 ? (
-            <div className="empty-state">No storefront records found.</div>
-          ) : (
-            <div className="table-shell">
-              <table className="admin-table storefront-master-table">
-                <thead>
-                  <tr>
-                    <th>Sr. No.</th>
-                    <th>Business</th>
-                    <th>Domain</th>
-                    <th>Mobile</th>
-                    <th>Email</th>
-                    <th>Business Status</th>
-                    <th>Site Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pagedSites.map((site, index) => (
-                    <tr
-                      key={site.siteId}
-                      className={viewItem?.siteId === site.siteId ? 'mv-row-active' : ''}
-                      onClick={() => handleView(site)}
-                    >
-                      <td>{(safePage - 1) * pageSize + index + 1}</td>
-                      <td>
-                        <button type="button" className="storefront-master-name" onClick={() => handleView(site)}>
-                          <span>{site.businessName || '-'}</span>
-                          <small>Business #{site.businessProfileId || '-'}</small>
-                        </button>
-                      </td>
-                      <td><DomainLink domain={primaryDomain(site)} /></td>
-                      <td>{site.contactNumber || '-'}</td>
-                      <td className="storefront-email-cell">{site.email || '-'}</td>
-                      <td><span className={statusPillClass(site.businessStatus)}>{formatStatus(site.businessStatus)}</span></td>
-                      <td><span className={statusPillClass(site.status)}>{formatStatus(site.status)}</span></td>
-                      <td onClick={(event) => event.stopPropagation()}>
-                        <TableRowActionMenu
-                          rowId={site.siteId}
-                          openRowId={openActionRowId}
-                          onToggle={setOpenActionRowId}
-                          actions={[
-                            { label: 'View', onClick: () => handleView(site) },
-                            ...(site.status === 'PENDING_SETUP'
-                              ? [{ label: publishingId === site.siteId ? 'Publishing...' : 'Publish Live', onClick: () => handlePublish(site) }]
-                              : []),
-                          ]}
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div className="bv-table-footer">
-                <div className="table-record-count">
-                  <span>{filteredSites.length === 0 ? '0 records' : `Showing ${(safePage - 1) * pageSize + 1}-${Math.min(safePage * pageSize, filteredSites.length)} of ${filteredSites.length}`}</span>
-                </div>
-                <div className="product-pagination-controls">
-                  <label className="product-pagination-size">
-                    <span>Rows</span>
-                    <select value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(1); }}>
-                      {[10, 20, 50, 100].map((n) => <option key={n} value={n}>{n}</option>)}
-                    </select>
-                  </label>
-                  <div className="bv-table-pagination">
-                    <button type="button" className="secondary-btn" disabled={safePage === 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>{'< Prev'}</button>
-                    <span>Page {safePage} / {totalPages}</span>
-                    <button type="button" className="secondary-btn" disabled={safePage === totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>{'Next >'}</button>
+          <DataTable
+            columns={[
+              {
+                key: 'srNo',
+                header: 'Sr. No.',
+                width: '70px',
+                render: (_, __, index) => (safePage - 1) * pageSize + index + 1,
+              },
+              {
+                key: 'businessName',
+                header: 'Business',
+                sortable: true,
+                render: (val, site) => (
+                  <div
+                    className="bdt-name-link"
+                    style={{ color: '#6345ED', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleView(site);
+                    }}
+                  >
+                    <div>{val || '-'}</div>
+                    <small style={{ fontSize: 11, color: '#6b7280', fontWeight: 400 }}>Business #{site.businessProfileId || '-'}</small>
                   </div>
-                </div>
-              </div>
-            </div>
-          )}
+                ),
+              },
+              {
+                key: 'domain',
+                header: 'Domain',
+                render: (_, site) => <DomainLink domain={primaryDomain(site)} />,
+              },
+              {
+                key: 'contactNumber',
+                header: 'Mobile',
+                sortable: true,
+                render: (val) => val || '-',
+              },
+              {
+                key: 'email',
+                header: 'Email',
+                sortable: true,
+                render: (val) => val || '-',
+              },
+              {
+                key: 'businessStatus',
+                header: 'Business Status',
+                sortable: true,
+                render: (val) => (
+                  <span className={`status-pill ${statusPillClass(val)}`}>
+                    {formatStatus(val)}
+                  </span>
+                ),
+              },
+              {
+                key: 'status',
+                header: 'Site Status',
+                sortable: true,
+                render: (val) => (
+                  <span className={`status-pill ${statusPillClass(val)}`}>
+                    {formatStatus(val)}
+                  </span>
+                ),
+              },
+              {
+                key: 'actions',
+                header: 'Actions',
+                align: 'right',
+                render: (_, site) => (
+                  <div className="table-actions" onClick={(event) => event.stopPropagation()}>
+                    <TableRowActionMenu
+                      rowId={site.siteId}
+                      openRowId={openActionRowId}
+                      onToggle={setOpenActionRowId}
+                      actions={[
+                        { label: 'View', onClick: () => handleView(site) },
+                        ...(site.status === 'PENDING_SETUP'
+                          ? [{ label: publishingId === site.siteId ? 'Publishing...' : 'Publish Live', onClick: () => handlePublish(site) }]
+                          : []),
+                      ]}
+                    />
+                  </div>
+                ),
+              },
+            ]}
+            data={filteredSites}
+            isLoading={isLoading}
+            search={searchQuery}
+            onSearchChange={(val) => { setSearchQuery(val); setPage(1); }}
+            searchPlaceholder="Search storefronts..."
+            page={safePage - 1}
+            pageSize={pageSize}
+            onPageChange={(p) => setPage(p + 1)}
+            onPageSizeChange={(newSize) => { setPageSize(newSize); setPage(1); }}
+            pageSizeOptions={[10, 20, 50, 100]}
+            onRowClick={(site) => handleView(site)}
+            emptyTitle="No storefront records found"
+            emptyDescription="No storefront sites match your search and filter criteria."
+            toolbarLeft={
+              <select
+                value={statusFilter}
+                onChange={(event) => { setStatusFilter(event.target.value); setPage(1); }}
+                className="gsc-toolbar-btn storefront-filter-select"
+                style={{ border: 'none', background: '#f3f4f6', padding: '6px 12px', borderRadius: 8, fontSize: 13, cursor: 'pointer' }}
+              >
+                {STATUS_OPTIONS.map((option) => (
+                  <option key={option.value || 'all'} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            }
+          />
         </div>
 
         {renderViewPanel()}

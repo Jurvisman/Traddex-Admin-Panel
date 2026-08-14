@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Banner } from '../components';
+import { Banner, DataTable } from '../components';
 import { getGrowthCoinsOverview, updateGrowthCoinRule } from '../services/adminApi';
 import { usePermissions } from '../shared/permissions';
 
@@ -43,20 +43,6 @@ const ownerMobile = (owner) => owner?.mobile || '-';
 
 const normalize = (value) => String(value || '').toLowerCase();
 
-function StatCard({ label, value, note }) {
-  return (
-    <div style={styles.statCard}>
-      <span style={styles.statLabel}>{label}</span>
-      <strong style={styles.statValue}>{formatNumber(value)}</strong>
-      {note ? <span style={styles.statNote}>{note}</span> : null}
-    </div>
-  );
-}
-
-function StatusPill({ value, tone = 'neutral' }) {
-  return <span style={{ ...styles.pill, ...(styles[`${tone}Pill`] || {}) }}>{humanize(value)}</span>;
-}
-
 function GrowthCoinsPage({ token }) {
   const { hasPermission } = usePermissions();
   const canUpdate = hasPermission('ADMIN_GROWTH_COINS_UPDATE');
@@ -67,6 +53,10 @@ function GrowthCoinsPage({ token }) {
   const [isLoading, setIsLoading] = useState(false);
   const [editingRule, setEditingRule] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Pagination for tables
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -130,413 +120,507 @@ function GrowthCoinsPage({ token }) {
   };
 
   return (
-    <div>
-      <div className="panel-head">
-        <div>
-          <h2 className="panel-title">Growth Coins</h2>
-          <p className="panel-subtitle">Control referral rewards, hold period, caps, wallets and ledger audit.</p>
+    <div className="growth-coins-page">
+      <div className="panel-head category-list-head" style={{ marginBottom: 20 }}>
+        <div className="category-list-head-left">
+          <div>
+            <h2 className="panel-title">Growth Coins</h2>
+            <p className="panel-subtitle">Control referral rewards, hold period, caps, wallets and ledger audit.</p>
+          </div>
         </div>
-        <button type="button" className="ghost-btn" onClick={loadData} disabled={isLoading}>
-          {isLoading ? 'Refreshing...' : 'Refresh'}
-        </button>
+        <div className="users-head-actions">
+          <button type="button" className="ghost-btn" onClick={loadData} disabled={isLoading}>
+            {isLoading ? 'Refreshing...' : 'Refresh'}
+          </button>
+        </div>
       </div>
 
       <Banner message={message} />
 
-      <div style={styles.statsGrid}>
-        <StatCard label="Available coins" value={summary.available_coins} note="Ready to redeem" />
-        <StatCard label="Pending coins" value={summary.pending_coins} note="Still in hold period" />
-        <StatCard label="Redeemed coins" value={summary.redeemed_coins} note="Already used" />
-        <StatCard label="Referrals tracked" value={summary.referral_count} note={`${summary.fraud_hold_referrals || 0} fraud holds`} />
+      {/* Modern Stat Grid */}
+      <div className="stat-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', marginBottom: 24 }}>
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#6345ED' }}>
+          <p className="stat-label">Available Coins</p>
+          <p className="stat-value" style={{ color: '#6345ED' }}>{formatNumber(summary.available_coins)}</p>
+          <p className="stat-sub">Ready to redeem</p>
+        </div>
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#F59E0B' }}>
+          <p className="stat-label">Pending Coins</p>
+          <p className="stat-value" style={{ color: '#F59E0B' }}>{formatNumber(summary.pending_coins)}</p>
+          <p className="stat-sub">Still in hold period</p>
+        </div>
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#10B981' }}>
+          <p className="stat-label">Redeemed Coins</p>
+          <p className="stat-value" style={{ color: '#10B981' }}>{formatNumber(summary.redeemed_coins)}</p>
+          <p className="stat-sub">Already used</p>
+        </div>
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#0EA5E9' }}>
+          <p className="stat-label">Referrals Tracked</p>
+          <p className="stat-value" style={{ color: '#0EA5E9' }}>{formatNumber(summary.referral_count)}</p>
+          <p className="stat-sub">{summary.fraud_hold_referrals || 0} fraud holds</p>
+        </div>
       </div>
 
-      <div style={styles.panel}>
-        <div style={styles.toolbar}>
-          <div style={styles.tabs}>
-            {TABS.map((tab) => (
-              <button
-                type="button"
-                key={tab.value}
-                style={{ ...styles.tab, ...(activeTab === tab.value ? styles.activeTab : {}) }}
-                onClick={() => {
-                  setActiveTab(tab.value);
-                  setQuery('');
-                }}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search records"
-            style={styles.search}
-          />
-        </div>
+      {/* Main Tab Navigation */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 16, borderBottom: '2px solid #e2e8f0' }}>
+        {TABS.map((tab) => (
+          <button
+            type="button"
+            key={tab.value}
+            onClick={() => {
+              setActiveTab(tab.value);
+              setQuery('');
+              setPage(0);
+            }}
+            style={{
+              padding: '10px 18px',
+              fontSize: 14,
+              fontWeight: 700,
+              border: 'none',
+              background: 'none',
+              borderBottom: activeTab === tab.value ? '3px solid #6345ED' : '3px solid transparent',
+              color: activeTab === tab.value ? '#6345ED' : '#64748b',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-        {activeTab === 'rules' ? (
-          <RulesTable rows={rows} canUpdate={canUpdate} onEdit={openRule} />
-        ) : activeTab === 'wallets' ? (
-          <WalletsTable rows={rows} />
-        ) : activeTab === 'referrals' ? (
-          <ReferralsTable rows={rows} />
-        ) : (
-          <LedgerTable rows={rows} />
+      <div className="panel card users-table-card">
+        {activeTab === 'rules' && (
+          <DataTable
+            columns={[
+              {
+                key: 'rule',
+                header: 'Rule',
+                sortable: true,
+                render: (_, rule) => (
+                  <div>
+                    <span
+                      className="bdt-name-link"
+                      style={{ color: '#6345ED', fontWeight: 600, cursor: 'pointer' }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openRule(rule);
+                      }}
+                    >
+                      {RULE_LABELS[rule.rule_code] || humanize(rule.rule_code)}
+                    </span>
+                    <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{rule.description || rule.rule_code}</div>
+                  </div>
+                ),
+              },
+              {
+                key: 'coin_amount',
+                header: 'Coins',
+                sortable: true,
+                render: (val) => <strong>{formatNumber(val)}</strong>,
+              },
+              {
+                key: 'hold_days',
+                header: 'Hold Period',
+                sortable: true,
+                render: (val) => `${formatNumber(val)} days`,
+              },
+              {
+                key: 'monthly_cap',
+                header: 'Monthly Cap',
+                render: (_, rule) => (
+                  <div>
+                    <div>{rule.monthly_cap_count ? `${formatNumber(rule.monthly_cap_count)} rewards` : 'No count cap'}</div>
+                    <div style={{ fontSize: 11, color: '#6b7280' }}>
+                      {rule.monthly_cap_coins ? `${formatNumber(rule.monthly_cap_coins)} coins cap` : 'No coin cap'}
+                    </div>
+                  </div>
+                ),
+              },
+              {
+                key: 'active',
+                header: 'Status',
+                sortable: true,
+                render: (val) => (
+                  <span className={`status-pill ${val ? 'approved' : 'rejected'}`}>
+                    {val ? 'Active' : 'Inactive'}
+                  </span>
+                ),
+              },
+              {
+                key: 'action',
+                header: 'Action',
+                align: 'right',
+                render: (_, rule) => (
+                  <button
+                    type="button"
+                    className="primary-btn small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openRule(rule);
+                    }}
+                    disabled={!canUpdate}
+                    style={{ fontSize: 12, padding: '4px 12px' }}
+                  >
+                    Edit
+                  </button>
+                ),
+              },
+            ]}
+            data={rows}
+            isLoading={isLoading}
+            search={query}
+            onSearchChange={(val) => { setQuery(val); setPage(0); }}
+            searchPlaceholder="Search rules..."
+            page={page}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={(newSize) => { setPageSize(newSize); setPage(0); }}
+            pageSizeOptions={[10, 25, 50]}
+            emptyTitle="No rules found"
+            emptyDescription="No growth coin rules found."
+          />
+        )}
+
+        {activeTab === 'wallets' && (
+          <DataTable
+            columns={[
+              {
+                key: 'owner',
+                header: 'Owner',
+                sortable: true,
+                render: (_, wallet) => (
+                  <div>
+                    <span className="bdt-name-link" style={{ color: '#6345ED', fontWeight: 600 }}>
+                      {ownerName(wallet.owner)}
+                    </span>
+                    <div style={{ fontSize: 11, color: '#6b7280' }}>{ownerMobile(wallet.owner)}</div>
+                  </div>
+                ),
+              },
+              {
+                key: 'owner_type',
+                header: 'Type',
+                sortable: true,
+                render: (val) => <span className="status-pill">{humanize(val)}</span>,
+              },
+              {
+                key: 'available_coins',
+                header: 'Available',
+                sortable: true,
+                render: (val) => <strong style={{ color: '#10B981' }}>{formatNumber(val)}</strong>,
+              },
+              {
+                key: 'pending_coins',
+                header: 'Pending',
+                sortable: true,
+                render: (val) => <strong style={{ color: '#F59E0B' }}>{formatNumber(val)}</strong>,
+              },
+              {
+                key: 'redeemed_coins',
+                header: 'Redeemed',
+                sortable: true,
+                render: (val) => formatNumber(val),
+              },
+              {
+                key: 'updated_at',
+                header: 'Updated',
+                sortable: true,
+                render: (val) => formatDateTime(val),
+              },
+            ]}
+            data={rows}
+            isLoading={isLoading}
+            search={query}
+            onSearchChange={(val) => { setQuery(val); setPage(0); }}
+            searchPlaceholder="Search wallets..."
+            page={page}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={(newSize) => { setPageSize(newSize); setPage(0); }}
+            pageSizeOptions={[10, 25, 50]}
+            emptyTitle="No wallets found"
+            emptyDescription="No user coin wallets found."
+          />
+        )}
+
+        {activeTab === 'referrals' && (
+          <DataTable
+            columns={[
+              {
+                key: 'referral_code',
+                header: 'Referral',
+                sortable: true,
+                render: (val, ref) => (
+                  <div>
+                    <strong style={{ color: '#6345ED' }}>{val}</strong>
+                    <div style={{ fontSize: 11, color: '#6b7280' }}>{humanize(ref.type)} / {ref.source || '-'}</div>
+                  </div>
+                ),
+              },
+              {
+                key: 'referrer',
+                header: 'Referrer',
+                sortable: true,
+                render: (_, ref) => (
+                  <div>
+                    <div style={{ fontWeight: 600 }}>{ownerName(ref.referrer)}</div>
+                    <div style={{ fontSize: 11, color: '#6b7280' }}>{ownerMobile(ref.referrer)}</div>
+                  </div>
+                ),
+              },
+              {
+                key: 'referred',
+                header: 'Referred',
+                sortable: true,
+                render: (_, ref) => (
+                  <div>
+                    <div style={{ fontWeight: 600 }}>{ownerName(ref.referred)}</div>
+                    <div style={{ fontSize: 11, color: '#6b7280' }}>{ownerMobile(ref.referred)}</div>
+                  </div>
+                ),
+              },
+              {
+                key: 'milestones',
+                header: 'Milestones',
+                render: (_, ref) => (
+                  <div>
+                    <div>
+                      {[ref.welcome_rewarded && 'Welcome', ref.kyc_rewarded && 'KYC', ref.profile_rewarded && 'Profile']
+                        .filter(Boolean)
+                        .join(', ') || '-'}
+                    </div>
+                    <div style={{ fontSize: 11, color: '#6b7280' }}>Hold until {formatDateTime(ref.hold_until)}</div>
+                  </div>
+                ),
+              },
+              {
+                key: 'status',
+                header: 'Status',
+                sortable: true,
+                render: (val) => (
+                  <span className={`status-pill ${val === 'FRAUD_HOLD' ? 'rejected' : 'approved'}`}>
+                    {humanize(val)}
+                  </span>
+                ),
+              },
+              {
+                key: 'created_at',
+                header: 'Created',
+                sortable: true,
+                render: (val) => formatDateTime(val),
+              },
+            ]}
+            data={rows}
+            isLoading={isLoading}
+            search={query}
+            onSearchChange={(val) => { setQuery(val); setPage(0); }}
+            searchPlaceholder="Search referrals..."
+            page={page}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={(newSize) => { setPageSize(newSize); setPage(0); }}
+            pageSizeOptions={[10, 25, 50]}
+            emptyTitle="No referrals found"
+            emptyDescription="No referral records match your search."
+          />
+        )}
+
+        {activeTab === 'ledger' && (
+          <DataTable
+            columns={[
+              {
+                key: 'owner',
+                header: 'Owner',
+                sortable: true,
+                render: (_, entry) => (
+                  <div>
+                    <span className="bdt-name-link" style={{ color: '#6345ED', fontWeight: 600 }}>
+                      {ownerName(entry.owner)}
+                    </span>
+                    <div style={{ fontSize: 11, color: '#6b7280' }}>
+                      {ownerMobile(entry.owner)} / {humanize(entry.owner_type)}
+                    </div>
+                  </div>
+                ),
+              },
+              {
+                key: 'coins',
+                header: 'Coins',
+                sortable: true,
+                render: (val, entry) => (
+                  <strong style={{ color: entry.direction === 'DEBIT' ? '#EF4444' : '#10B981' }}>
+                    {entry.direction === 'DEBIT' ? '-' : '+'}{formatNumber(val)}
+                  </strong>
+                ),
+              },
+              {
+                key: 'reason',
+                header: 'Reason',
+                sortable: true,
+                render: (_, entry) => (
+                  <div>
+                    <div>{entry.reason_label || humanize(entry.reason_type)}</div>
+                    <div style={{ fontSize: 11, color: '#6b7280' }}>{entry.reason_type}</div>
+                  </div>
+                ),
+              },
+              {
+                key: 'status',
+                header: 'Status',
+                sortable: true,
+                render: (val) => (
+                  <span className={`status-pill ${val === 'PENDING' ? 'pending' : 'approved'}`}>
+                    {humanize(val)}
+                  </span>
+                ),
+              },
+              {
+                key: 'available_at',
+                header: 'Available At',
+                sortable: true,
+                render: (val) => formatDateTime(val),
+              },
+              {
+                key: 'created_at',
+                header: 'Created',
+                sortable: true,
+                render: (val) => formatDateTime(val),
+              },
+            ]}
+            data={rows}
+            isLoading={isLoading}
+            search={query}
+            onSearchChange={(val) => { setQuery(val); setPage(0); }}
+            searchPlaceholder="Search coin ledger..."
+            page={page}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={(newSize) => { setPageSize(newSize); setPage(0); }}
+            pageSizeOptions={[10, 25, 50]}
+            emptyTitle="No ledger records found"
+            emptyDescription="No coin ledger entries found."
+          />
         )}
       </div>
 
+      {/* Edit Rule Drawer / Modal */}
       {editingRule ? (
-        <div style={styles.drawerBackdrop}>
-          <aside style={styles.drawer}>
-            <div style={styles.drawerHead}>
+        <div className="admin-modal-backdrop" role="dialog" aria-modal="true" onClick={() => setEditingRule(null)}>
+          <div
+            className="admin-modal cat-unified-modal"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '520px' }}
+          >
+            <div style={{
+              padding: '18px 24px 14px',
+              borderBottom: '1px solid #f1f5f9',
+              display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12,
+            }}>
               <div>
-                <h3 style={styles.drawerTitle}>{RULE_LABELS[editingRule.rule_code] || humanize(editingRule.rule_code)}</h3>
-                <p style={styles.drawerSubtitle}>{editingRule.rule_code}</p>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#1e293b' }}>
+                  {RULE_LABELS[editingRule.rule_code] || humanize(editingRule.rule_code)}
+                </h3>
+                <p style={{ margin: '2px 0 0', fontSize: 12, color: '#94a3b8' }}>
+                  Rule Code: {editingRule.rule_code}
+                </p>
               </div>
-              <button type="button" className="ghost-btn" onClick={() => setEditingRule(null)}>Close</button>
+              <button
+                type="button"
+                onClick={() => setEditingRule(null)}
+                aria-label="Close"
+                style={{
+                  background: '#f1f5f9', border: 'none', borderRadius: 8,
+                  width: 32, height: 32, cursor: 'pointer', color: '#64748b',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14,
+                }}
+              >
+                ✕
+              </button>
             </div>
-            <label style={styles.fieldLabel}>Coins to give</label>
-            <input
-              type="number"
-              min="0"
-              value={editingRule.coin_amount}
-              onChange={(event) => setEditingRule((rule) => ({ ...rule, coin_amount: event.target.value }))}
-              style={styles.input}
-            />
-            <label style={styles.fieldLabel}>Hold period days</label>
-            <input
-              type="number"
-              min="0"
-              value={editingRule.hold_days}
-              onChange={(event) => setEditingRule((rule) => ({ ...rule, hold_days: event.target.value }))}
-              style={styles.input}
-            />
-            <label style={styles.fieldLabel}>Monthly reward count cap</label>
-            <input
-              type="number"
-              min="0"
-              value={editingRule.monthly_cap_count}
-              onChange={(event) => setEditingRule((rule) => ({ ...rule, monthly_cap_count: event.target.value }))}
-              placeholder="No cap"
-              style={styles.input}
-            />
-            <label style={styles.fieldLabel}>Monthly coins cap</label>
-            <input
-              type="number"
-              min="0"
-              value={editingRule.monthly_cap_coins}
-              onChange={(event) => setEditingRule((rule) => ({ ...rule, monthly_cap_coins: event.target.value }))}
-              placeholder="No cap"
-              style={styles.input}
-            />
-            <label style={styles.checkboxRow}>
-              <input
-                type="checkbox"
-                checked={editingRule.active}
-                onChange={(event) => setEditingRule((rule) => ({ ...rule, active: event.target.checked }))}
-              />
-              Active rule
-            </label>
-            <label style={styles.fieldLabel}>Admin note</label>
-            <textarea
-              value={editingRule.description}
-              onChange={(event) => setEditingRule((rule) => ({ ...rule, description: event.target.value }))}
-              rows={4}
-              style={styles.textarea}
-            />
-            <button type="button" className="primary-btn" onClick={saveRule} disabled={isSaving || !canUpdate} style={styles.saveButton}>
-              {isSaving ? 'Saving...' : 'Save rule'}
-            </button>
-          </aside>
+
+            <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <label className="field">
+                <span>Coins to give *</span>
+                <input
+                  type="number"
+                  min="0"
+                  value={editingRule.coin_amount}
+                  onChange={(e) => setEditingRule((prev) => ({ ...prev, coin_amount: e.target.value }))}
+                />
+              </label>
+
+              <label className="field">
+                <span>Hold period (days) *</span>
+                <input
+                  type="number"
+                  min="0"
+                  value={editingRule.hold_days}
+                  onChange={(e) => setEditingRule((prev) => ({ ...prev, hold_days: e.target.value }))}
+                />
+              </label>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <label className="field">
+                  <span>Monthly reward count cap</span>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="No cap"
+                    value={editingRule.monthly_cap_count}
+                    onChange={(e) => setEditingRule((prev) => ({ ...prev, monthly_cap_count: e.target.value }))}
+                  />
+                </label>
+                <label className="field">
+                  <span>Monthly coins cap</span>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="No cap"
+                    value={editingRule.monthly_cap_coins}
+                    onChange={(e) => setEditingRule((prev) => ({ ...prev, monthly_cap_coins: e.target.value }))}
+                  />
+                </label>
+              </div>
+
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontWeight: 600, fontSize: 13, marginTop: 4 }}>
+                <input
+                  type="checkbox"
+                  checked={editingRule.active}
+                  onChange={(e) => setEditingRule((prev) => ({ ...prev, active: e.target.checked }))}
+                />
+                Active Rule
+              </label>
+
+              <label className="field">
+                <span>Admin note</span>
+                <textarea
+                  rows={3}
+                  value={editingRule.description}
+                  onChange={(e) => setEditingRule((prev) => ({ ...prev, description: e.target.value }))}
+                  placeholder="Internal description for this rule..."
+                />
+              </label>
+
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 12 }}>
+                <button type="button" className="ghost-btn" onClick={() => setEditingRule(null)}>
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="primary-btn"
+                  onClick={saveRule}
+                  disabled={isSaving || !canUpdate}
+                >
+                  {isSaving ? 'Saving...' : 'Save Rule'}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       ) : null}
     </div>
   );
 }
-
-function EmptyRow({ colSpan }) {
-  return (
-    <tr>
-      <td colSpan={colSpan} style={styles.emptyCell}>No records found.</td>
-    </tr>
-  );
-}
-
-function RulesTable({ rows, canUpdate, onEdit }) {
-  return (
-    <div style={styles.tableWrap}>
-      <table style={styles.table}>
-        <thead>
-          <tr>
-            <th style={styles.th}>Rule</th>
-            <th style={styles.th}>Coins</th>
-            <th style={styles.th}>Hold</th>
-            <th style={styles.th}>Monthly cap</th>
-            <th style={styles.th}>Status</th>
-            <th style={styles.th}>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.length ? rows.map((rule) => (
-            <tr key={rule.rule_code}>
-              <td style={styles.td}>
-                <strong>{RULE_LABELS[rule.rule_code] || humanize(rule.rule_code)}</strong>
-                <span style={styles.subText}>{rule.description || rule.rule_code}</span>
-              </td>
-              <td style={styles.td}>{formatNumber(rule.coin_amount)}</td>
-              <td style={styles.td}>{formatNumber(rule.hold_days)} days</td>
-              <td style={styles.td}>
-                {rule.monthly_cap_count ? `${formatNumber(rule.monthly_cap_count)} rewards` : 'No count cap'}
-                <span style={styles.subText}>{rule.monthly_cap_coins ? `${formatNumber(rule.monthly_cap_coins)} coins cap` : 'No coin cap'}</span>
-              </td>
-              <td style={styles.td}><StatusPill value={rule.active ? 'Active' : 'Inactive'} tone={rule.active ? 'success' : 'neutral'} /></td>
-              <td style={styles.td}>
-                <button type="button" className="ghost-btn" onClick={() => onEdit(rule)} disabled={!canUpdate}>Edit</button>
-              </td>
-            </tr>
-          )) : <EmptyRow colSpan={6} />}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function WalletsTable({ rows }) {
-  return (
-    <div style={styles.tableWrap}>
-      <table style={styles.table}>
-        <thead>
-          <tr>
-            <th style={styles.th}>Owner</th>
-            <th style={styles.th}>Type</th>
-            <th style={styles.th}>Available</th>
-            <th style={styles.th}>Pending</th>
-            <th style={styles.th}>Redeemed</th>
-            <th style={styles.th}>Updated</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.length ? rows.map((wallet) => (
-            <tr key={wallet.id}>
-              <td style={styles.td}>
-                <strong>{ownerName(wallet.owner)}</strong>
-                <span style={styles.subText}>{ownerMobile(wallet.owner)}</span>
-              </td>
-              <td style={styles.td}>{humanize(wallet.owner_type)}</td>
-              <td style={styles.td}>{formatNumber(wallet.available_coins)}</td>
-              <td style={styles.td}>{formatNumber(wallet.pending_coins)}</td>
-              <td style={styles.td}>{formatNumber(wallet.redeemed_coins)}</td>
-              <td style={styles.td}>{formatDateTime(wallet.updated_at)}</td>
-            </tr>
-          )) : <EmptyRow colSpan={6} />}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function ReferralsTable({ rows }) {
-  return (
-    <div style={styles.tableWrap}>
-      <table style={styles.table}>
-        <thead>
-          <tr>
-            <th style={styles.th}>Referral</th>
-            <th style={styles.th}>Referrer</th>
-            <th style={styles.th}>Referred</th>
-            <th style={styles.th}>Milestones</th>
-            <th style={styles.th}>Status</th>
-            <th style={styles.th}>Created</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.length ? rows.map((referral) => (
-            <tr key={referral.id}>
-              <td style={styles.td}>
-                <strong>{referral.referral_code}</strong>
-                <span style={styles.subText}>{humanize(referral.type)} / {referral.source || '-'}</span>
-              </td>
-              <td style={styles.td}>
-                {ownerName(referral.referrer)}
-                <span style={styles.subText}>{ownerMobile(referral.referrer)}</span>
-              </td>
-              <td style={styles.td}>
-                {ownerName(referral.referred)}
-                <span style={styles.subText}>{ownerMobile(referral.referred)}</span>
-              </td>
-              <td style={styles.td}>
-                {[referral.welcome_rewarded && 'Welcome', referral.kyc_rewarded && 'KYC', referral.profile_rewarded && 'Profile']
-                  .filter(Boolean)
-                  .join(', ') || '-'}
-                <span style={styles.subText}>Hold until {formatDateTime(referral.hold_until)}</span>
-              </td>
-              <td style={styles.td}><StatusPill value={referral.status} tone={referral.status === 'FRAUD_HOLD' ? 'danger' : 'success'} /></td>
-              <td style={styles.td}>{formatDateTime(referral.created_at)}</td>
-            </tr>
-          )) : <EmptyRow colSpan={6} />}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function LedgerTable({ rows }) {
-  return (
-    <div style={styles.tableWrap}>
-      <table style={styles.table}>
-        <thead>
-          <tr>
-            <th style={styles.th}>Owner</th>
-            <th style={styles.th}>Coins</th>
-            <th style={styles.th}>Reason</th>
-            <th style={styles.th}>Status</th>
-            <th style={styles.th}>Available</th>
-            <th style={styles.th}>Created</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.length ? rows.map((entry) => (
-            <tr key={entry.id}>
-              <td style={styles.td}>
-                <strong>{ownerName(entry.owner)}</strong>
-                <span style={styles.subText}>{ownerMobile(entry.owner)} / {humanize(entry.owner_type)}</span>
-              </td>
-              <td style={styles.td}>
-                {entry.direction === 'DEBIT' ? '-' : '+'}{formatNumber(entry.coins)}
-              </td>
-              <td style={styles.td}>
-                {entry.reason_label || humanize(entry.reason_type)}
-                <span style={styles.subText}>{entry.reason_type}</span>
-              </td>
-              <td style={styles.td}><StatusPill value={entry.status} tone={entry.status === 'PENDING' ? 'warning' : 'success'} /></td>
-              <td style={styles.td}>{formatDateTime(entry.available_at)}</td>
-              <td style={styles.td}>{formatDateTime(entry.created_at)}</td>
-            </tr>
-          )) : <EmptyRow colSpan={6} />}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-const styles = {
-  statsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-    gap: 14,
-    marginBottom: 18,
-  },
-  statCard: {
-    background: '#fff',
-    border: '1px solid #e8ecf5',
-    borderRadius: 8,
-    padding: 18,
-  },
-  statLabel: { display: 'block', color: '#667085', fontSize: 13, marginBottom: 8 },
-  statValue: { display: 'block', color: '#101828', fontSize: 28, lineHeight: 1.15 },
-  statNote: { display: 'block', color: '#7c3aed', fontSize: 12, marginTop: 8 },
-  panel: {
-    background: '#fff',
-    border: '1px solid #e8ecf5',
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  toolbar: {
-    display: 'flex',
-    gap: 12,
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    borderBottom: '1px solid #eef2f7',
-    flexWrap: 'wrap',
-  },
-  tabs: { display: 'flex', gap: 8, flexWrap: 'wrap' },
-  tab: {
-    border: '1px solid #e4e7ec',
-    background: '#fff',
-    color: '#667085',
-    borderRadius: 8,
-    padding: '9px 13px',
-    fontWeight: 700,
-    cursor: 'pointer',
-  },
-  activeTab: { background: '#6d40f6', borderColor: '#6d40f6', color: '#fff' },
-  search: {
-    border: '1px solid #d0d5dd',
-    borderRadius: 8,
-    padding: '10px 12px',
-    minWidth: 240,
-    outline: 'none',
-  },
-  tableWrap: { overflowX: 'auto' },
-  table: { width: '100%', borderCollapse: 'collapse', minWidth: 840 },
-  th: {
-    textAlign: 'left',
-    padding: '13px 16px',
-    fontSize: 12,
-    color: '#667085',
-    background: '#f9fafb',
-    borderBottom: '1px solid #eef2f7',
-    textTransform: 'uppercase',
-    letterSpacing: 0,
-  },
-  td: {
-    padding: '14px 16px',
-    borderBottom: '1px solid #eef2f7',
-    color: '#101828',
-    verticalAlign: 'top',
-  },
-  subText: { display: 'block', color: '#667085', fontSize: 12, marginTop: 4 },
-  emptyCell: { padding: 30, textAlign: 'center', color: '#667085' },
-  pill: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    borderRadius: 999,
-    padding: '5px 9px',
-    fontSize: 12,
-    fontWeight: 800,
-    background: '#f2f4f7',
-    color: '#475467',
-  },
-  successPill: { background: '#ecfdf3', color: '#027a48' },
-  warningPill: { background: '#fffaeb', color: '#b54708' },
-  dangerPill: { background: '#fef3f2', color: '#b42318' },
-  drawerBackdrop: {
-    position: 'fixed',
-    inset: 0,
-    background: 'rgba(15, 23, 42, 0.35)',
-    display: 'flex',
-    justifyContent: 'flex-end',
-    zIndex: 50,
-  },
-  drawer: {
-    width: 'min(460px, 100%)',
-    background: '#fff',
-    padding: 24,
-    overflowY: 'auto',
-  },
-  drawerHead: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 18 },
-  drawerTitle: { margin: 0, fontSize: 22, color: '#101828' },
-  drawerSubtitle: { margin: '4px 0 0', color: '#667085', fontSize: 12 },
-  fieldLabel: { display: 'block', color: '#344054', fontWeight: 700, margin: '14px 0 7px' },
-  input: {
-    width: '100%',
-    border: '1px solid #d0d5dd',
-    borderRadius: 8,
-    padding: '11px 12px',
-    fontSize: 14,
-  },
-  textarea: {
-    width: '100%',
-    border: '1px solid #d0d5dd',
-    borderRadius: 8,
-    padding: '11px 12px',
-    fontSize: 14,
-    resize: 'vertical',
-  },
-  checkboxRow: { display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, fontWeight: 700 },
-  saveButton: { width: '100%', justifyContent: 'center', marginTop: 18 },
-};
 
 export default GrowthCoinsPage;

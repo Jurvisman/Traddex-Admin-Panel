@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Banner } from '../components';
+import { Banner, DataTable } from '../components';
 import {
   listSubscriptionFeatures,
   upsertAddonPricing,
@@ -187,31 +187,85 @@ function AddonPricingPage({ token }) {
       )}
 
       <div className="panel-grid subscription-feature-list-grid">
-        <div className="subscription-feature-list-card">
-          <div className="gsc-datatable-toolbar">
-            <div className="gsc-datatable-toolbar-left">
-              <h3 className="panel-subheading">Addon Pricing — COUNT Features</h3>
-            </div>
-            <div className="gsc-datatable-toolbar-right">
-              <div className="gsc-toolbar-search">
-                <input
-                  type="search"
-                  placeholder="Search features..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  aria-label="Search addon features"
-                />
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  style={{ width: 18, height: 18, color: '#6b7280', flexShrink: 0 }}
-                >
-                  <circle cx="11" cy="11" r="8" />
-                  <path d="m21 21-4.35-4.35" />
-                </svg>
-              </div>
+        <div className="subscription-feature-list">
+          <DataTable
+            columns={[
+              {
+                key: 'id',
+                header: '#',
+                width: '60px',
+                render: (_, __, index) => index + 1,
+              },
+              {
+                key: 'code',
+                header: 'Feature Code',
+                sortable: true,
+                render: (val) => <code style={{ fontSize: 12 }}>{val}</code>,
+              },
+              {
+                key: 'name',
+                header: 'Feature Name',
+                sortable: true,
+                render: (val, feature) => (
+                  <span
+                    className="bdt-name-link"
+                    style={{ color: '#6345ED', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEdit(feature);
+                    }}
+                  >
+                    {val}
+                  </span>
+                ),
+              },
+              {
+                key: 'type',
+                header: 'Type',
+                sortable: true,
+                render: (val) => (
+                  <span className="status-pill">
+                    {FEATURE_TYPE_LABELS[val] || val}
+                  </span>
+                ),
+              },
+              {
+                key: 'is_active',
+                header: 'Status',
+                sortable: true,
+                render: (val) => (
+                  <span className={`status-pill ${Number(val) === 1 ? 'approved' : 'rejected'}`}>
+                    {Number(val) === 1 ? 'Active' : 'Inactive'}
+                  </span>
+                ),
+              },
+              {
+                key: 'actions',
+                header: 'Actions',
+                align: 'center',
+                render: (_, feature) => (
+                  <button
+                    type="button"
+                    className="primary-btn"
+                    style={{ padding: '4px 16px', fontSize: 12 }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEdit(feature);
+                    }}
+                  >
+                    Set Pricing
+                  </button>
+                ),
+              },
+            ]}
+            data={filteredFeatures}
+            isLoading={isLoading}
+            search={searchQuery}
+            onSearchChange={setSearchQuery}
+            searchPlaceholder="Search addon features..."
+            emptyTitle="No COUNT-type features found"
+            emptyDescription="Create a feature with type 'COUNT' in the Features page first."
+            toolbarRight={
               <button
                 type="button"
                 className="gsc-create-btn"
@@ -222,74 +276,12 @@ function AddonPricingPage({ token }) {
                 title="Set addon pricing"
                 aria-label="Set addon pricing"
               >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 5v14M5 12h14" />
                 </svg>
               </button>
-            </div>
-          </div>
-
-          {isLoading ? (
-            <p className="empty-state">Loading features...</p>
-          ) : filteredFeatures.length === 0 ? (
-            <p className="empty-state">
-              No COUNT-type features found. Create a feature with type "COUNT" in the Features page first.
-            </p>
-          ) : (
-            <div className="table-shell">
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Feature Code</th>
-                    <th>Feature Name</th>
-                    <th>Type</th>
-                    <th>Status</th>
-                    <th style={{ textAlign: 'center' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredFeatures.map((feature, index) => {
-                    const isActive = Number(feature.is_active) === 1;
-                    return (
-                      <tr key={feature.id}>
-                        <td>{index + 1}</td>
-                        <td><code style={{ fontSize: 12 }}>{feature.code}</code></td>
-                        <td><strong>{feature.name}</strong></td>
-                        <td>
-                          <span className="status-pill">
-                            {FEATURE_TYPE_LABELS[feature.type] || feature.type}
-                          </span>
-                        </td>
-                        <td>
-                          <span className={`status-pill ${isActive ? 'approved' : 'rejected'}`}>
-                            {isActive ? 'Active' : 'Inactive'}
-                          </span>
-                        </td>
-                        <td style={{ textAlign: 'center' }}>
-                          <button
-                            type="button"
-                            className="primary-btn"
-                            style={{ padding: '4px 16px', fontSize: 12 }}
-                            onClick={() => handleEdit(feature)}
-                          >
-                            Set Pricing
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+            }
+          />
         </div>
       </div>
     </div>

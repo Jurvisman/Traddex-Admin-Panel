@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Banner } from '../components';
+import { Banner, DataTable } from '../components';
 import {
   listAdminLeads,
   getAdminLeadDetail,
@@ -488,187 +488,166 @@ function LeadManagementPage({ token }) {
            ══════════════════════════════════════════════════════════════ */}
         {activeTab === 'intents' && (
           <div className="panel card users-table-card" style={{ flex: 1, minWidth: 0 }}>
-            {/* Toolbars and Filters - Tight left-aligned layout */}
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center', justifyContent: 'flex-start' }}>
-              <select
-                className="gsc-toolbar-btn"
-                value={filterSource}
-                onChange={(e) => setFilterSource(e.target.value)}
-                style={{ minWidth: 120, height: 35, padding: '4px 8px' }}
-              >
-                <option value="">All Sources</option>
-                <option value="SEARCH">Search</option>
-                <option value="PRODUCT_VIEW">Product View</option>
-                <option value="SERVICE_VIEW">Service View</option>
-                <option value="DIRECT_INQUIRY">Direct Inquiry</option>
-                <option value="BULK_INQUIRY">Bulk Inquiry</option>
-              </select>
-
-              <select
-                className="gsc-toolbar-btn"
-                value={filterVisibility}
-                onChange={(e) => setFilterVisibility(e.target.value)}
-                style={{ minWidth: 120, height: 35, padding: '4px 8px' }}
-              >
-                <option value="">All Visibility</option>
-                <option value="true">Visible Only</option>
-                <option value="false">Hidden Only</option>
-              </select>
-
-              <select
-                className="gsc-toolbar-btn"
-                value={filterCreditConsumed}
-                onChange={(e) => setFilterCreditConsumed(e.target.value)}
-                style={{ minWidth: 140, height: 35, padding: '4px 8px' }}
-              >
-                <option value="">All Credit States</option>
-                <option value="true">Credit Consumed</option>
-                <option value="false">No Credit Consumed</option>
-              </select>
-
-              <input
-                type="number"
-                placeholder="Seller ID"
-                value={filterSellerId}
-                onChange={(e) => setFilterSellerId(e.target.value)}
-                style={sellerIdInputStyle}
-              />
-
-              <div className="gsc-toolbar-search" style={{ height: 35, margin: 0 }}>
-                <input
-                  type="search"
-                  placeholder="Search buyer or keyword..."
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  aria-label="Search lead intents"
-                  style={{ height: '100%', padding: '4px 8px 4px 32px' }}
-                />
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16, color: '#6b7280', flexShrink: 0, left: 10 }}>
-                  <circle cx="11" cy="11" r="8" />
-                  <path d="m21 21-4.35-4.35" />
-                </svg>
-              </div>
-            </div>
-
-            {/* Table Data */}
-            {isLoading ? (
-              <p className="empty-state">Loading lead intents...</p>
-            ) : intents.length === 0 ? (
-              <EmptyState message="No lead intents found matching filter criteria." />
-            ) : (
-              <div className="table-shell business-table-shell">
-                <table className="admin-table users-table business-datatable">
-                  <thead>
-                    <tr>
-                      <th>Intent ID</th>
-                      <th>Buyer</th>
-                      <th>Keyword</th>
-                      <th>Visibility</th>
-                      <th>Type / Display</th>
-                      <th>Quantity</th>
-                      <th>Assigned</th>
-                      <th>Responded</th>
-                      <th>Credit Cut</th>
-                      <th>Created Date</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {intents.map((intent) => (
-                      <tr 
-                        key={intent.id} 
-                        style={{ cursor: 'pointer' }} 
-                        className={intentDetail?.intent?.id === intent.id ? 'mv-row-active' : ''}
-                        onClick={() => handleOpenDrawer(intent.id)}
-                      >
-                        <td>
-                          <span style={{ fontWeight: 700 }}>
-                            #{intent.id}
-                          </span>
-                        </td>
-                        <td>
-                          <div style={{ fontWeight: 600, color: '#6e46ff' }}>{intent.buyerName || 'Unknown'}</div>
-                          <div style={{ fontSize: 11, color: 'var(--muted)' }}>{intent.buyerPhone || '-'}</div>
-                        </td>
-                        <td>
-                          <div style={{ fontWeight: 600 }}>{intent.productKeyword || 'N/A'}</div>
-                          <span style={{ fontSize: 10, background: '#f1f5f9', padding: '2px 6px', borderRadius: 4, display: 'inline-block', marginTop: 4, fontWeight: 600 }}>
-                            {intent.intentScope || 'PRODUCT'}
-                          </span>
-                        </td>
-                        <td>
-                          <span className={`status-pill ${intent.buyerVisible ? 'approved' : 'pending'}`}>
-                            {intent.buyerVisible ? 'Visible' : 'Hidden'}
-                          </span>
-                        </td>
-                        <td>
-                          <div style={{ fontSize: 12, fontWeight: 500 }}>{intent.intentType}</div>
-                          <span className={`status-pill ${getDisplayTypePillClass(intent.displayType)}`} style={{ fontSize: 10, padding: '2px 6px', marginTop: 4, display: 'inline-block' }}>
-                            {getDisplayTypeLabel(intent.displayType)}
-                          </span>
-                        </td>
-                        <td>
-                          <div>
-                            {intent.quantityMin !== null || intent.quantityMax !== null ? (
-                              `${intent.quantityMin || 0}-${intent.quantityMax || 'Max'} ${intent.quantityUnit || ''}`
-                            ) : (
-                              'N/A'
-                            )}
-                          </div>
-                          {intent.budgetAmount ? (
-                            <div style={{ fontSize: 12, color: '#16a34a', fontWeight: 600 }}>₹{intent.budgetAmount}</div>
-                          ) : null}
-                        </td>
-                        <td style={{ textAlign: 'center', fontWeight: 700 }}>{intent.assignmentCount}</td>
-                        <td style={{ textAlign: 'center', fontWeight: 700 }}>{intent.responseCount}</td>
-                        <td style={{ textAlign: 'center', fontWeight: 700, color: intent.creditConsumedCount > 0 ? '#b45309' : 'inherit' }}>
-                          {intent.creditConsumedCount}
-                        </td>
-                        <td>{formatDateTime(intent.createdOn)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-
-                {/* Pagination */}
-                <div className="bv-table-footer">
-                  <div className="table-record-count">
-                    Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, totalCount)} of {totalCount} intents
-                  </div>
-                  <div className="product-pagination-controls">
-                    <label className="product-pagination-size">
-                      <span>Rows</span>
-                      <select
-                        value={pageSize}
-                        onChange={(e) => { setPageSize(Number(e.target.value) || 10); setPage(1); }}
-                      >
-                        {PAGE_SIZE_OPTIONS.map((opt) => (
-                          <option key={opt} value={opt}>{opt}</option>
-                        ))}
-                      </select>
-                    </label>
-                    <div className="bv-table-pagination">
-                      <button
-                        type="button"
-                        className="secondary-btn"
-                        disabled={page === 1 || isLoading}
-                        onClick={() => setPage((p) => Math.max(p - 1, 1))}
-                      >
-                        {'< Prev'}
-                      </button>
-                      <span>Page {page} / {Math.ceil(totalCount / pageSize)}</span>
-                      <button
-                        type="button"
-                        className="secondary-btn"
-                        disabled={page >= Math.ceil(totalCount / pageSize) || isLoading}
-                        onClick={() => setPage((p) => Math.min(p + 1, Math.ceil(totalCount / pageSize)))}
-                      >
-                        {'Next >'}
-                      </button>
+            <DataTable
+              columns={[
+                {
+                  key: 'id',
+                  header: 'Intent ID',
+                  width: '90px',
+                  render: (val) => <strong>#{val}</strong>,
+                },
+                {
+                  key: 'buyer',
+                  header: 'Buyer',
+                  sortable: true,
+                  render: (_, intent) => (
+                    <div>
+                      <div className="bdt-name-link" style={{ fontWeight: 600, color: '#6345ED' }}>{intent.buyerName || 'Unknown'}</div>
+                      <div style={{ fontSize: 11, color: '#6b7280' }}>{intent.buyerPhone || '-'}</div>
                     </div>
-                  </div>
+                  ),
+                },
+                {
+                  key: 'productKeyword',
+                  header: 'Keyword',
+                  sortable: true,
+                  render: (val, intent) => (
+                    <div>
+                      <div style={{ fontWeight: 600 }}>{val || 'N/A'}</div>
+                      <span style={{ fontSize: 10, background: '#f1f5f9', padding: '2px 6px', borderRadius: 4, display: 'inline-block', marginTop: 2, fontWeight: 600 }}>
+                        {intent.intentScope || 'PRODUCT'}
+                      </span>
+                    </div>
+                  ),
+                },
+                {
+                  key: 'buyerVisible',
+                  header: 'Visibility',
+                  sortable: true,
+                  render: (val) => (
+                    <span className={`status-pill ${val ? 'approved' : 'pending'}`}>
+                      {val ? 'Visible' : 'Hidden'}
+                    </span>
+                  ),
+                },
+                {
+                  key: 'intentType',
+                  header: 'Type / Display',
+                  render: (val, intent) => (
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 500 }}>{val}</div>
+                      <span className={`status-pill ${getDisplayTypePillClass(intent.displayType)}`} style={{ fontSize: 10, padding: '2px 6px', marginTop: 2, display: 'inline-block' }}>
+                        {getDisplayTypeLabel(intent.displayType)}
+                      </span>
+                    </div>
+                  ),
+                },
+                {
+                  key: 'quantity',
+                  header: 'Quantity',
+                  render: (_, intent) => (
+                    <div>
+                      <div>
+                        {intent.quantityMin !== null || intent.quantityMax !== null
+                          ? `${intent.quantityMin || 0}-${intent.quantityMax || 'Max'} ${intent.quantityUnit || ''}`
+                          : 'N/A'}
+                      </div>
+                      {intent.budgetAmount ? (
+                        <div style={{ fontSize: 12, color: '#16a34a', fontWeight: 600 }}>₹{intent.budgetAmount}</div>
+                      ) : null}
+                    </div>
+                  ),
+                },
+                {
+                  key: 'assignmentCount',
+                  header: 'Assigned',
+                  align: 'center',
+                  render: (val) => <strong>{val}</strong>,
+                },
+                {
+                  key: 'responseCount',
+                  header: 'Responded',
+                  align: 'center',
+                  render: (val) => <strong>{val}</strong>,
+                },
+                {
+                  key: 'creditConsumedCount',
+                  header: 'Credit Cut',
+                  align: 'center',
+                  render: (val) => (
+                    <strong style={{ color: val > 0 ? '#b45309' : 'inherit' }}>
+                      {val}
+                    </strong>
+                  ),
+                },
+                {
+                  key: 'createdOn',
+                  header: 'Created Date',
+                  sortable: true,
+                  render: (val) => formatDateTime(val),
+                },
+              ]}
+              data={intents}
+              isLoading={isLoading}
+              search={query}
+              onSearchChange={setQuery}
+              searchPlaceholder="Search buyer or keyword..."
+              page={page - 1}
+              pageSize={pageSize}
+              onPageChange={(p) => setPage(p + 1)}
+              onPageSizeChange={(newSize) => { setPageSize(newSize); setPage(1); }}
+              pageSizeOptions={PAGE_SIZE_OPTIONS}
+              onRowClick={(intent) => handleOpenDrawer(intent.id)}
+              emptyTitle="No lead intents found"
+              emptyDescription="No lead intents match your filter criteria."
+              toolbarLeft={
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <select
+                    className="gsc-toolbar-btn"
+                    value={filterSource}
+                    onChange={(e) => setFilterSource(e.target.value)}
+                    style={{ border: 'none', background: '#f3f4f6', padding: '6px 12px', borderRadius: 8, fontSize: 13, cursor: 'pointer' }}
+                  >
+                    <option value="">All Sources</option>
+                    <option value="SEARCH">Search</option>
+                    <option value="PRODUCT_VIEW">Product View</option>
+                    <option value="SERVICE_VIEW">Service View</option>
+                    <option value="DIRECT_INQUIRY">Direct Inquiry</option>
+                    <option value="BULK_INQUIRY">Bulk Inquiry</option>
+                  </select>
+
+                  <select
+                    className="gsc-toolbar-btn"
+                    value={filterVisibility}
+                    onChange={(e) => setFilterVisibility(e.target.value)}
+                    style={{ border: 'none', background: '#f3f4f6', padding: '6px 12px', borderRadius: 8, fontSize: 13, cursor: 'pointer' }}
+                  >
+                    <option value="">All Visibility</option>
+                    <option value="true">Visible Only</option>
+                    <option value="false">Hidden Only</option>
+                  </select>
+
+                  <select
+                    className="gsc-toolbar-btn"
+                    value={filterCreditConsumed}
+                    onChange={(e) => setFilterCreditConsumed(e.target.value)}
+                    style={{ border: 'none', background: '#f3f4f6', padding: '6px 12px', borderRadius: 8, fontSize: 13, cursor: 'pointer' }}
+                  >
+                    <option value="">All Credit States</option>
+                    <option value="true">Credit Consumed</option>
+                    <option value="false">No Credit Consumed</option>
+                  </select>
+
+                  <input
+                    type="number"
+                    placeholder="Seller ID"
+                    value={filterSellerId}
+                    onChange={(e) => setFilterSellerId(e.target.value)}
+                    style={sellerIdInputStyle}
+                  />
                 </div>
-              </div>
-            )}
+              }
+            />
           </div>
         )}
 

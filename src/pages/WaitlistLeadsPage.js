@@ -1,15 +1,13 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Banner, TableRowActionMenu } from '../components';
+import { Banner, TableRowActionMenu, DataTable } from '../components';
 import {
   fetchWaitlistLeads,
   updateWaitlistLeadStatus,
   updateWaitlistLeadNotes,
-  fetchWaitlistConfig,
-  updateWaitlistConfigLimit,
 } from '../services/adminApi';
 
 /* ── Helpers ─────────────────────────────────────────────────── */
-const PAGE_SIZE_OPTIONS = [10, 25, 50];
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 const formatDateTime = (value) => {
   if (!value) return '-';
@@ -42,16 +40,6 @@ const getBusinessTypeLabel = (type) => {
   if (t === 'b2c') return 'Retail (B2C)';
   if (t === 'both' || t === 'hybrid') return 'Hybrid (B2B & B2C)';
   return type;
-};
-
-const paginateItems = (items, page, pageSize = 10) => {
-  const list = Array.isArray(items) ? items : [];
-  const totalItems = list.length;
-  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
-  const safePage = Math.min(Math.max(page, 0), totalPages - 1);
-  const start = safePage * pageSize;
-  const end = Math.min(start + pageSize, totalItems);
-  return { items: list.slice(start, end), totalItems, totalPages, page: safePage, start, end };
 };
 
 /* ── Filter Options ─────────────────────────────────────────── */
@@ -182,8 +170,6 @@ function WaitlistLeadsPage({ token }) {
     return result;
   }, [leads, filterStatus, filterType, query]);
 
-  const pagedLeads = useMemo(() => paginateItems(filteredLeads, page, pageSize), [filteredLeads, page, pageSize]);
-
   // Reset page on filter changes
   useEffect(() => {
     setPage(0);
@@ -200,7 +186,7 @@ function WaitlistLeadsPage({ token }) {
   }, [leads]);
 
   /* ── Row Action Menu Definitions ──────────────────────────────── */
-  const getRowActions = (lead) => {
+  const getRowActions = useCallback((lead) => {
     const actions = [];
     const s = String(lead.status || '').trim().toUpperCase();
 
@@ -221,242 +207,199 @@ function WaitlistLeadsPage({ token }) {
 
     actions.push({ label: 'Open Details', onClick: () => handleOpenDrawer(lead) });
     return actions;
-  };
+  }, [handleUpdateStatus, handleOpenDrawer]);
 
+  /* ── Unified Columns Definition ──────────────────────────────── */
+  const columns = useMemo(() => [
+    {
+      key: 'registrationNumber',
+      header: 'Reg ID',
+      sortable: true,
+      render: (_, lead) => (
+        <span className="bdt-name-link" style={{ fontWeight: 700 }}>
+          {lead.registrationNumber || `WL-${String(lead.id).padStart(4, '0')}`}
+        </span>
+      ),
+    },
+    {
+      key: 'name',
+      header: 'Name',
+      sortable: true,
+      render: (_, lead) => <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{lead.name}</div>,
+    },
+    {
+      key: 'phone',
+      header: 'Contact Details',
+      render: (_, lead) => (
+        <div>
+          <a href={`tel:${lead.phone}`} className="bdt-phone-link" style={{ display: 'block', fontSize: 13, marginBottom: 2 }}>
+            {lead.phone}
+          </a>
+          <span style={{ fontSize: 12, color: 'var(--muted)', wordBreak: 'break-all' }}>{lead.email}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'city',
+      header: 'City & State',
+      render: (_, lead) => `${lead.city || '-'}${lead.state ? `, ${lead.state}` : ''}`,
+    },
+    {
+      key: 'businessType',
+      header: 'Business Type',
+      render: (_, lead) => getBusinessTypeLabel(lead.businessType),
+    },
+    {
+      key: 'selectedPlanName',
+      header: 'Plan',
+      render: (_, lead) => (
+        <span className="purple-badge" style={{ fontSize: 11.5, padding: '3px 8px', borderRadius: 6, background: '#f5f3ff', color: '#6d28d9', fontWeight: 600 }}>
+          {lead.selectedPlanName || 'Default Plan'}
+        </span>
+      ),
+    },
+    {
+      key: 'paymentStatus',
+      header: 'Payment',
+      render: (_, lead) => (
+        <span className={`status-chip ${String(lead.paymentStatus).toUpperCase() === 'PAID' ? 'login' : 'pending'}`}>
+          {lead.paymentStatus || 'UNPAID'}
+        </span>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      sortable: true,
+      render: (_, lead) => (
+        <span className={`status-chip ${getStatusPillClass(lead.status)}`}>
+          {getStatusLabel(lead.status)}
+        </span>
+      ),
+    },
+    {
+      key: 'notes',
+      header: 'Admin Notes',
+      render: (_, lead) => (
+        <span style={{ fontSize: 12, color: lead.notes ? 'var(--ink)' : 'var(--muted)', maxWidth: 160, display: 'inline-block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={lead.notes || ''}>
+          {lead.notes || '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'createdAt',
+      header: 'Signup Date',
+      sortable: true,
+      render: (_, lead) => formatDateTime(lead.createdAt),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      render: (_, lead) => (
+        <div className="table-actions" onClick={(e) => e.stopPropagation()}>
+          <TableRowActionMenu
+            rowId={lead.id}
+            openRowId={openActionRowId}
+            onToggle={setOpenActionRowId}
+            actions={getRowActions(lead)}
+          />
+        </div>
+      ),
+    },
+  ], [openActionRowId]);
   return (
     <div className="users-page business-page">
       <Banner message={message} />
 
       {/* ── Status Counters ───────────────────────── */}
       <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginBottom: 20 }}>
-        {/* Counter chips */}
-        <div style={{ flex: '1 1 300px', display: 'flex', gap: 12, alignItems: 'center', margin: 0 }}>
-          <span className="status-chip pending" style={{ padding: '16px 20px', flex: 1, textAlign: 'center', margin: 0 }}>{statusCounts.PENDING} Pending</span>
-          <span className="status-chip changes-required" style={{ padding: '16px 20px', flex: 1, textAlign: 'center', margin: 0 }}>{statusCounts.CALLED} Called</span>
-          <span className="status-chip changes-required" style={{ padding: '16px 20px', flex: 1, textAlign: 'center', margin: 0 }}>{statusCounts.SETUP_IN_PROGRESS} Setup</span>
-          <span className="status-chip login" style={{ padding: '16px 20px', flex: 1, textAlign: 'center', margin: 0 }}>{statusCounts.ONBOARDED} Onboarded</span>
+        <div style={{ flex: '1 1 300px', display: 'flex', gap: 12, alignItems: 'center', margin: 0, flexWrap: 'wrap' }}>
+          <span className="status-chip pending" style={{ padding: '16px 20px', flex: '1 1 140px', textAlign: 'center', margin: 0 }}>{statusCounts.PENDING} Pending</span>
+          <span className="status-chip changes-required" style={{ padding: '16px 20px', flex: '1 1 140px', textAlign: 'center', margin: 0 }}>{statusCounts.CALLED} Called</span>
+          <span className="status-chip changes-required" style={{ padding: '16px 20px', flex: '1 1 140px', textAlign: 'center', margin: 0 }}>{statusCounts.SETUP_IN_PROGRESS} Setup</span>
+          <span className="status-chip login" style={{ padding: '16px 20px', flex: '1 1 140px', textAlign: 'center', margin: 0 }}>{statusCounts.ONBOARDED} Onboarded</span>
         </div>
       </div>
 
-      {/* ── Table Card Panel ────────────────────────────────────────── */}
-      <div className="panel card users-table-card">
-        {/* Toolbar */}
-        <div className="panel-split">
-          <div className="category-list-head-left" style={{ display: 'flex', gap: 12 }}>
-            <div className="gsc-datatable-toolbar-left" style={{ display: 'flex', gap: 12 }}>
-              {/* Status Filter */}
-              <div className="bdt-toolbar-wrap">
-                <button
-                  type="button"
-                  className={`gsc-toolbar-btn ${showStatusFilter ? 'active' : ''}`}
-                  onClick={() => { setShowStatusFilter((v) => !v); setShowTypeFilter(false); }}
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M4 6h16M4 12h10M4 18h6" />
-                  </svg>
-                  Status{filterStatus ? `: ${getStatusLabel(filterStatus)}` : ''}
-                </button>
-                {showStatusFilter && (
-                  <div className="bdt-dropdown-panel" style={{ zIndex: 100 }}>
-                    <p className="bdt-dropdown-label">Filter by Status</p>
-                    {STATUS_FILTER_OPTIONS.map((opt) => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        className={`bdt-dropdown-option ${filterStatus === opt.value ? 'selected' : ''}`}
-                        onClick={() => { setFilterStatus(opt.value); setShowStatusFilter(false); }}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Business Type Filter */}
-              <div className="bdt-toolbar-wrap">
-                <button
-                  type="button"
-                  className={`gsc-toolbar-btn ${showTypeFilter ? 'active' : ''}`}
-                  onClick={() => { setShowTypeFilter((v) => !v); setShowStatusFilter(false); }}
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M4 6h16M4 12h10M4 18h6" />
-                  </svg>
-                  Business Type{filterType ? `: ${getBusinessTypeLabel(filterType)}` : ''}
-                </button>
-                {showTypeFilter && (
-                  <div className="bdt-dropdown-panel" style={{ zIndex: 100 }}>
-                    <p className="bdt-dropdown-label">Filter by Business Type</p>
-                    {TYPE_FILTER_OPTIONS.map((opt) => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        className={`bdt-dropdown-option ${filterType === opt.value ? 'selected' : ''}`}
-                        onClick={() => { setFilterType(opt.value); setShowTypeFilter(false); }}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="gsc-datatable-toolbar-right">
-            <div className="gsc-toolbar-search">
-              <input
-                type="search"
-                placeholder="Search leads by ID, name, city, phone..."
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                aria-label="Search waitlist leads"
-              />
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 18, height: 18, color: '#6b7280', flexShrink: 0 }}>
-                <circle cx="11" cy="11" r="8" />
-                <path d="m21 21-4.35-4.35" />
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        {/* Table Body */}
-        {isLoading ? (
-          <p className="empty-state">Loading waitlist leads...</p>
-        ) : filteredLeads.length === 0 ? (
-          <p className="empty-state">
-            {leads.length === 0 ? 'No waitlist registrations found.' : 'No leads match the selected filter/search criteria.'}
-          </p>
-        ) : (
-          <div className="table-shell business-table-shell">
-            <table className="admin-table users-table business-datatable">
-              <thead>
-                <tr>
-                  <th className="bdt-checkbox-col">
-                    <input type="checkbox" className="select-checkbox" disabled />
-                  </th>
-                  <th>Reg ID</th>
-                  <th>Name</th>
-                  <th>Contact Details</th>
-                  <th>City</th>
-                  <th>Business Type</th>
-                  <th>Plan</th>
-                  <th>Payment</th>
-                  <th>Status</th>
-                  <th>Admin Notes</th>
-                  <th>Signup Date</th>
-                  <th className="table-actions">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pagedLeads.items.map((lead, idx) => (
-                  <tr key={lead.id} style={{ cursor: 'pointer' }} onClick={(e) => {
-                    // Prevent drawer from opening when clicking row actions checkbox or menu buttons
-                    if (e.target.closest('.table-actions') || e.target.closest('.bdt-checkbox-col') || e.target.closest('a')) return;
-                    handleOpenDrawer(lead);
-                  }}>
-                    <td className="bdt-checkbox-col">
-                      <input type="checkbox" className="select-checkbox" disabled />
-                    </td>
-                    <td>
-                      <span className="bdt-name-link" style={{ fontWeight: 700 }}>
-                        {lead.registrationNumber || `WL-${String(lead.id).padStart(4, '0')}`}
-                      </span>
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{lead.name}</div>
-                    </td>
-                    <td>
-                      <div>
-                        <a href={`tel:${lead.phone}`} className="bdt-phone-link" style={{ display: 'block', fontSize: 13, marginBottom: 2 }}>
-                          {lead.phone}
-                        </a>
-                        <span style={{ fontSize: 12, color: 'var(--muted)', wordBreak: 'break-all' }}>{lead.email}</span>
-                      </div>
-                    </td>
-                    <td>{lead.city || '-'}{lead.state ? `, ${lead.state}` : ''}</td>
-                    <td>{getBusinessTypeLabel(lead.businessType)}</td>
-                    <td>
-                      {lead.selectedPlanName || <span style={{ color: '#cbd5e1' }}>-</span>}
-                      {lead.source ? <span style={{ display: 'block', fontSize: 11, color: 'var(--muted)' }}>{lead.source}</span> : null}
-                    </td>
-                    <td>
-                      {lead.paymentStatus || <span style={{ color: '#cbd5e1' }}>-</span>}
-                      {lead.couponCode ? <span style={{ display: 'block', fontSize: 11, color: 'var(--muted)' }}>{lead.couponCode}</span> : null}
-                    </td>
-                    <td>
-                      <span className={`status-pill ${getStatusPillClass(lead.status)}`}>
-                        {getStatusLabel(lead.status)}
-                      </span>
-                    </td>
-                    <td className="bdt-email-cell" style={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {lead.notes || <span style={{ color: '#cbd5e1' }}>—</span>}
-                    </td>
-                    <td>{formatDateTime(lead.createdAt)}</td>
-                    <td className="table-actions">
-                      <div className="table-action-group">
-                        <TableRowActionMenu
-                          rowId={lead.id}
-                          openRowId={openActionRowId}
-                          onToggle={setOpenActionRowId}
-                          actions={getRowActions(lead)}
-                        />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {/* Pagination Controls */}
-            <div className="bv-table-footer">
-              <div className="table-record-count">
-                <span>
-                  Showing {pagedLeads.totalItems ? pagedLeads.start + 1 : 0}–{pagedLeads.end} of {filteredLeads.length} leads
-                </span>
-                {(query || filterStatus || filterType) && (
-                  <span className="bdt-no-more">Filtered from {leads.length} total</span>
-                )}
-              </div>
-
-              <div className="product-pagination-controls">
-                <label className="product-pagination-size">
-                  <span>Rows</span>
-                  <select
-                    value={pageSize}
-                    onChange={(e) => { setPageSize(Number(e.target.value) || 10); setPage(0); }}
-                  >
-                    {PAGE_SIZE_OPTIONS.map((opt) => (
-                      <option key={opt} value={opt}>{opt}</option>
-                    ))}
-                  </select>
-                </label>
-
-                <div className="bv-table-pagination">
-                  <button
-                    type="button"
-                    className="secondary-btn"
-                    disabled={pagedLeads.page === 0 || isLoading}
-                    onClick={() => setPage((p) => Math.max(p - 1, 0))}
-                  >
-                    {'< Prev'}
-                  </button>
-                  <span>Page {pagedLeads.page + 1} / {pagedLeads.totalPages}</span>
-                  <button
-                    type="button"
-                    className="secondary-btn"
-                    disabled={pagedLeads.page >= pagedLeads.totalPages - 1 || isLoading}
-                    onClick={() => setPage((p) => Math.min(p + 1, Math.max(pagedLeads.totalPages - 1, 0)))}
-                  >
-                    {'Next >'}
-                  </button>
+      {/* ── Unified DataTable ─────────────────────────────────────── */}
+      <DataTable
+        columns={columns}
+        data={filteredLeads}
+        isLoading={isLoading}
+        search={query}
+        onSearchChange={setQuery}
+        searchPlaceholder="Search leads by ID, name, city, phone..."
+        page={page}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={(newSize) => { setPageSize(newSize); setPage(0); }}
+        pageSizeOptions={PAGE_SIZE_OPTIONS}
+        onRowClick={handleOpenDrawer}
+        emptyTitle="No waitlist leads found"
+        emptyDescription={leads.length === 0 ? "No waitlist registrations have been received yet." : "No leads match your selected filter criteria."}
+        toolbarLeft={
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            {/* Status Filter */}
+            <div className="bdt-toolbar-wrap" style={{ position: 'relative' }}>
+              <button
+                type="button"
+                className={`gsc-toolbar-btn ${showStatusFilter ? 'active' : ''}`}
+                onClick={() => { setShowStatusFilter((v) => !v); setShowTypeFilter(false); }}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 15, height: 15 }}>
+                  <path d="M4 6h16M4 12h10M4 18h6" />
+                </svg>
+                Status{filterStatus ? `: ${getStatusLabel(filterStatus)}` : ''}
+              </button>
+              {showStatusFilter && (
+                <div className="bdt-dropdown-panel" style={{ zIndex: 100, position: 'absolute', top: '100%', left: 0, marginTop: 4 }}>
+                  <p className="bdt-dropdown-label">Filter by Status</p>
+                  {STATUS_FILTER_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      className={`bdt-dropdown-option ${filterStatus === opt.value ? 'selected' : ''}`}
+                      onClick={() => { setFilterStatus(opt.value); setShowStatusFilter(false); }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
                 </div>
-              </div>
+              )}
+            </div>
+
+            {/* Business Type Filter */}
+            <div className="bdt-toolbar-wrap" style={{ position: 'relative' }}>
+              <button
+                type="button"
+                className={`gsc-toolbar-btn ${showTypeFilter ? 'active' : ''}`}
+                onClick={() => { setShowTypeFilter((v) => !v); setShowStatusFilter(false); }}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 15, height: 15 }}>
+                  <path d="M4 6h16M4 12h10M4 18h6" />
+                </svg>
+                Business Type{filterType ? `: ${getBusinessTypeLabel(filterType)}` : ''}
+              </button>
+              {showTypeFilter && (
+                <div className="bdt-dropdown-panel" style={{ zIndex: 100, position: 'absolute', top: '100%', left: 0, marginTop: 4 }}>
+                  <p className="bdt-dropdown-label">Filter by Business Type</p>
+                  {TYPE_FILTER_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      className={`bdt-dropdown-option ${filterType === opt.value ? 'selected' : ''}`}
+                      onClick={() => { setFilterType(opt.value); setShowTypeFilter(false); }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
-        )}
-      </div>
+        }
+      />
 
       {/* ── Slide-in Details Drawer ─────────────────────────────────── */}
       {isDrawerOpen && selectedLead && (
