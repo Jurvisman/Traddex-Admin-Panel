@@ -721,3 +721,23 @@ export const getSpamReports = (token) =>
 
 export const searchSellers = (token, query) =>
   request(`/admin/leads/search-sellers?query=${encodeURIComponent(query)}`, { token });
+
+// ── Support Tickets ──────────────────────────────────────────
+export const fetchSupportTickets = (token, { status, subject, search, page = 0, size = 20 } = {}) => {
+  const params = new URLSearchParams();
+  if (status) params.append('status', status);
+  if (subject) params.append('subject', subject);
+  if (search) params.append('search', search);
+  params.append('page', page);
+  params.append('size', size);
+  return request(`/admin/support/tickets?${params.toString()}`, { token });
+};
+
+export const fetchSupportTicketStats = (token) =>
+  request('/admin/support/tickets/stats', { token });
+
+export const fetchSupportTicketById = (token, id) =>
+  request(`/admin/support/tickets/${id}`, { token });
+
+export const updateSupportTicketStatus = (token, id, payload) =>
+  request(`/admin/support/tickets/${id}/status`, { method: 'PUT', body: payload, token });
