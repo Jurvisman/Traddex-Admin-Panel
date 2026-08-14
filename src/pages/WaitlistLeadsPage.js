@@ -78,12 +78,6 @@ function WaitlistLeadsPage({ token }) {
   const [leads, setLeads] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState({ type: 'info', text: '' });
-
-  /* ── Config limit state ──────────────────────────────────────── */
-  const [config, setConfig] = useState({ totalLeads: 0, maxFreeLimit: 100, spotsLeft: 100, isLocked: false });
-  const [editLimit, setEditLimit] = useState('');
-  const [isEditingLimit, setIsEditingLimit] = useState(false);
-
   /* ── Table state ─────────────────────────────────────────────── */
   const [query, setQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -103,15 +97,8 @@ function WaitlistLeadsPage({ token }) {
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [leadsRes, configRes] = await Promise.all([
-        fetchWaitlistLeads(token),
-        fetchWaitlistConfig(token),
-      ]);
+      const leadsRes = await fetchWaitlistLeads(token);
       setLeads(leadsRes?.data || leadsRes || []);
-      
-      const configData = configRes?.data || configRes || { totalLeads: 0, maxFreeLimit: 100, spotsLeft: 100, isLocked: false };
-      setConfig(configData);
-      setEditLimit(String(configData.maxFreeLimit || 100));
     } catch (err) {
       setMessage({ type: 'error', text: err.message || 'Failed to fetch waitlist data.' });
     } finally {
@@ -163,23 +150,6 @@ function WaitlistLeadsPage({ token }) {
       loadData();
     } catch (err) {
       setMessage({ type: 'error', text: err.message || 'Failed to save notes.' });
-    }
-  };
-
-  const handleSaveConfigLimit = async (e) => {
-    e.preventDefault();
-    const limitNum = parseInt(editLimit, 10);
-    if (isNaN(limitNum) || limitNum < 0) {
-      setMessage({ type: 'error', text: 'Please enter a valid spot limit.' });
-      return;
-    }
-    try {
-      await updateWaitlistConfigLimit(token, limitNum);
-      setMessage({ type: 'success', text: `Free onboarding spots limit updated to ${limitNum}!` });
-      setIsEditingLimit(false);
-      loadData();
-    } catch (err) {
-      setMessage({ type: 'error', text: err.message || 'Failed to update spot limit.' });
     }
   };
 
