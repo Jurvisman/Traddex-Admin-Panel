@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Banner, TableRowActionMenu } from '../components';
+import { Banner, DataTable, TableRowActionMenu } from '../components';
 import { API_ORIGIN } from '../config/runtime';
 
 const API_BASE = API_ORIGIN;
@@ -331,112 +331,114 @@ function StorefrontWebsiteRequestsPage({ token }) {
 
       <div className={`mv-layout${viewItem ? ' mv-layout--split' : ''}`}>
         <div className="panel card users-table-card">
-          <div className="panel-split">
-            <div className="category-list-head-left">
-              <h3 className="panel-subheading">Website Requests</h3>
-              <div className="gsc-datatable-toolbar-left">
-                <select
-                  value={statusFilter}
-                  onChange={(event) => { setStatusFilter(event.target.value); setPage(1); }}
-                  className="gsc-toolbar-btn storefront-filter-select"
-                >
-                  {STATUS_OPTIONS.map((option) => (
-                    <option key={option.value || 'all'} value={option.value}>{option.label}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="gsc-datatable-toolbar-right">
-              <div className="gsc-toolbar-search">
-                <input
-                  type="search"
-                  placeholder="Search requests"
-                  value={searchQuery}
-                  onChange={(event) => { setSearchQuery(event.target.value); setPage(1); }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {isLoading ? (
-            <div className="loading-state">Loading requests...</div>
-          ) : filteredRequests.length === 0 ? (
-            <div className="empty-state">No requests found.</div>
-          ) : (
-            <div className="table-shell">
-              <table className="admin-table storefront-master-table">
-                <thead>
-                  <tr>
-                    <th>Request ID</th>
-                    <th>Business</th>
-                    <th>Mobile</th>
-                    <th>Plan</th>
-                    <th>Validity</th>
-                    <th>Status</th>
-                    <th>Assigned</th>
-                    <th>Created</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pagedRequests.map((req) => (
-                    <tr
-                      key={req.id}
-                      className={viewItem?.id === req.id ? 'mv-row-active' : ''}
-                      onClick={() => handleView(req)}
-                    >
-                      <td>{req.requestCode || `#${req.id}`}</td>
-                      <td>{req.businessName || '-'}</td>
-                      <td>{req.contactNumber || '-'}</td>
-                      <td>{req.planName || '-'}</td>
-                      <td>{formatDateOnly(req.validFrom)} - {formatDateOnly(req.validTill)}</td>
-                      <td>
-                        <span className={`status-pill storefront-status ${statusPillClass(req.status)}`}>
-                          {formatStatus(req.status)}
-                        </span>
-                      </td>
-                      <td>{req.assignedTo || '-'}</td>
-                      <td>{formatDate(req.createdAt)}</td>
-                      <td onClick={(event) => event.stopPropagation()}>
-                        <TableRowActionMenu
-                          rowId={req.id}
-                          openRowId={openActionRowId}
-                          onToggle={setOpenActionRowId}
-                          actions={[
-                            { label: 'View Details', onClick: () => handleView(req) }
-                          ]}
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div className="bv-table-footer">
-                <span>
-                  Showing {pagedRequests.length} of {filteredRequests.length} requests
-                </span>
-                <div className="product-pagination-controls">
-                  <label>
-                    Rows
-                    <select
-                      value={pageSize}
-                      onChange={(event) => { setPageSize(Number(event.target.value)); setPage(1); }}
-                    >
-                      {[10, 20, 50].map((size) => (
-                        <option key={size} value={size}>{size}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <div className="bv-table-pagination">
-                    <button type="button" className="secondary-btn" disabled={safePage === 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>{'< Prev'}</button>
-                    <span>Page {safePage} / {totalPages}</span>
-                    <button type="button" className="secondary-btn" disabled={safePage === totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>{'Next >'}</button>
+          <DataTable
+            columns={[
+              {
+                key: 'requestCode',
+                header: 'Request ID',
+                sortable: true,
+                render: (val, req) => <strong>{val || `#${req.id}`}</strong>,
+              },
+              {
+                key: 'businessName',
+                header: 'Business',
+                sortable: true,
+                render: (val, req) => (
+                  <span
+                    className="bdt-name-link"
+                    style={{ color: '#6345ED', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleView(req);
+                    }}
+                  >
+                    {val || '-'}
+                  </span>
+                ),
+              },
+              {
+                key: 'contactNumber',
+                header: 'Mobile',
+                sortable: true,
+                render: (val) => val || '-',
+              },
+              {
+                key: 'planName',
+                header: 'Plan',
+                sortable: true,
+                render: (val) => val || '-',
+              },
+              {
+                key: 'validity',
+                header: 'Validity',
+                render: (_, req) => `${formatDateOnly(req.validFrom)} - ${formatDateOnly(req.validTill)}`,
+              },
+              {
+                key: 'status',
+                header: 'Status',
+                sortable: true,
+                render: (val) => (
+                  <span className={`status-pill storefront-status ${statusPillClass(val)}`}>
+                    {formatStatus(val)}
+                  </span>
+                ),
+              },
+              {
+                key: 'assignedTo',
+                header: 'Assigned',
+                sortable: true,
+                render: (val) => val || '-',
+              },
+              {
+                key: 'createdAt',
+                header: 'Created',
+                sortable: true,
+                render: (val) => formatDate(val),
+              },
+              {
+                key: 'actions',
+                header: 'Actions',
+                align: 'right',
+                render: (_, req) => (
+                  <div className="table-actions" onClick={(event) => event.stopPropagation()}>
+                    <TableRowActionMenu
+                      rowId={req.id}
+                      openRowId={openActionRowId}
+                      onToggle={setOpenActionRowId}
+                      actions={[
+                        { label: 'View Details', onClick: () => handleView(req) },
+                      ]}
+                    />
                   </div>
-                </div>
-              </div>
-            </div>
-          )}
+                ),
+              },
+            ]}
+            data={filteredRequests}
+            isLoading={isLoading}
+            search={searchQuery}
+            onSearchChange={(val) => { setSearchQuery(val); setPage(1); }}
+            searchPlaceholder="Search requests..."
+            page={page - 1}
+            pageSize={pageSize}
+            onPageChange={(p) => setPage(p + 1)}
+            onPageSizeChange={(newSize) => { setPageSize(newSize); setPage(1); }}
+            pageSizeOptions={[10, 20, 50]}
+            onRowClick={(req) => handleView(req)}
+            emptyTitle="No requests found"
+            emptyDescription="No storefront website requests match your criteria."
+            toolbarLeft={
+              <select
+                value={statusFilter}
+                onChange={(event) => { setStatusFilter(event.target.value); setPage(1); }}
+                className="gsc-toolbar-btn storefront-filter-select"
+                style={{ border: 'none', background: '#f3f4f6', padding: '6px 12px', borderRadius: 8, fontSize: 13, cursor: 'pointer' }}
+              >
+                {STATUS_OPTIONS.map((option) => (
+                  <option key={option.value || 'all'} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            }
+          />
         </div>
 
         {renderViewPanel()}

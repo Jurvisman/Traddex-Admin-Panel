@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useMatch, useNavigate, useParams } from 'react-router-dom';
-import { Banner } from '../components';
+import { Banner, DataTable } from '../components';
 import { PRODUCT_PERMISSIONS, REVIEW_MODERATION_PERMISSIONS } from '../constants/adminPermissions';
 import { usePermissions } from '../shared/permissions';
 import {
@@ -1114,15 +1114,16 @@ function ProductPage({ token, adminUserId }) {
         return <span className="product-table-code">{getProductCode(product)}</span>;
       case 'name':
         return (
-          <p
+          <span
             className="user-name bdt-name-link"
+            style={{ color: '#6345ED', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
             onClick={() => handleViewProduct(getProductRecordId(product))}
             role="button"
             tabIndex={0}
             onKeyDown={(e) => e.key === 'Enter' && handleViewProduct(getProductRecordId(product))}
           >
             {product?.productName || '-'}
-          </p>
+          </span>
         );
       case 'business':
         return <span className="product-table-primary">{product?.businessName || '-'}</span>;
@@ -6686,131 +6687,16 @@ function ProductPage({ token, adminUserId }) {
       ) : null}
       {!isViewing && !showForm ? (
         <div className="panel card users-table-card">
-          <div className="product-table-toolbar-shell" ref={productToolbarRef}>
-          <div className="gsc-datatable-toolbar">
-            <div className="gsc-datatable-toolbar-left">
-              <div className="bdt-toolbar-wrap">
-                <button
-                  type="button"
-                  className={`gsc-toolbar-btn ${showFilterPanel ? 'active filter-active' : ''}`}
-                  title="Filter"
-                  onClick={() => {
-                    setShowFilterPanel((prev) => !prev);
-                    setShowColumnPicker(false);
-                    setShowImportExportMenu(false);
-                  }}
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M4 6h16M4 12h10M4 18h6" />
-                  </svg>
-                  Filter{activeProductFilterCount ? ` (${activeProductFilterCount})` : ''}
-                </button>
-              </div>
+          <input
+            ref={productImportInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            style={{ display: 'none' }}
+            onChange={handleProductImportFileChange}
+          />
 
-              <div className="bdt-toolbar-wrap">
-                <button
-                  type="button"
-                  className={`gsc-toolbar-btn ${showColumnPicker ? 'active' : ''}`}
-                  title="Columns"
-                  onClick={() => {
-                    setShowColumnPicker((prev) => !prev);
-                    setShowFilterPanel(false);
-                    setShowImportExportMenu(false);
-                  }}
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="3" y="3" width="7" height="18" rx="1" />
-                    <rect x="14" y="3" width="7" height="18" rx="1" />
-                  </svg>
-                  Columns
-                </button>
-                {showColumnPicker ? (
-                  <div className="bdt-dropdown-panel bdt-column-picker">
-                    <p className="bdt-dropdown-label">Visible Columns</p>
-                    {PRODUCT_TABLE_COLUMN_OPTIONS.map((column) => (
-                      <label key={column.key} className="bdt-column-toggle">
-                        <input
-                          type="checkbox"
-                          checked={columnVisibility[column.key]}
-                          onChange={() => toggleColumn(column.key)}
-                        />
-                        {column.label}
-                      </label>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="bdt-toolbar-wrap">
-                <button
-                  type="button"
-                  className={`gsc-toolbar-btn ${showImportExportMenu ? 'active' : ''}`}
-                  title="Import/Export"
-                  onClick={() => {
-                    setShowImportExportMenu((prev) => !prev);
-                    setShowFilterPanel(false);
-                    setShowColumnPicker(false);
-                  }}
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
-                  </svg>
-                  Import/Export
-                </button>
-                {showImportExportMenu ? (
-                  <div className="bdt-dropdown-panel product-toolbar-panel">
-                    <p className="bdt-dropdown-label">Export</p>
-                    <button type="button" className="bdt-dropdown-option" onClick={handleExportFilteredProducts}>
-                      Export Filtered Rows
-                    </button>
-                    <button type="button" className="bdt-dropdown-option" onClick={handleExportSelectedProducts}>
-                      Export Selected Rows
-                    </button>
-                    <p className="bdt-dropdown-label">Import</p>
-                    <button type="button" className="bdt-dropdown-option" onClick={handleDownloadProductImportTemplate}>
-                      Download CSV Template
-                    </button>
-                    <button type="button" className="bdt-dropdown-option" onClick={handleImportProductCsv}>
-                      Import Products CSV
-                    </button>
-                  </div>
-                ) : null}
-              </div>
-            </div>
-            <div className="gsc-datatable-toolbar-right">
-              <div className="gsc-toolbar-search">
-                <input
-                  type="search"
-                  placeholder="Search"
-                  value={query}
-                  onChange={(event) => {
-                    setQuery(event.target.value);
-                    setProductListPage(0);
-                  }}
-                  aria-label="Search products"
-                />
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 18, height: 18, color: '#6b7280', flexShrink: 0 }}>
-                  <circle cx="11" cy="11" r="8" />
-                  <path d="m21 21-4.35-4.35" />
-                </svg>
-              </div>
-              {canCreateProduct ? (
-                <button
-                  type="button"
-                  className="gsc-create-btn"
-                  onClick={() => navigate('/admin/products/create')}
-                  title="Create product"
-                  aria-label="Create product"
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 5v14M5 12h14" />
-                  </svg>
-                </button>
-              ) : null}
-            </div>
-          </div>
           {showFilterPanel ? (
-            <div className="product-filter-strip">
+            <div className="product-filter-strip" style={{ marginBottom: 16 }}>
               <div className="product-filter-grid">
                 <label className="product-filter-field">
                   <span>Category</span>
@@ -6928,279 +6814,321 @@ function ProductPage({ token, adminUserId }) {
               </div>
             </div>
           ) : null}
-          </div>
-          <input
-            ref={productImportInputRef}
-            type="file"
-            accept=".csv,text/csv"
-            style={{ display: 'none' }}
-            onChange={handleProductImportFileChange}
-          />
-          <div className="users-search" style={{ display: 'none' }}>
-            <span className="icon icon-search" />
-            <input
-              type="search"
-              placeholder="Search products"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-            />
-            {query ? (
-              <button type="button" className="ghost-btn small" onClick={() => setQuery('')}>
-                Clear
-              </button>
-            ) : null}
-          </div>
 
-          {filteredProducts.length === 0 ? (
-            <p className="empty-state">No products found.</p>
-          ) : (
-            <>
-              {/* Bulk action bar */}
-              {selectedIds.size > 0 && (
-                <div className="bdt-bulk-bar">
-                  <div className="bdt-bulk-info">
-                    <span className="bdt-bulk-count">{selectedIds.size}</span>
-                    <span className="bdt-bulk-label">row(s) selected</span>
-                  </div>
-                  <div className="bdt-bulk-actions">
-                    <button
-                      type="button"
-                      className="bdt-bulk-btn delete"
-                      onClick={() => setShowBulkDeleteConfirm(true)}
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                      </svg>
-                      Delete
-                    </button>
-                    <button
-                      type="button"
-                      className="bdt-bulk-btn ghost"
-                      onClick={() => setSelectedIds(new Set())}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
-              <div className="table-shell product-table-shell">
-                <table className="admin-table users-table product-table" style={{ minWidth: `${productTableMinWidth}px` }}>
-                  <thead>
-                    <tr>
-                      <th>
-                        <input
-                          type="checkbox"
-                          className="select-checkbox"
-                          checked={allSelected}
-                          onChange={toggleSelectAll}
-                          aria-label="Select all products"
-                        />
-                      </th>
-                      {visibleProductColumns.map((column) => (
-                        <th key={column.key} style={{ minWidth: column.minWidth }}>
-                          {column.label}
-                        </th>
-                      ))}
-                      <th className="table-actions">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredProducts.map((product) => {
-                      const statusValue = product?.approvalStatus || '';
-                      const hasFullCategoryPath = Boolean(
-                        product?.category?.mainCategoryId && product?.category?.categoryId && product?.category?.subCategoryId
-                      );
-                      const productId = getProductRecordId(product);
-                        return (
-                          <tr
-                            key={productId}
-                            className={canViewProduct ? 'table-row-clickable' : ''}
-                          >
-                          <td>
-                            <input
-                              type="checkbox"
-                              className="select-checkbox"
-                              checked={productId ? selectedIds.has(productId) : false}
-                              onClick={(event) => event.stopPropagation()}
-                              onChange={() => toggleSelect(productId)}
-                              aria-label={`Select ${product?.productName || 'product'}`}
-                            />
-                          </td>
-                          {visibleProductColumns.map((column) => (
-                            <td key={`${productId}-${column.key}`} style={{ minWidth: column.minWidth }}>
-                              {getProductTableCellValue(product, column.key)}
-                            </td>
-                          ))}
-                          <td className="table-actions" onClick={(e) => e.stopPropagation()}>
-                            {(() => {
-                              const statusCode = String(statusValue || '').toUpperCase();
-                              const canModerateRow = ['PENDING_REVIEW', 'CHANGES_REQUIRED'].includes(statusCode);
-                              const showApproveRow = canApproveProduct && canModerateRow;
-                              const showRequestChangesRow = canRequestChangesProduct && canModerateRow;
-                              const showRejectRow = canRejectProduct && canModerateRow;
-                              const hasRowActions =
-                                canViewProduct ||
-                                canEditProduct ||
-                                canDeleteProduct ||
-                                showApproveRow ||
-                                showRequestChangesRow ||
-                                showRejectRow;
-
-                              if (!hasRowActions || !hasProductListActions) {
-                                return null;
-                              }
-
-                              return (
-                                <div className="product-table-action-menu" ref={openProductActionId === productId ? productActionMenuRef : null}>
-                                  <button
-                                    type="button"
-                                    className="icon-btn product-table-action-trigger"
-                                    aria-label="Actions"
-                                    aria-expanded={openProductActionId === productId}
-                                    onClick={(event) => {
-                                      event.stopPropagation();
-                                      setOpenProductActionId((prev) => (prev === productId ? null : productId));
-                                    }}
-                                  >
-                                    {ACTION_ICONS.more}
-                                  </button>
-                                  {openProductActionId === productId ? (
-                                    <div className="product-table-action-dropdown">
-                                      {canViewProduct ? (
-                                        <button
-                                          type="button"
-                                          onClick={(event) => {
-                                            event.stopPropagation();
-                                            setOpenProductActionId(null);
-                                            handleViewProduct(productId);
-                                          }}
-                                        >
-                                          <span className="gsc-product-view-menu-icon view">{ACTION_ICONS.view}</span>
-                                          View
-                                        </button>
-                                      ) : null}
-                                      {canEditProduct ? (
-                                        <button
-                                          type="button"
-                                          onClick={(event) => {
-                                            event.stopPropagation();
-                                            setOpenProductActionId(null);
-                                            navigate(`/admin/products/${productId}/edit`);
-                                          }}
-                                        >
-                                          <span className="gsc-product-view-menu-icon edit">{ACTION_ICONS.edit}</span>
-                                          Edit
-                                        </button>
-                                      ) : null}
-                                      {canDeleteProduct ? (
-                                        <button
-                                          type="button"
-                                          onClick={(event) => {
-                                            event.stopPropagation();
-                                            setOpenProductActionId(null);
-                                            handleDelete(productId);
-                                          }}
-                                        >
-                                          <span className="gsc-product-view-menu-icon delete">{ACTION_ICONS.trash}</span>
-                                          Delete
-                                        </button>
-                                      ) : null}
-                                      {showApproveRow ? (
-                                        <button
-                                          type="button"
-                                          disabled={!hasFullCategoryPath}
-                                          onClick={(event) => {
-                                            event.stopPropagation();
-                                            setOpenProductActionId(null);
-                                            handleRowStatusUpdate(productId, 'APPROVED');
-                                          }}
-                                        >
-                                          <span className="gsc-product-view-menu-icon approve">{ACTION_ICONS.approve}</span>
-                                          Approve
-                                        </button>
-                                      ) : null}
-                                      {showRequestChangesRow ? (
-                                        <button
-                                          type="button"
-                                          onClick={(event) => {
-                                            event.stopPropagation();
-                                            setOpenProductActionId(null);
-                                            handleRowStatusUpdate(productId, 'CHANGES_REQUIRED');
-                                          }}
-                                        >
-                                          <span className="gsc-product-view-menu-icon request-changes">{ACTION_ICONS.requestChanges}</span>
-                                          Request changes
-                                        </button>
-                                      ) : null}
-                                      {showRejectRow ? (
-                                        <button
-                                          type="button"
-                                          onClick={(event) => {
-                                            event.stopPropagation();
-                                            setOpenProductActionId(null);
-                                            handleRowStatusUpdate(productId, 'REJECTED');
-                                          }}
-                                        >
-                                          <span className="gsc-product-view-menu-icon reject">{ACTION_ICONS.reject}</span>
-                                          Reject
-                                        </button>
-                                      ) : null}
-                                    </div>
-                                  ) : null}
-                                </div>
-                              );
-                            })()}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+          {selectedIds.size > 0 && (
+            <div className="bdt-bulk-bar" style={{ marginBottom: 12 }}>
+              <div className="bdt-bulk-info">
+                <span className="bdt-bulk-count">{selectedIds.size}</span>
+                <span className="bdt-bulk-label">row(s) selected</span>
               </div>
-              <div className="bv-table-footer">
-                <div className="table-record-count">
-                  Showing {productPageStart}-{productPageEnd} of {productListMeta.totalElements} products
-                </div>
-                <div className="product-pagination-controls">
-                  <label className="product-pagination-size">
-                    <span>Rows</span>
-                    <select
-                      value={productPageSize}
-                      onChange={(event) => {
-                        setProductPageSize(Number(event.target.value) || 25);
-                        setProductListPage(0);
-                      }}
-                    >
-                      {PRODUCT_PAGE_SIZE_OPTIONS.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <div className="bv-table-pagination">
-                    <button
-                      type="button"
-                      className="secondary-btn"
-                      disabled={productListPage === 0 || isLoading}
-                      onClick={() => setProductListPage((prev) => Math.max(prev - 1, 0))}
-                    >
-                      {'< Prev'}
-                    </button>
-                    <span>Page {productListMeta.page + 1} / {Math.max(productListMeta.totalPages, 1)}</span>
-                    <button
-                      type="button"
-                      className="secondary-btn"
-                      disabled={!productListMeta.hasNext || isLoading}
-                      onClick={() => setProductListPage((prev) => prev + 1)}
-                    >
-                      {'Next >'}
-                    </button>
-                  </div>
-                </div>
+              <div className="bdt-bulk-actions">
+                <button
+                  type="button"
+                  className="bdt-bulk-btn delete"
+                  onClick={() => setShowBulkDeleteConfirm(true)}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
+                    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  </svg>
+                  Delete
+                </button>
+                <button
+                  type="button"
+                  className="bdt-bulk-btn ghost"
+                  onClick={() => setSelectedIds(new Set())}
+                >
+                  Cancel
+                </button>
               </div>
-            </>
+            </div>
           )}
+
+          <DataTable
+            columns={[
+              {
+                key: 'select',
+                header: (
+                  <input
+                    type="checkbox"
+                    className="select-checkbox"
+                    checked={allSelected}
+                    onChange={toggleSelectAll}
+                    aria-label="Select all products"
+                  />
+                ),
+                width: '44px',
+                render: (_, product) => {
+                  const productId = getProductRecordId(product);
+                  return (
+                    <input
+                      type="checkbox"
+                      className="select-checkbox"
+                      checked={productId ? selectedIds.has(productId) : false}
+                      onClick={(event) => event.stopPropagation()}
+                      onChange={() => toggleSelect(productId)}
+                      aria-label={`Select ${product?.productName || 'product'}`}
+                    />
+                  );
+                },
+              },
+              ...visibleProductColumns.map((column) => ({
+                key: column.key,
+                header: column.label,
+                minWidth: column.minWidth,
+                render: (_, product) => getProductTableCellValue(product, column.key),
+              })),
+              {
+                key: 'actions',
+                header: 'Actions',
+                align: 'right',
+                render: (_, product) => {
+                  const statusValue = product?.approvalStatus || '';
+                  const hasFullCategoryPath = Boolean(
+                    product?.category?.mainCategoryId && product?.category?.categoryId && product?.category?.subCategoryId
+                  );
+                  const productId = getProductRecordId(product);
+                  const statusCode = String(statusValue || '').toUpperCase();
+                  const canModerateRow = ['PENDING_REVIEW', 'CHANGES_REQUIRED'].includes(statusCode);
+                  const showApproveRow = canApproveProduct && canModerateRow;
+                  const showRequestChangesRow = canRequestChangesProduct && canModerateRow;
+                  const showRejectRow = canRejectProduct && canModerateRow;
+                  const hasRowActions =
+                    canViewProduct ||
+                    canEditProduct ||
+                    canDeleteProduct ||
+                    showApproveRow ||
+                    showRequestChangesRow ||
+                    showRejectRow;
+
+                  if (!hasRowActions || !hasProductListActions) {
+                    return null;
+                  }
+
+                  return (
+                    <div className="product-table-action-menu" ref={openProductActionId === productId ? productActionMenuRef : null} onClick={(e) => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        className="icon-btn product-table-action-trigger"
+                        aria-label="Actions"
+                        aria-expanded={openProductActionId === productId}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setOpenProductActionId((prev) => (prev === productId ? null : productId));
+                        }}
+                      >
+                        {ACTION_ICONS.more}
+                      </button>
+                      {openProductActionId === productId ? (
+                        <div className="product-table-action-dropdown">
+                          {canViewProduct ? (
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setOpenProductActionId(null);
+                                handleViewProduct(productId);
+                              }}
+                            >
+                              <span className="gsc-product-view-menu-icon view">{ACTION_ICONS.view}</span>
+                              View
+                            </button>
+                          ) : null}
+                          {canEditProduct ? (
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setOpenProductActionId(null);
+                                navigate(`/admin/products/${productId}/edit`);
+                              }}
+                            >
+                              <span className="gsc-product-view-menu-icon edit">{ACTION_ICONS.edit}</span>
+                              Edit
+                            </button>
+                          ) : null}
+                          {canDeleteProduct ? (
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setOpenProductActionId(null);
+                                handleDelete(productId);
+                              }}
+                            >
+                              <span className="gsc-product-view-menu-icon delete">{ACTION_ICONS.trash}</span>
+                              Delete
+                            </button>
+                          ) : null}
+                          {showApproveRow ? (
+                            <button
+                              type="button"
+                              disabled={!hasFullCategoryPath}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setOpenProductActionId(null);
+                                handleRowStatusUpdate(productId, 'APPROVED');
+                              }}
+                            >
+                              <span className="gsc-product-view-menu-icon approve">{ACTION_ICONS.approve}</span>
+                              Approve
+                            </button>
+                          ) : null}
+                          {showRequestChangesRow ? (
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setOpenProductActionId(null);
+                                handleRowStatusUpdate(productId, 'CHANGES_REQUIRED');
+                              }}
+                            >
+                              <span className="gsc-product-view-menu-icon request-changes">{ACTION_ICONS.requestChanges}</span>
+                              Request changes
+                            </button>
+                          ) : null}
+                          {showRejectRow ? (
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setOpenProductActionId(null);
+                                handleRowStatusUpdate(productId, 'REJECTED');
+                              }}
+                            >
+                              <span className="gsc-product-view-menu-icon reject">{ACTION_ICONS.reject}</span>
+                              Reject
+                            </button>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                },
+              },
+            ]}
+            data={filteredProducts}
+            isLoading={isLoading}
+            search={query}
+            onSearchChange={(val) => { setQuery(val); setProductListPage(0); }}
+            searchPlaceholder="Search products..."
+            page={productListPage}
+            pageSize={productPageSize}
+            onPageChange={setProductListPage}
+            onPageSizeChange={(newSize) => { setProductPageSize(newSize); setProductListPage(0); }}
+            pageSizeOptions={PRODUCT_PAGE_SIZE_OPTIONS}
+            onRowClick={(product) => {
+              const productId = getProductRecordId(product);
+              if (canViewProduct && productId) handleViewProduct(productId);
+            }}
+            emptyTitle="No products found"
+            emptyDescription="No products match your search or selected filter options."
+            toolbarLeft={
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }} ref={productToolbarRef}>
+                <div className="bdt-toolbar-wrap" style={{ position: 'relative' }}>
+                  <button
+                    type="button"
+                    className={`gsc-toolbar-btn ${showFilterPanel ? 'active filter-active' : ''}`}
+                    title="Filter"
+                    onClick={() => {
+                      setShowFilterPanel((prev) => !prev);
+                      setShowColumnPicker(false);
+                      setShowImportExportMenu(false);
+                    }}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
+                      <path d="M4 6h16M4 12h10M4 18h6" />
+                    </svg>
+                    Filter{activeProductFilterCount ? ` (${activeProductFilterCount})` : ''}
+                  </button>
+                </div>
+
+                <div className="bdt-toolbar-wrap" style={{ position: 'relative' }}>
+                  <button
+                    type="button"
+                    className={`gsc-toolbar-btn ${showColumnPicker ? 'active' : ''}`}
+                    title="Columns"
+                    onClick={() => {
+                      setShowColumnPicker((prev) => !prev);
+                      setShowFilterPanel(false);
+                      setShowImportExportMenu(false);
+                    }}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
+                      <rect x="3" y="3" width="7" height="18" rx="1" />
+                      <rect x="14" y="3" width="7" height="18" rx="1" />
+                    </svg>
+                    Columns
+                  </button>
+                  {showColumnPicker ? (
+                    <div className="bdt-dropdown-panel bdt-column-picker" style={{ zIndex: 100, position: 'absolute', top: '100%', left: 0, marginTop: 4 }}>
+                      <p className="bdt-dropdown-label">Visible Columns</p>
+                      {PRODUCT_TABLE_COLUMN_OPTIONS.map((column) => (
+                        <label key={column.key} className="bdt-column-toggle" style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '4px 0', fontSize: 13, cursor: 'pointer' }}>
+                          <input
+                            type="checkbox"
+                            checked={columnVisibility[column.key]}
+                            onChange={() => toggleColumn(column.key)}
+                          />
+                          {column.label}
+                        </label>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="bdt-toolbar-wrap" style={{ position: 'relative' }}>
+                  <button
+                    type="button"
+                    className={`gsc-toolbar-btn ${showImportExportMenu ? 'active' : ''}`}
+                    title="Import/Export"
+                    onClick={() => {
+                      setShowImportExportMenu((prev) => !prev);
+                      setShowFilterPanel(false);
+                      setShowColumnPicker(false);
+                    }}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                    </svg>
+                    Import/Export
+                  </button>
+                  {showImportExportMenu ? (
+                    <div className="bdt-dropdown-panel product-toolbar-panel" style={{ zIndex: 100, position: 'absolute', top: '100%', left: 0, marginTop: 4 }}>
+                      <p className="bdt-dropdown-label">Export</p>
+                      <button type="button" className="bdt-dropdown-option" onClick={handleExportFilteredProducts}>
+                        Export Filtered Rows
+                      </button>
+                      <button type="button" className="bdt-dropdown-option" onClick={handleExportSelectedProducts}>
+                        Export Selected Rows
+                      </button>
+                      <p className="bdt-dropdown-label">Import</p>
+                      <button type="button" className="bdt-dropdown-option" onClick={handleDownloadProductImportTemplate}>
+                        Download CSV Template
+                      </button>
+                      <button type="button" className="bdt-dropdown-option" onClick={handleImportProductCsv}>
+                        Import Products CSV
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            }
+            toolbarRight={
+              canCreateProduct ? (
+                <button
+                  type="button"
+                  className="gsc-create-btn"
+                  onClick={() => navigate('/admin/products/create')}
+                  title="Create product"
+                  aria-label="Create product"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
+                </button>
+              ) : null
+            }
+          />
         </div>
       ) : null}
       {showBulkDeleteConfirm && (

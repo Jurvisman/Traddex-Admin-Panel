@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Banner } from '../components';
+import { Banner, DataTable } from '../components';
 import { getAuditLogs } from '../services/adminApi';
 
 const CATEGORIES = ['AUTH', 'AD', 'ORDER', 'SUBSCRIPTION', 'CONFIG', 'PERMISSION', 'EMPLOYEE', 'BUSINESS', 'SYSTEM'];
@@ -233,99 +233,91 @@ function AuditLogsPage({ token }) {
         
         {/* ── List Panel ── */}
         <div className="panel card">
-          <div className="panel-split" style={{ padding: '4px 0 16px' }}>
-            <div className="gsc-datatable-toolbar-left" style={{ gap: 12 }}>
-              <div className="gsc-toolbar-search" style={{ width: 240 }}>
-                <input 
-                  type="search" 
-                  placeholder="Search actor..." 
-                  value={actorSearch}
-                  onChange={e => setActorSearch(e.target.value)}
-                />
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
-                  <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-                </svg>
+          <DataTable
+            columns={[
+              {
+                key: 'actor',
+                header: 'Actor',
+                sortable: true,
+                render: (_, log) => (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div className="actor-avatar" style={{ width: 28, height: 28, fontSize: 12 }}>
+                      {(log.actor_name || '?').charAt(0).toUpperCase()}
+                    </div>
+                    <span className="bdt-name-link" style={{ color: '#6345ED', fontWeight: 600, cursor: 'pointer' }}>
+                      {log.actor_name || 'System'}
+                    </span>
+                  </div>
+                ),
+              },
+              {
+                key: 'action',
+                header: 'Action',
+                sortable: true,
+                render: (val) => (
+                  <span style={{
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: val === 'DELETED' ? '#ef4444' : val === 'CREATED' ? '#10b981' : '#6366f1',
+                  }}>
+                    {val}
+                  </span>
+                ),
+              },
+              {
+                key: 'category',
+                header: 'Category',
+                sortable: true,
+                render: (val) => <StatusBadge cat={val} />,
+              },
+              {
+                key: 'entity',
+                header: 'Entity',
+                sortable: true,
+                render: (_, log) => (
+                  <div style={{ fontSize: 12 }}>
+                    <span style={{ fontWeight: 600 }}>{log.entity_type}</span>
+                    {log.entity_id && <span style={{ color: '#94a3b8', marginLeft: 4 }}>#{log.entity_id}</span>}
+                  </div>
+                ),
+              },
+              {
+                key: 'timestamp',
+                header: 'Time',
+                sortable: true,
+                render: (val) => <span style={{ fontSize: 12, color: '#64748b' }}>{formatDateTime(val)}</span>,
+              },
+            ]}
+            data={filteredLogs}
+            isLoading={isLoading}
+            search={actorSearch}
+            onSearchChange={setActorSearch}
+            searchPlaceholder="Search actor..."
+            page={page}
+            pageSize={PAGE_SIZE}
+            onPageChange={(p) => { setPage(p); load(p); }}
+            pageSizeOptions={[25, 50, 100]}
+            onRowClick={(log) => setSelectedLog(log)}
+            emptyTitle="No logs found"
+            emptyDescription="No audit logs match your criteria."
+            toolbarLeft={
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                <select
+                  className="pill-select"
+                  value={category}
+                  onChange={e => setCategory(e.target.value)}
+                  style={{ height: 36, borderRadius: 10, border: '1px solid #e2e8f0', padding: '0 12px', fontSize: 13, background: '#f8fafc' }}
+                >
+                  <option value="">All Categories</option>
+                  {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer', color: '#64748b', fontWeight: 600 }}>
+                  <input type="checkbox" checked={sensitiveOnly} onChange={e => setSensitiveOnly(e.target.checked)} />
+                  Sensitive
+                </label>
               </div>
-              <select 
-                className="pill-select" 
-                value={category} 
-                onChange={e => setCategory(e.target.value)}
-                style={{ height: 36, borderRadius: 10, border: '1px solid #e2e8f0', padding: '0 12px', fontSize: 13 }}
-              >
-                <option value="">All Categories</option>
-                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer', color: '#64748b', fontWeight: 600 }}>
-                <input type="checkbox" checked={sensitiveOnly} onChange={e => setSensitiveOnly(e.target.checked)} />
-                Sensitive
-              </label>
-            </div>
-          </div>
-
-          <div className="table-shell">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Actor</th>
-                  <th>Action</th>
-                  <th>Category</th>
-                  <th>Entity</th>
-                  <th>Time</th>
-                </tr>
-              </thead>
-              <tbody>
-                {isLoading ? (
-                  <tr><td colSpan="5" style={{ textAlign: 'center', padding: 40 }}><div className="rev-loading-spinner" style={{ margin: '0 auto' }}></div></td></tr>
-                ) : filteredLogs.length === 0 ? (
-                  <tr><td colSpan="5" className="rev-empty">No logs found.</td></tr>
-                ) : (
-                  filteredLogs.map(log => (
-                    <tr 
-                      key={log.id} 
-                      onClick={() => setSelectedLog(log)} 
-                      className={selectedLog?.id === log.id ? 'mv-row-active' : ''}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <div className="actor-avatar" style={{ width: 28, height: 28, fontSize: 12 }}>{(log.actor_name || '?').charAt(0).toUpperCase()}</div>
-                          <span style={{ fontWeight: 600 }}>{log.actor_name || 'System'}</span>
-                        </div>
-                      </td>
-                      <td>
-                        <span style={{ 
-                          fontSize: 12, 
-                          fontWeight: 700, 
-                          color: log.action === 'DELETED' ? '#ef4444' : log.action === 'CREATED' ? '#10b981' : '#6366f1' 
-                        }}>
-                          {log.action}
-                        </span>
-                      </td>
-                      <td><StatusBadge cat={log.category} /></td>
-                      <td>
-                        <div style={{ fontSize: 12 }}>
-                          <span style={{ fontWeight: 600 }}>{log.entity_type}</span>
-                          {log.entity_id && <span style={{ color: '#94a3b8', marginLeft: 4 }}>#{log.entity_id}</span>}
-                        </div>
-                      </td>
-                      <td style={{ fontSize: 12, color: '#64748b' }}>{formatDateTime(log.timestamp)}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {!isLoading && total > PAGE_SIZE && (
-            <div className="bv-table-footer">
-              <div className="table-record-count">Total {total} events</div>
-              <div className="bv-table-pagination">
-                 <button className="secondary-btn" disabled={page === 0} onClick={() => load(page - 1)}>Prev</button>
-                 <span style={{ fontSize: 13 }}>Page {page + 1} of {Math.ceil(total / PAGE_SIZE)}</span>
-                 <button className="secondary-btn" disabled={logs.length < PAGE_SIZE} onClick={() => load(page + 1)}>Next</button>
-              </div>
-            </div>
-          )}
+            }
+          />
         </div>
 
         {/* ── View Panel ── */}

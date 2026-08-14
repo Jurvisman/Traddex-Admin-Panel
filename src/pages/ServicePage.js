@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { DataTable } from '../components';
 import {
   listServices,
   getService,
@@ -1093,10 +1094,249 @@ function ServicePage({ token, adminUserId }) {
 
       {!isViewing ? (
         <div className="panel card users-table-card">
-          <div className="product-table-toolbar-shell" ref={toolbarRef}>
-            <div className="gsc-datatable-toolbar">
-              <div className="gsc-datatable-toolbar-left">
-                <div className="bdt-toolbar-wrap">
+          {showFilterPanel ? (
+            <div className="product-filter-strip" style={{ marginBottom: 16 }}>
+              <div className="product-filter-grid">
+                <label className="product-filter-field">
+                  <span>Main Category</span>
+                  <select
+                    value={serviceFilters.mainCategory}
+                    onChange={(e) => { setServiceFilters((p) => ({ ...p, mainCategory: e.target.value })); setPage(0); }}
+                  >
+                    <option value="">Select Main Category</option>
+                    {mainCategoryFilterOptions.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
+                  </select>
+                </label>
+
+                <label className="product-filter-field">
+                  <span>Category</span>
+                  <select
+                    value={serviceFilters.category}
+                    onChange={(e) => { setServiceFilters((p) => ({ ...p, category: e.target.value })); setPage(0); }}
+                  >
+                    <option value="">Select Category</option>
+                    {categoryFilterOptions.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
+                  </select>
+                </label>
+
+                <label className="product-filter-field">
+                  <span>Business</span>
+                  <select
+                    value={serviceFilters.business}
+                    onChange={(e) => { setServiceFilters((p) => ({ ...p, business: e.target.value })); setPage(0); }}
+                  >
+                    <option value="">Select Business</option>
+                    {businessFilterOptions.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
+                  </select>
+                </label>
+
+                <label className="product-filter-field">
+                  <span>Status</span>
+                  <select
+                    value={serviceFilters.status}
+                    onChange={(e) => { setServiceFilters((p) => ({ ...p, status: e.target.value })); setPage(0); }}
+                  >
+                    {SERVICE_STATUS_FILTER_OPTIONS.map((opt) => (
+                      <option key={opt.value || 'all'} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </label>
+
+                <button type="button" className="product-filter-clear" onClick={clearFilters} disabled={!activeFilterCount}>
+                  Clear Filters
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          {selectedIds.size > 0 && (
+            <div className="bdt-bulk-bar" style={{ marginBottom: 12 }}>
+              <div className="bdt-bulk-info">
+                <span className="bdt-bulk-count">{selectedIds.size}</span>
+                <span className="bdt-bulk-label">service(s) selected</span>
+              </div>
+              <div className="bdt-bulk-actions">
+                <button
+                  type="button"
+                  className="bdt-bulk-btn ghost"
+                  onClick={() => setSelectedIds(new Set())}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          <DataTable
+            columns={[
+              {
+                key: 'select',
+                header: (
+                  <input
+                    type="checkbox"
+                    className="select-checkbox"
+                    checked={allSelected}
+                    onChange={toggleSelectAll}
+                    aria-label="Select all services"
+                  />
+                ),
+                width: '44px',
+                render: (_, svc) => {
+                  const svcId = getServiceId(svc);
+                  return (
+                    <input
+                      type="checkbox"
+                      className="select-checkbox"
+                      checked={svcId ? selectedIds.has(svcId) : false}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={() => toggleSelect(svcId)}
+                      aria-label={`Select ${svc?.serviceName || 'service'}`}
+                    />
+                  );
+                },
+              },
+              ...visibleColumns.map((col) => ({
+                key: col.key,
+                header: col.label,
+                minWidth: col.minWidth,
+                render: (_, svc) => {
+                  if (col.key === 'name') {
+                    return (
+                      <span
+                        className="bdt-name-link user-name"
+                        style={{ color: '#6345ED', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/admin/services/${getServiceId(svc)}`);
+                        }}
+                      >
+                        {svc?.serviceName || '—'}
+                      </span>
+                    );
+                  }
+                  return getServiceCellValue(svc, col.key);
+                },
+              })),
+              {
+                key: 'actions',
+                header: 'Actions',
+                align: 'right',
+                render: (_, svc) => {
+                  const svcId = getServiceId(svc);
+                  const statusValue = String(svc?.approvalStatus || '').toUpperCase();
+                  const canModerate = ['PENDING_REVIEW', 'CHANGES_REQUIRED'].includes(statusValue);
+                  return (
+                    <div className="product-table-action-menu" ref={openServiceActionId === svcId ? actionMenuRef : null} onClick={(e) => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        className="icon-btn product-table-action-trigger"
+                        aria-label="Actions"
+                        aria-expanded={openServiceActionId === svcId}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setOpenServiceActionId((prev) => (prev === svcId ? null : svcId));
+                        }}
+                      >
+                        {ACTION_ICONS.more}
+                      </button>
+                      {openServiceActionId === svcId ? (
+                        <div className="product-table-action-dropdown">
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setOpenServiceActionId(null);
+                              navigate(`/admin/services/${svcId}`);
+                            }}
+                          >
+                            <span className="gsc-product-view-menu-icon view">{ACTION_ICONS.view}</span>
+                            View
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setOpenServiceActionId(null);
+                              navigate(`/admin/services/${svcId}/edit`);
+                            }}
+                          >
+                            <span className="gsc-product-view-menu-icon edit">{ACTION_ICONS.edit}</span>
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setOpenServiceActionId(null);
+                              handleDelete(svcId);
+                            }}
+                          >
+                            <span className="gsc-product-view-menu-icon delete">{ACTION_ICONS.trash}</span>
+                            Delete
+                          </button>
+                          {canModerate ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  setOpenServiceActionId(null);
+                                  handleRowStatusUpdate(svcId, 'APPROVED');
+                                }}
+                              >
+                                <span className="gsc-product-view-menu-icon approve">{ACTION_ICONS.approve}</span>
+                                Approve
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  setOpenServiceActionId(null);
+                                  handleRowStatusUpdate(svcId, 'CHANGES_REQUIRED');
+                                }}
+                              >
+                                <span className="gsc-product-view-menu-icon request-changes">{ACTION_ICONS.requestChanges}</span>
+                                Request changes
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  setOpenServiceActionId(null);
+                                  handleRowStatusUpdate(svcId, 'REJECTED');
+                                }}
+                              >
+                                <span className="gsc-product-view-menu-icon reject">{ACTION_ICONS.reject}</span>
+                                Reject
+                              </button>
+                            </>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                },
+              },
+            ]}
+            data={filteredServices}
+            isLoading={isLoading}
+            search={query}
+            onSearchChange={(val) => { setQuery(val); setPage(0); }}
+            searchPlaceholder="Search services..."
+            page={page}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={(newSize) => { setPageSize(newSize); setPage(0); }}
+            pageSizeOptions={SERVICE_PAGE_SIZE_OPTIONS}
+            onRowClick={(svc) => {
+              const svcId = getServiceId(svc);
+              if (svcId) navigate(`/admin/services/${svcId}`);
+            }}
+            emptyTitle="No services found"
+            emptyDescription="No services match your search and filter criteria."
+            toolbarLeft={
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }} ref={toolbarRef}>
+                <div className="bdt-toolbar-wrap" style={{ position: 'relative' }}>
                   <button
                     type="button"
                     className={`gsc-toolbar-btn ${showFilterPanel ? 'active filter-active' : ''}`}
@@ -1107,12 +1347,14 @@ function ServicePage({ token, adminUserId }) {
                       setShowImportExportMenu(false);
                     }}
                   >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 6h16M4 12h10M4 18h6" /></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
+                      <path d="M4 6h16M4 12h10M4 18h6" />
+                    </svg>
                     Filter{activeFilterCount ? ` (${activeFilterCount})` : ''}
                   </button>
                 </div>
 
-                <div className="bdt-toolbar-wrap">
+                <div className="bdt-toolbar-wrap" style={{ position: 'relative' }}>
                   <button
                     type="button"
                     className={`gsc-toolbar-btn ${showColumnPicker ? 'active' : ''}`}
@@ -1123,17 +1365,17 @@ function ServicePage({ token, adminUserId }) {
                       setShowImportExportMenu(false);
                     }}
                   >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
                       <rect x="3" y="3" width="7" height="18" rx="1" />
                       <rect x="14" y="3" width="7" height="18" rx="1" />
                     </svg>
                     Columns
                   </button>
                   {showColumnPicker ? (
-                    <div className="bdt-dropdown-panel bdt-column-picker">
+                    <div className="bdt-dropdown-panel bdt-column-picker" style={{ zIndex: 100, position: 'absolute', top: '100%', left: 0, marginTop: 4 }}>
                       <p className="bdt-dropdown-label">Visible Columns</p>
                       {SERVICE_TABLE_COLUMN_OPTIONS.map((column) => (
-                        <label key={column.key} className="bdt-column-toggle">
+                        <label key={column.key} className="bdt-column-toggle" style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '4px 0', fontSize: 13, cursor: 'pointer' }}>
                           <input type="checkbox" checked={!!columnVisibility[column.key]} onChange={() => toggleColumn(column.key)} />
                           {column.label}
                         </label>
@@ -1142,7 +1384,7 @@ function ServicePage({ token, adminUserId }) {
                   ) : null}
                 </div>
 
-                <div className="bdt-toolbar-wrap">
+                <div className="bdt-toolbar-wrap" style={{ position: 'relative' }}>
                   <button
                     type="button"
                     className={`gsc-toolbar-btn ${showImportExportMenu ? 'active' : ''}`}
@@ -1153,11 +1395,13 @@ function ServicePage({ token, adminUserId }) {
                       setShowColumnPicker(false);
                     }}
                   >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                    </svg>
                     Import/Export
                   </button>
                   {showImportExportMenu ? (
-                    <div className="bdt-dropdown-panel product-toolbar-panel">
+                    <div className="bdt-dropdown-panel product-toolbar-panel" style={{ zIndex: 100, position: 'absolute', top: '100%', left: 0, marginTop: 4 }}>
                       <p className="bdt-dropdown-label">Export</p>
                       <button type="button" className="bdt-dropdown-option" disabled>
                         Export Filtered Rows
@@ -1169,273 +1413,21 @@ function ServicePage({ token, adminUserId }) {
                   ) : null}
                 </div>
               </div>
-              <div className="gsc-datatable-toolbar-right">
-                <div className="gsc-toolbar-search">
-                  <input
-                    type="search"
-                    placeholder="Search"
-                    value={query}
-                    onChange={(e) => { setQuery(e.target.value); setPage(0); }}
-                    aria-label="Search services"
-                  />
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 18, height: 18, color: '#6b7280', flexShrink: 0 }}>
-                    <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-                  </svg>
-                </div>
-                <button
-                  type="button"
-                  className="gsc-create-btn"
-                  title="Create service"
-                  aria-label="Create service"
-                  onClick={() => navigate('/admin/services/create')}
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 5v14M5 12h14" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            {showFilterPanel ? (
-              <div className="product-filter-strip">
-                <div className="product-filter-grid">
-                  <label className="product-filter-field">
-                    <span>Main Category</span>
-                    <select
-                      value={serviceFilters.mainCategory}
-                      onChange={(e) => { setServiceFilters((p) => ({ ...p, mainCategory: e.target.value })); setPage(0); }}
-                    >
-                      <option value="">Select Main Category</option>
-                      {mainCategoryFilterOptions.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
-                    </select>
-                  </label>
-
-                  <label className="product-filter-field">
-                    <span>Category</span>
-                    <select
-                      value={serviceFilters.category}
-                      onChange={(e) => { setServiceFilters((p) => ({ ...p, category: e.target.value })); setPage(0); }}
-                    >
-                      <option value="">Select Category</option>
-                      {categoryFilterOptions.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
-                    </select>
-                  </label>
-
-                  <label className="product-filter-field">
-                    <span>Business</span>
-                    <select
-                      value={serviceFilters.business}
-                      onChange={(e) => { setServiceFilters((p) => ({ ...p, business: e.target.value })); setPage(0); }}
-                    >
-                      <option value="">Select Business</option>
-                      {businessFilterOptions.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
-                    </select>
-                  </label>
-
-                  <label className="product-filter-field">
-                    <span>Status</span>
-                    <select
-                      value={serviceFilters.status}
-                      onChange={(e) => { setServiceFilters((p) => ({ ...p, status: e.target.value })); setPage(0); }}
-                    >
-                      {SERVICE_STATUS_FILTER_OPTIONS.map((opt) => (
-                        <option key={opt.value || 'all'} value={opt.value}>{opt.label}</option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <button type="button" className="product-filter-clear" onClick={clearFilters} disabled={!activeFilterCount}>
-                    Clear Filters
-                  </button>
-                </div>
-              </div>
-            ) : null}
-          </div>
-
-          {pageItems.length === 0 ? (
-            <p className="empty-state">{isLoading ? 'Loading services...' : 'No services found.'}</p>
-          ) : (
-            <>
-              <div className="table-shell product-table-shell">
-                <table className="admin-table users-table product-table" style={{ minWidth: `${tableMinWidth}px` }}>
-                  <thead>
-                    <tr>
-                      <th>
-                        <input
-                          type="checkbox"
-                          className="select-checkbox"
-                          checked={allSelected}
-                          onChange={toggleSelectAll}
-                          aria-label="Select all services"
-                        />
-                      </th>
-                      {visibleColumns.map((column) => (
-                        <th key={column.key} style={{ minWidth: column.minWidth }}>{column.label}</th>
-                      ))}
-                      <th className="table-actions">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pageItems.map((svc) => {
-                      const svcId = getServiceId(svc);
-                      const statusValue = String(svc?.approvalStatus || '').toUpperCase();
-                      const canModerate = ['PENDING_REVIEW', 'CHANGES_REQUIRED'].includes(statusValue);
-                      return (
-                        <tr
-                          key={svcId}
-                          className="table-row-clickable"
-                          onClick={() => navigate(`/admin/services/${svcId}`)}
-                        >
-                          <td onClick={(e) => e.stopPropagation()}>
-                            <input
-                              type="checkbox"
-                              className="select-checkbox"
-                              checked={svcId ? selectedIds.has(svcId) : false}
-                              onChange={() => toggleSelect(svcId)}
-                              aria-label={`Select ${svc?.serviceName || 'service'}`}
-                            />
-                          </td>
-                          {visibleColumns.map((column) => (
-                            <td key={`${svcId}-${column.key}`} style={{ minWidth: column.minWidth }}>
-                              {getServiceCellValue(svc, column.key)}
-                            </td>
-                          ))}
-                          <td className="table-actions" onClick={(e) => e.stopPropagation()}>
-                            <div
-                              className="product-table-action-menu"
-                              ref={openServiceActionId === svcId ? actionMenuRef : null}
-                            >
-                              <button
-                                type="button"
-                                className="icon-btn product-table-action-trigger"
-                                aria-label="Actions"
-                                aria-expanded={openServiceActionId === svcId}
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  setOpenServiceActionId((prev) => (prev === svcId ? null : svcId));
-                                }}
-                              >
-                                {ACTION_ICONS.more}
-                              </button>
-                              {openServiceActionId === svcId ? (
-                                <div className="product-table-action-dropdown">
-                                  <button
-                                    type="button"
-                                    onClick={(event) => {
-                                      event.stopPropagation();
-                                      setOpenServiceActionId(null);
-                                      navigate(`/admin/services/${svcId}`);
-                                    }}
-                                  >
-                                    <span className="gsc-product-view-menu-icon view">{ACTION_ICONS.view}</span>
-                                    View
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={(event) => {
-                                      event.stopPropagation();
-                                      setOpenServiceActionId(null);
-                                      navigate(`/admin/services/${svcId}/edit`);
-                                    }}
-                                  >
-                                    <span className="gsc-product-view-menu-icon edit">{ACTION_ICONS.edit}</span>
-                                    Edit
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={(event) => {
-                                      event.stopPropagation();
-                                      setOpenServiceActionId(null);
-                                      handleDelete(svcId);
-                                    }}
-                                  >
-                                    <span className="gsc-product-view-menu-icon delete">{ACTION_ICONS.trash}</span>
-                                    Delete
-                                  </button>
-                                  {canModerate ? (
-                                    <>
-                                      <button
-                                        type="button"
-                                        onClick={(event) => {
-                                          event.stopPropagation();
-                                          setOpenServiceActionId(null);
-                                          handleRowStatusUpdate(svcId, 'APPROVED');
-                                        }}
-                                      >
-                                        <span className="gsc-product-view-menu-icon approve">{ACTION_ICONS.approve}</span>
-                                        Approve
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={(event) => {
-                                          event.stopPropagation();
-                                          setOpenServiceActionId(null);
-                                          handleRowStatusUpdate(svcId, 'CHANGES_REQUIRED');
-                                        }}
-                                      >
-                                        <span className="gsc-product-view-menu-icon request-changes">{ACTION_ICONS.requestChanges}</span>
-                                        Request changes
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={(event) => {
-                                          event.stopPropagation();
-                                          setOpenServiceActionId(null);
-                                          handleRowStatusUpdate(svcId, 'REJECTED');
-                                        }}
-                                      >
-                                        <span className="gsc-product-view-menu-icon reject">{ACTION_ICONS.reject}</span>
-                                        Reject
-                                      </button>
-                                    </>
-                                  ) : null}
-                                </div>
-                              ) : null}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-              <div className="bv-table-footer">
-                <div className="table-record-count">
-                  Showing {pageStart}-{pageEnd} of {totalElements} services
-                </div>
-                <div className="product-pagination-controls">
-                  <label className="product-pagination-size">
-                    <span>Rows</span>
-                    <select
-                      value={pageSize}
-                      onChange={(e) => { setPageSize(Number(e.target.value) || 25); setPage(0); }}
-                    >
-                      {SERVICE_PAGE_SIZE_OPTIONS.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
-                    </select>
-                  </label>
-                  <div className="bv-table-pagination">
-                    <button
-                      type="button"
-                      className="secondary-btn"
-                      disabled={safePage === 0 || isLoading}
-                      onClick={() => setPage((p) => Math.max(p - 1, 0))}
-                    >
-                      {'< Prev'}
-                    </button>
-                    <span>Page {safePage + 1} / {totalPages}</span>
-                    <button
-                      type="button"
-                      className="secondary-btn"
-                      disabled={safePage >= totalPages - 1 || isLoading}
-                      onClick={() => setPage((p) => p + 1)}
-                    >
-                      {'Next >'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
+            }
+            toolbarRight={
+              <button
+                type="button"
+                className="gsc-create-btn"
+                title="Create service"
+                aria-label="Create service"
+                onClick={() => navigate('/admin/services/create')}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+              </button>
+            }
+          />
         </div>
       ) : (
         <div className="product-view-shell">

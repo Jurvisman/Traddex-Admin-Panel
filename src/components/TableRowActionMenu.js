@@ -1,42 +1,48 @@
 import { useEffect, useRef, useState } from 'react';
 
 const ICON_MORE = (
-  <svg viewBox="0 0 24 24" aria-hidden="true">
-    <circle cx="5" cy="12" r="1.75" fill="currentColor" />
-    <circle cx="12" cy="12" r="1.75" fill="currentColor" />
-    <circle cx="19" cy="12" r="1.75" fill="currentColor" />
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 18, height: 18 }}>
+    <circle cx="12" cy="12" r="1" />
+    <circle cx="19" cy="12" r="1" />
+    <circle cx="5" cy="12" r="1" />
+  </svg>
+);
+
+const ICON_VIEW = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="#6345ED" strokeWidth="2" style={{ width: 16, height: 16 }}>
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+    <circle cx="12" cy="12" r="3" />
   </svg>
 );
 
 const ICON_EDIT = (
-  <svg viewBox="0 0 24 24" aria-hidden="true">
-    <path
-      d="M5 16.7V19h2.3l9.9-9.9-2.3-2.3-9.9 9.9Zm13.7-8.4a1 1 0 0 0 0-1.4l-1.6-1.6a1 1 0 0 0-1.4 0l-1.3 1.3 2.3 2.3 1.3-1.3Z"
-      fill="currentColor"
-    />
+  <svg viewBox="0 0 24 24" fill="none" stroke="#0284c7" strokeWidth="2" style={{ width: 16, height: 16 }}>
+    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
   </svg>
 );
 
 const ICON_TRASH = (
-  <svg viewBox="0 0 24 24" aria-hidden="true">
-    <path
-      d="M9 3h6l1 2h4v2H4V5h4l1-2Zm1 6h2v9h-2V9Zm4 0h2v9h-2V9ZM7 9h2v9H7V9Z"
-      fill="currentColor"
-    />
+  <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" style={{ width: 16, height: 16 }}>
+    <polyline points="3 6 5 6 21 6" />
+    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+  </svg>
+);
+
+const ICON_POWER = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
+    <path d="M18.36 6.64a9 9 0 1 1-12.73 0" />
+    <line x1="12" y1="2" x2="12" y2="12" />
   </svg>
 );
 
 /**
  * Reusable 3-dots row action menu for admin datatables.
- * @param {string|number} rowId - Unique id for this row (e.g. item.id)
- * @param {string|number|null} openRowId - Currently open menu row id
- * @param {(id: string|number|null) => void} onToggle - Called when trigger is clicked
- * @param {Array<{ label: string, onClick: () => void, icon?: ReactNode, danger?: boolean }>} actions - Menu items
+ * Exact match with ProductPage action menu.
  */
 function TableRowActionMenu({ rowId, openRowId, onToggle, actions }) {
   const menuRef = useRef(null);
   const isOpen = openRowId === rowId;
-  const [dropdownStyle, setDropdownStyle] = useState(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -49,53 +55,21 @@ function TableRowActionMenu({ rowId, openRowId, onToggle, actions }) {
     return () => document.removeEventListener('click', handleClickOutside);
   }, [isOpen, onToggle]);
 
-  // When menu is open, decide whether to render dropdown above or below
-  // Position dropdown using viewport coordinates so it doesn't get cut off
-  useEffect(() => {
-    if (!isOpen) return;
-    const menuEl = menuRef.current;
-    if (!menuEl) return;
-
-    const measurePlacement = () => {
-      const triggerRect = menuEl.getBoundingClientRect();
-      const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
-      const margin = 12;
-      const estimatedHeight = actions.length * 40 + 20;
-
-      let top = triggerRect.bottom + 6;
-      if (top + estimatedHeight + margin > viewportHeight) {
-        top = Math.max(margin, triggerRect.top - estimatedHeight - 6);
-      }
-
-      const right = Math.max(0, window.innerWidth - triggerRect.right);
-
-      setDropdownStyle({
-        position: 'fixed',
-        top,
-        right,
-        zIndex: 60,
-      });
-    };
-
-    const rafId = window.requestAnimationFrame(measurePlacement);
-    window.addEventListener('resize', measurePlacement);
-    return () => {
-      window.cancelAnimationFrame(rafId);
-      window.removeEventListener('resize', measurePlacement);
-    };
-  }, [isOpen, actions.length]);
-
-  const getIcon = (action, index) => {
+  const getIcon = (action) => {
     if (action.icon) return action.icon;
-    if (action.danger) return ICON_TRASH;
+    const label = String(action.label || '').toLowerCase();
+    if (label.includes('view')) return ICON_VIEW;
+    if (label.includes('edit')) return ICON_EDIT;
+    if (label.includes('delete') || label.includes('remove') || action.danger) return ICON_TRASH;
+    if (label.includes('activate') || label.includes('deactivate')) return ICON_POWER;
     return ICON_EDIT;
   };
 
   return (
-    <div className="table-action-menu" ref={menuRef}>
+    <div className="product-table-action-menu" ref={menuRef} onClick={(e) => e.stopPropagation()}>
       <button
         type="button"
-        className="table-action-trigger"
+        className="icon-btn product-table-action-trigger"
         aria-label="Actions"
         aria-expanded={isOpen}
         onClick={(e) => {
@@ -106,7 +80,7 @@ function TableRowActionMenu({ rowId, openRowId, onToggle, actions }) {
         {ICON_MORE}
       </button>
       {isOpen ? (
-        <div className="table-action-dropdown" style={dropdownStyle || undefined}>
+        <div className="product-table-action-dropdown">
           {actions.map((action, index) => (
             <button
               key={index}
@@ -118,7 +92,7 @@ function TableRowActionMenu({ rowId, openRowId, onToggle, actions }) {
                 action.onClick();
               }}
             >
-              <span className="table-action-menu-icon">{getIcon(action, index)}</span>
+              <span className="gsc-product-view-menu-icon">{getIcon(action)}</span>
               {action.label}
             </button>
           ))}

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Banner, TableRowActionMenu } from '../components';
+import { Banner, DataTable, TableRowActionMenu } from '../components';
 import {
   createSubscriptionFeature,
   deleteSubscriptionFeature,
@@ -222,30 +222,95 @@ function SubscriptionFeaturePage({ token }) {
 
       <div className="panel-grid subscription-feature-list-grid">
         <div className="subscription-feature-list-card">
-          <div className="gsc-datatable-toolbar">
-            <div className="gsc-datatable-toolbar-left">
-              <h3 className="panel-subheading">Feature list</h3>
-            </div>
-            <div className="gsc-datatable-toolbar-right">
-              <div className="gsc-toolbar-search">
-                <input
-                  type="search"
-                  placeholder="Search"
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  aria-label="Search features"
-                />
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  style={{ width: 18, height: 18, color: '#6b7280', flexShrink: 0 }}
-                >
-                  <circle cx="11" cy="11" r="8" />
-                  <path d="m21 21-4.35-4.35" />
-                </svg>
-              </div>
+          <DataTable
+            columns={[
+              {
+                key: 'id',
+                header: 'Sr. No.',
+                width: '70px',
+                render: (_, __, index) => index + 1,
+              },
+              {
+                key: 'code',
+                header: 'Code',
+                sortable: true,
+                render: (val) => <strong>{val}</strong>,
+              },
+              {
+                key: 'name',
+                header: 'Name',
+                sortable: true,
+                render: (val, feature) => (
+                  <span
+                    className="bdt-name-link"
+                    style={{ color: '#6345ED', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEdit(feature);
+                    }}
+                  >
+                    {val}
+                  </span>
+                ),
+              },
+              {
+                key: 'type',
+                header: 'Type',
+                sortable: true,
+                render: (val) => val || '-',
+              },
+              {
+                key: 'limitRule',
+                header: 'Limit Rule',
+                render: (_, feature) => (feature.limit_type || feature.feature_limit_type || feature.limitType || 'MONTHLY_CREDIT').replace(/_/g, ' '),
+              },
+              {
+                key: 'is_active',
+                header: 'Status',
+                sortable: true,
+                render: (val) => (
+                  <span className={`status-pill ${Number(val) === 1 ? 'approved' : 'rejected'}`}>
+                    {Number(val) === 1 ? 'Active' : 'Inactive'}
+                  </span>
+                ),
+              },
+              {
+                key: 'actions',
+                header: 'Actions',
+                align: 'right',
+                render: (_, feature) => {
+                  const isActive = Number(feature.is_active) === 1;
+                  return (
+                    <div className="table-actions" onClick={(e) => e.stopPropagation()}>
+                      <TableRowActionMenu
+                        rowId={feature.id}
+                        openRowId={openActionRowId}
+                        onToggle={setOpenActionRowId}
+                        actions={[
+                          {
+                            label: 'Edit',
+                            onClick: () => handleEdit(feature),
+                          },
+                          {
+                            label: isActive ? 'Deactivate' : 'Activate',
+                            onClick: () => handleDelete(feature.id),
+                            danger: isActive,
+                          },
+                        ]}
+                      />
+                    </div>
+                  );
+                },
+              },
+            ]}
+            data={filteredFeatures}
+            isLoading={isLoading}
+            search={searchQuery}
+            onSearchChange={setSearchQuery}
+            searchPlaceholder="Search features..."
+            emptyTitle="No subscription features yet"
+            emptyDescription="No features found matching your search."
+            toolbarRight={
               <button
                 type="button"
                 className="gsc-create-btn"
@@ -253,77 +318,12 @@ function SubscriptionFeaturePage({ token }) {
                 title="Create feature"
                 aria-label="Create feature"
               >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 5v14M5 12h14" />
                 </svg>
               </button>
-            </div>
-          </div>
-          {filteredFeatures.length === 0 ? (
-            <p className="empty-state">No subscription features yet.</p>
-          ) : (
-            <div className="table-shell">
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>Sr. No.</th>
-                    <th>Code</th>
-                    <th>Name</th>
-                    <th>Type</th>
-                    <th>Limit Rule</th>
-                    <th>Status</th>
-                    <th className="table-actions">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredFeatures.map((feature, index) => {
-                    const isActive = Number(feature.is_active) === 1;
-                    return (
-                      <tr key={feature.id}>
-                        <td className="feature-srno-cell">{index + 1}</td>
-                        <td>{feature.code}</td>
-                        <td>{feature.name}</td>
-                        <td>{feature.type}</td>
-                        <td>{(feature.limit_type || feature.feature_limit_type || feature.limitType || 'MONTHLY_CREDIT').replace(/_/g, ' ')}</td>
-                        <td>
-                          <span className={`status-pill ${isActive ? 'approved' : 'rejected'}`}>
-                            {isActive ? 'Active' : 'Inactive'}
-                          </span>
-                        </td>
-                        <td className="table-actions">
-                          <div className="table-action-group">
-                            <TableRowActionMenu
-                              rowId={feature.id}
-                              openRowId={openActionRowId}
-                              onToggle={setOpenActionRowId}
-                              actions={[
-                                {
-                                  label: 'Edit',
-                                  onClick: () => handleEdit(feature),
-                                },
-                                {
-                                  label: isActive ? 'Deactivate' : 'Activate',
-                                  onClick: () => handleDelete(feature.id),
-                                  danger: isActive,
-                                },
-                              ]}
-                            />
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+            }
+          />
         </div>
       </div>
     </div>

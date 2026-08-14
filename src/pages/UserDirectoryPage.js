@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Banner, TableRowActionMenu } from '../components';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { Banner, TableRowActionMenu, DataTable } from '../components';
 import { deleteUsersBulk, fetchUsers, sendOtp, updateUser, verifyOtp } from '../services/adminApi';
 
 const normalize = (value) => String(value || '').toLowerCase();
@@ -769,23 +769,242 @@ function UserDirectoryPage({ token, allowedActions }) {
 
       <div className={`mv-layout${viewUser ? ' mv-layout--split' : ''}`}>
         <div className="panel card users-table-card">
-          <div className="panel-split">
-            <div className="category-list-head-left">
-              <div className="gsc-datatable-toolbar-left">
-                <div className="bdt-toolbar-wrap">
+          {selectedRows.size > 0 && canUserDelete ? (
+            <div className="bdt-bulk-bar" style={{ marginBottom: 12 }}>
+              <div className="bdt-bulk-info">
+                <span className="bdt-bulk-count">{selectedRows.size}</span>
+                <span className="bdt-bulk-label">user(s) selected</span>
+              </div>
+              <div className="bdt-bulk-actions">
+                <button
+                  type="button"
+                  className="bdt-bulk-btn delete"
+                  onClick={() => setShowBulkDeleteConfirm(true)}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
+                    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  </svg>
+                  Delete Selected
+                </button>
+                <button
+                  type="button"
+                  className="bdt-bulk-btn ghost"
+                  onClick={() => setSelectedRows(new Set())}
+                >
+                  Clear Selection
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          <DataTable
+            columns={[
+              {
+                key: 'select',
+                header: (
+                  <input
+                    type="checkbox"
+                    className="select-checkbox"
+                    checked={allVisibleUsersSelected}
+                    onChange={(event) => {
+                      const pageRowIds = visibleUserRowIds;
+                      if (event.target.checked) {
+                        setSelectedRows((prev) => {
+                          const next = new Set(prev);
+                          pageRowIds.forEach((rowId) => next.add(rowId));
+                          return next;
+                        });
+                      } else {
+                        setSelectedRows((prev) => {
+                          const next = new Set(prev);
+                          pageRowIds.forEach((rowId) => next.delete(rowId));
+                          return next;
+                        });
+                      }
+                    }}
+                  />
+                ),
+                width: '44px',
+                render: (_, user) => {
+                  const rowId = user?.id || user?.user_id;
+                  return (
+                    <input
+                      type="checkbox"
+                      className="select-checkbox"
+                      checked={rowId ? selectedRows.has(rowId) : false}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(event) => {
+                        if (!rowId) return;
+                        setSelectedRows((prev) => {
+                          const next = new Set(prev);
+                          if (event.target.checked) {
+                            next.add(rowId);
+                          } else {
+                            next.delete(rowId);
+                          }
+                          return next;
+                        });
+                      }}
+                    />
+                  );
+                },
+              },
+              ...(columnVisibility.srNo
+                ? [
+                    {
+                      key: 'srNo',
+                      header: 'Sr. No.',
+                      width: '70px',
+                      render: (_, __, index) => userListPage * userListPageSize + index + 1,
+                    },
+                  ]
+                : []),
+              ...(columnVisibility.user
+                ? [
+                    {
+                      key: 'user',
+                      header: 'User',
+                      sortable: true,
+                      render: (_, user) => {
+                        const email = user?.email || user?.email_id || user?.user_email || user?.contact_email;
+                        const hasValidEmail = email && String(email).trim() !== '-' && String(email).trim().length > 0;
+                        return (
+                          <div className="user-cell" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                            <span
+                              className="bdt-name-link"
+                              style={{ color: '#6345ED', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                            >
+                              {getUserName(user)}
+                            </span>
+                            {hasValidEmail ? (
+                              <span className="user-email" style={{ margin: 0, fontSize: 11.5, color: '#64748b', whiteSpace: 'nowrap' }}>
+                                {email}
+                              </span>
+                            ) : null}
+                          </div>
+                        );
+                      },
+                    },
+                  ]
+                : []),
+              ...(columnVisibility.type
+                ? [
+                    {
+                      key: 'userType',
+                      header: 'Type',
+                      render: (_, user) => (
+                        <span className={`type-pill ${normalize(getUserType(user))}`}>{getUserType(user)}</span>
+                      ),
+                    },
+                  ]
+                : []),
+              ...(columnVisibility.phone
+                ? [
+                    {
+                      key: 'number',
+                      header: 'Phone',
+                      render: (_, user) => user?.number || user?.mobile || user?.phone || '-',
+                    },
+                  ]
+                : []),
+              ...(columnVisibility.verification
+                ? [
+                    {
+                      key: 'verify',
+                      header: 'Verification',
+                      render: (_, user) => {
+                        const verificationMeta = resolveVerification(user);
+                        return <span className={`verify-pill ${verificationMeta.className}`}>{verificationMeta.label}</span>;
+                      },
+                    },
+                  ]
+                : []),
+              ...(columnVisibility.status
+                ? [
+                    {
+                      key: 'active',
+                      header: 'Status',
+                      render: (_, user) => {
+                        const isActive = Number(user?.active) === 1;
+                        return (
+                          <span className={`status-pill ${isActive ? 'approved' : 'rejected'}`}>
+                            {isActive ? 'Active' : 'Inactive'}
+                          </span>
+                        );
+                      },
+                    },
+                  ]
+                : []),
+              ...(columnVisibility.joined
+                ? [
+                    {
+                      key: 'createdAt',
+                      header: 'Joined',
+                      sortable: true,
+                      render: (_, user) => formatDate(user?.created_at || user?.createdAt || user?.joined_at),
+                    },
+                  ]
+                : []),
+              {
+                key: 'actions',
+                header: 'Actions',
+                align: 'right',
+                render: (_, user) => {
+                  const rowId = user?.id || user?.user_id;
+                  const isActive = Number(user?.active) === 1;
+                  return (
+                    <div className="table-actions" onClick={(e) => e.stopPropagation()}>
+                      {canUserUpdate ? (
+                        <TableRowActionMenu
+                          rowId={rowId}
+                          openRowId={openActionRowId}
+                          onToggle={setOpenActionRowId}
+                          actions={[
+                            { label: 'View', onClick: () => setViewUser(user) },
+                            {
+                              label: isActive ? 'Deactivate' : 'Activate',
+                              onClick: () => handleToggleActive(user),
+                              danger: isActive,
+                            },
+                          ]}
+                        />
+                      ) : (
+                        <span className="user-email">Read only</span>
+                      )}
+                    </div>
+                  );
+                },
+              },
+            ]}
+            data={statusFilteredUsers}
+            isLoading={isLoading}
+            search={query}
+            onSearchChange={setQuery}
+            searchPlaceholder="Search users..."
+            page={userListPage}
+            pageSize={userListPageSize}
+            onPageChange={setUserListPage}
+            onPageSizeChange={(newSize) => { setUserListPageSize(newSize); setUserListPage(0); }}
+            pageSizeOptions={USER_LIST_PAGE_SIZE_OPTIONS}
+            onRowClick={(user) => setViewUser(user)}
+            emptyTitle="No users found"
+            emptyDescription={users.length === 0 ? "No user accounts are registered." : "No users match the search and filter criteria."}
+            toolbarLeft={
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <div className="bdt-toolbar-wrap" style={{ position: 'relative' }}>
                   <button
                     type="button"
                     className={`gsc-toolbar-btn ${showFilterPanel ? 'active' : ''}`}
                     title="Filter"
                     onClick={() => { setShowFilterPanel((value) => !value); setShowColumnPicker(false); }}
                   >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
                       <path d="M4 6h16M4 12h10M4 18h6" />
                     </svg>
                     Filter{filterStatus ? ' •' : ''}
                   </button>
                   {showFilterPanel && (
-                    <div className="bdt-dropdown-panel">
+                    <div className="bdt-dropdown-panel" style={{ zIndex: 100, position: 'absolute', top: '100%', left: 0, marginTop: 4 }}>
                       <p className="bdt-dropdown-label">User Status</p>
                       {[
                         { value: '', label: 'All Users' },
@@ -815,21 +1034,22 @@ function UserDirectoryPage({ token, allowedActions }) {
                     </div>
                   )}
                 </div>
-                <div className="bdt-toolbar-wrap">
+
+                <div className="bdt-toolbar-wrap" style={{ position: 'relative' }}>
                   <button
                     type="button"
                     className={`gsc-toolbar-btn ${showColumnPicker ? 'active' : ''}`}
                     title="Columns"
                     onClick={() => { setShowColumnPicker((value) => !value); setShowFilterPanel(false); }}
                   >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
                       <rect x="3" y="3" width="7" height="18" rx="1" />
                       <rect x="14" y="3" width="7" height="18" rx="1" />
                     </svg>
                     Columns
                   </button>
                   {showColumnPicker && (
-                    <div className="bdt-dropdown-panel bdt-column-picker">
+                    <div className="bdt-dropdown-panel bdt-column-picker" style={{ zIndex: 100, position: 'absolute', top: '100%', left: 0, marginTop: 4 }}>
                       <p className="bdt-dropdown-label">Visible Columns</p>
                       {[
                         { key: 'srNo', label: 'Sr No' },
@@ -840,7 +1060,7 @@ function UserDirectoryPage({ token, allowedActions }) {
                         { key: 'status', label: 'Status' },
                         { key: 'joined', label: 'Joined' },
                       ].map((column) => (
-                        <label key={column.key} className="bdt-column-toggle">
+                        <label key={column.key} className="bdt-column-toggle" style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '4px 0', fontSize: 13, cursor: 'pointer' }}>
                           <input
                             type="checkbox"
                             checked={columnVisibility[column.key]}
@@ -853,23 +1073,9 @@ function UserDirectoryPage({ token, allowedActions }) {
                   )}
                 </div>
               </div>
-            </div>
-            <div className="gsc-datatable-toolbar-right">
-              <div className="gsc-toolbar-search">
-                <input
-                  type="search"
-                  placeholder="Search users..."
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  aria-label="Search users"
-                />
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                  style={{ width: 18, height: 18, color: '#6b7280', flexShrink: 0 }}>
-                  <circle cx="11" cy="11" r="8" />
-                  <path d="m21 21-4.35-4.35" />
-                </svg>
-              </div>
-              {canUserCreate && (
+            }
+            toolbarRight={
+              canUserCreate && (
                 <button
                   type="button"
                   className="gsc-create-btn"
@@ -882,37 +1088,9 @@ function UserDirectoryPage({ token, allowedActions }) {
                     <path d="M12 5v14M5 12h14" />
                   </svg>
                 </button>
-              )}
-            </div>
-          </div>
-
-          {selectedRows.size > 0 && canUserDelete ? (
-            <div className="bdt-bulk-bar">
-              <div className="bdt-bulk-info">
-                <span className="bdt-bulk-count">{selectedRows.size}</span>
-                <span className="bdt-bulk-label">user(s) selected</span>
-              </div>
-              <div className="bdt-bulk-actions">
-                <button
-                  type="button"
-                  className="bdt-bulk-btn delete"
-                  onClick={() => setShowBulkDeleteConfirm(true)}
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                  </svg>
-                  Delete Selected
-                </button>
-                <button
-                  type="button"
-                  className="bdt-bulk-btn ghost"
-                  onClick={() => setSelectedRows(new Set())}
-                >
-                  Clear Selection
-                </button>
-              </div>
-            </div>
-          ) : null}
+              )
+            }
+          />
 
           {showBulkDeleteConfirm ? (
             <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
@@ -930,189 +1108,6 @@ function UserDirectoryPage({ token, allowedActions }) {
               </div>
             </div>
           ) : null}
-
-          {statusFilteredUsers.length === 0 ? (
-            <p className="empty-state">{isLoading ? 'Loading...' : 'No users found.'}</p>
-          ) : (
-            <div className="table-shell business-table-shell">
-              <table className="admin-table users-table business-datatable">
-                <thead>
-                  <tr>
-                    <th className="bdt-checkbox-col">
-                      <input
-                        type="checkbox"
-                        className="select-checkbox"
-                        checked={allVisibleUsersSelected}
-                        onChange={(event) => {
-                          const pageRowIds = visibleUserRowIds;
-                          if (event.target.checked) {
-                            setSelectedRows((prev) => {
-                              const next = new Set(prev);
-                              pageRowIds.forEach((rowId) => next.add(rowId));
-                              return next;
-                            });
-                          } else {
-                            setSelectedRows((prev) => {
-                              const next = new Set(prev);
-                              pageRowIds.forEach((rowId) => next.delete(rowId));
-                              return next;
-                            });
-                          }
-                        }}
-                      />
-                    </th>
-                    {columnVisibility.srNo && <th>Sr. No.</th>}
-                    {columnVisibility.user && <th>User</th>}
-                    {columnVisibility.type && <th>Type</th>}
-                    {columnVisibility.phone && <th>Phone</th>}
-                    {columnVisibility.verification && <th>Verification</th>}
-                    {columnVisibility.status && <th>Status</th>}
-                    {columnVisibility.joined && <th>Joined</th>}
-                    <th className="table-actions">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pagedUsers.items.map((user, index) => {
-                    const verificationMeta = resolveVerification(user);
-                    const isActive = Number(user?.active) === 1;
-                    const rowId = user?.id || user?.user_id;
-                    return (
-                      <tr
-                        key={rowId || getUserEmail(user)}
-                        className={`${rowId && selectedRows.has(rowId) ? 'bdt-row-selected' : ''}${viewUser?.id === rowId ? ' mv-row-active' : ''} table-row-clickable`}
-                        onClick={(e) => {
-                          if (e.target.closest('.bdt-checkbox-col') || e.target.closest('.table-actions')) return;
-                          setViewUser(user);
-                        }}
-                        style={{ cursor: 'pointer' }}
-                      >
-                        <td className="bdt-checkbox-col" onClick={(e) => e.stopPropagation()}>
-                          <input
-                            type="checkbox"
-                            className="select-checkbox"
-                            checked={rowId ? selectedRows.has(rowId) : false}
-                            onChange={(event) => {
-                              if (!rowId) return;
-                              setSelectedRows((prev) => {
-                                const next = new Set(prev);
-                                if (event.target.checked) {
-                                  next.add(rowId);
-                                } else {
-                                  next.delete(rowId);
-                                }
-                                return next;
-                              });
-                            }}
-                          />
-                        </td>
-                        {columnVisibility.srNo && <td>{pagedUsers.start + index + 1}</td>}
-                        {columnVisibility.user && (
-                          <td>
-                            <div className="user-cell">
-                              <div>
-                                <span
-                                  className="bdt-name-link"
-                                  style={{ color: 'var(--gsc-primary, #6345ED)', fontWeight: 600, cursor: 'pointer' }}
-                                >
-                                  {getUserName(user)}
-                                </span>
-                                <p className="user-email">{getUserEmail(user)}</p>
-                              </div>
-                            </div>
-                          </td>
-                        )}
-                        {columnVisibility.type && (
-                          <td>
-                            <span className={`type-pill ${normalize(getUserType(user))}`}>{getUserType(user)}</span>
-                          </td>
-                        )}
-                        {columnVisibility.phone && <td>{user?.number || user?.mobile || user?.phone || '-'}</td>}
-                        {columnVisibility.verification && (
-                          <td>
-                            <span className={`verify-pill ${verificationMeta.className}`}>{verificationMeta.label}</span>
-                          </td>
-                        )}
-                        {columnVisibility.status && (
-                          <td>
-                            <span className={`status-pill ${isActive ? 'approved' : 'rejected'}`}>
-                              {isActive ? 'Active' : 'Inactive'}
-                            </span>
-                          </td>
-                        )}
-                        {columnVisibility.joined && <td>{formatDate(user?.created_at || user?.createdAt || user?.joined_at)}</td>}
-                        <td className="table-actions">
-                          <div className="table-action-group">
-                            {canUserUpdate ? (
-                              <TableRowActionMenu
-                                rowId={rowId}
-                                openRowId={openActionRowId}
-                                onToggle={setOpenActionRowId}
-                                actions={[
-                                  { label: 'View', onClick: () => setViewUser(user) },
-                                  {
-                                    label: isActive ? 'Deactivate' : 'Activate',
-                                    onClick: () => handleToggleActive(user),
-                                    danger: isActive,
-                                  },
-                                ]}
-                              />
-                            ) : (
-                              <span className="user-email">Read only</span>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-              <div className="bv-table-footer">
-                <div className="table-record-count">
-                  <span>
-                    Showing {pagedUsers.totalItems ? pagedUsers.start + 1 : 0}-{pagedUsers.end} of {statusFilteredUsers.length} users
-                  </span>
-                  {query || filterStatus ? <span className="bdt-no-more">Filtered from {users.length} total</span> : null}
-                </div>
-                <div className="product-pagination-controls">
-                  <label className="product-pagination-size">
-                    <span>Rows</span>
-                    <select
-                      value={userListPageSize}
-                      onChange={(event) => {
-                        setUserListPageSize(Number(event.target.value) || USER_LIST_PAGE_SIZE_OPTIONS[0]);
-                        setUserListPage(0);
-                      }}
-                    >
-                      {USER_LIST_PAGE_SIZE_OPTIONS.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <div className="bv-table-pagination">
-                    <button
-                      type="button"
-                      className="secondary-btn"
-                      disabled={pagedUsers.page === 0 || isLoading}
-                      onClick={() => setUserListPage((prev) => Math.max(prev - 1, 0))}
-                    >
-                      {'< Prev'}
-                    </button>
-                    <span>Page {pagedUsers.page + 1} / {pagedUsers.totalPages}</span>
-                    <button
-                      type="button"
-                      className="secondary-btn"
-                      disabled={pagedUsers.page >= pagedUsers.totalPages - 1 || isLoading}
-                      onClick={() => setUserListPage((prev) => Math.min(prev + 1, Math.max(pagedUsers.totalPages - 1, 0)))}
-                    >
-                      {'Next >'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* ── View panel ────────────────────────────────────── */}

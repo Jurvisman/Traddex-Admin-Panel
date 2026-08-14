@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Banner, TableRowActionMenu } from '../components';
+import { Banner, DataTable, TableRowActionMenu } from '../components';
 import {
   createSubscriptionCoupon,
   deleteSubscriptionCoupon,
@@ -469,34 +469,124 @@ function SubscriptionCouponPage({ token }) {
       <div className={`mv-layout${viewItem || isViewLoading ? ' mv-layout--split' : ''}`}>
         {/* ── List panel ── */}
         <div className="panel card users-table-card">
-          <div className="panel-split">
-            <div className="category-list-head-left">
-              <h3 className="panel-subheading">Coupons</h3>
-              <p className="panel-subtitle">Create launch offer and plan-specific promo codes.</p>
-            </div>
-            <div className="gsc-datatable-toolbar-right">
-              <div className="gsc-toolbar-search">
-                <input
-                  type="search"
-                  placeholder="Search coupons..."
-                  value={searchQuery}
-                  onChange={(event) => {
-                    setSearchQuery(event.target.value);
-                    setCouponPage(0);
-                  }}
-                />
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  style={{ width: 18, height: 18, color: '#6b7280', flexShrink: 0 }}
-                >
-                  <circle cx="11" cy="11" r="8" />
-                  <path d="m21 21-4.35-4.35" />
-                </svg>
-              </div>
-              {canCreate ? (
+          <DataTable
+            columns={[
+              {
+                key: 'code',
+                header: 'Code',
+                sortable: true,
+                render: (val, coupon) => (
+                  <span
+                    className="bdt-name-link"
+                    style={{ color: '#6345ED', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleView(coupon);
+                    }}
+                  >
+                    {val}
+                  </span>
+                ),
+              },
+              {
+                key: 'name',
+                header: 'Name',
+                sortable: true,
+                render: (val) => val || '-',
+              },
+              {
+                key: 'discountValue',
+                header: 'Discount',
+                sortable: true,
+                render: (val, coupon) => (
+                  <div>
+                    <strong>
+                      {coupon.discountType === 'PERCENTAGE'
+                        ? `${money(val)}%`
+                        : `₹ ${money(val)}`}
+                    </strong>
+                    {coupon.maxDiscountAmount ? (
+                      <div style={{ fontSize: 11, color: '#6b7280' }}>Cap ₹ {money(coupon.maxDiscountAmount)}</div>
+                    ) : null}
+                  </div>
+                ),
+              },
+              {
+                key: 'plans',
+                header: 'Plans',
+                render: (_, coupon) => coupon.planNames?.length ? coupon.planNames.join(', ') : 'All plans',
+              },
+              {
+                key: 'usageCount',
+                header: 'Usage',
+                sortable: true,
+                render: (val, coupon) => (
+                  <div>
+                    <span>{val || 0}</span>
+                    <div style={{ fontSize: 11, color: '#6b7280' }}>₹ {money(coupon.totalDiscountGiven)}</div>
+                  </div>
+                ),
+              },
+              {
+                key: 'active',
+                header: 'Status',
+                sortable: true,
+                render: (val) => (
+                  <span className={`status-pill ${val === false ? 'rejected' : 'approved'}`}>
+                    {val === false ? 'Inactive' : 'Active'}
+                  </span>
+                ),
+              },
+              {
+                key: 'actions',
+                header: 'Actions',
+                align: 'right',
+                render: (_, coupon) => {
+                  const actions = [];
+                  actions.push({ label: 'View', onClick: () => handleView(coupon) });
+                  if (canUpdate) {
+                    actions.push({ label: 'Edit', onClick: () => startEdit(coupon) });
+                    actions.push({
+                      label: coupon.active === false ? 'Activate' : 'Pause',
+                      onClick: () => toggleCoupon(coupon),
+                    });
+                  }
+                  if (canDelete) {
+                    actions.push({
+                      label: 'Deactivate',
+                      onClick: () => deactivateCoupon(coupon),
+                      danger: true,
+                    });
+                  }
+                  if (actions.length === 0) return null;
+                  return (
+                    <div className="table-actions" onClick={(event) => event.stopPropagation()}>
+                      <TableRowActionMenu
+                        rowId={coupon.id}
+                        openRowId={openActionRowId}
+                        onToggle={setOpenActionRowId}
+                        actions={actions}
+                      />
+                    </div>
+                  );
+                },
+              },
+            ]}
+            data={filteredCoupons}
+            isLoading={isLoading}
+            search={searchQuery}
+            onSearchChange={(val) => { setSearchQuery(val); setCouponPage(0); }}
+            searchPlaceholder="Search coupons..."
+            page={pagedCoupons.page}
+            pageSize={couponPageSize}
+            onPageChange={setCouponPage}
+            onPageSizeChange={(newSize) => { setCouponPageSize(newSize); setCouponPage(0); }}
+            pageSizeOptions={[10, 25, 50]}
+            onRowClick={(coupon) => handleView(coupon)}
+            emptyTitle="No coupons found"
+            emptyDescription="No subscription coupons match your criteria."
+            toolbarRight={
+              canCreate ? (
                 <button
                   type="button"
                   className="gsc-create-btn"
@@ -504,132 +594,13 @@ function SubscriptionCouponPage({ token }) {
                   title="New Coupon"
                   aria-label="New Coupon"
                 >
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 5v14M5 12h14" />
                   </svg>
                 </button>
-              ) : null}
-            </div>
-          </div>
-
-          {isLoading ? (
-            <p className="empty-state">Loading coupons...</p>
-          ) : filteredCoupons.length === 0 ? (
-            <p className="empty-state">No coupons found.</p>
-          ) : (
-            <>
-              <div className="table-shell">
-                <table className="admin-table">
-                  <thead>
-                    <tr>
-                      <th>Code</th>
-                      <th>Name</th>
-                      <th>Discount</th>
-                      <th>Plans</th>
-                      <th>Usage</th>
-                      <th>Status</th>
-                      <th className="table-actions">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pagedCoupons.items.map((coupon) => (
-                      <tr
-                        key={coupon.id}
-                        className={viewItem?.coupon?.id === coupon.id ? 'mv-row-active' : ''}
-                        onClick={() => handleView(coupon)}
-                        style={{ cursor: 'pointer' }}
-                      >
-                        <td>
-                          <strong>{coupon.code}</strong>
-                        </td>
-                        <td>{coupon.name}</td>
-                        <td>
-                          {coupon.discountType === 'PERCENTAGE'
-                            ? `${money(coupon.discountValue)}%`
-                            : `Rs. ${money(coupon.discountValue)}`}
-                          {coupon.maxDiscountAmount ? (
-                            <span className="muted block-text">Cap Rs. {money(coupon.maxDiscountAmount)}</span>
-                          ) : null}
-                        </td>
-                        <td>{coupon.planNames?.length ? coupon.planNames.join(', ') : 'All plans'}</td>
-                        <td>
-                          {coupon.usageCount || 0}
-                          <span className="muted block-text">Rs. {money(coupon.totalDiscountGiven)}</span>
-                        </td>
-                        <td>
-                          <span className={`status-pill ${coupon.active === false ? 'rejected' : 'approved'}`}>
-                            {coupon.active === false ? 'Inactive' : 'Active'}
-                          </span>
-                        </td>
-                        <td className="table-actions" onClick={(event) => event.stopPropagation()}>
-                          {(() => {
-                            const actions = [];
-                            actions.push({ label: 'View', onClick: () => handleView(coupon) });
-                            if (canUpdate) {
-                              actions.push({ label: 'Edit', onClick: () => startEdit(coupon) });
-                              actions.push({
-                                label: coupon.active === false ? 'Activate' : 'Pause',
-                                onClick: () => toggleCoupon(coupon),
-                              });
-                            }
-                            if (canDelete) {
-                              actions.push({
-                                label: 'Deactivate',
-                                onClick: () => deactivateCoupon(coupon),
-                                danger: true,
-                              });
-                            }
-                            if (actions.length === 0) return null;
-                            return (
-                              <TableRowActionMenu
-                                rowId={coupon.id}
-                                openRowId={openActionRowId}
-                                onToggle={setOpenActionRowId}
-                                actions={actions}
-                              />
-                            );
-                          })()}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="bv-table-footer">
-                <div className="table-record-count">
-                  <span>
-                    Showing {pagedCoupons.totalItems ? pagedCoupons.start + 1 : 0}–{pagedCoupons.end} of {pagedCoupons.totalItems} coupons
-                  </span>
-                </div>
-                <div className="product-pagination-controls">
-                  <label className="product-pagination-size">
-                    <span>Rows</span>
-                    <select value={couponPageSize} onChange={(event) => { setCouponPageSize(Number(event.target.value)); setCouponPage(0); }}>
-                      <option value={10}>10</option>
-                      <option value={25}>25</option>
-                      <option value={50}>50</option>
-                    </select>
-                  </label>
-                  <div className="bv-table-pagination" style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                    <button type="button" className="secondary-btn" onClick={() => setCouponPage((page) => Math.max(0, page - 1))} disabled={pagedCoupons.page <= 0}>
-                      {'< Prev'}
-                    </button>
-                    <span>Page {pagedCoupons.page + 1} / {pagedCoupons.totalPages}</span>
-                    <button type="button" className="secondary-btn" onClick={() => setCouponPage((page) => Math.min(pagedCoupons.totalPages - 1, page + 1))} disabled={pagedCoupons.page >= pagedCoupons.totalPages - 1}>
-                      {'Next >'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
+              ) : null
+            }
+          />
         </div>
 
         {/* ── View panel ── */}

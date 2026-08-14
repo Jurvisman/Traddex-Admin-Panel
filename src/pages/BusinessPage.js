@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Banner, TableRowActionMenu } from '../components';
+import { useEffect, useMemo, useState, useCallback } from 'react';
+import { Banner, TableRowActionMenu, DataTable } from '../components';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   createIndustry,
@@ -1361,31 +1361,270 @@ function BusinessPage({ token, allowedActions }) {
           </div>
 
           <div className="panel card users-table-card">
-            {/* Toolbar */}
-            <div className="panel-split">
-              <div className="category-list-head-left">
-                <div className="gsc-datatable-toolbar-left">
-                  <div className="bdt-toolbar-wrap">
+            {selectedRows.size > 0 && (
+              <div className="bdt-bulk-bar" style={{ marginBottom: 12 }}>
+                <div className="bdt-bulk-info">
+                  <span className="bdt-bulk-count">{selectedRows.size}</span>
+                  <span className="bdt-bulk-label">business(es) selected</span>
+                </div>
+                <div className="bdt-bulk-actions">
+                  <button
+                    type="button"
+                    className="bdt-bulk-btn delete"
+                    onClick={() => setShowBulkDeleteConfirm(true)}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
+                      <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    </svg>
+                    Delete Selected
+                  </button>
+                  <button
+                    type="button"
+                    className="bdt-bulk-btn ghost"
+                    onClick={() => setSelectedRows(new Set())}
+                  >
+                    Clear Selection
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <DataTable
+              columns={[
+                {
+                  key: 'select',
+                  header: (
+                    <input
+                      type="checkbox"
+                      className="select-checkbox"
+                      checked={allVisibleBusinessesSelected}
+                      onChange={(e) => {
+                        const pageRowIds = visibleBusinessRowIds;
+                        if (e.target.checked) {
+                          setSelectedRows((prev) => {
+                            const next = new Set(prev);
+                            pageRowIds.forEach((rowId) => next.add(rowId));
+                            return next;
+                          });
+                        } else {
+                          setSelectedRows((prev) => {
+                            const next = new Set(prev);
+                            pageRowIds.forEach((rowId) => next.delete(rowId));
+                            return next;
+                          });
+                        }
+                      }}
+                    />
+                  ),
+                  width: '44px',
+                  render: (_, user) => {
+                    const rowId = user?.id || user?.user_id;
+                    return (
+                      <input
+                        type="checkbox"
+                        className="select-checkbox"
+                        checked={rowId ? selectedRows.has(rowId) : false}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => {
+                          if (!rowId) return;
+                          setSelectedRows((prev) => {
+                            const next = new Set(prev);
+                            if (e.target.checked) next.add(rowId);
+                            else next.delete(rowId);
+                            return next;
+                          });
+                        }}
+                      />
+                    );
+                  },
+                },
+                ...(columnVisibility.srNo
+                  ? [
+                      {
+                        key: 'srNo',
+                        header: 'Sr No',
+                        width: '70px',
+                        render: (_, __, index) => businessListPage * businessListPageSize + index + 1,
+                      },
+                    ]
+                  : []),
+                ...(columnVisibility.businessName
+                  ? [
+                      {
+                        key: 'businessName',
+                        header: 'Business Name',
+                        sortable: true,
+                        render: (_, user) => {
+                          const bp = user?.businessProfile || user;
+                          return (
+                            <div>
+                              <span
+                                className="bdt-name-link"
+                                style={{ fontWeight: 600, color: 'var(--gsc-primary, #6345ED)', cursor: 'pointer' }}
+                                onClick={() => handleView(user)}
+                              >
+                                {user?.businessName || bp?.businessName || getUserName(user)}
+                              </span>
+                              {(bp?.industry || user?.industry) && (
+                                <span style={{ display: 'inline-block', marginLeft: 8, padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 700, background: '#e0e7ff', color: '#3730a3', border: '1px solid #c7d2fe' }}>
+                                  🏷️ {bp?.industry || user?.industry}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        },
+                      },
+                    ]
+                  : []),
+                ...(columnVisibility.businessEmail
+                  ? [
+                      {
+                        key: 'businessEmail',
+                        header: 'Business Email',
+                        render: (_, user) => {
+                          const bp = user?.businessProfile || user;
+                          return user?.businessEmail || bp?.email || '-';
+                        },
+                      },
+                    ]
+                  : []),
+                ...(columnVisibility.ownerName
+                  ? [
+                      {
+                        key: 'ownerName',
+                        header: 'Owner Name',
+                        render: (_, user) => {
+                          const bp = user?.businessProfile || user;
+                          return user?.ownerName || bp?.ownerName || getUserName(user);
+                        },
+                      },
+                    ]
+                  : []),
+                ...(columnVisibility.phone
+                  ? [
+                      {
+                        key: 'phone',
+                        header: 'Phone',
+                        render: (_, user) => user?.number || user?.mobile || user?.phone || '-',
+                      },
+                    ]
+                  : []),
+                ...(columnVisibility.personalEmail
+                  ? [
+                      {
+                        key: 'personalEmail',
+                        header: 'Personal Email',
+                        render: (_, user) => user?.number || '-',
+                      },
+                    ]
+                  : []),
+                ...(columnVisibility.status
+                  ? [
+                      {
+                        key: 'status',
+                        header: 'Status',
+                        render: (_, user) => {
+                          const unifiedStatus = resolveUnifiedStatus(user);
+                          return (
+                            <span className={`status-pill ${unifiedStatus.className}`}>{unifiedStatus.label}</span>
+                          );
+                        },
+                      },
+                    ]
+                  : []),
+                ...(columnVisibility.createdBy
+                  ? [
+                      {
+                        key: 'createdBy',
+                        header: 'Created By',
+                        render: (_, user) => user?.createdByName || '-',
+                      },
+                    ]
+                  : []),
+                ...(columnVisibility.createdOn
+                  ? [
+                      {
+                        key: 'createdOn',
+                        header: 'Created On',
+                        sortable: true,
+                        render: (_, user) => formatDate(user?.created_at || user?.createdAt || user?.joined_at),
+                      },
+                    ]
+                  : []),
+                ...(columnVisibility.businessArea
+                  ? [
+                      {
+                        key: 'businessArea',
+                        header: 'Business Area',
+                        render: (_, user) => {
+                          const bp = user?.businessProfile || user;
+                          return bp?.serviceArea || '-';
+                        },
+                      },
+                    ]
+                  : []),
+                {
+                  key: 'actions',
+                  header: 'Actions',
+                  align: 'right',
+                  render: (_, user) => {
+                    const rowId = user?.id || user?.user_id;
+                    const isActive = Number(user?.active) === 1;
+                    return (
+                      <div className="table-actions" onClick={(e) => e.stopPropagation()}>
+                        <TableRowActionMenu
+                          rowId={rowId}
+                          openRowId={openActionRowId}
+                          onToggle={setOpenActionRowId}
+                          actions={[
+                            { label: 'View', onClick: () => handleView(user) },
+                            ...(canApprove
+                              ? [{ label: isActive ? 'Deactivate' : 'Activate', onClick: () => handleToggleActive(user), danger: isActive }]
+                              : []),
+                          ]}
+                        />
+                      </div>
+                    );
+                  },
+                },
+              ]}
+              data={filteredBusinesses}
+              isLoading={isLoading}
+              search={query}
+              onSearchChange={setQuery}
+              searchPlaceholder="Search businesses..."
+              page={businessListPage}
+              pageSize={businessListPageSize}
+              onPageChange={setBusinessListPage}
+              onPageSizeChange={(newSize) => { setBusinessListPageSize(newSize); setBusinessListPage(0); }}
+              pageSizeOptions={BUSINESS_LIST_PAGE_SIZE_OPTIONS}
+              onRowClick={(user) => handleView(user)}
+              emptyTitle="No businesses found"
+              emptyDescription={businesses.length === 0 ? "No business accounts registered." : "No businesses match your search and filter criteria."}
+              toolbarLeft={
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  <div className="bdt-toolbar-wrap" style={{ position: 'relative' }}>
                     <button
                       type="button"
                       className={`gsc-toolbar-btn ${showFilterPanel ? 'active' : ''}`}
                       title="Filter"
-                      onClick={() => { setShowFilterPanel((v) => !v); setShowColumnPicker(false); }}
+                      onClick={() => { setShowFilterPanel((value) => !value); setShowColumnPicker(false); }}
                     >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
                         <path d="M4 6h16M4 12h10M4 18h6" />
                       </svg>
                       Filter{filterStatus ? ' •' : ''}
                     </button>
                     {showFilterPanel && (
-                      <div className="bdt-dropdown-panel">
-                        <p className="bdt-dropdown-label">Status</p>
+                      <div className="bdt-dropdown-panel" style={{ zIndex: 100, position: 'absolute', top: '100%', left: 0, marginTop: 4 }}>
+                        <p className="bdt-dropdown-label">Business Status</p>
                         {[
-                          { value: '', label: 'All' },
-                          { value: 'status-verified', label: 'Verified & Active' },
-                          { value: 'status-pending', label: 'Pending Review' },
-                          { value: 'status-inactive', label: 'Inactive' },
-                          { value: 'status-rejected', label: 'Rejected' },
+                          { value: '', label: 'All Businesses' },
+                          { value: 'active', label: 'Active & Verified' },
+                          { value: 'pending', label: 'Pending Review' },
+                          { value: 'under_review', label: 'Under Review' },
+                          { value: 'rejected', label: 'Rejected' },
+                          { value: 'inactive', label: 'Inactive' },
                         ].map((opt) => (
                           <button
                             key={opt.value}
@@ -1409,21 +1648,21 @@ function BusinessPage({ token, allowedActions }) {
                     )}
                   </div>
 
-                  <div className="bdt-toolbar-wrap">
+                  <div className="bdt-toolbar-wrap" style={{ position: 'relative' }}>
                     <button
                       type="button"
                       className={`gsc-toolbar-btn ${showColumnPicker ? 'active' : ''}`}
                       title="Columns"
-                      onClick={() => { setShowColumnPicker((v) => !v); setShowFilterPanel(false); }}
+                      onClick={() => { setShowColumnPicker((value) => !value); setShowFilterPanel(false); }}
                     >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
                         <rect x="3" y="3" width="7" height="18" rx="1" />
                         <rect x="14" y="3" width="7" height="18" rx="1" />
                       </svg>
                       Columns
                     </button>
                     {showColumnPicker && (
-                      <div className="bdt-dropdown-panel bdt-column-picker">
+                      <div className="bdt-dropdown-panel bdt-column-picker" style={{ zIndex: 100, position: 'absolute', top: '100%', left: 0, marginTop: 4 }}>
                         <p className="bdt-dropdown-label">Visible Columns</p>
                         {[
                           { key: 'srNo', label: 'Sr No' },
@@ -1437,7 +1676,7 @@ function BusinessPage({ token, allowedActions }) {
                           { key: 'createdOn', label: 'Created On' },
                           { key: 'businessArea', label: 'Business Area' },
                         ].map((col) => (
-                          <label key={col.key} className="bdt-column-toggle">
+                          <label key={col.key} className="bdt-column-toggle" style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '4px 0', fontSize: 13, cursor: 'pointer' }}>
                             <input
                               type="checkbox"
                               checked={columnVisibility[col.key]}
@@ -1450,22 +1689,9 @@ function BusinessPage({ token, allowedActions }) {
                     )}
                   </div>
                 </div>
-              </div>
-              <div className="gsc-datatable-toolbar-right">
-                <div className="gsc-toolbar-search">
-                  <input
-                    type="search"
-                    placeholder="Search businesses..."
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    aria-label="Search businesses"
-                  />
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 18, height: 18, color: '#6b7280', flexShrink: 0 }}>
-                    <circle cx="11" cy="11" r="8" />
-                    <path d="m21 21-4.35-4.35" />
-                  </svg>
-                </div>
-                {hasPermission(BUSINESS_PERMISSIONS.create) && (
+              }
+              toolbarRight={
+                hasPermission(BUSINESS_PERMISSIONS.create) && (
                   <button
                     type="button"
                     className="gsc-create-btn"
@@ -1477,38 +1703,9 @@ function BusinessPage({ token, allowedActions }) {
                       <path d="M12 5v14M5 12h14" />
                     </svg>
                   </button>
-                )}
-              </div>
-            </div>
-
-            {/* Bulk action bar */}
-            {selectedRows.size > 0 && (
-              <div className="bdt-bulk-bar">
-                <div className="bdt-bulk-info">
-                  <span className="bdt-bulk-count">{selectedRows.size}</span>
-                  <span className="bdt-bulk-label">business(es) selected</span>
-                </div>
-                <div className="bdt-bulk-actions">
-                  <button
-                    type="button"
-                    className="bdt-bulk-btn delete"
-                    onClick={() => setShowBulkDeleteConfirm(true)}
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                    </svg>
-                    Delete Selected
-                  </button>
-                  <button
-                    type="button"
-                    className="bdt-bulk-btn ghost"
-                    onClick={() => setSelectedRows(new Set())}
-                  >
-                    Clear Selection
-                  </button>
-                </div>
-              </div>
-            )}
+                )
+              }
+            />
 
             {/* Bulk delete confirm */}
             {showBulkDeleteConfirm && (
@@ -1523,168 +1720,6 @@ function BusinessPage({ token, allowedActions }) {
                     <button type="button" className="primary-btn danger" onClick={handleBulkDelete} disabled={isDeleting}>
                       {isDeleting ? 'Deleting...' : 'Confirm Delete'}
                     </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {filteredBusinesses.length === 0 ? (
-              <p className="empty-state">{isLoading ? 'Loading...' : 'No businesses found.'}</p>
-            ) : (
-              <div className="table-shell business-table-shell">
-                <table className="admin-table users-table business-datatable">
-                  <thead>
-                    <tr>
-                      <th className="bdt-checkbox-col">
-                        <input
-                          type="checkbox"
-                          className="select-checkbox"
-                          checked={allVisibleBusinessesSelected}
-                          onChange={(e) => {
-                            const pageRowIds = visibleBusinessRowIds;
-                            if (e.target.checked) {
-                              setSelectedRows((prev) => {
-                                const next = new Set(prev);
-                                pageRowIds.forEach((rowId) => next.add(rowId));
-                                return next;
-                              });
-                            } else {
-                              setSelectedRows((prev) => {
-                                const next = new Set(prev);
-                                pageRowIds.forEach((rowId) => next.delete(rowId));
-                                return next;
-                              });
-                            }
-                          }}
-                        />
-                      </th>
-                      {columnVisibility.srNo && <th>Sr No</th>}
-                      {columnVisibility.businessName && <th>Business Name</th>}
-                      {columnVisibility.businessEmail && <th>Business Email</th>}
-                      {columnVisibility.ownerName && <th>Owner Name</th>}
-                      {columnVisibility.phone && <th>Phone</th>}
-                      {columnVisibility.personalEmail && <th>Personal Email</th>}
-                      {columnVisibility.status && <th>Status</th>}
-                      {columnVisibility.createdBy && <th>Created By</th>}
-                      {columnVisibility.createdOn && <th>Created On</th>}
-                      {columnVisibility.businessArea && <th>Business Area</th>}
-                      <th className="table-actions">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pagedBusinesses.items.map((user, index) => {
-                      const rowId = user?.id || user?.user_id;
-                      const bp = user?.businessProfile || user;
-                      const unifiedStatus = resolveUnifiedStatus(user);
-                      const isActive = Number(user?.active) === 1;
-                      return (
-                        <tr key={rowId || user?.number} className={selectedRows.has(rowId) ? 'bdt-row-selected' : ''}>
-                          <td className="bdt-checkbox-col">
-                            <input
-                              type="checkbox"
-                              className="select-checkbox"
-                              checked={selectedRows.has(rowId)}
-                              onChange={(e) => {
-                                setSelectedRows((prev) => {
-                                  const next = new Set(prev);
-                                  if (e.target.checked) next.add(rowId);
-                                  else next.delete(rowId);
-                                  return next;
-                                });
-                              }}
-                            />
-                          </td>
-                          {columnVisibility.srNo && <td>{pagedBusinesses.start + index + 1}</td>}
-                          {columnVisibility.businessName && (
-                            <td>
-                              <span className="bdt-name-link" onClick={() => handleView(user)} role="button" tabIndex={0}
-                                onKeyDown={(e) => e.key === 'Enter' && handleView(user)}>
-                                {user?.businessName || bp?.businessName || getUserName(user)}
-                              </span>
-                              {(bp?.industry || user?.industry) && (
-                                <span style={{ display: 'inline-block', marginLeft: 8, padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 700, background: '#e0e7ff', color: '#3730a3', border: '1px solid #c7d2fe' }}>
-                                  🏷️ {bp?.industry || user?.industry}
-                                </span>
-                              )}
-                            </td>
-                          )}
-                          {columnVisibility.businessEmail && <td className="bdt-email-cell">{user?.businessEmail || bp?.email || '-'}</td>}
-                          {columnVisibility.ownerName && <td>{user?.ownerName || bp?.ownerName || getUserName(user)}</td>}
-                          {columnVisibility.phone && <td>{user?.number || user?.mobile || user?.phone || '-'}</td>}
-                          {columnVisibility.personalEmail && <td className="bdt-email-cell">{user?.number || '-'}</td>}
-                          {columnVisibility.status && (
-                            <td>
-                              <span className={`status-pill ${unifiedStatus.className}`}>{unifiedStatus.label}</span>
-                            </td>
-                          )}
-                          {columnVisibility.createdBy && <td>{user?.createdByName || '-'}</td>}
-                          {columnVisibility.createdOn && <td>{formatDate(user?.created_at || user?.createdAt || user?.joined_at)}</td>}
-                          {columnVisibility.businessArea && <td>{bp?.serviceArea || '-'}</td>}
-                          <td className="table-actions">
-                            <div className="table-action-group">
-                              <TableRowActionMenu
-                                rowId={rowId}
-                                openRowId={openActionRowId}
-                                onToggle={setOpenActionRowId}
-                                actions={[
-                                  { label: 'View', onClick: () => handleView(user) },
-                                  ...(canApprove
-                                    ? [{ label: isActive ? 'Deactivate' : 'Activate', onClick: () => handleToggleActive(user), danger: isActive }]
-                                    : []),
-                                ]}
-                              />
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-                <div className="bv-table-footer">
-                  <div className="table-record-count">
-                    <span>
-                      Showing {pagedBusinesses.totalItems ? pagedBusinesses.start + 1 : 0}-{pagedBusinesses.end} of {filteredBusinesses.length} businesses
-                    </span>
-                    {query || filterStatus ? <span className="bdt-no-more">Filtered from {businesses.length} total</span> : null}
-                  </div>
-                  <div className="product-pagination-controls">
-                    <label className="product-pagination-size">
-                      <span>Rows</span>
-                      <select
-                        value={businessListPageSize}
-                        onChange={(event) => {
-                          setBusinessListPageSize(Number(event.target.value) || 10);
-                          setBusinessListPage(0);
-                        }}
-                      >
-                        {BUSINESS_LIST_PAGE_SIZE_OPTIONS.map((option) => (
-                          <option key={option} value={option}>
-                            {option}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <div className="bv-table-pagination">
-                      <button
-                        type="button"
-                        className="secondary-btn"
-                        disabled={pagedBusinesses.page === 0 || isLoading}
-                        onClick={() => setBusinessListPage((prev) => Math.max(prev - 1, 0))}
-                      >
-                        {'< Prev'}
-                      </button>
-                      <span>Page {pagedBusinesses.page + 1} / {pagedBusinesses.totalPages}</span>
-                      <button
-                        type="button"
-                        className="secondary-btn"
-                        disabled={pagedBusinesses.page >= pagedBusinesses.totalPages - 1 || isLoading}
-                        onClick={() =>
-                          setBusinessListPage((prev) => Math.min(prev + 1, Math.max(pagedBusinesses.totalPages - 1, 0)))
-                        }
-                      >
-                        {'Next >'}
-                      </button>
-                    </div>
                   </div>
                 </div>
               </div>

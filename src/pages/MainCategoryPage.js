@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Banner, TableRowActionMenu, TaxonomyDeleteImpactDialog, ToggleSwitch } from '../components';
+import { Banner, DataTable, TableRowActionMenu, TaxonomyDeleteImpactDialog, ToggleSwitch } from '../components';
 import { usePermissions } from '../shared/permissions';
 import {
   createMainCategory,
@@ -625,44 +625,96 @@ function MainCategoryPage({ token }) {
       <div className={`mv-layout${viewItem || isViewLoading ? ' mv-layout--split' : ''}`}>
         {/* ── List panel ── */}
         <div className="panel card users-table-card">
-          <div className="panel-split">
-            <div className="category-list-head-left">
-              <h3 className="panel-subheading">Main category list</h3>
-              <div className="gsc-datatable-toolbar-left">
-                <button type="button" className="gsc-toolbar-btn" title="Filter">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M4 6h16M4 12h10M4 18h6" />
-                  </svg>
-                  Filter
-                </button>
+          <DataTable
+            columns={[
+              {
+                key: 'srNo',
+                header: 'Sr. No.',
+                width: '70px',
+                render: (_, __, index) => (safePage - 1) * pageSize + index + 1,
+              },
+              {
+                key: 'name',
+                header: 'Name',
+                sortable: true,
+                render: (val, item) => (
+                  <span
+                    className="bdt-name-link"
+                    style={{ color: '#6345ED', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleView(item);
+                    }}
+                  >
+                    {val}
+                  </span>
+                ),
+              },
+              {
+                key: 'industry',
+                header: 'Industry',
+                sortable: true,
+                render: (_, item) => industryNameById.get(item.industryId) || item.industryName || '-',
+              },
+              {
+                key: 'active',
+                header: 'Status',
+                sortable: true,
+                render: (val) => <StatusBadge active={val} />,
+              },
+              {
+                key: 'actions',
+                header: 'Actions',
+                align: 'right',
+                render: (_, item) => {
+                  const actions = [];
+                  actions.push({ label: 'View', onClick: () => handleView(item) });
+                  if (canUpdate) actions.push({ label: 'Edit', onClick: () => handleEdit(item) });
+                  if (canDelete) actions.push({ label: 'Delete', onClick: () => handleDelete(item.id), danger: true });
+                  if (actions.length === 0) return null;
+                  return (
+                    <div className="table-actions" onClick={(e) => e.stopPropagation()}>
+                      <TableRowActionMenu
+                        rowId={item.id}
+                        openRowId={openActionRowId}
+                        onToggle={setOpenActionRowId}
+                        actions={actions}
+                      />
+                    </div>
+                  );
+                },
+              },
+            ]}
+            data={filteredItems}
+            isLoading={isLoading}
+            search={searchQuery}
+            onSearchChange={(val) => { setSearchQuery(val); setPage(1); }}
+            searchPlaceholder="Search main categories..."
+            page={safePage - 1}
+            pageSize={pageSize}
+            onPageChange={(p) => setPage(p + 1)}
+            onPageSizeChange={(newSize) => { setPageSize(newSize); setPage(1); }}
+            pageSizeOptions={[10, 20, 50, 100]}
+            onRowClick={(item) => handleView(item)}
+            emptyTitle="No main categories yet"
+            emptyDescription="No main categories match your criteria."
+            toolbarLeft={
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                <select
+                  className="gsc-toolbar-btn"
+                  value={statusFilter}
+                  onChange={(event) => { setStatusFilter(event.target.value); setPage(1); }}
+                  aria-label="Filter main categories by status"
+                  style={{ border: 'none', background: '#f3f4f6', padding: '6px 12px', borderRadius: 8, fontSize: 13, cursor: 'pointer' }}
+                >
+                  <option value="all">All status</option>
+                  <option value="1">Active only</option>
+                  <option value="0">Inactive only</option>
+                </select>
               </div>
-            </div>
-            <div className="gsc-datatable-toolbar-right">
-              <select
-                className="gsc-toolbar-btn"
-                value={statusFilter}
-                onChange={(event) => { setStatusFilter(event.target.value); setPage(1); }}
-                aria-label="Filter main categories by status"
-              >
-                <option value="all">All status</option>
-                <option value="1">Active only</option>
-                <option value="0">Inactive only</option>
-              </select>
-              <div className="gsc-toolbar-search">
-                <input
-                  type="search"
-                  placeholder="Search"
-                  value={searchQuery}
-                  onChange={(event) => { setSearchQuery(event.target.value); setPage(1); }}
-                  aria-label="Search main categories"
-                />
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                  style={{ width: 18, height: 18, color: '#6b7280', flexShrink: 0 }}>
-                  <circle cx="11" cy="11" r="8" />
-                  <path d="m21 21-4.35-4.35" />
-                </svg>
-              </div>
-              {canCreate ? (
+            }
+            toolbarRight={
+              canCreate ? (
                 <button
                   type="button"
                   className="gsc-create-btn"
@@ -677,81 +729,13 @@ function MainCategoryPage({ token }) {
                   title="Create main category"
                   aria-label="Create main category"
                 >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"
-                    strokeLinecap="round" strokeLinejoin="round">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 5v14M5 12h14" />
                   </svg>
                 </button>
-              ) : null}
-            </div>
-          </div>
-          {items.length === 0 ? (
-            <p className="empty-state">No main categories yet.</p>
-          ) : (
-            <div className="table-shell">
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>Sr. No.</th>
-                    <th>Name</th>
-                    <th>Industry</th>
-                    <th>Status</th>
-                    <th className="table-actions">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pagedItems.map((item, index) => (
-                    <tr
-                      key={item.id}
-                      className={viewItem?.mainCategory?.id === item.id ? 'mv-row-active' : ''}
-                      onClick={() => handleView(item)}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      <td>{(safePage - 1) * pageSize + index + 1}</td>
-                      <td>{item.name}</td>
-                      <td>{industryNameById.get(item.industryId) || item.industryName || '-'}</td>
-                      <td><StatusBadge active={item.active} /></td>
-                      <td className="table-actions" onClick={(e) => e.stopPropagation()}>
-                        {(() => {
-                          const actions = [];
-                          actions.push({ label: 'View', onClick: () => handleView(item) });
-                          if (canUpdate) actions.push({ label: 'Edit', onClick: () => handleEdit(item) });
-                          if (canDelete) actions.push({ label: 'Delete', onClick: () => handleDelete(item.id), danger: true });
-                          if (actions.length === 0) return null;
-                          return (
-                            <TableRowActionMenu
-                              rowId={item.id}
-                              openRowId={openActionRowId}
-                              onToggle={setOpenActionRowId}
-                              actions={actions}
-                            />
-                          );
-                        })()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div className="bv-table-footer">
-                <div className="table-record-count">
-                  <span>{filteredItems.length === 0 ? '0 records' : `Showing ${(safePage - 1) * pageSize + 1}–${Math.min(safePage * pageSize, filteredItems.length)} of ${filteredItems.length}`}</span>
-                </div>
-                <div className="product-pagination-controls">
-                  <label className="product-pagination-size">
-                    <span>Rows</span>
-                    <select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}>
-                      {[10, 20, 50, 100].map((n) => <option key={n} value={n}>{n}</option>)}
-                    </select>
-                  </label>
-                  <div className="bv-table-pagination">
-                    <button type="button" className="secondary-btn" disabled={safePage === 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>{'< Prev'}</button>
-                    <span>Page {safePage} / {totalPages}</span>
-                    <button type="button" className="secondary-btn" disabled={safePage === totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>{'Next >'}</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+              ) : null
+            }
+          />
         </div>
 
         {/* ── View panel ── */}

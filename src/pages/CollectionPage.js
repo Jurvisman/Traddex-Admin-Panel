@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Banner, TableRowActionMenu, ToggleSwitch } from '../components';
+import { Banner, DataTable, TableRowActionMenu, ToggleSwitch } from '../components';
 import { usePermissions } from '../shared/permissions';
 import {
   createProductCollection,
@@ -156,6 +156,8 @@ function CollectionPage({ token }) {
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [sourceFilter, setSourceFilter] = useState('all');
   const [openActionRowId, setOpenActionRowId] = useState(null);
   const { hasPermission } = usePermissions();
   const canCreate = hasPermission(PRODUCT_MASTER_PERMISSIONS.collection.create);
@@ -189,6 +191,12 @@ function CollectionPage({ token }) {
   const filteredItems = useMemo(() => {
     const search = searchQuery.trim().toLowerCase();
     return items.filter((item) => {
+      if (statusFilter !== 'all' && String(item.active) !== statusFilter) {
+        return false;
+      }
+      if (sourceFilter !== 'all' && item.sourceType !== sourceFilter) {
+        return false;
+      }
       if (!search) return true;
       const haystack = [
         item.title,
@@ -202,7 +210,7 @@ function CollectionPage({ token }) {
         .join(' ');
       return haystack.includes(search);
     });
-  }, [items, searchQuery])
+  }, [items, searchQuery, statusFilter, sourceFilter])
   .sort((a, b) => (b.id ?? 0) - (a.id ?? 0));
 
   const paginated = useMemo(
@@ -1127,31 +1135,132 @@ function CollectionPage({ token }) {
 
       <div className={`mv-layout${viewItem ? ' mv-layout--split' : ''}`}>
         <div className="panel card users-table-card">
-          <div className="panel-split">
-            <div className="category-list-head-left">
-              <h3 className="panel-subheading">Collection list</h3>
-            </div>
-            <div className="gsc-datatable-toolbar-right">
-              <div className="gsc-toolbar-search">
-                <input
-                  type="search"
-                  placeholder="Search"
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  aria-label="Search collections"
-                />
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  style={{ width: 18, height: 18, color: '#6b7280', flexShrink: 0 }}
+          <DataTable
+            columns={[
+              {
+                key: 'srNo',
+                header: 'Sr. No.',
+                width: '70px',
+                render: (_, __, index) => (paginated.page - 1) * pageSize + index + 1,
+              },
+              {
+                key: 'title',
+                header: 'Title',
+                sortable: true,
+                render: (val, item) => (
+                  <span
+                    className="bdt-name-link"
+                    style={{ color: '#6345ED', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleView(item);
+                    }}
+                  >
+                    {val}
+                  </span>
+                ),
+              },
+              {
+                key: 'slug',
+                header: 'Slug',
+                sortable: true,
+                render: (val) => val || '-',
+              },
+              {
+                key: 'sourceType',
+                header: 'Source',
+                sortable: true,
+                render: (_, item) => (
+                  item.sourceType === 'PRODUCT_FEED'
+                    ? `Feed · ${String(item.feedType || 'BESTSELLER').replaceAll('_', ' ')}`
+                    : `Curated · ${Array.isArray(item.productIds) ? item.productIds.length : 0} products`
+                ),
+              },
+              {
+                key: 'scope',
+                header: 'Scope',
+                render: (_, item) => (
+                  [item.industryLabel, item.mainCategoryName, item.categoryName]
+                    .filter(Boolean)
+                    .join(' / ') || '-'
+                ),
+              },
+              {
+                key: 'active',
+                header: 'Status',
+                sortable: true,
+                render: (val) => (
+                  <span className={`status-pill ${Number(val) === 1 ? 'status-verified' : 'status-inactive'}`}>
+                    {Number(val) === 1 ? 'Active' : 'Inactive'}
+                  </span>
+                ),
+              },
+              {
+                key: 'actions',
+                header: 'Actions',
+                align: 'right',
+                render: (_, item) => {
+                  const actions = [{ label: 'View', onClick: () => handleView(item) }];
+                  if (canUpdate) {
+                    actions.push({ label: 'Edit', onClick: () => handleEdit(item) });
+                  }
+                  if (canDelete) {
+                    actions.push({ label: 'Delete', onClick: () => handleDelete(item.id), danger: true });
+                  }
+                  return (
+                    <div className="table-actions" onClick={(e) => e.stopPropagation()}>
+                      <TableRowActionMenu
+                        rowId={item.id}
+                        openRowId={openActionRowId}
+                        onToggle={setOpenActionRowId}
+                        actions={actions}
+                      />
+                    </div>
+                  );
+                },
+              },
+            ]}
+            data={filteredItems}
+            isLoading={isLoading}
+            search={searchQuery}
+            onSearchChange={(val) => { setSearchQuery(val); setPage(1); }}
+            searchPlaceholder="Search collections..."
+            page={paginated.page - 1}
+            pageSize={pageSize}
+            onPageChange={(p) => setPage(p + 1)}
+            onPageSizeChange={(newSize) => { setPageSize(newSize); setPage(1); }}
+            pageSizeOptions={PAGE_SIZE_OPTIONS}
+            onRowClick={(item) => handleView(item)}
+            emptyTitle="No collections yet"
+            emptyDescription="No collections match your criteria."
+            toolbarLeft={
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                <select
+                  className="gsc-toolbar-btn"
+                  value={statusFilter}
+                  onChange={(event) => { setStatusFilter(event.target.value); setPage(1); }}
+                  aria-label="Filter collections by status"
+                  style={{ border: 'none', background: '#f3f4f6', padding: '6px 12px', borderRadius: 8, fontSize: 13, cursor: 'pointer' }}
                 >
-                  <circle cx="11" cy="11" r="8" />
-                  <path d="m21 21-4.35-4.35" />
-                </svg>
+                  <option value="all">All status</option>
+                  <option value="1">Active only</option>
+                  <option value="0">Inactive only</option>
+                </select>
+                <select
+                  className="gsc-toolbar-btn"
+                  value={sourceFilter}
+                  onChange={(event) => { setSourceFilter(event.target.value); setPage(1); }}
+                  aria-label="Filter collections by source"
+                  style={{ border: 'none', background: '#f3f4f6', padding: '6px 12px', borderRadius: 8, fontSize: 13, cursor: 'pointer' }}
+                >
+                  <option value="all">All sources</option>
+                  <option value="CURATED">Curated only</option>
+                  <option value="PRODUCT_FEED">Feed only</option>
+                </select>
               </div>
-              {canCreate ? (
+            }
+            toolbarRight={
+              canCreate ? (
                 <button
                   type="button"
                   className="gsc-create-btn"
@@ -1159,115 +1268,13 @@ function CollectionPage({ token }) {
                   title="Create collection"
                   aria-label="Create collection"
                 >
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 5v14M5 12h14" />
                   </svg>
                 </button>
-              ) : null}
-            </div>
-          </div>
-
-          {filteredItems.length === 0 ? (
-            <p className="empty-state">No collections yet.</p>
-          ) : (
-            <div className="table-shell">
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>Sr. No.</th>
-                    <th>Title</th>
-                    <th>Slug</th>
-                    <th>Source</th>
-                    <th>Scope</th>
-                    <th>Status</th>
-                    <th className="table-actions">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginated.items.map((item, index) => (
-                    <tr
-                      key={item.id}
-                      className={viewItem?.id === item.id ? 'mv-row-active' : ''}
-                      onClick={() => handleView(item)}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      <td>{paginated.start + index + 1}</td>
-                      <td>
-                        <div className="user-name">
-                          <strong>{item.title}</strong>
-                          {item.subtitle ? <span>{item.subtitle}</span> : null}
-                        </div>
-                      </td>
-                      <td>{item.slug || '-'}</td>
-                      <td>
-                        {item.sourceType === 'PRODUCT_FEED'
-                          ? `Feed · ${String(item.feedType || 'BESTSELLER').replaceAll('_', ' ')}`
-                          : `Curated · ${Array.isArray(item.productIds) ? item.productIds.length : 0} products`}
-                      </td>
-                      <td>
-                        {[item.industryLabel, item.mainCategoryName, item.categoryName]
-                          .filter(Boolean)
-                          .join(' / ') || '-'}
-                      </td>
-                      <td>
-                        <span className={`status-pill ${Number(item.active) === 1 ? 'status-verified' : 'status-inactive'}`}>
-                          {Number(item.active) === 1 ? 'Active' : 'Inactive'}
-                        </span>
-                      </td>
-                      <td className="table-actions" onClick={(e) => e.stopPropagation()}>
-                        {(() => {
-                          const actions = [{ label: 'View', onClick: () => handleView(item) }];
-                          if (canUpdate) {
-                            actions.push({ label: 'Edit', onClick: () => handleEdit(item) });
-                          }
-                          if (canDelete) {
-                            actions.push({ label: 'Delete', onClick: () => handleDelete(item.id), danger: true });
-                          }
-                          return (
-                            <TableRowActionMenu
-                              rowId={item.id}
-                              openRowId={openActionRowId}
-                              onToggle={setOpenActionRowId}
-                              actions={actions}
-                            />
-                          );
-                        })()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div className="bv-table-footer">
-                <div className="table-record-count">
-                  <span>
-                    {paginated.totalItems === 0
-                      ? '0 records'
-                      : `Showing ${paginated.start + 1}–${paginated.end} of ${paginated.totalItems}`}
-                  </span>
-                </div>
-                <div className="product-pagination-controls">
-                  <label className="product-pagination-size">
-                    <span>Rows</span>
-                    <select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}>
-                      {PAGE_SIZE_OPTIONS.map((n) => <option key={n} value={n}>{n}</option>)}
-                    </select>
-                  </label>
-                  <div className="bv-table-pagination">
-                    <button type="button" className="secondary-btn" disabled={paginated.page <= 1} onClick={() => setPage((p) => p - 1)}>{'< Prev'}</button>
-                    <span>Page {paginated.page} / {paginated.totalPages}</span>
-                    <button type="button" className="secondary-btn" disabled={paginated.page >= paginated.totalPages} onClick={() => setPage((p) => p + 1)}>{'Next >'}</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+              ) : null
+            }
+          />
         </div>
 
         {/* Side view panel */}

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Banner, TableRowActionMenu } from '../components';
+import { Banner, DataTable, TableRowActionMenu } from '../components';
 import { createEmployee, deleteEmployee, fetchEmployees, listRoles, updateEmployee } from '../services/adminApi';
 
 const normalize = (value) => String(value || '').toLowerCase();
@@ -65,6 +65,7 @@ function EmployeePage({ token }) {
   const [roles, setRoles]               = useState([]);
   const [query, setQuery]               = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [filterRole, setFilterRole]     = useState('');
   const [isLoading, setIsLoading]       = useState(false);
   const [isSaving, setIsSaving]         = useState(false);
   const [editingId, setEditingId]       = useState(null);
@@ -79,6 +80,9 @@ function EmployeePage({ token }) {
 
   // Side view panel
   const [viewEmployee, setViewEmployee] = useState(null);
+
+  const resetForm = () => { setEditingId(null); setForm(createInitialForm()); };
+  const openCreateModal = () => { resetForm(); setViewEmployee(null); setShowForm(true); };
 
   const loadData = async () => {
     setIsLoading(true);
@@ -114,22 +118,23 @@ function EmployeePage({ token }) {
       }
       if (filterStatus) {
         const isActive = Number(emp?.active) === 1;
-        if (filterStatus === 'active'   && !isActive) return false;
-        if (filterStatus === 'inactive' && isActive)  return false;
+        if ((filterStatus === '1' || filterStatus === 'active') && !isActive) return false;
+        if ((filterStatus === '0' || filterStatus === 'inactive') && isActive) return false;
+      }
+      if (filterRole) {
+        const empRoleId = String(emp?.roleId || emp?.roles_id || emp?.role || '');
+        if (empRoleId !== String(filterRole)) return false;
       }
       return true;
     });
-  }, [employees, query, filterStatus]);
+  }, [employees, query, filterStatus, filterRole]);
 
   const pagedEmployees = useMemo(
     () => paginateItems(filteredEmployees, page, pageSize),
     [filteredEmployees, page, pageSize]
   );
 
-  useEffect(() => { setPage(0); }, [query, filterStatus]);
-
-  /* ── Form / CRUD handlers ───────────────────────────────────── */
-  const resetForm = () => { setEditingId(null); setForm(createInitialForm()); };
+  useEffect(() => { setPage(0); }, [query, filterStatus, filterRole]);
 
   const handleChange = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 
@@ -401,211 +406,171 @@ function EmployeePage({ token }) {
 
         {/* Table card */}
         <div className="panel card users-table-card">
-          {/* Toolbar */}
-          <div className="panel-split">
-            <div className="category-list-head-left">
-              <div className="gsc-datatable-toolbar-left">
-                <div className="bdt-toolbar-wrap">
-                  <button
-                    type="button"
-                    className={`gsc-toolbar-btn ${showFilterPanel ? 'active' : ''}`}
-                    onClick={() => setShowFilterPanel((v) => !v)}
+          <DataTable
+            columns={[
+              {
+                key: 'select',
+                header: (
+                  <input
+                    type="checkbox"
+                    className="select-checkbox"
+                    checked={allPageSelected}
+                    onChange={toggleSelectAll}
+                    title="Select all on this page"
+                  />
+                ),
+                width: '44px',
+                render: (_, emp) => {
+                  const id = emp?.id || emp?.userId;
+                  return (
+                    <input
+                      type="checkbox"
+                      className="select-checkbox"
+                      checked={selectedRows.has(id)}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => {
+                        setSelectedRows((prev) => {
+                          const next = new Set(prev);
+                          if (e.target.checked) next.add(id);
+                          else next.delete(id);
+                          return next;
+                        });
+                      }}
+                    />
+                  );
+                },
+              },
+              {
+                key: 'srNo',
+                header: 'Sr No',
+                width: '70px',
+                render: (_, __, index) => pagedEmployees.start + index + 1,
+              },
+              {
+                key: 'name',
+                header: 'Name',
+                sortable: true,
+                render: (val, emp) => (
+                  <span
+                    className="bdt-name-link"
+                    style={{ color: '#6345ED', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleView(emp);
+                    }}
                   >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M4 6h16M4 12h10M4 18h6" />
-                    </svg>
-                    Filter{filterStatus ? ' •' : ''}
-                  </button>
-                  {showFilterPanel && (
-                    <div className="bdt-dropdown-panel">
-                      <p className="bdt-dropdown-label">Status</p>
-                      {[
-                        { value: '', label: 'All' },
-                        { value: 'active',   label: 'Active' },
-                        { value: 'inactive', label: 'Inactive' },
-                      ].map((opt) => (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          className={`bdt-dropdown-option ${filterStatus === opt.value ? 'selected' : ''}`}
-                          onClick={() => { setFilterStatus(opt.value); setShowFilterPanel(false); }}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
-                      {filterStatus ? (
-                        <button
-                          type="button"
-                          className="bdt-dropdown-option danger"
-                          onClick={() => { setFilterStatus(''); setShowFilterPanel(false); }}
-                        >
-                          Clear Filter
-                        </button>
-                      ) : null}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="gsc-datatable-toolbar-right">
-              <div className="gsc-toolbar-search">
-                <input
-                  type="search"
-                  placeholder="Search employees..."
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  aria-label="Search employees"
-                />
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                  style={{ width: 18, height: 18, color: '#6b7280', flexShrink: 0 }}>
-                  <circle cx="11" cy="11" r="8" />
-                  <path d="m21 21-4.35-4.35" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          {/* Table */}
-          {isLoading ? (
-            <p className="empty-state">Loading employees...</p>
-          ) : filteredEmployees.length === 0 ? (
-            <p className="empty-state">No employees found.</p>
-          ) : (
-            <div className="table-shell business-table-shell">
-              <table className="admin-table users-table business-datatable">
-                <thead>
-                  <tr>
-                    <th className="bdt-checkbox-col">
-                      <input
-                        type="checkbox"
-                        className="select-checkbox"
-                        checked={allPageSelected}
-                        onChange={toggleSelectAll}
-                        title="Select all on this page"
-                      />
-                    </th>
-                    <th>Sr No</th>
-                    <th>Name</th>
-                    <th>Mobile</th>
-                    <th>Role</th>
-                    <th>Status</th>
-                    <th>Verification</th>
-                    <th>Joined</th>
-                    <th className="table-actions">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pagedEmployees.items.map((emp, index) => {
-                    const id       = emp?.id || emp?.userId;
-                    const isActive = Number(emp?.active) === 1;
-                    const isViewing = viewEmployee?.id === id;
-                    return (
-                      <tr
-                        key={id}
-                        className={`${selectedRows.has(id) ? 'bdt-row-selected' : ''} ${isViewing ? 'mv-row-active' : ''}`}
-                        onClick={() => handleView(emp)}
-                        style={{ cursor: 'pointer' }}
-                      >
-                        <td className="bdt-checkbox-col" onClick={(e) => e.stopPropagation()}>
-                          <input
-                            type="checkbox"
-                            className="select-checkbox"
-                            checked={selectedRows.has(id)}
-                            onChange={(e) => {
-                              setSelectedRows((prev) => {
-                                const next = new Set(prev);
-                                if (e.target.checked) next.add(id);
-                                else next.delete(id);
-                                return next;
-                              });
-                            }}
-                          />
-                        </td>
-                        <td>{pagedEmployees.start + index + 1}</td>
-                        <td>
-                          <span className="bdt-name-link">{emp?.name || '-'}</span>
-                        </td>
-                        <td>{emp?.number || '-'}</td>
-                        <td>{emp?.roleName || '-'}</td>
-                        <td>
-                          <span className={`status-pill ${isActive ? 'status-verified' : 'status-inactive'}`}>
-                            {isActive ? 'Active' : 'Inactive'}
-                          </span>
-                        </td>
-                        <td>
-                          <span className={`status-pill ${Number(emp?.verify) === 1 ? 'status-verified' : 'status-pending'}`}>
-                            {Number(emp?.verify) === 1 ? 'Verified' : 'Pending'}
-                          </span>
-                        </td>
-                        <td>{formatDate(emp?.createdAt || emp?.created_at)}</td>
-                        <td className="table-actions" onClick={(e) => e.stopPropagation()}>
-                          <div className="table-action-group">
-                            <TableRowActionMenu
-                              rowId={id}
-                              openRowId={openActionRowId}
-                              onToggle={setOpenActionRowId}
-                              actions={[
-                                { label: 'View',   onClick: () => handleView(emp) },
-                                { label: 'Edit',   onClick: () => handleEdit(emp) },
-                                { label: 'Delete', onClick: () => handleDelete(emp), danger: true },
-                              ]}
-                            />
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-
-              {/* Footer */}
-              <div className="bv-table-footer">
-                <div className="table-record-count">
-                  <span>
-                    Showing {pagedEmployees.totalItems ? pagedEmployees.start + 1 : 0}–{pagedEmployees.end} of {filteredEmployees.length} employees
+                    {val || emp?.name || '-'}
                   </span>
-                  {(query || filterStatus) ? (
-                    <span className="bdt-no-more">Filtered from {employees.length} total</span>
-                  ) : null}
-                </div>
-
-                <div className="product-pagination-controls">
-                  <label className="product-pagination-size">
-                    <span>Rows</span>
-                    <select
-                      value={pageSize}
-                      onChange={(e) => { setPageSize(Number(e.target.value) || 10); setPage(0); }}
-                    >
-                      {PAGE_SIZE_OPTIONS.map((s) => (
-                        <option key={s} value={s}>{s}</option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <div className="bv-table-pagination">
-                    <button
-                      type="button"
-                      className="secondary-btn"
-                      disabled={pagedEmployees.page === 0 || isLoading}
-                      onClick={() => setPage((p) => Math.max(p - 1, 0))}
-                    >
-                      {'< Prev'}
-                    </button>
-                    <span>Page {pagedEmployees.page + 1} / {pagedEmployees.totalPages}</span>
-                    <button
-                      type="button"
-                      className="secondary-btn"
-                      disabled={pagedEmployees.page >= pagedEmployees.totalPages - 1 || isLoading}
-                      onClick={() => setPage((p) => Math.min(p + 1, pagedEmployees.totalPages - 1))}
-                    >
-                      {'Next >'}
-                    </button>
-                  </div>
-                </div>
+                ),
+              },
+              {
+                key: 'number',
+                header: 'Mobile',
+                sortable: true,
+                render: (val) => val || '-',
+              },
+              {
+                key: 'roleName',
+                header: 'Role',
+                sortable: true,
+                render: (val) => val || '-',
+              },
+              {
+                key: 'active',
+                header: 'Status',
+                sortable: true,
+                render: (val) => <StatusBadge active={val} />,
+              },
+              {
+                key: 'verify',
+                header: 'Verification',
+                sortable: true,
+                render: (val) => <VerifyBadge verify={val} />,
+              },
+              {
+                key: 'createdAt',
+                header: 'Joined',
+                sortable: true,
+                render: (_, emp) => formatDate(emp?.createdAt || emp?.created_at),
+              },
+              {
+                key: 'actions',
+                header: 'Actions',
+                align: 'right',
+                render: (_, emp) => {
+                  const id = emp?.id || emp?.userId;
+                  return (
+                    <div className="table-actions" onClick={(e) => e.stopPropagation()}>
+                      <TableRowActionMenu
+                        rowId={id}
+                        openRowId={openActionRowId}
+                        onToggle={setOpenActionRowId}
+                        actions={[
+                          { label: 'View', onClick: () => handleView(emp) },
+                          { label: 'Edit', onClick: () => handleEdit(emp) },
+                          { label: 'Delete', onClick: () => handleDelete(emp), danger: true },
+                        ]}
+                      />
+                    </div>
+                  );
+                },
+              },
+            ]}
+            data={filteredEmployees}
+            isLoading={isLoading}
+            search={query}
+            onSearchChange={(val) => { setQuery(val); setPage(0); }}
+            searchPlaceholder="Search employees..."
+            page={page}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={(newSize) => { setPageSize(newSize); setPage(0); }}
+            pageSizeOptions={PAGE_SIZE_OPTIONS}
+            onRowClick={(emp) => handleView(emp)}
+            emptyTitle="No employees found"
+            emptyDescription="No employees match your search and filter criteria."
+            toolbarLeft={
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                <select
+                  className="gsc-toolbar-btn"
+                  value={filterStatus}
+                  onChange={(e) => { setFilterStatus(e.target.value); setPage(0); }}
+                  aria-label="Filter status"
+                  style={{ border: 'none', background: '#f3f4f6', padding: '6px 12px', borderRadius: 8, fontSize: 13, cursor: 'pointer' }}
+                >
+                  <option value="">All Statuses</option>
+                  <option value="1">Active</option>
+                  <option value="0">Inactive</option>
+                </select>
+                <select
+                  className="gsc-toolbar-btn"
+                  value={filterRole}
+                  onChange={(e) => { setFilterRole(e.target.value); setPage(0); }}
+                  aria-label="Filter role"
+                  style={{ border: 'none', background: '#f3f4f6', padding: '6px 12px', borderRadius: 8, fontSize: 13, cursor: 'pointer' }}
+                >
+                  <option value="">All Roles</option>
+                  {roles.map((r) => {
+                    const rId = getRoleId(r);
+                    return <option key={rId} value={rId}>{getRoleName(r)}</option>;
+                  })}
+                </select>
               </div>
-            </div>
-          )}
+            }
+            toolbarRight={
+              <button
+                type="button"
+                className="gsc-create-btn"
+                onClick={openCreateModal}
+                title="Add new employee"
+                aria-label="Add new employee"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+              </button>
+            }
+          />
         </div>
 
         {/* Side view panel */}
