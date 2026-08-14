@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Banner, TableRowActionMenu, ToggleSwitch } from '../components';
+import { useEffect, useMemo, useState, useCallback } from 'react';
+import { Banner, TableRowActionMenu, ToggleSwitch, DataTable } from '../components';
 import { usePermissions } from '../shared/permissions';
 import { createBrand, deleteBrand, listBrands, listProducts, updateBrand } from '../services/adminApi';
 import { PRODUCT_MASTER_PERMISSIONS } from '../constants/adminPermissions';
@@ -538,31 +538,101 @@ function BrandPage({ token }) {
 
       <div className={`mv-layout${viewItem ? ' mv-layout--split' : ''}`}>
         <div className="panel card users-table-card">
-          <div className="panel-split">
-            <div className="category-list-head-left">
-              <h3 className="panel-subheading">Brand master list</h3>
-            </div>
-            <div className="gsc-datatable-toolbar-right">
-              <div className="gsc-toolbar-search">
-                <input
-                  type="search"
-                  placeholder="Search brands"
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  aria-label="Search brands"
-                />
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  style={{ width: 18, height: 18, color: '#6b7280', flexShrink: 0 }}
-                >
-                  <circle cx="11" cy="11" r="8" />
-                  <path d="m21 21-4.35-4.35" />
-                </svg>
-              </div>
-              {canCreate ? (
+          <DataTable
+            columns={[
+              {
+                key: 'id',
+                header: 'Sr. No.',
+                width: '70px',
+                render: (_, __, index) => page * pageSize + index + 1,
+              },
+              {
+                key: 'brandName',
+                header: 'Brand',
+                sortable: true,
+                render: (val, item) => (
+                  <div>
+                    <strong>{val}</strong>
+                    {item.countryOfOrigin ? <div className="muted" style={{ fontSize: 12 }}>{item.countryOfOrigin}</div> : null}
+                  </div>
+                ),
+              },
+              {
+                key: 'approvalStatus',
+                header: 'Status',
+                sortable: true,
+                render: (status) => (
+                  <span
+                    className={`status-pill ${
+                      String(status || 'PENDING_REVIEW').toLowerCase().replace(/_/g, '-')
+                    }`}
+                  >
+                    {formatStatus(status)}
+                  </span>
+                ),
+              },
+              {
+                key: 'isActive',
+                header: 'Active',
+                render: (active) => (
+                  <span className={active ? 'status-verified' : 'status-inactive'}>
+                    {active ? 'Active' : 'Inactive'}
+                  </span>
+                ),
+              },
+              {
+                key: 'website',
+                header: 'Website',
+                render: (val) => val || '-',
+              },
+              {
+                key: 'updatedOn',
+                header: 'Updated On',
+                sortable: true,
+                render: (_, item) => formatDateTime(item?.updatedOn || item?.createdOn),
+              },
+              {
+                key: 'actions',
+                header: 'Actions',
+                align: 'right',
+                render: (_, item) => {
+                  const actions = [
+                    { label: 'View', onClick: () => handleView(item) },
+                  ];
+                  if (canUpdate) {
+                    actions.push({ label: 'Edit', onClick: () => handleEdit(item) });
+                  }
+                  if (canDelete) {
+                    actions.push({ label: 'Delete', onClick: () => handleDelete(item.id), danger: true });
+                  }
+                  return (
+                    <div className="table-actions" onClick={(e) => e.stopPropagation()}>
+                      <TableRowActionMenu
+                        rowId={item.id}
+                        openRowId={openActionRowId}
+                        onToggle={setOpenActionRowId}
+                        actions={actions}
+                      />
+                    </div>
+                  );
+                },
+              },
+            ]}
+            data={filteredItems}
+            isLoading={isLoading}
+            search={searchQuery}
+            onSearchChange={setSearchQuery}
+            searchPlaceholder="Search brands..."
+            page={page}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={(newSize) => { setPageSize(newSize); setPage(0); }}
+            pageSizeOptions={PAGE_SIZE_OPTIONS}
+            onRowClick={handleView}
+            emptyTitle="No brands created yet"
+            emptyDescription="There are no brand entries matching your criteria."
+            toolbarRight={
+              canCreate ? (
                 <button
                   type="button"
                   className="gsc-create-btn"
@@ -590,109 +660,9 @@ function BrandPage({ token }) {
                     <path d="M12 5v14M5 12h14" />
                   </svg>
                 </button>
-              ) : null}
-            </div>
-          </div>
-
-          {filteredItems.length === 0 ? (
-            <p className="empty-state">No brands created yet.</p>
-          ) : (
-            <>
-              <div className="table-shell">
-                <table className="admin-table">
-                  <thead>
-                    <tr>
-                      <th>Sr. No.</th>
-                      <th>Brand</th>
-                      <th>Status</th>
-                      <th>Active</th>
-                      <th>Website</th>
-                      <th>Updated On</th>
-                      <th className="table-actions">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paginated.items.map((item, index) => (
-                      <tr
-                        key={item.id}
-                        className={viewItem?.id === item.id ? 'mv-row-active' : ''}
-                        onClick={() => handleView(item)}
-                        style={{ cursor: 'pointer' }}
-                      >
-                        <td>{paginated.start + index + 1}</td>
-                        <td>
-                          <div>
-                            <strong>{item.brandName}</strong>
-                            {item.countryOfOrigin ? <div className="muted">{item.countryOfOrigin}</div> : null}
-                          </div>
-                        </td>
-                        <td>
-                          <span
-                            className={`status-pill ${
-                              String(item?.approvalStatus || 'PENDING_REVIEW').toLowerCase().replace(/_/g, '-')
-                            }`}
-                          >
-                            {formatStatus(item?.approvalStatus)}
-                          </span>
-                        </td>
-                        <td>
-                          <span className={item?.isActive ? 'status-verified' : 'status-inactive'}>
-                            {item?.isActive ? 'Active' : 'Inactive'}
-                          </span>
-                        </td>
-                        <td>{item?.website || '-'}</td>
-                        <td>{formatDateTime(item?.updatedOn || item?.createdOn)}</td>
-                        <td className="table-actions" onClick={(event) => event.stopPropagation()}>
-                          {(() => {
-                            const actions = [
-                              { label: 'View', onClick: () => handleView(item) },
-                            ];
-                            if (canUpdate) {
-                              actions.push({ label: 'Edit', onClick: () => handleEdit(item) });
-                            }
-                            if (canDelete) {
-                              actions.push({ label: 'Delete', onClick: () => handleDelete(item.id), danger: true });
-                            }
-                            if (actions.length === 0) return null;
-                            return (
-                              <TableRowActionMenu
-                                rowId={item.id}
-                                openRowId={openActionRowId}
-                                onToggle={setOpenActionRowId}
-                                actions={actions}
-                              />
-                            );
-                          })()}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="bv-table-footer">
-                <div className="table-record-count">
-                  <span>
-                    {paginated.totalItems === 0
-                      ? '0 records'
-                      : `Showing ${paginated.start + 1}–${paginated.end} of ${paginated.totalItems}`}
-                  </span>
-                </div>
-                <div className="product-pagination-controls">
-                  <label className="product-pagination-size">
-                    <span>Rows</span>
-                    <select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}>
-                      {PAGE_SIZE_OPTIONS.map((n) => <option key={n} value={n}>{n}</option>)}
-                    </select>
-                  </label>
-                  <div className="bv-table-pagination">
-                    <button type="button" className="secondary-btn" disabled={paginated.page <= 1} onClick={() => setPage((p) => p - 1)}>{'< Prev'}</button>
-                    <span>Page {paginated.page} / {paginated.totalPages}</span>
-                    <button type="button" className="secondary-btn" disabled={paginated.page >= paginated.totalPages} onClick={() => setPage((p) => p + 1)}>{'Next >'}</button>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
+              ) : null
+            }
+          />
         </div>
 
         {renderViewPanel()}

@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Banner } from '../components';
+import { useEffect, useMemo, useState, useCallback } from 'react';
+import { Banner, DataTable } from '../components';
 import { listOrderReturns, overrideOrderReturn } from '../services/adminApi';
 
 const normalize = (value) => String(value || '').toLowerCase();
@@ -27,7 +27,7 @@ const resolveStatusClass = (status) => {
 };
 
 const STATUS_OPTIONS = [
-  { label: 'All', value: '' },
+  { label: 'All Statuses', value: '' },
   { label: 'Requested', value: 'REQUESTED' },
   { label: 'Approved', value: 'APPROVED' },
   { label: 'Rejected', value: 'REJECTED' },
@@ -51,8 +51,10 @@ function OrderReturnsPage({ token }) {
   const [activeReturn, setActiveReturn] = useState(null);
   const [overrideForm, setOverrideForm] = useState({ status: 'APPROVED', resolution_note: '' });
   const [isSaving, setIsSaving] = useState(false);
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
 
-  const loadData = async (override = filters) => {
+  const loadData = useCallback(async (override = filters) => {
     setIsLoading(true);
     setMessage({ type: 'info', text: '' });
     try {
@@ -65,12 +67,11 @@ function OrderReturnsPage({ token }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [token, filters]);
 
   useEffect(() => {
     loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loadData]);
 
   const stats = useMemo(() => {
     const counts = { total: items.length, requested: 0, approved: 0, rejected: 0 };
@@ -84,38 +85,102 @@ function OrderReturnsPage({ token }) {
   }, [items]);
 
   const filteredItems = useMemo(() => {
+    let result = Array.isArray(items) ? items : [];
+    if (filters.status) {
+      result = result.filter((item) => String(item?.status || '').toUpperCase() === filters.status.toUpperCase());
+    }
     const term = normalize(query);
-    if (!term) return items;
-    return items.filter((item) => {
-      const haystack = [
-        item?.return_id,
-        item?.order_id,
-        item?.buyer_name,
-        item?.seller_name,
-        item?.reason,
-      ]
-        .map(normalize)
-        .join(' ');
-      return haystack.includes(term);
-    });
-  }, [items, query]);
+    if (term) {
+      result = result.filter((item) => {
+        const haystack = [
+          item?.return_id,
+          item?.order_id,
+          item?.buyer_name,
+          item?.seller_name,
+          item?.reason,
+        ]
+          .map(normalize)
+          .join(' ');
+        return haystack.includes(term);
+      });
+    }
+    return result;
+  }, [items, filters.status, query]);
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    loadData(filters);
-  };
-
-  const resetFilters = () => {
-    const next = { status: '' };
-    setFilters(next);
-    loadData(next);
-  };
+  useEffect(() => {
+    setPage(0);
+  }, [filters.status, query]);
 
   const openOverride = (item) => {
     setActiveReturn(item);
     setOverrideForm({ status: 'APPROVED', resolution_note: '' });
     setShowModal(true);
   };
+
+  const columns = useMemo(() => [
+    {
+      key: 'return_id',
+      header: 'Return ID',
+      sortable: true,
+      render: (val) => <strong>{val || '-'}</strong>,
+    },
+    {
+      key: 'order_id',
+      header: 'Order ID',
+      sortable: true,
+      render: (val) => <span style={{ color: '#6345ed', fontWeight: 600 }}>{val || '-'}</span>,
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      sortable: true,
+      render: (status) => (
+        <span className={`status-pill ${resolveStatusClass(status)}`}>
+          {formatStatus(status) || 'Requested'}
+        </span>
+      ),
+    },
+    {
+      key: 'buyer_name',
+      header: 'Buyer',
+      render: (val) => val || '-',
+    },
+    {
+      key: 'seller_name',
+      header: 'Seller',
+      render: (val) => val || '-',
+    },
+    {
+      key: 'reason',
+      header: 'Reason',
+      render: (val) => (
+        <span style={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block' }} title={val || ''}>
+          {val || '-'}
+        </span>
+      ),
+    },
+    {
+      key: 'created_on',
+      header: 'Created',
+      sortable: true,
+      render: (val, item) => formatDate(val || item?.createdAt),
+    },
+    {
+      key: 'resolved_on',
+      header: 'Resolved',
+      render: (val) => formatDate(val),
+    },
+    {
+      key: 'actions',
+      header: 'Action',
+      align: 'right',
+      render: (_, item) => (
+        <button type="button" className="ghost-btn small" onClick={() => openOverride(item)}>
+          Override
+        </button>
+      ),
+    },
+  ], []);
 
   const submitOverride = async (event) => {
     event.preventDefault();
@@ -128,7 +193,7 @@ function OrderReturnsPage({ token }) {
       setActiveReturn(null);
       setOverrideForm({ status: 'APPROVED', resolution_note: '' });
       await loadData(filters);
-      setMessage({ type: 'success', text: 'Return updated.' });
+      setMessage({ type: 'success', text: 'Return updated successfully.' });
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to update return.' });
     } finally {
@@ -149,7 +214,7 @@ function OrderReturnsPage({ token }) {
       </div>
       <Banner message={message} />
 
-      <div className="stat-grid">
+      <div className="stat-grid" style={{ marginBottom: 20 }}>
         <div className="stat-card admin-stat" style={{ '--stat-accent': '#0EA5E9' }}>
           <p className="stat-label">Total returns</p>
           <p className="stat-value">{stats.total}</p>
@@ -172,101 +237,45 @@ function OrderReturnsPage({ token }) {
         </div>
       </div>
 
-      <div className="panel card">
-        <div className="panel-split">
-          <h3 className="panel-subheading">Filters</h3>
-          <button type="button" className="ghost-btn small" onClick={resetFilters} disabled={isLoading}>
-            Reset
-          </button>
-        </div>
-        <form className="field-grid" onSubmit={handleSubmit}>
-          <label className="field">
-            <span>Status</span>
+      <DataTable
+        columns={columns}
+        data={filteredItems}
+        isLoading={isLoading}
+        search={query}
+        onSearchChange={setQuery}
+        searchPlaceholder="Search by return, order, buyer, seller..."
+        page={page}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={(newSize) => { setPageSize(newSize); setPage(0); }}
+        emptyTitle="No order returns found"
+        emptyDescription="No return requests match your search or filter criteria."
+        toolbarLeft={
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <select
               value={filters.status}
-              onChange={(event) => setFilters((prev) => ({ ...prev, status: event.target.value }))}
+              onChange={(e) => setFilters({ status: e.target.value })}
+              className="datatable-pagesize-select"
+              style={{ height: 38, padding: '0 12px', borderRadius: 9999, minWidth: 140 }}
             >
-              {STATUS_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
+              {STATUS_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
                 </option>
               ))}
             </select>
-          </label>
-          <label className="field">
-            <span>Search</span>
-            <input
-              type="search"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search by return, order, buyer, seller..."
-            />
-          </label>
-          <div className="field">
-            <button type="submit" className="primary-btn full" disabled={isLoading}>
-              {isLoading ? 'Loading...' : 'Apply'}
-            </button>
+            {filters.status && (
+              <button
+                type="button"
+                className="ghost-btn small"
+                onClick={() => setFilters({ status: '' })}
+              >
+                Clear Filter
+              </button>
+            )}
           </div>
-        </form>
-      </div>
-
-      <div className="panel card">
-        <div className="panel-split">
-          <h3 className="panel-subheading">Return list</h3>
-          <span className="panel-hint">{filteredItems.length} records</span>
-        </div>
-        <div className="table-shell">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Order</th>
-                <th>Status</th>
-                <th>Buyer</th>
-                <th>Seller</th>
-                <th>Reason</th>
-                <th>Created</th>
-                <th>Resolved</th>
-                <th className="table-actions">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredItems.map((item) => {
-                const statusClass = resolveStatusClass(item.status);
-                const statusLabel = formatStatus(item.status);
-                return (
-                  <tr key={item.return_id}>
-                    <td>{item.return_id}</td>
-                    <td>{item.order_id}</td>
-                    <td>
-                      <span className={`status-pill ${statusClass}`}>{statusLabel || 'Requested'}</span>
-                    </td>
-                    <td>{item.buyer_name || '-'}</td>
-                    <td>{item.seller_name || '-'}</td>
-                    <td>{item.reason || '-'}</td>
-                    <td>{formatDate(item.created_on)}</td>
-                    <td>{formatDate(item.resolved_on)}</td>
-                    <td className="table-actions">
-                      <div className="table-action-group">
-                        <button type="button" className="ghost-btn small" onClick={() => openOverride(item)}>
-                          Override
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-              {!filteredItems.length ? (
-                <tr>
-                  <td colSpan="9" className="empty-state">
-                    No returns found.
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
-      </div>
+        }
+      />
 
       {showModal ? (
         <div className="admin-modal-backdrop" onClick={() => setShowModal(false)}>
