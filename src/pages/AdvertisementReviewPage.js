@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Banner } from '../components';
+import { Banner, DataTable, TableRowActionMenu } from '../components';
 import { listAllAds, updateAdStatus } from '../services/adminApi';
 import { usePermissions } from '../shared/permissions';
 
@@ -18,7 +18,7 @@ function StatusChip({ status }) {
       style={{
         display: 'inline-flex',
         alignItems: 'center',
-        padding: '4px 8px',
+        padding: '3px 8px',
         borderRadius: '12px',
         backgroundColor: `${color}15`,
         border: `1px solid ${color}30`,
@@ -33,7 +33,7 @@ function StatusChip({ status }) {
           marginRight: 6,
         }}
       />
-      <span style={{ color, fontSize: 12, fontWeight: 600 }}>{status}</span>
+      <span style={{ color, fontSize: 11, fontWeight: 700 }}>{status}</span>
     </div>
   );
 }
@@ -47,6 +47,12 @@ function AdvertisementReviewPage({ token }) {
   const [message, setMessage] = useState({ type: 'info', text: '' });
   const [isLoading, setIsLoading] = useState(false);
   const [filterStatus, setFilterStatus] = useState('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [openActionRowId, setOpenActionRowId] = useState(null);
+
+  // Pagination
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
   
   // Modal states
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
@@ -143,200 +149,279 @@ function AdvertisementReviewPage({ token }) {
     };
   }, [ads]);
 
+  const filteredAds = useMemo(() => {
+    const term = searchQuery.trim().toLowerCase();
+    if (!term) return ads;
+    return ads.filter(ad => {
+      const haystack = [
+        ad.businessName,
+        ad.slotType,
+        ad.industry,
+        ad.targetValue,
+        ad.status,
+      ].map(v => String(v || '').toLowerCase()).join(' ');
+      return haystack.includes(term);
+    });
+  }, [ads, searchQuery]);
+
   return (
-    <div>
-      <div className="panel-head category-list-head">
+    <div className="ad-review-page">
+      <div className="panel-head category-list-head" style={{ marginBottom: 20 }}>
         <div className="category-list-head-left">
           <div>
-             <h2 className="panel-title">Advertisement Review</h2>
-             <p className="panel-subtitle">Review, approve, or reject business advertisements.</p>
+            <h2 className="panel-title">Advertisement Review</h2>
+            <p className="panel-subtitle">Review, approve, or reject business advertisements across slots.</p>
           </div>
         </div>
+        <div className="users-head-actions">
+          <button type="button" className="ghost-btn" onClick={loadAds} disabled={isLoading}>
+            {isLoading ? 'Refreshing...' : 'Refresh'}
+          </button>
+        </div>
       </div>
+
       <Banner message={message} />
 
       {/* Summary Cards */}
-      <div style={{ display: 'flex', gap: 16, marginBottom: 24, padding: '0 16px' }}>
-        <div style={{ backgroundColor: '#fff', padding: 16, borderRadius: 12, flex: 1, border: '1px solid #E5E7EB' }}>
-          <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 4 }}>Total Ads Shown</p>
-          <p style={{ fontSize: 24, fontWeight: 700, color: '#111827' }}>{stats.total}</p>
+      <div className="stat-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', marginBottom: 24 }}>
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#6345ED' }}>
+          <p className="stat-label">Total Ads</p>
+          <p className="stat-value" style={{ color: '#6345ED' }}>{stats.total}</p>
+          <p className="stat-sub">Across all statuses</p>
         </div>
-        <div style={{ backgroundColor: '#fff', padding: 16, borderRadius: 12, flex: 1, border: '1px solid #E5E7EB' }}>
-          <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 4 }}>Pending Review</p>
-          <p style={{ fontSize: 24, fontWeight: 700, color: '#F59E0B' }}>{stats.pending}</p>
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#F59E0B' }}>
+          <p className="stat-label">Pending Review</p>
+          <p className="stat-value" style={{ color: '#F59E0B' }}>{stats.pending}</p>
+          <p className="stat-sub">Action required</p>
         </div>
-        <div style={{ backgroundColor: '#fff', padding: 16, borderRadius: 12, flex: 1, border: '1px solid #E5E7EB' }}>
-          <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 4 }}>Active Running</p>
-          <p style={{ fontSize: 24, fontWeight: 700, color: '#10B981' }}>{stats.active}</p>
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#10B981' }}>
+          <p className="stat-label">Active Running</p>
+          <p className="stat-value" style={{ color: '#10B981' }}>{stats.active}</p>
+          <p className="stat-sub">Live on app/web</p>
         </div>
       </div>
 
-      <div className="panel card subscription-plan-page">
-        <div className="panel-split" style={{ marginBottom: 16 }}>
-          <h3 className="panel-subheading">Advertisement List</h3>
-          <select 
-            className="panel-select" 
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #E5E7EB' }}
-          >
-            <option value="ALL">All Ads</option>
-            <option value="PENDING">Pending Review</option>
-            <option value="ACTIVE">Active Running</option>
-            <option value="REJECTED">Rejected</option>
-            <option value="EXPIRED">Expired</option>
-          </select>
-        </div>
-
-        {isLoading && ads.length === 0 ? (
-          <p className="empty-state">Loading advertisements...</p>
-        ) : ads.length === 0 ? (
-          <p className="empty-state">No advertisements found for this filter.</p>
-        ) : (
-          <div className="table-shell" style={{ overflowX: 'auto' }}>
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th style={{ width: 100, minWidth: 100 }}>Banner</th>
-                  <th style={{ minWidth: 180 }}>Business & Target</th>
-                  <th style={{ minWidth: 140 }}>Duration</th>
-                  <th style={{ minWidth: 100 }}>Performance</th>
-                  <th style={{ minWidth: 120 }}>Status</th>
-                  <th className="table-actions" style={{ minWidth: 180 }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ads.map((ad) => (
-                  <tr key={ad.id}>
-                    <td style={{ width: 100 }}>
-                      <div style={{ width: 80, minWidth: 80, height: 45, backgroundColor: '#F3F4F6', borderRadius: 6, overflow: 'hidden' }}>
-                        {ad.bannerUrl ? (
-                          <img src={ad.bannerUrl} alt="Ad Banner" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        ) : (
-                          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9CA3AF', fontSize: 10 }}>No Image</div>
-                        )}
-                      </div>
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 600, color: '#111827', marginBottom: 4 }}>{ad.businessName}</div>
-                      <div style={{ fontSize: 12, color: '#6B7280', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ backgroundColor: '#F3F4F6', padding: '2px 6px', borderRadius: 4, fontWeight: 500 }}>{ad.slotType}</span>
-                          <span style={{ color: '#9CA3AF' }}>•</span>
-                          <span style={{ fontWeight: 500, color: '#4B5563', textTransform: 'capitalize' }}>Industry: {ad.industry || 'N/A'}</span>
-                        </div>
-                        <div style={{ color: '#10B981' }}>
-                          Target: {ad.targetType === 'RADIUS' ? `Radius (${ad.targetRadiusKm}km)` : ad.targetValue || 'Global'}
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <div style={{ fontSize: 13, color: '#111827', fontWeight: 500 }}>{ad.durationHours} Hours</div>
-                      <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>
-                         {ad.startTime ? new Date(ad.startTime).toLocaleDateString() : 'Not started'} 
-                      </div>
-                    </td>
-                    <td>
-                      <div style={{ fontSize: 13, color: '#4B5563', display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg> 
-                        {ad.impressions || 0}
-                      </div>
-                      <div style={{ fontSize: 13, color: '#4B5563', display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"></path></svg> 
-                        {ad.clicks || 0}
-                      </div>
-                    </td>
-                    <td>
-                      <StatusChip status={ad.status} />
-                      {ad.adminNote && ad.status === 'REJECTED' && (
-                        <div style={{ fontSize: 11, color: '#EF4444', marginTop: 4, maxWidth: 120, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          Reason: {ad.adminNote}
-                        </div>
-                      )}
-                    </td>
-                    <td className="table-actions">
-                      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                        <button 
-                          onClick={() => navigate(`/admin/advertisement/review/${ad.id}`)}
-                          style={{ padding: '6px 12px', backgroundColor: '#EFF6FF', color: '#1D4ED8', borderRadius: 6, border: '1px solid #BFDBFE', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}
-                        >
-                          View Details
-                        </button>
-                        {canUpdate && ad.status === 'PENDING' && (
-                          <>
-                            <button 
-                              onClick={() => handleApprove(ad)}
-                              style={{ padding: '6px 12px', backgroundColor: '#10B981', color: '#fff', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}
-                            >
-                              Approve
-                            </button>
-                            <button 
-                              onClick={() => openRejectModal(ad)}
-                              style={{ padding: '6px 12px', backgroundColor: '#FEE2E2', color: '#EF4444', borderRadius: 6, border: '1px solid #FCA5A5', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}
-                            >
-                              Reject
-                            </button>
-                          </>
-                        )}
-                        {canUpdate && ad.status === 'ACTIVE' && (
-                          <button 
-                            onClick={() => handleForceExpire(ad)}
-                            style={{ padding: '6px 12px', backgroundColor: '#F3F4F6', color: '#6B7280', borderRadius: 6, border: '1px solid #D1D5DB', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}
-                          >
-                            Expire 
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+      <div className="panel card users-table-card">
+        <DataTable
+          columns={[
+            {
+              key: 'banner',
+              header: 'Banner',
+              width: '100px',
+              render: (_, ad) => (
+                <div style={{ width: 80, height: 44, backgroundColor: '#F3F4F6', borderRadius: 6, overflow: 'hidden' }}>
+                  {ad.bannerUrl ? (
+                    <img src={ad.bannerUrl} alt="Ad Banner" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9CA3AF', fontSize: 10 }}>No Image</div>
+                  )}
+                </div>
+              ),
+            },
+            {
+              key: 'businessName',
+              header: 'Business & Target',
+              sortable: true,
+              render: (val, ad) => (
+                <div>
+                  <span
+                    className="bdt-name-link"
+                    style={{ color: '#6345ED', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/admin/advertisement/review/${ad.id}`);
+                    }}
+                  >
+                    {val || 'Unknown Business'}
+                  </span>
+                  <div style={{ fontSize: 11, color: '#6B7280', display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                    <span style={{ backgroundColor: '#F3F4F6', padding: '1px 6px', borderRadius: 4, fontWeight: 600 }}>{ad.slotType}</span>
+                    <span>•</span>
+                    <span style={{ color: '#059669', fontWeight: 500 }}>
+                      {ad.targetType === 'RADIUS' ? `Radius (${ad.targetRadiusKm}km)` : ad.targetValue || 'Global'}
+                    </span>
+                  </div>
+                </div>
+              ),
+            },
+            {
+              key: 'durationHours',
+              header: 'Duration',
+              sortable: true,
+              render: (val, ad) => (
+                <div>
+                  <div style={{ fontWeight: 600 }}>{val} Hours</div>
+                  <div style={{ fontSize: 11, color: '#6B7280' }}>
+                    {ad.startTime ? new Date(ad.startTime).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Not started'}
+                  </div>
+                </div>
+              ),
+            },
+            {
+              key: 'performance',
+              header: 'Performance',
+              render: (_, ad) => (
+                <div style={{ fontSize: 12, color: '#4B5563', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    <span>{ad.impressions || 0} views</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"></path></svg>
+                    <span>{ad.clicks || 0} clicks</span>
+                  </div>
+                </div>
+              ),
+            },
+            {
+              key: 'status',
+              header: 'Status',
+              sortable: true,
+              render: (val, ad) => (
+                <div>
+                  <StatusChip status={val} />
+                  {ad.adminNote && ad.status === 'REJECTED' && (
+                    <div style={{ fontSize: 11, color: '#EF4444', marginTop: 2, maxWidth: 140, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={ad.adminNote}>
+                      Reason: {ad.adminNote}
+                    </div>
+                  )}
+                </div>
+              ),
+            },
+            {
+              key: 'actions',
+              header: 'Actions',
+              align: 'right',
+              render: (_, ad) => {
+                const actions = [];
+                actions.push({
+                  label: 'View Details',
+                  onClick: () => navigate(`/admin/advertisement/review/${ad.id}`),
+                });
+                if (canUpdate && ad.status === 'PENDING') {
+                  actions.push({
+                    label: 'Approve Ad',
+                    onClick: () => handleApprove(ad),
+                  });
+                  actions.push({
+                    label: 'Reject Ad',
+                    onClick: () => openRejectModal(ad),
+                    danger: true,
+                  });
+                }
+                if (canUpdate && ad.status === 'ACTIVE') {
+                  actions.push({
+                    label: 'Expire Ad',
+                    onClick: () => handleForceExpire(ad),
+                    danger: true,
+                  });
+                }
+                return (
+                  <div className="table-actions" onClick={(e) => e.stopPropagation()}>
+                    <TableRowActionMenu
+                      rowId={ad.id}
+                      openRowId={openActionRowId}
+                      onToggle={setOpenActionRowId}
+                      actions={actions}
+                    />
+                  </div>
+                );
+              },
+            },
+          ]}
+          data={filteredAds}
+          isLoading={isLoading}
+          search={searchQuery}
+          onSearchChange={(val) => { setSearchQuery(val); setPage(0); }}
+          searchPlaceholder="Search ads by business, slot, industry..."
+          page={page}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={(newSize) => { setPageSize(newSize); setPage(0); }}
+          pageSizeOptions={[10, 25, 50]}
+          onRowClick={(ad) => navigate(`/admin/advertisement/review/${ad.id}`)}
+          emptyTitle="No advertisements found"
+          emptyDescription="No advertisements match your filter criteria."
+          toolbarLeft={
+            <select
+              className="gsc-toolbar-btn"
+              value={filterStatus}
+              onChange={(e) => { setFilterStatus(e.target.value); setPage(0); }}
+              style={{ border: 'none', background: '#f3f4f6', padding: '6px 12px', borderRadius: 8, fontSize: 13, cursor: 'pointer' }}
+            >
+              <option value="ALL">All Statuses</option>
+              <option value="PENDING">Pending Review</option>
+              <option value="ACTIVE">Active Running</option>
+              <option value="REJECTED">Rejected</option>
+              <option value="EXPIRED">Expired</option>
+            </select>
+          }
+        />
       </div>
 
       {/* Reject Modal */}
       {isRejectModalOpen && selectedAdForReject && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000,
-          display: 'flex', alignItems: 'center', justifyContent: 'center'
-        }}>
-          <div style={{
-            backgroundColor: '#fff', padding: 24, borderRadius: 12, width: '100%', maxWidth: 400,
-            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)'
-          }}>
-            <h3 style={{ margin: 0, fontSize: 18, color: '#111827' }}>Reject Advertisement</h3>
-            <p style={{ fontSize: 13, color: '#6B7280', marginTop: 8, marginBottom: 16 }}>
-              Provide a reason for rejecting the ad from <strong>{selectedAdForReject.businessName}</strong>. This will be visible to the user.
-            </p>
-            
-            <form onSubmit={handleRejectSubmit}>
-              <div style={{ marginBottom: 16 }}>
-                <textarea
-                  required
-                  value={adminNote}
-                  onChange={(e) => setAdminNote(e.target.value)}
-                  placeholder="e.g. Image quality is too low, violates policy..."
-                  style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #D1D5DB', minHeight: 80, fontSize: 14 }}
-                />
+        <div className="admin-modal-backdrop" role="dialog" aria-modal="true" onClick={closeRejectModal}>
+          <div
+            className="admin-modal cat-unified-modal"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '440px' }}
+          >
+            <div style={{
+              padding: '18px 24px 14px',
+              borderBottom: '1px solid #f1f5f9',
+              display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12,
+            }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#1e293b' }}>Reject Advertisement</h3>
+                <p style={{ margin: '2px 0 0', fontSize: 12, color: '#94a3b8' }}>
+                  Business: {selectedAdForReject.businessName}
+                </p>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-                <button 
-                  type="button" 
-                  onClick={closeRejectModal}
-                  style={{ padding: '8px 16px', backgroundColor: '#fff', border: '1px solid #D1D5DB', borderRadius: 8, color: '#374151', fontWeight: 500, cursor: 'pointer' }}
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit"
-                  disabled={isLoading}
-                  style={{ padding: '8px 16px', backgroundColor: '#EF4444', border: 'none', borderRadius: 8, color: '#fff', fontWeight: 500, cursor: isLoading ? 'not-allowed' : 'pointer' }}
-                >
-                  {isLoading ? 'Processing...' : 'Confirm Reject'}
-                </button>
+              <button
+                type="button"
+                onClick={closeRejectModal}
+                aria-label="Close"
+                style={{
+                  background: '#f1f5f9', border: 'none', borderRadius: 8,
+                  width: 32, height: 32, cursor: 'pointer', color: '#64748b',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14,
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleRejectSubmit}>
+              <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <p style={{ fontSize: 13, color: '#64748b', margin: 0 }}>
+                  Provide a reason for rejecting this ad. The reason will be communicated to the merchant.
+                </p>
+
+                <label className="field">
+                  <span>Rejection Reason *</span>
+                  <textarea
+                    required
+                    rows={4}
+                    value={adminNote}
+                    onChange={(e) => setAdminNote(e.target.value)}
+                    placeholder="e.g. Low image resolution / Promotional content guideline violation..."
+                  />
+                </label>
+
+                <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
+                  <button type="button" className="ghost-btn" onClick={closeRejectModal}>
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="primary-btn"
+                    style={{ background: '#EF4444', borderColor: '#EF4444' }}
+                    disabled={isLoading}
+                  >
+                    Confirm Rejection
+                  </button>
+                </div>
               </div>
             </form>
           </div>

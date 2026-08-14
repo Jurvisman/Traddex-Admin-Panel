@@ -26,7 +26,7 @@ const formatDateTime = (val) => {
 const StatusBadge = ({ cat }) => {
   const style = CAT_COLORS[cat] || { bg: '#f1f5f9', color: '#475569' };
   return (
-    <span className="category-badge" style={{ background: style.bg, color: style.color }}>
+    <span className="category-badge" style={{ background: style.bg, color: style.color, fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 6 }}>
       {cat}
     </span>
   );
@@ -158,43 +158,39 @@ function AuditLogsPage({ token }) {
 
         {/* Data Changes */}
         <div className="mv-section">
-          <p className="mv-section-label">Data Changes</p>
+          <p className="mv-section-label">Audit Diff Payload</p>
           {hasDiff ? (
-            <div className="diff-box">
-              <table className="diff-table">
-                <thead>
-                  <tr>
-                    <th>Field</th>
-                    <th>Previous</th>
-                    <th>New</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.entries(parsedDetails).map(([key, val]) => {
-                    // Handle new structured diff: { key: { old: ..., new: ... } }
-                    if (val && typeof val === 'object' && 'old' in val && 'new' in val) {
-                      return (
-                        <tr key={key}>
-                          <td>{key}</td>
-                          <td className="val-old">{String(val.old ?? 'N/A')}</td>
-                          <td className="val-new">{String(val.new ?? 'N/A')}</td>
-                        </tr>
-                      );
-                    }
-                    // Handle legacy flat diff (show as NEW)
-                    return (
-                      <tr key={key}>
-                        <td>{key}</td>
-                        <td className="val-old">-</td>
-                        <td className="val-new">{String(val)}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+            <div className="diff-view" style={{ fontSize: 12 }}>
+              {Object.entries(parsedDetails).map(([key, change]) => {
+                if (change && typeof change === 'object' && ('old' in change || 'new' in change)) {
+                  return (
+                    <div key={key} style={{ marginBottom: 8, background: '#f8fafc', padding: 8, borderRadius: 6 }}>
+                      <strong style={{ color: '#334155' }}>{key}</strong>
+                      <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                        <span style={{ color: '#ef4444', textDecoration: 'line-through' }}>
+                          {JSON.stringify(change.old)}
+                        </span>
+                        <span>→</span>
+                        <span style={{ color: '#10b981', fontWeight: 600 }}>
+                          {JSON.stringify(change.new)}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })}
             </div>
           ) : (
-            <pre style={{ background: '#f8fafc', padding: 12, borderRadius: 8, fontSize: 11, overflowX: 'auto', margin: 0 }}>
+            <pre style={{
+              background: '#0f172a',
+              color: '#38bdf8',
+              padding: 12,
+              borderRadius: 8,
+              fontSize: 11,
+              overflowX: 'auto',
+              maxHeight: 200,
+            }}>
               {JSON.stringify(parsedDetails, null, 2)}
             </pre>
           )}
@@ -205,34 +201,42 @@ function AuditLogsPage({ token }) {
 
   return (
     <div className="audit-container">
-      <div className="panel-head">
-        <div>
-          <h2 className="panel-title">Audit Sentinel</h2>
-          <p className="panel-subtitle">Activity monitoring and security auditing for Deal 360.</p>
+      <div className="panel-head category-list-head" style={{ marginBottom: 20 }}>
+        <div className="category-list-head-left">
+          <div>
+            <h2 className="panel-title">Audit Sentinel</h2>
+            <p className="panel-subtitle">Activity monitoring and security auditing across all system modules.</p>
+          </div>
+        </div>
+        <div className="users-head-actions">
+          <button type="button" className="ghost-btn" onClick={() => load(0)} disabled={isLoading}>
+            {isLoading ? 'Refreshing...' : 'Refresh'}
+          </button>
         </div>
       </div>
 
-      <div className="audit-stats-grid">
-        <div className="glass-card">
-          <div className="stat-label">Total Events</div>
-          <div className="stat-value">{stats.totalToday}</div>
+      <div className="stat-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', marginBottom: 24 }}>
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#6345ED' }}>
+          <p className="stat-label">Total Events</p>
+          <p className="stat-value" style={{ color: '#6345ED' }}>{stats.totalToday}</p>
+          <p className="stat-sub">System audit log records</p>
         </div>
-        <div className="glass-card">
-          <div className="stat-label">Sensitive Alerts</div>
-          <div className="stat-value" style={{ color: '#f59e0b' }}>
-            {stats.sensitiveToday} ⚠️
-          </div>
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#F59E0B' }}>
+          <p className="stat-label">Sensitive Alerts</p>
+          <p className="stat-value" style={{ color: '#F59E0B' }}>{stats.sensitiveToday}</p>
+          <p className="stat-sub">High-priority security actions</p>
         </div>
-        <div className="glass-card">
-          <div className="stat-label">Unique Actors</div>
-          <div className="stat-value" style={{ color: '#6366f1' }}>{stats.uniqueActors}</div>
+        <div className="stat-card admin-stat" style={{ '--stat-accent': '#0EA5E9' }}>
+          <p className="stat-label">Unique Actors</p>
+          <p className="stat-value" style={{ color: '#0EA5E9' }}>{stats.uniqueActors}</p>
+          <p className="stat-sub">Active administrators</p>
         </div>
       </div>
 
       <div className={`mv-layout${selectedLog ? ' mv-layout--split' : ''}`}>
         
         {/* ── List Panel ── */}
-        <div className="panel card">
+        <div className="panel card users-table-card">
           <DataTable
             columns={[
               {
@@ -244,7 +248,7 @@ function AuditLogsPage({ token }) {
                     <div className="actor-avatar" style={{ width: 28, height: 28, fontSize: 12 }}>
                       {(log.actor_name || '?').charAt(0).toUpperCase()}
                     </div>
-                    <span className="bdt-name-link" style={{ color: '#6345ED', fontWeight: 600, cursor: 'pointer' }}>
+                    <span className="bdt-name-link" style={{ color: '#6345ED', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
                       {log.actor_name || 'System'}
                     </span>
                   </div>
@@ -258,7 +262,7 @@ function AuditLogsPage({ token }) {
                   <span style={{
                     fontSize: 12,
                     fontWeight: 700,
-                    color: val === 'DELETED' ? '#ef4444' : val === 'CREATED' ? '#10b981' : '#6366f1',
+                    color: val === 'DELETED' ? '#ef4444' : val === 'CREATED' ? '#10b981' : '#6345ED',
                   }}>
                     {val}
                   </span>
@@ -275,7 +279,7 @@ function AuditLogsPage({ token }) {
                 header: 'Entity',
                 sortable: true,
                 render: (_, log) => (
-                  <div style={{ fontSize: 12 }}>
+                  <div style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
                     <span style={{ fontWeight: 600 }}>{log.entity_type}</span>
                     {log.entity_id && <span style={{ color: '#94a3b8', marginLeft: 4 }}>#{log.entity_id}</span>}
                   </div>
@@ -285,7 +289,7 @@ function AuditLogsPage({ token }) {
                 key: 'timestamp',
                 header: 'Time',
                 sortable: true,
-                render: (val) => <span style={{ fontSize: 12, color: '#64748b' }}>{formatDateTime(val)}</span>,
+                render: (val) => <span style={{ fontSize: 12, color: '#64748b', whiteSpace: 'nowrap' }}>{formatDateTime(val)}</span>,
               },
             ]}
             data={filteredLogs}
@@ -303,17 +307,17 @@ function AuditLogsPage({ token }) {
             toolbarLeft={
               <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                 <select
-                  className="pill-select"
+                  className="gsc-toolbar-btn"
                   value={category}
                   onChange={e => setCategory(e.target.value)}
-                  style={{ height: 36, borderRadius: 10, border: '1px solid #e2e8f0', padding: '0 12px', fontSize: 13, background: '#f8fafc' }}
+                  style={{ border: 'none', background: '#f3f4f6', padding: '6px 12px', borderRadius: 8, fontSize: 13, cursor: 'pointer' }}
                 >
                   <option value="">All Categories</option>
                   {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer', color: '#64748b', fontWeight: 600 }}>
                   <input type="checkbox" checked={sensitiveOnly} onChange={e => setSensitiveOnly(e.target.checked)} />
-                  Sensitive
+                  Sensitive Only
                 </label>
               </div>
             }

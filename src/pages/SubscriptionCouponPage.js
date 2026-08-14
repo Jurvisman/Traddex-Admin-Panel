@@ -96,6 +96,8 @@ function SubscriptionCouponPage({ token }) {
   const [redemptionSearch, setRedemptionSearch] = useState('');
   const [couponPage, setCouponPage] = useState(0);
   const [couponPageSize, setCouponPageSize] = useState(10);
+  const [redemptionPage, setRedemptionPage] = useState(0);
+  const [redemptionPageSize, setRedemptionPageSize] = useState(10);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState({ type: 'info', text: '' });
@@ -920,73 +922,100 @@ function SubscriptionCouponPage({ token }) {
       ) : null}
 
       {canReport ? (
-        <section className="panel card subscription-coupon-report">
-          <div className="gsc-datatable-toolbar">
-            <div className="gsc-datatable-toolbar-left">
-              <h3 className="panel-subheading">Coupon Usage Report</h3>
-              <p className="panel-subtitle">Track which business used which coupon and payment status.</p>
-            </div>
-            <div className="gsc-datatable-toolbar-right">
-              <select value={selectedCouponId} onChange={(event) => handleReportFilter(event.target.value)}>
-                <option value="">All coupons</option>
+        <section className="panel card subscription-coupon-report" style={{ marginTop: 24 }}>
+          <DataTable
+            columns={[
+              {
+                key: 'couponCode',
+                header: 'Coupon',
+                sortable: true,
+                render: (val) => <strong style={{ color: '#6345ED' }}>{val || '-'}</strong>,
+              },
+              {
+                key: 'businessName',
+                header: 'Business',
+                sortable: true,
+                render: (val) => (
+                  <span className="bdt-name-link" style={{ color: '#6345ED', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                    {val || '-'}
+                  </span>
+                ),
+              },
+              {
+                key: 'mobile',
+                header: 'Mobile',
+                render: (val) => val || '-',
+              },
+              {
+                key: 'planName',
+                header: 'Plan',
+                sortable: true,
+                render: (val) => val || '-',
+              },
+              {
+                key: 'baseAmount',
+                header: 'Base (₹)',
+                sortable: true,
+                render: (val) => `₹${money(val)}`,
+              },
+              {
+                key: 'launchDiscountAmount',
+                header: 'Launch Disc (₹)',
+                render: (val) => `₹${money(val)}`,
+              },
+              {
+                key: 'couponDiscountAmount',
+                header: 'Coupon Disc (₹)',
+                render: (val) => `₹${money(val)}`,
+              },
+              {
+                key: 'finalAmount',
+                header: 'Final (₹)',
+                sortable: true,
+                render: (val) => <strong>₹{money(val)}</strong>,
+              },
+              {
+                key: 'status',
+                header: 'Status',
+                sortable: true,
+                render: (val) => (
+                  <span className={`status-pill ${statusClass(val)}`}>{val || '-'}</span>
+                ),
+              },
+            ]}
+            data={filteredRedemptions}
+            isLoading={isLoading}
+            search={redemptionSearch}
+            onSearchChange={(val) => { setRedemptionSearch(val); setRedemptionPage(0); }}
+            searchPlaceholder="Search coupon usage..."
+            page={redemptionPage}
+            pageSize={redemptionPageSize}
+            onPageChange={setRedemptionPage}
+            onPageSizeChange={(newSize) => { setRedemptionPageSize(newSize); setRedemptionPage(0); }}
+            pageSizeOptions={[10, 25, 50]}
+            emptyTitle="No coupon usage yet"
+            emptyDescription="No business redemptions found for this coupon."
+            toolbarLeft={
+              <select
+                value={selectedCouponId}
+                onChange={(event) => handleReportFilter(event.target.value)}
+                className="gsc-toolbar-btn"
+                style={{ border: 'none', background: '#f3f4f6', padding: '6px 12px', borderRadius: 8, fontSize: 13, cursor: 'pointer' }}
+              >
+                <option value="">All Coupons</option>
                 {coupons.map((coupon) => (
                   <option key={coupon.id} value={coupon.id}>
                     {coupon.code}
                   </option>
                 ))}
               </select>
-              <div className="gsc-toolbar-search">
-                <input
-                  type="search"
-                  placeholder="Search report..."
-                  value={redemptionSearch}
-                  onChange={(event) => setRedemptionSearch(event.target.value)}
-                />
-              </div>
+            }
+            toolbarRight={
               <button type="button" className="ghost-btn small" onClick={exportRedemptions}>
                 Export CSV
               </button>
-            </div>
-          </div>
-
-          {filteredRedemptions.length === 0 ? (
-            <p className="empty-state">No coupon usage yet.</p>
-          ) : (
-            <div className="gsc-table-scroll">
-              <table className="gsc-data-table">
-                <thead>
-                  <tr>
-                    <th>Coupon</th>
-                    <th>Business</th>
-                    <th>Mobile</th>
-                    <th>Plan</th>
-                    <th>Base</th>
-                    <th>Launch</th>
-                    <th>Coupon</th>
-                    <th>Final</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredRedemptions.map((item) => (
-                    <tr key={item.id}>
-                      <td>{item.couponCode || '-'}</td>
-                      <td>{item.businessName || '-'}</td>
-                      <td>{item.mobile || '-'}</td>
-                      <td>{item.planName || '-'}</td>
-                      <td>Rs. {money(item.baseAmount)}</td>
-                      <td>Rs. {money(item.launchDiscountAmount)}</td>
-                      <td>Rs. {money(item.couponDiscountAmount)}</td>
-                      <td>Rs. {money(item.finalAmount)}</td>
-                      <td>
-                        <span className={`status-pill ${statusClass(item.status)}`}>{item.status || '-'}</span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+            }
+          />
         </section>
       ) : null}
     </div>

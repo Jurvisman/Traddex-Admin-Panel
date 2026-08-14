@@ -335,15 +335,40 @@ function SubscriptionPlanPage({ token }) {
     setIsFormVisible(true);
   };
 
-  const handleDelete = async (id) => {
+  const handleToggleStatus = async (plan) => {
+    if (!plan?.id) return;
     setIsLoading(true);
     setMessage({ type: 'info', text: '' });
+    const isCurrentlyActive = Number(plan.is_active) === 1 || plan.is_active === true;
     try {
-      await deleteSubscriptionPlan(token, id);
+      if (isCurrentlyActive) {
+        await deleteSubscriptionPlan(token, plan.id);
+        setMessage({ type: 'success', text: `Plan '${plan.plan_name || ''}' deactivated successfully.` });
+      } else {
+        const payload = {
+          plan_name: plan.plan_name,
+          user_type: plan.user_type,
+          business_type: plan.business_type,
+          price: plan.price,
+          duration_months: plan.duration_months || plan.duration,
+          yearly_discount_percent: plan.yearly_discount_percent,
+          promo_price: plan.promo_price,
+          offer_active: Boolean(plan.offer_active),
+          offer_duration_months: plan.offer_duration_months,
+          offer_terms: plan.offer_terms,
+          promo_label: plan.promo_label,
+          cta_label: plan.cta_label,
+          popular: plan.popular,
+          best_for: plan.best_for,
+          waitlist_enabled: Boolean(plan.waitlist_enabled),
+          is_active: 1,
+        };
+        await updateSubscriptionPlan(token, plan.id, payload);
+        setMessage({ type: 'success', text: `Plan '${plan.plan_name || ''}' activated successfully.` });
+      }
       await loadPlans();
-      setMessage({ type: 'success', text: 'Plan deactivated.' });
     } catch (error) {
-      setMessage({ type: 'error', text: error.message || 'Failed to deactivate plan.' });
+      setMessage({ type: 'error', text: error.message || 'Failed to update plan status.' });
     } finally {
       setIsLoading(false);
     }
@@ -474,9 +499,9 @@ function SubscriptionPlanPage({ token }) {
                           onClick: () => navigate(`/admin/subscription/plans/${plan.id}/edit`),
                         },
                         {
-                          label: plan.is_active === 1 ? 'Deactivate' : 'Activate',
-                          onClick: () => handleDelete(plan.id),
-                          danger: plan.is_active === 1,
+                          label: Number(plan.is_active) === 1 ? 'Deactivate' : 'Activate',
+                          onClick: () => handleToggleStatus(plan),
+                          danger: Number(plan.is_active) === 1,
                         },
                       ]}
                     />
