@@ -3665,7 +3665,8 @@ function AppConfigPage({ token }) {
     isPhaseOneBlock &&
     !isPhaseOneHeroCarousel &&
     !isPromoHeroBanner &&
-    !isShopCardCarousel;
+    !isShopCardCarousel &&
+    !isPhaseOneBrandGrid;
   const phaseOneSourceType =
     isPhaseOneCategoryIconGrid || isPhaseOneCategoryShowcase
       ? 'CATEGORY_FEED'
@@ -3753,7 +3754,8 @@ function AppConfigPage({ token }) {
   const showAppearancePanel =
     (supportsStylePreset || isPhaseOneProductShelf || isProductCardCarousel || isSectionTitleBlock) &&
     !isPhaseOneCategoryIconGrid &&
-    !isShopCardCarousel;
+    !isShopCardCarousel &&
+    !isPhaseOneBrandGrid;
   const isScreenSpacer = sectionForm.type === 'spacer';
   const isScreenVideo = sectionForm.type === 'video';
   const isHeaderSearch = headerBlockType === 'searchBar';
@@ -4987,6 +4989,13 @@ function AppConfigPage({ token }) {
                           <option value="manufacturing">Manufacturing</option>
                         </select>
                       </label>
+                    ) : null}
+                    {isPhaseOneBrandGrid ? (
+                      <div className="field field-span">
+                        <p className="field-help" style={{ marginTop: 6, padding: '10px 14px', background: '#F0FDF4', borderRadius: 8, border: '1px solid #BBF7D0', color: '#166534', fontSize: '13px', lineHeight: '1.5' }}>
+                          ⚡ <strong>Auto-Loaded Top Brands:</strong> This block automatically pulls and displays top approved brands from Brand Master for whichever industry page it is placed on (e.g. Medical brands for Medical, Fashion brands for Fashion). No manual setup required!
+                        </p>
+                      </div>
                     ) : null}
                         </div>
                       </div>
@@ -6983,6 +6992,7 @@ function AppConfigPage({ token }) {
                           </div>
                         ) : null}
                     {/* -- Items ------------------------------------------ */}
+                    {!isPhaseOneBrandGrid ? (
                     <div className={`prop-group${collapsedGroups.items ? ' is-collapsed' : ''}`}>
                       <div className="prop-group-header" onClick={() => togglePropGroup('items')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && togglePropGroup('items')}>
                         <div className="prop-group-left">
@@ -9362,6 +9372,7 @@ function AppConfigPage({ token }) {
                         </div>
                       </div>
                     </div>
+                    ) : null}
                     {/* -- Advanced ---------------------------------------- */}
                     {(!isEditingFixed && !isPhaseOneBlock && !isMultiItemGrid) ? (
                       <div className={`prop-group${collapsedGroups.advanced ? ' is-collapsed' : ''}`}>

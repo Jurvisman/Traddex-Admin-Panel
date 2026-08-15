@@ -434,6 +434,13 @@ export const buildSectionFromForm = (base, form) => {
       delete next.itemsPath;
     }
   }
+  if (resolvedBlockType === 'brand_logo_grid') {
+    next.stylePreset = form.stylePreset || 'automobile';
+    next.dataSource = {
+      sourceType: 'BRAND_FEED',
+    };
+    delete next.items;
+  }
   if (isServiceCardCarouselBlock) {
     delete next.mapping;
     const feedMode = String(form.blockFeedMode || form.productFeedMode || 'TRENDING').trim().toUpperCase();
