@@ -4801,7 +4801,7 @@ export const screenToolboxItems = [
   {
     key: 'brandLogoCarousel',
     label: 'Brand Logo Carousel',
-    hint: 'Horizontal scrolling brand cards with logo + name + tagline (Automobile style)',
+    hint: 'Horizontal scrolling brand cards with logo + name (Auto-loads Top Brands for this industry)',
     section: {
       id: 'brand_logo_carousel',
       type: 'horizontalList',
@@ -4809,11 +4809,10 @@ export const screenToolboxItems = [
       title: 'Top Brands',
       stylePreset: 'automobile',
       enabled: true,
-      items: [
-        { title: 'Brand Name', subtitle: 'Tagline here', imageUrl: '', imageShellBg: '#F3F4F6', deepLink: '' },
-        { title: 'Brand Name', subtitle: 'Tagline here', imageUrl: '', imageShellBg: '#FFF3E0', deepLink: '' },
-        { title: 'Brand Name', subtitle: 'Tagline here', imageUrl: '', imageShellBg: '#E8F5E9', deepLink: '' },
-      ],
+      dataSource: {
+        sourceType: 'BRAND_FEED',
+      },
+      items: [],
     },
   },
   {
