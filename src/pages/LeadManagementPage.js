@@ -24,12 +24,33 @@ const formatDateTime = (value) => {
 const getSourceLabel = (src) => {
   if (!src) return '-';
   const s = String(src).toUpperCase();
-  if (s === 'SEARCH') return 'Search';
-  if (s === 'PRODUCT_VIEW') return 'Product View';
-  if (s === 'SERVICE_VIEW') return 'Service View';
-  if (s === 'DIRECT_INQUIRY') return 'Direct Inquiry';
-  if (s === 'BULK_INQUIRY') return 'Bulk Inquiry';
+  if (s === 'BUYER_DEMAND' || s === 'POST_REQUIREMENT') return '📝 Open Buyer Demand';
+  if (s === 'SEARCH') return '🔍 Search';
+  if (s === 'PRODUCT_VIEW') return '🛍️ Product View';
+  if (s === 'SERVICE_VIEW') return '🛠️ Service View';
+  if (s === 'DIRECT_INQUIRY') return '💬 Direct Inquiry';
+  if (s === 'BULK_INQUIRY') return '📦 Bulk Inquiry';
   return s;
+};
+
+const getActionStatusPill = (status) => {
+  const s = String(status || '').toUpperCase();
+  if (s === 'CONVERTED') {
+    return { label: '🏆 Converted', style: { background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0', padding: '3px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700 } };
+  }
+  if (s === 'QUOTED') {
+    return { label: '💬 Quoted', style: { background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', padding: '3px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600 } };
+  }
+  if (s === 'CONTACT_UNLOCKED') {
+    return { label: '🔓 Unlocked', style: { background: '#f5f3ff', color: '#7c3aed', border: '1px solid #ddd6fe', padding: '3px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600 } };
+  }
+  if (s === 'ASSIGNED') {
+    return { label: '🔵 Assigned', style: { background: '#f0f9ff', color: '#0284c7', border: '1px solid #bae6fd', padding: '3px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600 } };
+  }
+  if (s === 'IGNORED') {
+    return { label: '❌ Ignored', style: { background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '3px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600 } };
+  }
+  return { label: '🟡 Unassigned (Gold Mine)', style: { background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', padding: '3px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700 } };
 };
 
 const getDisplayTypePillClass = (type) => {
@@ -492,106 +513,113 @@ function LeadManagementPage({ token }) {
               columns={[
                 {
                   key: 'id',
-                  header: 'Intent ID',
-                  width: '90px',
-                  render: (val) => <strong>#{val}</strong>,
+                  header: 'Lead ID',
+                  width: '85px',
+                  render: (val) => <strong style={{ color: '#6345ED' }}>#{val}</strong>,
                 },
                 {
                   key: 'buyer',
-                  header: 'Buyer',
+                  header: 'Buyer Details',
                   sortable: true,
                   render: (_, intent) => (
                     <div>
-                      <div className="bdt-name-link" style={{ fontWeight: 600, color: '#6345ED' }}>{intent.buyerName || 'Unknown'}</div>
-                      <div style={{ fontSize: 11, color: '#6b7280' }}>{intent.buyerPhone || '-'}</div>
+                      <div className="bdt-name-link" style={{ fontWeight: 600, color: '#0f172a' }}>{intent.buyerName || 'Direct Buyer'}</div>
+                      <div style={{ fontSize: 11, color: '#64748b' }}>📞 {intent.buyerPhone || '-'}</div>
+                      {intent.cityCode && (
+                        <div style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600, marginTop: 1 }}>📍 {intent.cityCode}</div>
+                      )}
                     </div>
                   ),
                 },
                 {
                   key: 'productKeyword',
-                  header: 'Keyword',
+                  header: 'Requirement / Demand',
                   sortable: true,
                   render: (val, intent) => (
                     <div>
-                      <div style={{ fontWeight: 600 }}>{val || 'N/A'}</div>
-                      <span style={{ fontSize: 10, background: '#f1f5f9', padding: '2px 6px', borderRadius: 4, display: 'inline-block', marginTop: 2, fontWeight: 600 }}>
-                        {intent.intentScope || 'PRODUCT'}
-                      </span>
+                      <div style={{ fontWeight: 600, color: '#1e293b' }}>{val || intent.requirementNote || 'General Requirement'}</div>
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 3, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 10, background: '#f1f5f9', color: '#475569', padding: '1px 6px', borderRadius: 4, fontWeight: 600 }}>
+                          {getSourceLabel(intent.intentSource)}
+                        </span>
+                        {(intent.quantityMin !== null || intent.quantityMax !== null) && (
+                          <span style={{ fontSize: 10, background: '#ede9fe', color: '#6345ed', padding: '1px 6px', borderRadius: 4, fontWeight: 600 }}>
+                            Qty: {intent.quantityMin || 0}-{intent.quantityMax || 'Max'} {intent.quantityUnit || ''}
+                          </span>
+                        )}
+                        {intent.budgetAmount ? (
+                          <span style={{ fontSize: 10, background: '#ecfdf5', color: '#059669', padding: '1px 6px', borderRadius: 4, fontWeight: 700 }}>
+                            ₹{intent.budgetAmount}
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
                   ),
                 },
                 {
-                  key: 'buyerVisible',
-                  header: 'Visibility',
-                  sortable: true,
-                  render: (val) => (
-                    <span className={`status-pill ${val ? 'approved' : 'pending'}`}>
-                      {val ? 'Visible' : 'Hidden'}
-                    </span>
-                  ),
-                },
-                {
-                  key: 'intentType',
-                  header: 'Type / Display',
-                  render: (val, intent) => (
-                    <div>
-                      <div style={{ fontSize: 12, fontWeight: 500 }}>{val}</div>
-                      <span className={`status-pill ${getDisplayTypePillClass(intent.displayType)}`} style={{ fontSize: 10, padding: '2px 6px', marginTop: 2, display: 'inline-block' }}>
-                        {getDisplayTypeLabel(intent.displayType)}
-                      </span>
-                    </div>
-                  ),
-                },
-                {
-                  key: 'quantity',
-                  header: 'Quantity',
+                  key: 'assignedSeller',
+                  header: 'Assigned Seller(s)',
                   render: (_, intent) => (
                     <div>
-                      <div>
-                        {intent.quantityMin !== null || intent.quantityMax !== null
-                          ? `${intent.quantityMin || 0}-${intent.quantityMax || 'Max'} ${intent.quantityUnit || ''}`
-                          : 'N/A'}
-                      </div>
-                      {intent.budgetAmount ? (
-                        <div style={{ fontSize: 12, color: '#16a34a', fontWeight: 600 }}>₹{intent.budgetAmount}</div>
-                      ) : null}
+                      {intent.assignedSellerName ? (
+                        <div>
+                          <div style={{ fontWeight: 600, color: '#0f172a' }}>{intent.assignedSellerName}</div>
+                          <div style={{ fontSize: 11, color: '#64748b' }}>
+                            {intent.assignedSellerPhone ? `📞 ${intent.assignedSellerPhone}` : ''}
+                            {intent.assignmentCount > 1 ? ` (+${intent.assignmentCount - 1} more)` : ''}
+                          </div>
+                        </div>
+                      ) : (
+                        <span style={{ background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', padding: '2px 7px', borderRadius: 6, fontSize: 10, fontWeight: 700, display: 'inline-block' }}>
+                          ⚠️ Unassigned (Gold Mine)
+                        </span>
+                      )}
                     </div>
                   ),
                 },
                 {
-                  key: 'assignmentCount',
-                  header: 'Assigned',
+                  key: 'sellerActionStatus',
+                  header: 'Seller Action Status',
                   align: 'center',
-                  render: (val) => <strong>{val}</strong>,
-                },
-                {
-                  key: 'responseCount',
-                  header: 'Responded',
-                  align: 'center',
-                  render: (val) => <strong>{val}</strong>,
-                },
-                {
-                  key: 'creditConsumedCount',
-                  header: 'Credit Cut',
-                  align: 'center',
-                  render: (val) => (
-                    <strong style={{ color: val > 0 ? '#b45309' : 'inherit' }}>
-                      {val}
-                    </strong>
-                  ),
+                  render: (_, intent) => {
+                    const pill = getActionStatusPill(intent.sellerActionStatus);
+                    return <span style={pill.style}>{pill.label}</span>;
+                  },
                 },
                 {
                   key: 'createdOn',
-                  header: 'Created Date',
+                  header: 'Created On',
                   sortable: true,
-                  render: (val) => formatDateTime(val),
+                  render: (val) => (
+                    <div style={{ fontSize: 12, color: '#475569' }}>
+                      {formatDateTime(val)}
+                    </div>
+                  ),
+                },
+                {
+                  key: 'actions',
+                  header: 'Action',
+                  align: 'center',
+                  render: (_, intent) => (
+                    <button
+                      type="button"
+                      className="secondary-btn"
+                      style={{ padding: '4px 10px', fontSize: 11, height: 28, whiteSpace: 'nowrap' }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenDrawer(intent.id);
+                      }}
+                    >
+                      {intent.assignedSellerName ? 'View / Reassign' : '⚡ Assign Seller'}
+                    </button>
+                  ),
                 },
               ]}
               data={intents}
               isLoading={isLoading}
               search={query}
               onSearchChange={setQuery}
-              searchPlaceholder="Search buyer or keyword..."
+              searchPlaceholder="Search buyer, phone, or requirement..."
               page={page - 1}
               pageSize={pageSize}
               onPageChange={(p) => setPage(p + 1)}
@@ -609,11 +637,12 @@ function LeadManagementPage({ token }) {
                     style={{ border: 'none', background: '#f3f4f6', padding: '6px 12px', borderRadius: 8, fontSize: 13, cursor: 'pointer' }}
                   >
                     <option value="">All Sources</option>
-                    <option value="SEARCH">Search</option>
-                    <option value="PRODUCT_VIEW">Product View</option>
-                    <option value="SERVICE_VIEW">Service View</option>
-                    <option value="DIRECT_INQUIRY">Direct Inquiry</option>
-                    <option value="BULK_INQUIRY">Bulk Inquiry</option>
+                    <option value="BUYER_DEMAND">📝 Open Buyer Demand</option>
+                    <option value="SEARCH">🔍 Search</option>
+                    <option value="PRODUCT_VIEW">🛍️ Product View</option>
+                    <option value="SERVICE_VIEW">🛠️ Service View</option>
+                    <option value="DIRECT_INQUIRY">💬 Direct Inquiry</option>
+                    <option value="BULK_INQUIRY">📦 Bulk Inquiry</option>
                   </select>
 
                   <select
