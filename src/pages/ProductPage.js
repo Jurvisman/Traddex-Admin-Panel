@@ -428,7 +428,7 @@ const PRODUCT_STATUS_FILTER_OPTIONS = [
 
 const PRODUCT_SOURCE_FILTER_OPTIONS = [
   { value: '', label: 'All Sources' },
-  { value: 'TRADDEX_APP', label: 'Traddex App' },
+  { value: 'TRADDEX_APP', label: 'Deal360 App' },
   { value: 'MERCHANT_ADMIN', label: 'Merchant Admin' },
 ];
 
@@ -460,7 +460,7 @@ const getProductReviewCount = (product) => {
   return Number.isFinite(count) ? count : 0;
 };
 const getProductSourceLabel = (product) =>
-  String(product?.productSource || '').toUpperCase() === 'MERCHANT_ADMIN' ? 'Merchant Admin' : 'Traddex App';
+  String(product?.productSource || '').toUpperCase() === 'MERCHANT_ADMIN' ? 'Merchant Admin' : 'Deal360 App';
 const getAppListingStatusLabel = (product) => {
   const status = String(product?.appListingStatus || '').toUpperCase();
   if (status === 'PENDING_REVIEW') return 'Pending Review';
@@ -982,6 +982,10 @@ function ProductPage({ token, adminUserId }) {
 
   const formatStatus = (status) => {
     if (!status) return 'Pending';
+    const norm = String(status).toUpperCase();
+    if (norm === 'CHANGES_REQUIRED') return 'Changes Required';
+    if (norm === 'APPROVED_DETAILS_PENDING') return 'Approved (Details Pending)';
+    if (norm === 'RESUBMITTED') return 'Re-submitted';
     return status
       .toLowerCase()
       .split('_')

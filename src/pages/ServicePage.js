@@ -125,6 +125,33 @@ const SERVICE_VIEW_TABS = [
   { key: 'description', label: 'Description' },
 ];
 
+const SERVICE_CHANGE_REQUEST_OPTIONS = [
+  { key: 'category', label: 'Category mapping', hint: 'Main category or category is incorrect or missing.' },
+  { key: 'pricing', label: 'Pricing & Rates', hint: 'Base price, starting price range, or unit needs correction.' },
+  { key: 'setup', label: 'Service Setup', hint: 'Service type, duration, or work location needs updating.' },
+  { key: 'media', label: 'Work Photos', hint: 'Service photo or portfolio work media is missing or low quality.' },
+  { key: 'details', label: 'Service Details', hint: 'Service name, description, or coverage area needs clarification.' },
+];
+
+const buildServiceChangeRequestRemarks = ({ issues, note }) => {
+  const selectedIssues = SERVICE_CHANGE_REQUEST_OPTIONS.filter((item) => (issues || []).includes(item.key));
+  const lines = ['Please update this service and resubmit it for review.'];
+
+  if (selectedIssues.length > 0) {
+    lines.push('', 'Requested updates:');
+    selectedIssues.forEach((item) => {
+      lines.push(`- ${item.label}: ${item.hint}`);
+    });
+  }
+
+  if (String(note || '').trim()) {
+    lines.push('', 'Admin note:');
+    lines.push(String(note).trim());
+  }
+
+  return lines.join('\n');
+};
+
 const toArray = (v) =>
   Array.isArray(v)
     ? v
@@ -246,6 +273,8 @@ function ServicePage({ token, adminUserId }) {
   const [subCategories, setSubCategories] = useState([]);
   const [assignment, setAssignment] = useState({ mainId: '', catId: '', subId: '' });
   const [reviewRemarks, setReviewRemarks] = useState('');
+  const [showChangeRequestModal, setShowChangeRequestModal] = useState(false);
+  const [changeRequestForm, setChangeRequestForm] = useState({ issues: [], note: '' });
 
   const toolbarRef = useRef(null);
   const actionMenuRef = useRef(null);
@@ -429,10 +458,12 @@ function ServicePage({ token, adminUserId }) {
     const gallery = Array.isArray(svc.galleryImages) ? svc.galleryImages : [];
     const pricingModel = String(svc.pricingModel || '').toUpperCase();
     const quoteOnly = pricingModel === 'ASK_QUOTE';
-    const hasPrice = quoteOnly || (svc.basePrice !== null && svc.basePrice !== undefined && svc.basePrice !== '');
+    const dynAttrs = (svc.dynamicAttributes && typeof svc.dynamicAttributes === 'object') ? svc.dynamicAttributes : {};
+    const maxPrice = dynAttrs.maxPrice ?? dynAttrs.max_price ?? null;
+    const hasPrice = quoteOnly || (svc.basePrice !== null && svc.basePrice !== undefined && svc.basePrice !== '') || maxPrice;
+    const hasServiceName = Boolean(svc.serviceName && svc.serviceName.trim());
     const hasServiceSetup = Boolean(svc.serviceType && svc.serviceLocationType);
-    const hasDescription = Boolean(svc.shortDescription || svc.fullDescription);
-    const hasScope = Boolean(svc.includedItems || svc.customerRequirements || svc.keyFeatures || svc.fullDescription);
+    const hasMedia = Boolean(resolveMediaUrl(svc.serviceImageLogo) || gallery.length);
     const categoryDetail = reviewCategoryComplete
       ? [assignmentMainName, assignmentCategoryName, assignmentSubCategoryName]
           .filter(Boolean)
@@ -446,50 +477,38 @@ function ServicePage({ token, adminUserId }) {
         detail: categoryDetail || 'Category path selected.',
       },
       {
-        label: 'Service Setup',
+        label: 'Service Name',
+        status: hasServiceName ? 'ready' : 'missing',
+        detail: hasServiceName
+          ? `Service name: "${svc.serviceName}".`
+          : 'Service name is required.',
+      },
+      {
+        label: 'Service Setup & Duration',
         status: hasServiceSetup ? 'ready' : 'missing',
         detail: hasServiceSetup
-          ? [formatValue(svc.serviceType), formatValue(svc.serviceLocationType)].join(' / ')
+          ? [formatValue(svc.serviceType), formatValue(svc.serviceLocationType), svc.leadTime || svc.serviceDuration].filter(Boolean).join(' / ')
           : 'Service type and work location should be selected.',
       },
       {
-        label: 'Service Details',
-        status: svc.serviceName && hasDescription ? 'ready' : 'missing',
-        detail: svc.serviceName && hasDescription
-          ? 'Name and description are available.'
-          : 'Name plus short or full description should be present.',
-      },
-      {
-        label: 'Pricing & Tax',
+        label: 'Pricing & Billing',
         status: hasPrice ? 'ready' : 'missing',
         detail: hasPrice
           ? quoteOnly
-            ? 'Ask for quote service. Price can be finalized in lead flow.'
-            : `${formatPrice(svc.basePrice)}${svc.pricingModel ? `, ${formatStatus(svc.pricingModel)}` : ''}${svc.taxRate != null ? `, GST ${svc.taxRate}%` : ''}`
+            ? 'Ask for quote service. Price can be finalized in quote flow.'
+            : pricingModel === 'STARTING_FROM' && maxPrice
+              ? `Starting ${formatPrice(svc.basePrice)} up to ${formatPrice(maxPrice)} / ${svc.priceUnit || 'Visit'}`
+              : `${formatPrice(svc.basePrice)} / ${svc.priceUnit || 'Visit'} (${formatStatus(svc.pricingModel || 'FIXED')})`
           : 'Base price is missing for non-quote service.',
       },
       {
-        label: 'Scope & Requirements',
-        status: hasScope ? 'ready' : 'missing',
-        detail: hasScope
-          ? 'Scope, included items or customer requirements are available.'
-          : 'Add included/excluded scope or customer requirements.',
-      },
-      {
-        label: 'Media',
-        status: resolveMediaUrl(svc.serviceImageLogo) || gallery.length ? 'ready' : 'missing',
-        detail: resolveMediaUrl(svc.serviceImageLogo)
-          ? 'Primary service image is available.'
-          : gallery.length
-            ? `${gallery.length} gallery image(s) available.`
-            : 'No service image or gallery media uploaded.',
-      },
-      {
-        label: 'Coverage & Availability',
-        status: svc.coverageArea || svc.serviceAvailability || svc.serviceLocationType ? 'ready' : 'missing',
-        detail: svc.coverageArea || svc.serviceAvailability || svc.serviceLocationType
-          ? [svc.coverageArea, svc.serviceAvailability, svc.serviceRadiusKm ? `${svc.serviceRadiusKm} km radius` : null].filter(Boolean).join(' / ')
-          : 'Coverage area, availability or work location is missing.',
+        label: 'Work Media / Proof Photo',
+        status: hasMedia ? 'ready' : 'missing',
+        detail: hasMedia
+          ? resolveMediaUrl(svc.serviceImageLogo)
+            ? 'Primary service photo is available.'
+            : `${gallery.length} gallery photo(s) available.`
+          : 'At least 1 work/service photo is required.',
       },
     ];
   }, [
@@ -700,7 +719,66 @@ function ServicePage({ token, adminUserId }) {
     }
   };
 
-  const handleRequestChanges = async () => {
+  const openChangeRequestModal = (svc = selectedService) => {
+    const targetService = svc || selectedService;
+    if (!targetService) return;
+    const cat = targetService.category || {};
+    const hasCategory = Boolean(
+      (cat.mainCategoryId || targetService.mainCategoryId || assignment.mainId) &&
+      (cat.categoryId || targetService.categoryId || assignment.catId)
+    );
+    if (!hasCategory) {
+      setMessage({ type: 'error', text: 'Assign main category and category before requesting changes.' });
+      return;
+    }
+    const suggested = [];
+    if (!targetService.serviceName) suggested.push('details');
+    if (!targetService.serviceType || !targetService.serviceLocationType) suggested.push('setup');
+    const pricingModel = String(targetService.pricingModel || '').toUpperCase();
+    const hasPrice = pricingModel === 'ASK_QUOTE' || (targetService.basePrice !== null && targetService.basePrice !== undefined && targetService.basePrice !== '');
+    if (!hasPrice) suggested.push('pricing');
+    const gallery = Array.isArray(targetService.galleryImages) ? targetService.galleryImages : [];
+    if (!resolveMediaUrl(targetService.serviceImageLogo) && !gallery.length) suggested.push('media');
+
+    setChangeRequestForm({
+      issues: Array.from(new Set(suggested)),
+      note: targetService.reviewRemarks || reviewRemarks || '',
+    });
+    setShowChangeRequestModal(true);
+  };
+
+  const handleSubmitChangeRequest = async () => {
+    if (!selectedService) return;
+    const adminId = getAdminId();
+    if (!adminId) return;
+    const svcId = getServiceId(selectedService);
+    const structuredRemarks = buildServiceChangeRequestRemarks({
+      issues: changeRequestForm.issues,
+      note: changeRequestForm.note,
+    });
+    if (!structuredRemarks.trim() || (!changeRequestForm.issues.length && !changeRequestForm.note.trim())) {
+      setMessage({ type: 'error', text: 'Select at least one requested update or provide an admin note.' });
+      return;
+    }
+    try {
+      setIsUpdating(true);
+      await updateService(token, svcId, {
+        approvalStatus: 'CHANGES_REQUIRED',
+        userId: adminId,
+        reviewRemarks: structuredRemarks,
+        ...buildReviewCategoryPayload(),
+      });
+      await reloadSelectedService(svcId);
+      setShowChangeRequestModal(false);
+      setMessage({ type: 'success', text: 'Changes requested successfully.' });
+    } catch (e) {
+      setMessage({ type: 'error', text: e.message || 'Failed to request changes.' });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleRequestChanges = () => {
     if (!selectedService) return;
     if (serviceIsFinalized) {
       setMessage({ type: 'error', text: 'This service is already finalized.' });
@@ -710,29 +788,7 @@ function ServicePage({ token, adminUserId }) {
       setMessage({ type: 'error', text: 'Main category and category mapping are required before requesting changes.' });
       return;
     }
-    const note = reviewRemarks.trim();
-    if (!note) {
-      setMessage({ type: 'error', text: 'Add a note explaining the requested changes.' });
-      return;
-    }
-    const adminId = getAdminId();
-    if (!adminId) return;
-    const svcId = getServiceId(selectedService);
-    try {
-      setIsUpdating(true);
-      await updateService(token, svcId, {
-        approvalStatus: 'CHANGES_REQUIRED',
-        userId: adminId,
-        reviewRemarks: note,
-        ...buildReviewCategoryPayload(),
-      });
-      await reloadSelectedService(svcId);
-      setMessage({ type: 'success', text: 'Changes requested successfully.' });
-    } catch (e) {
-      setMessage({ type: 'error', text: e.message || 'Failed to request changes.' });
-    } finally {
-      setIsUpdating(false);
-    }
+    openChangeRequestModal(selectedService);
   };
 
   const handleReject = async () => {
@@ -1584,6 +1640,99 @@ function ServicePage({ token, adminUserId }) {
           )}
         </div>
       )}
+
+      {showChangeRequestModal ? (
+        <div className="modal-backdrop" role="presentation">
+          <div className="modal-card product-review-modal">
+            <div className="modal-head">
+              <h3 className="panel-title">Request Service Changes</h3>
+              <button
+                type="button"
+                className="ghost-btn small"
+                onClick={() => setShowChangeRequestModal(false)}
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="product-review-modal-body">
+              <div className="product-review-modal-section">
+                <p className="product-review-section-title">Requested updates</p>
+                <div className="review-issue-grid">
+                  {SERVICE_CHANGE_REQUEST_OPTIONS.map((item) => {
+                    const active = (changeRequestForm.issues || []).includes(item.key);
+                    return (
+                      <button
+                        key={item.key}
+                        type="button"
+                        className={`review-issue-chip ${active ? 'active' : ''}`}
+                        onClick={() =>
+                          setChangeRequestForm((prev) => ({
+                            ...prev,
+                            issues: active
+                              ? prev.issues.filter((entry) => entry !== item.key)
+                              : [...(prev.issues || []), item.key],
+                          }))
+                        }
+                      >
+                        <span className="review-issue-chip-title">{item.label}</span>
+                        <span className="review-issue-chip-hint">{item.hint}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="product-review-modal-section">
+                <label className="field field-span">
+                  <span>Admin note</span>
+                  <textarea
+                    rows={4}
+                    placeholder="Describe what needs to be changed before approval (e.g. Please upload actual work photos and select correct rate)."
+                    value={changeRequestForm.note}
+                    onChange={(event) =>
+                      setChangeRequestForm((prev) => ({
+                        ...prev,
+                        note: event.target.value,
+                      }))
+                    }
+                  />
+                </label>
+              </div>
+
+              <div className="product-review-modal-section">
+                <p className="product-review-section-title">Preview note to business</p>
+                <div className="review-note-box">
+                  <pre>
+                    {buildServiceChangeRequestRemarks({
+                      issues: changeRequestForm.issues,
+                      note: changeRequestForm.note,
+                    }) || 'Select requested updates or type an admin note.'}
+                  </pre>
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="ghost-btn small"
+                onClick={() => setShowChangeRequestModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="primary-btn compact"
+                onClick={handleSubmitChangeRequest}
+                disabled={isUpdating}
+              >
+                {isUpdating ? 'Sending...' : 'Send Change Request'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
