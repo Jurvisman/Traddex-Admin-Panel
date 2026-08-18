@@ -7011,6 +7011,7 @@ function ProductPage({ token, adminUserId }) {
               },
             ]}
             data={filteredProducts}
+            totalItems={productListMeta.totalElements}
             isLoading={isLoading}
             search={query}
             onSearchChange={(val) => { setQuery(val); setProductListPage(0); }}
