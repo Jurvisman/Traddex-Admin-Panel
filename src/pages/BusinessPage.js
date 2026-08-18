@@ -573,6 +573,8 @@ function BusinessPage({ token, allowedActions }) {
   const canActivateSubscription = !hasActionModel || allowedActionSet.has(SUBSCRIPTION_PERMISSIONS.activate);
   const canViewReviewModeration = hasPermission(REVIEW_MODERATION_PERMISSIONS.read);
 
+  const [totalBusinessCount, setTotalBusinessCount] = useState(0);
+
   const loadBusinesses = async (page = businessListPage, size = businessListPageSize) => {
     if (!canRead) {
       setBusinesses([]);
@@ -583,7 +585,7 @@ function BusinessPage({ token, allowedActions }) {
     setIsLoading(true);
     setMessage({ type: 'info', text: '' });
     try {
-      const response = await fetchBusinesses(token, { page, size });
+      const response = await fetchBusinesses(token, { page, size, search: query, status: filterStatus });
       const rawData = response?.data;
       const list = Array.isArray(rawData?.businesses)
         ? rawData.businesses
@@ -592,6 +594,8 @@ function BusinessPage({ token, allowedActions }) {
         : Array.isArray(rawData)
         ? rawData
         : [];
+      const totalCount = Number(rawData?.totalElements ?? rawData?.total ?? list.length);
+      setTotalBusinessCount(totalCount);
       const filtered = list.filter((user) => isBusinessUser(user));
       setBusinesses(filtered);
     } catch (error) {
@@ -603,9 +607,9 @@ function BusinessPage({ token, allowedActions }) {
 
   useEffect(() => {
     if (isDetailRoute) return;
-    loadBusinesses();
+    loadBusinesses(businessListPage, businessListPageSize);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isDetailRoute]);
+  }, [isDetailRoute, businessListPage, businessListPageSize, filterStatus]);
 
   const loadBusinessDetails = async (userId) => {
     if (!userId) return;
@@ -1589,6 +1593,7 @@ function BusinessPage({ token, allowedActions }) {
                 },
               ]}
               data={filteredBusinesses}
+              totalItems={totalBusinessCount}
               isLoading={isLoading}
               search={query}
               onSearchChange={setQuery}
