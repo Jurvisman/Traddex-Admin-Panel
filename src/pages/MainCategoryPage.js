@@ -692,6 +692,7 @@ function MainCategoryPage({ token }) {
             searchPlaceholder="Search main categories..."
             page={safePage - 1}
             pageSize={pageSize}
+            totalItems={filteredItems.length}
             onPageChange={(p) => setPage(p + 1)}
             onPageSizeChange={(newSize) => { setPageSize(newSize); setPage(1); }}
             pageSizeOptions={[10, 20, 50, 100]}

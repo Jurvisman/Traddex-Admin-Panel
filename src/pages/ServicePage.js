@@ -1381,6 +1381,7 @@ function ServicePage({ token, adminUserId }) {
             searchPlaceholder="Search services..."
             page={page}
             pageSize={pageSize}
+            totalItems={filteredServices.length}
             onPageChange={setPage}
             onPageSizeChange={(newSize) => { setPageSize(newSize); setPage(0); }}
             pageSizeOptions={SERVICE_PAGE_SIZE_OPTIONS}
