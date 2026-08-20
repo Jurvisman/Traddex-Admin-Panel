@@ -701,11 +701,19 @@ function BusinessPage({ token, allowedActions }) {
       }
       if (filterStatus) {
         const unified = resolveUnifiedStatus(user);
-        if (unified.className !== filterStatus) return false;
+        if (filterStatus === 'active' && unified.className !== 'status-verified') return false;
+        if (filterStatus === 'pending' && unified.className !== 'status-pending') return false;
+        if (filterStatus === 'under_review' && unified.className !== 'status-pending') return false;
+        if (filterStatus === 'rejected' && unified.className !== 'status-rejected') return false;
+        if (filterStatus === 'inactive' && unified.className !== 'status-inactive') return false;
       }
       return true;
     });
   }, [query, filterStatus, businesses]);
+
+  useEffect(() => {
+    setBusinessListPage(0);
+  }, [query, filterStatus]);
 
   const pagedBusinesses = useMemo(
     () => paginateItems(filteredBusinesses, businessListPage, businessListPageSize),
@@ -1593,7 +1601,7 @@ function BusinessPage({ token, allowedActions }) {
                 },
               ]}
               data={filteredBusinesses}
-              totalItems={totalBusinessCount}
+              totalItems={filteredBusinesses.length}
               isLoading={isLoading}
               search={query}
               onSearchChange={setQuery}

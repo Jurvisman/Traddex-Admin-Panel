@@ -604,12 +604,6 @@ function UserDirectoryPage({ token, allowedActions }) {
     setUserListPage(0);
   }, [query, filterStatus]);
 
-  useEffect(() => {
-    if (userListPage !== pagedUsers.page) {
-      setUserListPage(pagedUsers.page);
-    }
-  }, [pagedUsers.page, userListPage]);
-
   const activeCount = useMemo(() => users.filter((u) => Number(u?.active) === 1).length, [users]);
   const inactiveCount = Math.max(0, users.length - activeCount);
   const verifiedCount = useMemo(() => users.filter((u) => Number(u?.verify) === 1).length, [users]);
@@ -983,6 +977,7 @@ function UserDirectoryPage({ token, allowedActions }) {
             searchPlaceholder="Search users..."
             page={userListPage}
             pageSize={userListPageSize}
+            totalItems={statusFilteredUsers.length}
             onPageChange={setUserListPage}
             onPageSizeChange={(newSize) => { setUserListPageSize(newSize); setUserListPage(0); }}
             pageSizeOptions={USER_LIST_PAGE_SIZE_OPTIONS}

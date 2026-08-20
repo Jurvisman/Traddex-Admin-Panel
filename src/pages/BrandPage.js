@@ -625,6 +625,7 @@ function BrandPage({ token }) {
             searchPlaceholder="Search brands..."
             page={page}
             pageSize={pageSize}
+            totalItems={filteredItems.length}
             onPageChange={setPage}
             onPageSizeChange={(newSize) => { setPageSize(newSize); setPage(0); }}
             pageSizeOptions={PAGE_SIZE_OPTIONS}

@@ -98,6 +98,10 @@ function WaitlistLeadsPage({ token }) {
     loadData();
   }, [loadData]);
 
+  useEffect(() => {
+    setPage(0);
+  }, [query, filterStatus, filterType]);
+
   /* ── Action Handlers ─────────────────────────────────────────── */
   const handleUpdateStatus = async (id, status) => {
     try {
@@ -160,6 +164,7 @@ function WaitlistLeadsPage({ token }) {
       const q = query.trim().toLowerCase();
       result = result.filter((l) =>
         (l.name || '').toLowerCase().includes(q) ||
+        (l.businessName || '').toLowerCase().includes(q) ||
         (l.phone || '').toLowerCase().includes(q) ||
         (l.email || '').toLowerCase().includes(q) ||
         (l.city || '').toLowerCase().includes(q) ||
@@ -226,6 +231,16 @@ function WaitlistLeadsPage({ token }) {
       header: 'Name',
       sortable: true,
       render: (_, lead) => <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{lead.name}</div>,
+    },
+    {
+      key: 'businessName',
+      header: 'Business Name',
+      sortable: true,
+      render: (_, lead) => (
+        <div style={{ fontWeight: 600, color: 'var(--primary, #6366f1)' }}>
+          {lead.businessName || '—'}
+        </div>
+      ),
     },
     {
       key: 'phone',
@@ -332,6 +347,7 @@ function WaitlistLeadsPage({ token }) {
         searchPlaceholder="Search leads by ID, name, city, phone..."
         page={page}
         pageSize={pageSize}
+        totalItems={filteredLeads.length}
         onPageChange={setPage}
         onPageSizeChange={(newSize) => { setPageSize(newSize); setPage(0); }}
         pageSizeOptions={PAGE_SIZE_OPTIONS}
@@ -489,6 +505,11 @@ function WaitlistLeadsPage({ token }) {
                 <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 14, padding: 18 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 14, paddingBottom: 8, borderBottom: '1px solid #F1F5F9' }}>
                     🏢 Business & Plan Info
+                  </div>
+
+                  <div style={{ marginBottom: 14 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Business Name</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: '#6366F1' }}>🏢 {selectedLead.businessName || '-'}</span>
                   </div>
 
                   <div style={{ marginBottom: 14 }}>

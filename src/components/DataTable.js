@@ -63,6 +63,20 @@ const InboxIcon = ({ size = 32, className = '' }) => (
   </svg>
 );
 
+const flattenValues = (obj) => {
+  if (obj === null || obj === undefined) return '';
+  if (typeof obj === 'string' || typeof obj === 'number' || typeof obj === 'boolean') {
+    return String(obj);
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(flattenValues).join(' ');
+  }
+  if (typeof obj === 'object') {
+    return Object.values(obj).map(flattenValues).join(' ');
+  }
+  return '';
+};
+
 /**
  * Unified, Enterprise-grade Responsive DataTable for TradeX Admin Panel.
  */
@@ -86,19 +100,33 @@ export function DataTable({
   emptyDescription = 'There are no matching entries to display at this time.',
   className = '',
   onRowClick = null,
-  keyExtractor = (row, index) => row.id ?? row._id ?? index,
+  keyExtractor = (row, index) => row?.id ?? row?._id ?? index,
 }) {
   // Local sort state
   const [sortKey, setSortKey] = useState(null);
   const [sortOrder, setSortOrder] = useState('asc'); // 'asc' | 'desc'
   const [localSearch, setLocalSearch] = useState('');
+  const [localPage, setLocalPage] = useState(0);
+
+  // Active page calculation
+  const hasPageHandler = onPageChange !== undefined;
+  const activePage = Math.max(0, hasPageHandler ? page : localPage);
+  const handlePageChange = (newPage) => {
+    if (hasPageHandler) {
+      onPageChange(newPage);
+    } else {
+      setLocalPage(newPage);
+    }
+  };
 
   const activeSearch = onSearchChange ? search : localSearch;
   const handleSearchInput = (val) => {
     if (onSearchChange) {
       onSearchChange(val);
+      if (hasPageHandler) onPageChange(0);
     } else {
       setLocalSearch(val);
+      setLocalPage(0);
     }
   };
 
@@ -119,9 +147,7 @@ export function DataTable({
     if (!onSearchChange && localSearch.trim()) {
       const q = localSearch.trim().toLowerCase();
       result = result.filter((item) =>
-        Object.values(item).some(
-          (val) => val !== null && val !== undefined && String(val).toLowerCase().includes(q)
-        )
+        flattenValues(item).toLowerCase().includes(q)
       );
     }
 
@@ -145,21 +171,38 @@ export function DataTable({
     return result;
   }, [data, onSearchChange, localSearch, sortKey, sortOrder]);
 
-  // Pagination calculation
-  const total = totalItems !== undefined ? totalItems : processedData.length;
-  const isServerPaged = totalItems !== undefined && onPageChange !== undefined;
+  // Total count calculation
+  const total = useMemo(() => {
+    if (totalItems !== undefined && totalItems !== null && !Number.isNaN(Number(totalItems))) {
+      return Math.max(0, Number(totalItems));
+    }
+    return processedData.length;
+  }, [totalItems, processedData.length]);
+
+  // Determine if server already returned a sliced single page vs in-memory array that needs slicing
+  const isServerSideSliced = useMemo(() => {
+    // If the data contains more items than pageSize, it MUST be sliced by DataTable
+    if (processedData.length > pageSize) {
+      return false;
+    }
+    // If total is greater than the data length, it means server returned only current page slice
+    if (totalItems !== undefined && totalItems !== null && Number(totalItems) > processedData.length) {
+      return true;
+    }
+    return false;
+  }, [processedData.length, pageSize, totalItems]);
 
   const displayData = useMemo(() => {
-    if (isServerPaged) {
+    if (isServerSideSliced) {
       return processedData;
     }
-    const start = page * pageSize;
+    const start = activePage * pageSize;
     return processedData.slice(start, start + pageSize);
-  }, [processedData, isServerPaged, page, pageSize]);
+  }, [processedData, isServerSideSliced, activePage, pageSize]);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  const startItem = total === 0 ? 0 : page * pageSize + 1;
-  const endItem = Math.min((page + 1) * pageSize, total);
+  const startItem = total === 0 ? 0 : activePage * pageSize + (displayData.length > 0 ? 1 : 0);
+  const endItem = total === 0 ? 0 : Math.min(activePage * pageSize + displayData.length, total);
 
   return (
     <div className={`datatable-unified-container ${className}`}>
@@ -313,7 +356,11 @@ export function DataTable({
               <label>Rows:</label>
               <select
                 value={pageSize}
-                onChange={(e) => onPageSizeChange(Number(e.target.value))}
+                onChange={(e) => {
+                  const newSize = Number(e.target.value);
+                  onPageSizeChange(newSize);
+                  handlePageChange(0);
+                }}
                 className="datatable-pagesize-select"
               >
                 {pageSizeOptions.map((opt) => (
@@ -330,8 +377,8 @@ export function DataTable({
           <button
             type="button"
             className="datatable-page-btn"
-            disabled={page === 0 || isLoading}
-            onClick={() => onPageChange && onPageChange(0)}
+            disabled={activePage === 0 || isLoading}
+            onClick={() => handlePageChange(0)}
             title="First page"
           >
             <ChevronsLeftIcon size={16} />
@@ -339,22 +386,22 @@ export function DataTable({
           <button
             type="button"
             className="datatable-page-btn"
-            disabled={page === 0 || isLoading}
-            onClick={() => onPageChange && onPageChange(page - 1)}
+            disabled={activePage === 0 || isLoading}
+            onClick={() => handlePageChange(activePage - 1)}
             title="Previous page"
           >
             <ChevronLeftIcon size={16} />
           </button>
 
           <span className="datatable-page-current">
-            Page <strong>{page + 1}</strong> of <strong>{totalPages}</strong>
+            Page <strong>{activePage + 1}</strong> of <strong>{totalPages}</strong>
           </span>
 
           <button
             type="button"
             className="datatable-page-btn"
-            disabled={page >= totalPages - 1 || isLoading}
-            onClick={() => onPageChange && onPageChange(page + 1)}
+            disabled={activePage >= totalPages - 1 || isLoading}
+            onClick={() => handlePageChange(activePage + 1)}
             title="Next page"
           >
             <ChevronRightIcon size={16} />
@@ -362,8 +409,8 @@ export function DataTable({
           <button
             type="button"
             className="datatable-page-btn"
-            disabled={page >= totalPages - 1 || isLoading}
-            onClick={() => onPageChange && onPageChange(totalPages - 1)}
+            disabled={activePage >= totalPages - 1 || isLoading}
+            onClick={() => handlePageChange(totalPages - 1)}
             title="Last page"
           >
             <ChevronsRightIcon size={16} />

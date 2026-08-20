@@ -618,10 +618,11 @@ function LeadManagementPage({ token }) {
               data={intents}
               isLoading={isLoading}
               search={query}
-              onSearchChange={setQuery}
+              onSearchChange={(q) => { setQuery(q); setPage(1); }}
               searchPlaceholder="Search buyer, phone, or requirement..."
               page={page - 1}
               pageSize={pageSize}
+              totalItems={totalCount}
               onPageChange={(p) => setPage(p + 1)}
               onPageSizeChange={(newSize) => { setPageSize(newSize); setPage(1); }}
               pageSizeOptions={PAGE_SIZE_OPTIONS}
@@ -633,7 +634,7 @@ function LeadManagementPage({ token }) {
                   <select
                     className="gsc-toolbar-btn"
                     value={filterSource}
-                    onChange={(e) => setFilterSource(e.target.value)}
+                    onChange={(e) => { setFilterSource(e.target.value); setPage(1); }}
                     style={{ border: 'none', background: '#f3f4f6', padding: '6px 12px', borderRadius: 8, fontSize: 13, cursor: 'pointer' }}
                   >
                     <option value="">All Sources</option>
@@ -648,7 +649,7 @@ function LeadManagementPage({ token }) {
                   <select
                     className="gsc-toolbar-btn"
                     value={filterVisibility}
-                    onChange={(e) => setFilterVisibility(e.target.value)}
+                    onChange={(e) => { setFilterVisibility(e.target.value); setPage(1); }}
                     style={{ border: 'none', background: '#f3f4f6', padding: '6px 12px', borderRadius: 8, fontSize: 13, cursor: 'pointer' }}
                   >
                     <option value="">All Visibility</option>
@@ -659,7 +660,7 @@ function LeadManagementPage({ token }) {
                   <select
                     className="gsc-toolbar-btn"
                     value={filterCreditConsumed}
-                    onChange={(e) => setFilterCreditConsumed(e.target.value)}
+                    onChange={(e) => { setFilterCreditConsumed(e.target.value); setPage(1); }}
                     style={{ border: 'none', background: '#f3f4f6', padding: '6px 12px', borderRadius: 8, fontSize: 13, cursor: 'pointer' }}
                   >
                     <option value="">All Credit States</option>
