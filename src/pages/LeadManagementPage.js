@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Banner, DataTable } from '../components';
+import { Banner, DataTable, TableRowActionMenu } from '../components';
 import {
   listAdminLeads,
   getAdminLeadDetail,
@@ -106,6 +106,7 @@ function LeadManagementPage({ token }) {
   // Split pane view
   const [intentDetail, setIntentDetail] = useState(null);
   const [isAssigning, setIsAssigning] = useState(false);
+  const [openActionRowId, setOpenActionRowId] = useState(null);
 
   // Seller Search logic
   const [sellerSearchQuery, setSellerSearchQuery] = useState('');
@@ -512,6 +513,12 @@ function LeadManagementPage({ token }) {
             <DataTable
               columns={[
                 {
+                  key: 'srNo',
+                  header: 'Sr. No.',
+                  width: '70px',
+                  render: (_, __, index) => (page - 1) * pageSize + index + 1,
+                },
+                {
                   key: 'id',
                   header: 'Lead ID',
                   width: '85px',
@@ -598,20 +605,22 @@ function LeadManagementPage({ token }) {
                 },
                 {
                   key: 'actions',
-                  header: 'Action',
-                  align: 'center',
+                  header: 'Actions',
+                  align: 'right',
                   render: (_, intent) => (
-                    <button
-                      type="button"
-                      className="secondary-btn"
-                      style={{ padding: '4px 10px', fontSize: 11, height: 28, whiteSpace: 'nowrap' }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleOpenDrawer(intent.id);
-                      }}
-                    >
-                      {intent.assignedSellerName ? 'View / Reassign' : '⚡ Assign Seller'}
-                    </button>
+                    <div className="table-actions" onClick={(e) => e.stopPropagation()}>
+                      <TableRowActionMenu
+                        rowId={intent.id}
+                        openRowId={openActionRowId}
+                        onToggle={setOpenActionRowId}
+                        actions={[
+                          {
+                            label: intent.assignedSellerName ? 'View / Reassign' : 'Assign Seller',
+                            onClick: () => handleOpenDrawer(intent.id),
+                          },
+                        ]}
+                      />
+                    </div>
                   ),
                 },
               ]}

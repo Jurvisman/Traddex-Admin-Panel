@@ -537,6 +537,9 @@ export const listPayoutOrders = (token, payoutStatus) => {
 export const confirmPayout = (token, id, isStorefront) =>
   request(`/admin/orders/payouts/${id}/confirm${isStorefront ? '?isStorefront=true' : ''}`, { method: 'POST', token });
 
+export const refundPayout = (token, id) =>
+  request(`/admin/orders/payouts/${id}/refund`, { method: 'POST', token });
+
 export const listManualDeliveryClaims = (token, status) => {
   const query = status ? `?status=${encodeURIComponent(status)}` : '';
   return request(`/admin/orders/payouts/manual-delivery-claims${query}`, { token });

@@ -35,6 +35,7 @@ const INITIAL_FORM = {
   modelVariant: '', keywords: '', productLabel: '', certifications: '', warrantyPeriod: '',
   attributes: '', specifications: '',
   videoLink: '', accountCode: '', licenseCertificateId: '', licenseDocumentsText: '', internalNotes: '',
+  sku: '', stockQuantity: '',
   sellingPrice: '', mrp: '', gstRate: '', minimumOrderQuantity: '',
   thumbnailImage: '', galleryImagesText: '',
   baseUomId: '', defaultStockInUomId: '', defaultStockOutUomId: '',
@@ -723,6 +724,8 @@ function ProductCreatePage({ token }) {
         mrp: Number(form.mrp),
         gstRate: Number(form.gstRate),
         minimumOrderQuantity: form.minimumOrderQuantity ? Number(form.minimumOrderQuantity) : null,
+        sku: form.sku.trim() || null,
+        stockQuantity: form.stockQuantity !== '' ? Number(form.stockQuantity) : 0,
         weight: form.weight ? Number(form.weight) : 0.5,
         thumbnailImage: form.thumbnailImage.trim() || '',
         galleryImages: parseList(form.galleryImagesText),
@@ -1052,6 +1055,12 @@ function ProductCreatePage({ token }) {
                 </Field>
                 <Field label="Minimum Order Qty">
                   <input type="number" placeholder="e.g. 1" min="1" {...inp('minimumOrderQuantity')} />
+                </Field>
+                <Field label="SKU">
+                  <input type="text" placeholder="e.g. DM-BI-0001" {...inp('sku')} />
+                </Field>
+                <Field label="Stock Quantity">
+                  <input type="number" placeholder="0" min="0" {...inp('stockQuantity')} />
                 </Field>
               </div>
 

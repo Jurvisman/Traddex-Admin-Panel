@@ -1,8 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Banner, LoginForm } from '../components';
 import AuthLayout from '../components/AuthLayout';
-import { sendOtp } from '../services/authApi';
+import { getUserByNumber, sendOtp } from '../services/authApi';
 import { normalizePhone } from '../utils/phone';
+
+const describeAccountScope = (scope) => {
+  const normalized = String(scope || '').toUpperCase();
+  if (normalized === 'BUSINESS_EMPLOYEE') return 'a business account';
+  if (normalized === 'CUSTOMER') return 'a regular user account';
+  return 'a regular user account';
+};
 
 function LoginPage({ initialPhone = '', onOtpSent }) {
   const [form, setForm] = useState({ phone: initialPhone });
@@ -46,6 +53,23 @@ function LoginPage({ initialPhone = '', onOtpSent }) {
     setIsSending(true);
     setMessage({ type: 'info', text: '' });
     try {
+      const existingUser = await getUserByNumber(digits);
+      const accountScope = String(existingUser?.accountScope || '').toUpperCase();
+      if (!existingUser) {
+        setMessage({
+          type: 'error',
+          text: 'This mobile number is not registered with Deal 360 Admin Panel.',
+        });
+        return;
+      }
+      if (accountScope !== 'EMPLOYEE') {
+        setMessage({
+          type: 'error',
+          text: `This number is registered as ${describeAccountScope(accountScope)}, not an admin.`,
+        });
+        return;
+      }
+
       await sendOtp(digits);
       setMessage({
         type: 'success',

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Banner } from '../components';
 import {
+  assignSubscriptionPlan,
   createUserAccount,
   listBusinessTypes,
   listCities,
@@ -9,8 +10,10 @@ import {
   listIndustries,
   listRoles,
   listStates,
+  listSubscriptionPlans,
   sendBusinessCreateOtp,
   updateBusinessProfile,
+  uploadBannerImages,
   verifyBusinessCreateOtp,
 } from '../services/adminApi';
 
@@ -42,42 +45,67 @@ const TABS = [
   { key: 'business', label: 'Business', icon: '🏢' },
   { key: 'address',  label: 'Address',  icon: '📍' },
   { key: 'banking',  label: 'Banking',  icon: '🏦' },
+  { key: 'subscription', label: 'Subscription', icon: '⭐' },
 ];
 
 const INITIAL_FORM = {
   ownerName: '', phone: '', roleId: '', email: '',
-  businessName: '', industry: '', segment: '', gstNumber: '', businessPan: '',
+  businessName: '', selectedIndustries: [], segment: '',
+  gstChoice: '', gstNumber: '', kycDocType: 'AADHAAR', aadhaar: '', businessPan: '',
+  whatsappNumber: '', instagramLink: '', facebookLink: '', linkedinLink: '',
+  aadhaarFrontDocUrl: '', aadhaarBackDocUrl: '', panDocUrl: '', businessProofDocUrl: '',
   udyam: '', website: '', description: '', experience: '', hours: '', businessType: '',
   address: '', plotNo: '', landmark: '', postalCode: '', cityCode: '', stateCode: '',
   countryCode: 'IN', latitude: '', longitude: '',
-  accountHolderName: '', bankName: '', accountNumber: '', ifscCode: '',
+  accountHolderName: '', bankName: '', accountNumber: '', ifscCode: '', bankProofDocUrl: '',
+  planId: '', termsAccepted: false,
 };
 
 const FIELD_TAB_MAP = {
   ownerName: 'account', phone: 'account', roleId: 'account', email: 'account',
-  businessName: 'business', industry: 'business', segment: 'business',
-  gstNumber: 'business', businessPan: 'business', udyam: 'business',
+  whatsappNumber: 'account', instagramLink: 'account', facebookLink: 'account', linkedinLink: 'account',
+  businessName: 'business', selectedIndustries: 'business', segment: 'business',
+  gstChoice: 'business', gstNumber: 'business', kycDocType: 'business',
+  aadhaar: 'business', businessPan: 'business', udyam: 'business',
+  aadhaarFrontDocUrl: 'business', aadhaarBackDocUrl: 'business',
+  panDocUrl: 'business', businessProofDocUrl: 'business',
   website: 'business', description: 'business', experience: 'business',
   hours: 'business', businessType: 'business',
   address: 'address', plotNo: 'address', landmark: 'address', postalCode: 'address',
   cityCode: 'address', stateCode: 'address', countryCode: 'address',
   latitude: 'address', longitude: 'address',
   accountHolderName: 'banking', bankName: 'banking', accountNumber: 'banking', ifscCode: 'banking',
+  bankProofDocUrl: 'banking',
+  planId: 'subscription', termsAccepted: 'subscription',
 };
 
 /* ── Per-field validation ────────────────────────────────────── */
-function validateField(key, value) {
+function validateField(key, value, form = {}) {
   const v = String(value ?? '').trim();
   switch (key) {
     case 'ownerName':    return !v ? 'Owner name is required.' : v.length < 2 ? 'Min 2 characters.' : null;
     case 'phone':        return !v ? 'Phone number is required.' : !RE_PHONE.test(v) ? 'Enter a valid 10-digit Indian mobile number.' : null;
     case 'email':        return v && !RE_EMAIL.test(v) ? 'Enter a valid email address.' : null;
     case 'businessName': return !v ? 'Business name is required.' : v.length < 2 ? 'Min 2 characters.' : null;
-    case 'industry':     return !v ? 'Industry is required.' : null;
+    case 'selectedIndustries':
+      return !Array.isArray(value) || value.length === 0
+        ? 'Select at least 1 industry.'
+        : value.length > 4 ? 'Select up to 4 industries.' : null;
     case 'segment':      return !v ? 'Segment is required.' : null;
     case 'businessType': return !v ? 'Business type is required.' : null;
-    case 'gstNumber':    return !v ? 'GST number is required.' : !RE_GST.test(v.toUpperCase()) ? 'Invalid GST. Example: 22AAAAA0000A1Z5' : null;
-    case 'businessPan':  return !v ? 'PAN number is required.' : !RE_PAN.test(v.toUpperCase()) ? 'Invalid PAN. Example: AAAAA0000A' : null;
+    case 'gstChoice':    return !v ? 'Select whether the business has GST.' : null;
+    case 'gstNumber':
+      if (form.gstChoice !== 'GST') return null;
+      return !v ? 'GST number is required.' : !RE_GST.test(v.toUpperCase()) ? 'Invalid GST. Example: 22AAAAA0000A1Z5' : null;
+    case 'aadhaar':
+      if (form.gstChoice !== 'NON_GST' || form.kycDocType !== 'AADHAAR') return null;
+      return !v ? 'Aadhaar number is required.' : !/^[0-9]{12}$/.test(v.replace(/\D/g, '')) ? 'Enter a valid 12-digit Aadhaar number.' : null;
+    case 'businessPan':
+      if (form.gstChoice === 'NON_GST' && form.kycDocType !== 'PAN') return null;
+      if (form.gstChoice === 'NON_GST') {
+        return !v ? 'PAN number is required.' : !RE_PAN.test(v.toUpperCase()) ? 'Invalid PAN. Example: AAAAA0000A' : null;
+      }
+      return v && !RE_PAN.test(v.toUpperCase()) ? 'Invalid PAN. Example: AAAAA0000A' : null;
     case 'website':      return v && !RE_URL.test(v) ? 'Must start with http:// or https://' : null;
     case 'address':      return !v ? 'Address is required.' : null;
     case 'postalCode':   return !v ? 'PIN code is required.' : !RE_POSTAL.test(v) ? 'Enter a valid 6-digit PIN code.' : null;
@@ -88,13 +116,15 @@ function validateField(key, value) {
     case 'accountNumber': return v && !/^[0-9]{9,18}$/.test(v) ? 'Enter 9–18 digit account number.' : null;
     case 'latitude': { if (!v) return null; const n = Number(v); return Number.isNaN(n) || n < -90 || n > 90 ? 'Latitude must be –90 to 90.' : null; }
     case 'longitude': { if (!v) return null; const n = Number(v); return Number.isNaN(n) || n < -180 || n > 180 ? 'Longitude must be –180 to 180.' : null; }
+    case 'planId':        return !v ? 'Select a subscription plan.' : null;
+    case 'termsAccepted': return value !== true ? 'Confirm that the owner has accepted the terms.' : null;
     default: return null;
   }
 }
 
 function validateAll(form) {
   const errors = {};
-  Object.keys(form).forEach((k) => { const e = validateField(k, form[k]); if (e) errors[k] = e; });
+  Object.keys(form).forEach((k) => { const e = validateField(k, form[k], form); if (e) errors[k] = e; });
   return errors;
 }
 
@@ -325,6 +355,25 @@ function Field({ label, required, error, touched, hint, span2, children }) {
   );
 }
 
+/* ── Document upload field (optional, no validation) ────────────── */
+function DocUploadField({ label, url, onUpload, isUploading }) {
+  return (
+    <div className="bc-field">
+      <label className="bc-field-label">{label}</label>
+      <div className="bc-doc-upload-row">
+        <button type="button" className="ghost-btn small" onClick={onUpload} disabled={isUploading}>
+          {isUploading ? 'Uploading…' : url ? 'Replace' : 'Upload'}
+        </button>
+        {url ? (
+          <a href={url} target="_blank" rel="noreferrer" className="bc-doc-uploaded">✓ Uploaded — view</a>
+        ) : (
+          <span className="bc-hint">No document uploaded yet</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ══════════════════════════════════════════════════════════════
    MAIN PAGE
    ══════════════════════════════════════════════════════════════ */
@@ -334,15 +383,22 @@ function BusinessCreatePage({ token }) {
   const [form, setForm]           = useState(INITIAL_FORM);
   const [errors, setErrors]       = useState({});
   const [touched, setTouched]     = useState({});
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [roles, setRoles]             = useState([]);
   const [industries, setIndustries]   = useState([]);
   const [businessTypes, setBusinessTypes] = useState([]);
   const [countries, setCountries]     = useState([]);
   const [states, setStates]           = useState([]);
   const [cities, setCities]           = useState([]);
+  const [plans, setPlans]             = useState([]);
   const [customHours, setCustomHours] = useState(false);
   const [isSaving, setIsSaving]   = useState(false);
   const [message, setMessage]     = useState({ type: 'info', text: '' });
+
+  // Document upload
+  const docInputRef = useRef(null);
+  const [docUploadTarget, setDocUploadTarget] = useState(null);
+  const [isUploadingDoc, setIsUploadingDoc] = useState(false);
 
   // OTP flow
   const [otpSent, setOtpSent]           = useState(false);
@@ -379,6 +435,10 @@ function BusinessCreatePage({ token }) {
         setCountries(list);
       }
     });
+    listSubscriptionPlans(token).then((res) => {
+      const list = Array.isArray(res?.data?.plans) ? res.data.plans : [];
+      setPlans(list.filter((plan) => Number(plan.is_active) === 1 && plan.user_type === 'BUSINESS'));
+    }).catch(() => {});
     // Load states for default country IN
     listStates(token, 'IN').then((res) => {
       const list = Array.isArray(res?.data) ? res.data : [];
@@ -419,10 +479,21 @@ function BusinessCreatePage({ token }) {
 
   /* ── Field change / blur ────────────────────────────────────── */
   const handleChange = useCallback((key, value) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
+    setForm((prev) => {
+      const next = { ...prev, [key]: value };
+      const dependentKeys = key === 'gstChoice' || key === 'kycDocType'
+        ? ['gstNumber', 'aadhaar', 'businessPan']
+        : [];
+      setErrors((prevErrors) => {
+        const updated = { ...prevErrors, [key]: validateField(key, value, next) || undefined };
+        dependentKeys.forEach((depKey) => {
+          updated[depKey] = validateField(depKey, next[depKey], next) || undefined;
+        });
+        return updated;
+      });
+      return next;
+    });
     setTouched((prev) => ({ ...prev, [key]: true }));
-    const err = validateField(key, value);
-    setErrors((prev) => ({ ...prev, [key]: err || undefined }));
     if (key === 'phone') {
       setPhoneVerified(false);
       setOtpSent(false);
@@ -433,8 +504,35 @@ function BusinessCreatePage({ token }) {
 
   const handleBlur = useCallback((key) => {
     setTouched((prev) => ({ ...prev, [key]: true }));
-    setErrors((prev) => ({ ...prev, [key]: validateField(key, form[key]) || undefined }));
+    setErrors((prev) => ({ ...prev, [key]: validateField(key, form[key], form) || undefined }));
   }, [form]);
+
+  /* ── Document upload (Aadhaar/PAN/business-proof/bank-proof) ──── */
+  const openDocUpload = (fieldKey) => {
+    setDocUploadTarget(fieldKey);
+    if (docInputRef.current) {
+      docInputRef.current.value = '';
+      docInputRef.current.click();
+    }
+  };
+
+  const handleDocFile = async (event) => {
+    const file = event?.target?.files?.[0];
+    if (!file || !docUploadTarget) return;
+    setIsUploadingDoc(true);
+    setMessage({ type: 'info', text: '' });
+    try {
+      const response = await uploadBannerImages(token, [file]);
+      const url = response?.data?.urls?.[0];
+      if (!url) throw new Error('Upload failed. No file URL returned.');
+      handleChange(docUploadTarget, url);
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message || 'Failed to upload document.' });
+    } finally {
+      setIsUploadingDoc(false);
+      setDocUploadTarget(null);
+    }
+  };
 
   /* ── Hours picker ───────────────────────────────────────────── */
   const handleHoursPreset = (val) => {
@@ -594,7 +692,7 @@ function BusinessCreatePage({ token }) {
 
     tabFields.forEach((fieldKey) => {
       nextTouched[fieldKey] = true;
-      const fieldError = validateField(fieldKey, form[fieldKey]);
+      const fieldError = validateField(fieldKey, form[fieldKey], form);
       if (fieldError) {
         nextErrors[fieldKey] = fieldError;
       }
@@ -642,6 +740,15 @@ function BusinessCreatePage({ token }) {
     setActiveTab(TABS[activeTabIndex - 1].key);
   }, [activeTabIndex]);
 
+  const hasUnsavedChanges = Object.keys(touched).length > 0;
+  const handleExitAttempt = useCallback(() => {
+    if (hasUnsavedChanges) {
+      setShowExitConfirm(true);
+    } else {
+      navigate('/admin/businesses');
+    }
+  }, [hasUnsavedChanges, navigate]);
+
   /* ── Submit ──────────────────────────────────────────────────── */
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -668,17 +775,20 @@ function BusinessCreatePage({ token }) {
     setIsSaving(true);
     setMessage({ type: 'info', text: '' });
     try {
-      const gst = form.gstNumber.trim().toUpperCase();
+      const industryText = form.selectedIndustries.map((item) => item.name).join(', ');
+      const gst = form.gstChoice === 'GST' ? form.gstNumber.trim().toUpperCase() : '';
       const pan = form.businessPan.trim().toUpperCase();
+      const aadhaar = form.gstChoice === 'NON_GST' && form.kycDocType === 'AADHAAR' ? form.aadhaar.trim() : '';
       const accountResp = await createUserAccount(token, {
         name: form.ownerName.trim(),
         number: form.phone.trim(),
         userType: 'BUSINESS',
         role: form.roleId || 'BUSINESS',
+        termsAccepted: form.termsAccepted,
         businessGeneral: {
           businessName: form.businessName.trim(),
           phoneNumber: form.phone.trim(),
-          industry: form.industry.trim(),
+          industry: industryText,
           type: form.segment || undefined,
         },
         businessMain: (gst || pan) ? {
@@ -694,10 +804,21 @@ function BusinessCreatePage({ token }) {
         businessName: form.businessName.trim(),
         ownerName: form.ownerName.trim(),
         email: form.email.trim() || null,
-        industry: form.industry || null,
+        industry: industryText || null,
         businessType: form.businessType || null,
-        gstNumber: form.gstNumber.trim().toUpperCase() || null,
-        businessPan: form.businessPan.trim().toUpperCase() || null,
+        gstChoice: form.gstChoice || null,
+        gstNumber: gst || null,
+        aadhaar: aadhaar || null,
+        businessPan: pan || null,
+        whatsappNumber: form.whatsappNumber.trim() || null,
+        instagramLink: form.instagramLink.trim() || null,
+        facebookLink: form.facebookLink.trim() || null,
+        linkedinLink: form.linkedinLink.trim() || null,
+        aadhaarFrontDocUrl: form.aadhaarFrontDocUrl || null,
+        aadhaarBackDocUrl: form.aadhaarBackDocUrl || null,
+        panDocUrl: form.panDocUrl || null,
+        businessProofDocUrl: form.businessProofDocUrl || null,
+        bankProofDocUrl: form.bankProofDocUrl || null,
         udyam: form.udyam.trim() || null, website: form.website.trim() || null,
         description: form.description.trim() || null, experience: form.experience.trim() || null,
         hours: form.hours.trim() || null,
@@ -711,7 +832,11 @@ function BusinessCreatePage({ token }) {
         bankName: form.bankName.trim() || null, accountNumber: form.accountNumber.trim() || null,
         ifscCode: form.ifscCode.trim().toUpperCase() || null,
       });
-      navigate('/admin/businesses', { state: { success: `Business "${form.businessName}" created successfully.` } });
+      await assignSubscriptionPlan(token, {
+        user_id: Number(newUserId),
+        plan_id: Number(form.planId),
+      });
+      navigate('/admin/businesses', { state: { success: `Business "${form.businessName}" created and subscribed successfully.` } });
     } catch (err) {
       setMessage({ type: 'error', text: err.message || 'Failed to create business.' });
     } finally {
@@ -739,12 +864,12 @@ function BusinessCreatePage({ token }) {
       {/* ── Page Header ────────────────────────────────────────── */}
       <div className="bc-page-header">
         <div className="bc-header-left">
-          <button type="button" className="bv-back-link" onClick={() => navigate('/admin/businesses')}>
+          <button type="button" className="bv-back-link" onClick={handleExitAttempt}>
             &lt;- Back
           </button>
         </div>
         <div className="bc-header-actions">
-          <button type="button" className="ghost-btn" onClick={() => navigate('/admin/businesses')} disabled={isSaving}>
+          <button type="button" className="ghost-btn" onClick={handleExitAttempt} disabled={isSaving}>
             Cancel
           </button>
           {isLastTab ? (
@@ -802,6 +927,13 @@ function BusinessCreatePage({ token }) {
 
         {/* ── Form Panel ───────────────────────────────────────── */}
         <form id="bc-form" className="bc-form-panel" onSubmit={handleSubmit} noValidate>
+          <input
+            ref={docInputRef}
+            type="file"
+            accept="image/*,.pdf"
+            onChange={handleDocFile}
+            style={{ display: 'none' }}
+          />
 
           {/* ═══ ACCOUNT ═══════════════════════════════════════ */}
           {activeTab === 'account' ? (
@@ -898,6 +1030,19 @@ function BusinessCreatePage({ token }) {
                     })}
                   </select>
                 </Field>
+
+                <Field label="WhatsApp Number">
+                  <input type="tel" placeholder="9876543210" maxLength={10} {...inp('whatsappNumber')} />
+                </Field>
+                <Field label="Instagram">
+                  <input type="text" placeholder="https://instagram.com/..." {...inp('instagramLink')} />
+                </Field>
+                <Field label="Facebook">
+                  <input type="text" placeholder="https://facebook.com/..." {...inp('facebookLink')} />
+                </Field>
+                <Field label="LinkedIn">
+                  <input type="text" placeholder="https://linkedin.com/..." {...inp('linkedinLink')} />
+                </Field>
               </div>
 
               {/* Warning if not verified */}
@@ -922,16 +1067,32 @@ function BusinessCreatePage({ token }) {
                   <input type="text" placeholder="Official registered business name" {...inp('businessName')} />
                 </Field>
 
-                {/* Industry — dropdown from API */}
-                <Field label="Industry" required error={errors.industry} touched={touched.industry}>
-                  <select {...inp('industry')}>
-                    <option value="">— Select industry —</option>
+                {/* Industry — multi-select chips, min 1 max 4 (matches website checkout) */}
+                <Field label="Industry (select 1–4)" required error={errors.selectedIndustries} touched={touched.selectedIndustries} span2>
+                  <div className="bc-chip-row">
                     {industries.map((ind) => {
-                      const id   = String(ind?.id || ind?.industryId || '');
+                      const id = String(ind?.id || ind?.industryId || '');
                       const name = ind?.name || ind?.industryName || ind?.title || id;
-                      return <option key={id} value={name}>{name}</option>;
+                      const isSelected = form.selectedIndustries.some((item) => item.id === id);
+                      return (
+                        <button
+                          type="button"
+                          key={id}
+                          className={`bc-chip ${isSelected ? 'active' : ''}`}
+                          onClick={() => {
+                            const next = isSelected
+                              ? form.selectedIndustries.filter((item) => item.id !== id)
+                              : form.selectedIndustries.length >= 4
+                                ? form.selectedIndustries
+                                : [...form.selectedIndustries, { id, name }];
+                            handleChange('selectedIndustries', next);
+                          }}
+                        >
+                          {name}
+                        </button>
+                      );
                     })}
-                  </select>
+                  </div>
                 </Field>
 
                 {/* Segment — B2B or B2C */}
@@ -943,18 +1104,85 @@ function BusinessCreatePage({ token }) {
                   </select>
                 </Field>
 
-                <Field label="GST Number" required error={errors.gstNumber} touched={touched.gstNumber} hint="22AAAAA0000A1Z5">
-                  <input type="text" placeholder="22AAAAA0000A1Z5" maxLength={15}
-                    value={form.gstNumber}
-                    onChange={(e) => handleChange('gstNumber', e.target.value.toUpperCase())}
-                    onBlur={() => handleBlur('gstNumber')} />
+                {/* GST choice — matches website checkout logic exactly */}
+                <Field label="Does the business have GST?" required error={errors.gstChoice} touched={touched.gstChoice}>
+                  <select {...inp('gstChoice')}>
+                    <option value="">— Select —</option>
+                    <option value="GST">Yes, has GST</option>
+                    <option value="NON_GST">No GST</option>
+                  </select>
                 </Field>
-                <Field label="Business PAN" required error={errors.businessPan} touched={touched.businessPan} hint="AAAAA0000A">
+
+                {form.gstChoice === 'GST' ? (
+                  <Field label="GST Number" required error={errors.gstNumber} touched={touched.gstNumber} hint="22AAAAA0000A1Z5">
+                    <input type="text" placeholder="22AAAAA0000A1Z5" maxLength={15}
+                      value={form.gstNumber}
+                      onChange={(e) => handleChange('gstNumber', e.target.value.toUpperCase())}
+                      onBlur={() => handleBlur('gstNumber')} />
+                  </Field>
+                ) : null}
+
+                {form.gstChoice === 'NON_GST' ? (
+                  <Field label="ID Proof Type" required>
+                    <select value={form.kycDocType} onChange={(e) => handleChange('kycDocType', e.target.value)}>
+                      <option value="AADHAAR">Aadhaar</option>
+                      <option value="PAN">PAN</option>
+                    </select>
+                  </Field>
+                ) : null}
+
+                {form.gstChoice === 'NON_GST' && form.kycDocType === 'AADHAAR' ? (
+                  <Field label="Aadhaar Number" required error={errors.aadhaar} touched={touched.aadhaar}>
+                    <input type="text" placeholder="12-digit Aadhaar number" maxLength={12}
+                      value={form.aadhaar}
+                      onChange={(e) => handleChange('aadhaar', e.target.value.replace(/\D/g, ''))}
+                      onBlur={() => handleBlur('aadhaar')} />
+                  </Field>
+                ) : null}
+
+                <Field
+                  label="Business PAN"
+                  required={form.gstChoice === 'NON_GST' && form.kycDocType === 'PAN'}
+                  error={errors.businessPan}
+                  touched={touched.businessPan}
+                  hint="AAAAA0000A"
+                >
                   <input type="text" placeholder="AAAAA0000A" maxLength={10}
                     value={form.businessPan}
                     onChange={(e) => handleChange('businessPan', e.target.value.toUpperCase())}
                     onBlur={() => handleBlur('businessPan')} />
                 </Field>
+
+                {form.gstChoice === 'NON_GST' && form.kycDocType === 'AADHAAR' ? (
+                  <>
+                    <DocUploadField
+                      label="Aadhaar Front"
+                      url={form.aadhaarFrontDocUrl}
+                      isUploading={isUploadingDoc}
+                      onUpload={() => openDocUpload('aadhaarFrontDocUrl')}
+                    />
+                    <DocUploadField
+                      label="Aadhaar Back"
+                      url={form.aadhaarBackDocUrl}
+                      isUploading={isUploadingDoc}
+                      onUpload={() => openDocUpload('aadhaarBackDocUrl')}
+                    />
+                  </>
+                ) : null}
+                {(form.businessPan || form.kycDocType === 'PAN') ? (
+                  <DocUploadField
+                    label="PAN Document"
+                    url={form.panDocUrl}
+                    isUploading={isUploadingDoc}
+                    onUpload={() => openDocUpload('panDocUrl')}
+                  />
+                ) : null}
+                <DocUploadField
+                  label="Business Proof Document"
+                  url={form.businessProofDocUrl}
+                  isUploading={isUploadingDoc}
+                  onUpload={() => openDocUpload('businessProofDocUrl')}
+                />
 
                 <Field label="Business Type" required error={errors.businessType} touched={touched.businessType}
                   hint={!form.segment ? 'Select a segment first to load business types' : ''}>
@@ -1150,7 +1378,46 @@ function BusinessCreatePage({ token }) {
                     onChange={(e) => handleChange('ifscCode', e.target.value.toUpperCase())}
                     onBlur={() => handleBlur('ifscCode')} />
                 </Field>
+                <DocUploadField
+                  label="Bank Proof (cheque / passbook)"
+                  url={form.bankProofDocUrl}
+                  isUploading={isUploadingDoc}
+                  onUpload={() => openDocUpload('bankProofDocUrl')}
+                />
               </div>
+            </div>
+          ) : null}
+
+          {activeTab === 'subscription' ? (
+            <div className="bc-section">
+              <div className="bc-section-head">
+                <h2 className="bc-section-title">Subscription</h2>
+                <p className="bc-section-sub">Activates the business's subscription immediately so leads, products, and coupons work from day one.</p>
+              </div>
+              <div className="bc-grid">
+                <Field label="Plan" required error={errors.planId} touched={touched.planId}>
+                  <select {...inp('planId')}>
+                    <option value="">Select a plan</option>
+                    {plans.map((plan) => (
+                      <option key={plan.id} value={plan.id}>
+                        {plan.plan_name || plan.planName} — Rs {plan.price}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              </div>
+              <label className="bc-terms-check">
+                <input
+                  type="checkbox"
+                  checked={form.termsAccepted}
+                  onChange={(e) => handleChange('termsAccepted', e.target.checked)}
+                  onBlur={() => handleBlur('termsAccepted')}
+                />
+                <span>Owner has accepted the platform's terms and conditions (confirmed during this call).</span>
+              </label>
+              {errors.termsAccepted && touched.termsAccepted ? (
+                <span className="bc-error-msg">{errors.termsAccepted}</span>
+              ) : null}
             </div>
           ) : null}
 
@@ -1172,6 +1439,29 @@ function BusinessCreatePage({ token }) {
           </div>
         </form>
       </div>
+
+      {showExitConfirm ? (
+        <div className="admin-modal-backdrop" role="dialog" aria-modal="true" onClick={() => setShowExitConfirm(false)}>
+          <div className="admin-modal" style={{ width: 'min(420px, 100%)' }} onClick={(event) => event.stopPropagation()}>
+            <div className="admin-modal-header">
+              <h3 className="admin-modal-title">Are you sure you want to exit?</h3>
+            </div>
+            <div className="admin-modal-body">
+              <p style={{ margin: 0, color: 'var(--admin-muted, #6b7280)', fontSize: 13 }}>
+                All the details you've entered for this business will be lost. This cannot be undone.
+              </p>
+            </div>
+            <div className="admin-modal-footer">
+              <button type="button" className="ghost-btn" onClick={() => setShowExitConfirm(false)}>
+                Continue Editing
+              </button>
+              <button type="button" className="primary-btn danger" onClick={() => navigate('/admin/businesses')}>
+                Discard &amp; Exit
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -539,6 +539,8 @@ function ProductPage({ token, adminUserId }) {
   const [reviewSubCategories, setReviewSubCategories] = useState([]);
   const [showChangeRequestModal, setShowChangeRequestModal] = useState(false);
   const [changeRequestForm, setChangeRequestForm] = useState({ issues: [], note: '' });
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
   const [dynamicValues, setDynamicValues] = useState({});
   const [uoms, setUoms] = useState([]);
   const [uomForm, setUomForm] = useState({
@@ -2368,6 +2370,7 @@ function ProductPage({ token, adminUserId }) {
       weight: product.weight !== null && product.weight !== undefined ? String(product.weight) : '0.5',
       variants: Array.isArray(product.variants)
         ? product.variants.map((variant) => ({
+            variantId: variant.variantId || variant.id || null,
             variantName: variant.variantName || '',
             sku: variant.sku || '',
             barcode: variant.barcode || '',
@@ -2430,6 +2433,20 @@ function ProductPage({ token, adminUserId }) {
     populateEditForm(selectedProduct).catch((error) => {
       setMessage({ type: 'error', text: error.message || 'Failed to load product form.' });
     });
+  };
+
+  const handleEditVariants = () => {
+    if (!canEditProduct) {
+      setMessage({ type: 'error', text: 'You do not have permission to edit products.' });
+      return;
+    }
+    if (!selectedProduct) return;
+    navigate(`/admin/products/${selectedProduct.id}/edit`);
+    populateEditForm(selectedProduct)
+      .then(() => setProductFormTab('pricing'))
+      .catch((error) => {
+        setMessage({ type: 'error', text: error.message || 'Failed to load product form.' });
+      });
   };
 
   const handleCloseForm = () => {
@@ -2657,6 +2674,7 @@ function ProductPage({ token, adminUserId }) {
             if (!hasContent) return null;
 
             const payloadVariant = {
+              variantId: variant.variantId || null,
               variantName: variant.variantName?.trim() || null,
               sku: variant.sku?.trim() || null,
               barcode: variant.barcode?.trim() || null,
@@ -2981,6 +2999,46 @@ function ProductPage({ token, adminUserId }) {
     }
   };
 
+  const openRejectModal = () => {
+    if (!canRejectProduct) {
+      setMessage({ type: 'error', text: 'You do not have permission to reject products.' });
+      return;
+    }
+    setRejectReason('');
+    setShowRejectModal(true);
+  };
+
+  const handleSubmitReject = async () => {
+    if (!canRejectProduct) {
+      setMessage({ type: 'error', text: 'You do not have permission to reject products.' });
+      return;
+    }
+    if (!selectedProductId) return;
+    const adminId = getAdminId();
+    if (!adminId) return;
+    if (!rejectReason.trim()) {
+      setMessage({ type: 'error', text: 'Add a reason so the business knows why this product was rejected.' });
+      return;
+    }
+    try {
+      setIsLoading(true);
+      await updateProduct(token, selectedProductId, {
+        approvalStatus: 'REJECTED',
+        userId: adminId,
+        review_remarks: rejectReason.trim(),
+        ...buildReviewCategoryPayload(reviewForm),
+      });
+      await loadProducts();
+      await loadProductDetail(selectedProductId);
+      setShowRejectModal(false);
+      setMessage({ type: 'success', text: 'Product rejected successfully.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to reject product.' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleStatusUpdate = async (nextStatus) => {
     if (!selectedProductId) return;
     const adminId = getAdminId();
@@ -2991,6 +3049,10 @@ function ProductPage({ token, adminUserId }) {
         return;
       }
       openChangeRequestModal();
+      return;
+    }
+    if (nextStatus === 'REJECTED') {
+      openRejectModal();
       return;
     }
     if (nextStatus === 'APPROVED') {
@@ -3015,10 +3077,6 @@ function ProductPage({ token, adminUserId }) {
         });
         return;
       }
-    }
-    if (nextStatus === 'REJECTED' && !canRejectProduct) {
-      setMessage({ type: 'error', text: 'You do not have permission to reject products.' });
-      return;
     }
     try {
       setIsLoading(true);
@@ -3054,6 +3112,15 @@ function ProductPage({ token, adminUserId }) {
       setMessage({ type: 'info', text: 'Open the review workspace to request structured changes.' });
       return;
     }
+    if (nextStatus === 'REJECTED') {
+      if (!canRejectProduct) {
+        setMessage({ type: 'error', text: 'You do not have permission to reject products.' });
+        return;
+      }
+      navigate(`/admin/products/${productId}`);
+      setMessage({ type: 'info', text: 'Open the review workspace to reject with a reason.' });
+      return;
+    }
     if (nextStatus === 'APPROVED' && !canApproveProduct) {
       setMessage({ type: 'error', text: 'You do not have permission to approve products.' });
       return;
@@ -3064,10 +3131,6 @@ function ProductPage({ token, adminUserId }) {
       String(product?.brandApprovalStatus || '').trim().toUpperCase() === 'PENDING_REVIEW'
     ) {
       setMessage({ type: 'error', text: 'Open the review workspace and verify the brand before approval.' });
-      return;
-    }
-    if (nextStatus === 'REJECTED' && !canRejectProduct) {
-      setMessage({ type: 'error', text: 'You do not have permission to reject products.' });
       return;
     }
     const adminId = getAdminId();
@@ -3381,7 +3444,7 @@ function ProductPage({ token, adminUserId }) {
   const renderProductEditorForm = () => (
     <div className="pcc-page">
       <div className="pcc-topbar">
-        <span className="pcc-breadcrumb">Inventory / Products / Edit Product</span>
+        <span className="pcc-breadcrumb">Products / {isEditing ? 'Edit Product' : 'Create Product'}</span>
         <button type="button" className="pcc-back-btn" onClick={handleCloseForm}>
           ‹ Back
         </button>
@@ -4153,44 +4216,46 @@ function ProductPage({ token, adminUserId }) {
                 </div>
               </div>
 
-              <div className="pcc-section-label-row" style={{ marginTop: 20 }}>
-                <span className="pcc-section-label" style={{ marginBottom: 0 }}>
-                  Gallery Images ({productGalleryPreview.length})
-                </span>
-                <button
-                  type="button"
-                  className="primary-btn small"
-                  onClick={() => openMediaUpload({ kind: 'product', field: 'galleryImagesText' })}
-                  disabled={isUploadingMedia}
-                >
-                  {isUploadingMedia && mediaTarget?.kind === 'product' && mediaTarget?.field === 'galleryImagesText'
-                    ? 'Uploading...'
-                    : '+ Add Images'}
-                </button>
-              </div>
-              {productGalleryPreview.length > 0 ? (
-                <div className="pcc-gallery-grid">
-                  {productGalleryPreview.map((image, index) => (
-                    <div className="pcc-gallery-thumb" key={`${image}-${index}`}>
-                      <img src={image} alt="" />
-                      <button
-                        type="button"
-                        className="pcc-gallery-remove"
-                        onClick={() => {
-                          const urls = parseList(form.galleryImagesText);
-                          urls.splice(index, 1);
-                          handleChange('galleryImagesText', urls.join(', '));
-                        }}
-                        title="Remove image"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
+              <div className="pcc-gallery-panel" style={{ marginTop: 20 }}>
+                <div className="pcc-section-label-row">
+                  <span className="pcc-section-label" style={{ marginBottom: 0 }}>
+                    Gallery Images ({productGalleryPreview.length})
+                  </span>
+                  <button
+                    type="button"
+                    className="primary-btn small"
+                    onClick={() => openMediaUpload({ kind: 'product', field: 'galleryImagesText' })}
+                    disabled={isUploadingMedia}
+                  >
+                    {isUploadingMedia && mediaTarget?.kind === 'product' && mediaTarget?.field === 'galleryImagesText'
+                      ? 'Uploading...'
+                      : '+ Add Images'}
+                  </button>
                 </div>
-              ) : (
-                <div className="pcc-gallery-empty">No gallery images added yet.</div>
-              )}
+                {productGalleryPreview.length > 0 ? (
+                  <div className="pcc-gallery-grid">
+                    {productGalleryPreview.map((image, index) => (
+                      <div className="pcc-gallery-thumb" key={`${image}-${index}`}>
+                        <img src={image} alt="" />
+                        <button
+                          type="button"
+                          className="pcc-gallery-remove"
+                          onClick={() => {
+                            const urls = parseList(form.galleryImagesText);
+                            urls.splice(index, 1);
+                            handleChange('galleryImagesText', urls.join(', '));
+                          }}
+                          title="Remove image"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="pcc-gallery-empty">No gallery images added yet.</div>
+                )}
+              </div>
             </>
           ) : null}
         </div>
@@ -4452,7 +4517,7 @@ function ProductPage({ token, adminUserId }) {
   ];
   const classificationViewFields = [
     { label: 'Model Variant', value: formatValue(selectedProduct?.modelVariant) },
-    { label: 'Keywords', value: formatValue(selectedProduct?.keywords) },
+    { label: 'Keywords', value: formatValue(selectedProduct?.keywords), clamp: true },
     { label: 'Product Label', value: formatValue(selectedProduct?.productLabel) },
     { label: 'Certifications', value: formatValue(selectedProduct?.certifications) },
     { label: 'Warranty Period', value: formatValue(selectedProduct?.warrantyPeriod) },
@@ -4550,7 +4615,7 @@ function ProductPage({ token, adminUserId }) {
       return <p className="empty-state">No variants submitted.</p>;
     }
 
-    const showVariantActions = canApproveProduct || canRejectProduct;
+    const showVariantActions = canApproveProduct || canRejectProduct || canEditProduct;
 
     return (
       <div className="pvr-section">
@@ -4661,6 +4726,16 @@ function ProductPage({ token, adminUserId }) {
                               disabled={disableVariantReject || !variant?.variantId}
                             >
                               Reject
+                            </button>
+                          ) : null}
+                          {canEditProduct ? (
+                            <button
+                              type="button"
+                              className="ghost-btn small"
+                              onClick={handleEditVariants}
+                              disabled={isLoading}
+                            >
+                              Edit
                             </button>
                           ) : null}
                         </div>
@@ -5028,7 +5103,12 @@ function ProductPage({ token, adminUserId }) {
         {fields.map((f) => (
           <div key={f.key || f.label} className={`user-detail-card${f.spanFull ? ' pvr-span-full' : ''}`}>
             <p className="user-detail-label">{f.label}</p>
-            <p className="user-detail-value">{f.value || '—'}</p>
+            <p
+              className={`user-detail-value${f.clamp ? ' user-detail-value-clamp' : ''}`}
+              title={f.clamp ? f.value : undefined}
+            >
+              {f.value || '—'}
+            </p>
           </div>
         ))}
       </div>
@@ -6517,8 +6597,8 @@ function ProductPage({ token, adminUserId }) {
               ) : null}
 
               {/* ── Hero: thumbnail + name + KPI cells ─────────────── */}
-              <div className="pvr-hero panel card">
-                <div className="pvr-hero-left">
+              <div className="pvr-hero panel card" style={{ display: 'flex', flexWrap: 'nowrap', gap: 20, alignItems: 'flex-start' }}>
+                <div className="pvr-hero-left" style={{ flexShrink: 0 }}>
                   {selectedProductPrimaryImage ? (
                     <img src={selectedProductPrimaryImage} alt={selectedProduct?.productName || 'Product'} className="pvr-hero-thumb" />
                   ) : (
@@ -6527,7 +6607,7 @@ function ProductPage({ token, adminUserId }) {
                     </div>
                   )}
                 </div>
-                <div className="pvr-hero-body">
+                <div className="pvr-hero-body" style={{ flex: 1, minWidth: 0 }}>
                   <div className="pvr-hero-name-group">
                     <h2 className="pvr-hero-name">{selectedProduct?.productName || '—'}</h2>
                     <span className={`status-pill pvh-status-badge pvh-status-${statusValue.toLowerCase().replace(/_/g, '-')}`}>{statusLabel}</span>
@@ -6684,6 +6764,50 @@ function ProductPage({ token, adminUserId }) {
               </button>
               <button type="button" className="primary-btn compact" onClick={handleSubmitChangeRequest} disabled={isLoading}>
                 Send Change Request
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {showRejectModal ? (
+        <div className="modal-backdrop" role="presentation">
+          <div className="modal-card product-review-modal">
+            <div className="modal-head">
+              <div>
+                <h3 className="panel-title">Reject product</h3>
+                <p className="panel-subtitle">
+                  Tell the business why this product was rejected. This note will be shown in the app.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="ghost-btn small"
+                onClick={() => setShowRejectModal(false)}
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="product-review-modal-body">
+              <div className="product-review-modal-section">
+                <label className="field field-span">
+                  <span>Rejection reason</span>
+                  <textarea
+                    rows={5}
+                    placeholder="Explain why this product does not meet listing requirements."
+                    value={rejectReason}
+                    onChange={(event) => setRejectReason(event.target.value)}
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div className="modal-actions">
+              <button type="button" className="ghost-btn small" onClick={() => setShowRejectModal(false)}>
+                Cancel
+              </button>
+              <button type="button" className="rws-btn-reject" onClick={handleSubmitReject} disabled={isLoading || !rejectReason.trim()}>
+                Reject Product
               </button>
             </div>
           </div>

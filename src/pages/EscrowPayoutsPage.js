@@ -1,17 +1,33 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Banner } from '../components';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Banner, DataTable, TableRowActionMenu } from '../components';
 import {
   confirmPayout,
   listManualDeliveryClaims,
   listPayoutOrders,
+  refundPayout,
   reviewManualDeliveryClaim,
 } from '../services/adminApi';
 
-const TABS = [
+const VIEWS = [
+  { label: 'Payout Orders', value: 'PAYOUTS' },
+  { label: 'Manual Delivery Claims', value: 'CLAIMS' },
+];
+
+const PAYOUT_STATUS_OPTIONS = [
+  { label: 'All Statuses', value: '' },
   { label: 'Held in Escrow', value: 'HELD' },
   { label: 'Due for Payout', value: 'DUE' },
   { label: 'Paid Settlements', value: 'PAID' },
-  { label: 'Manual Delivery Claims', value: 'MANUAL_CLAIMS' },
+  { label: 'Refund Pending', value: 'REFUND_PENDING' },
+  { label: 'Refunded', value: 'REFUNDED' },
+];
+
+const CLAIM_STATUS_OPTIONS = [
+  { label: 'All Statuses', value: '' },
+  { label: 'Pending', value: 'PENDING' },
+  { label: 'Approved', value: 'APPROVED' },
+  { label: 'Rejected', value: 'REJECTED' },
+  { label: 'Paid', value: 'PAID' },
 ];
 
 const normalize = (value) => String(value || '').toLowerCase();
@@ -26,7 +42,32 @@ const formatDate = (value) => {
   if (!value) return '-';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString();
+  return date.toLocaleString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
+const getOrderDate = (item) => item?.createdOn || item?.orderDate || item?.submittedAt || item?.createdAt;
+
+const resolvePayoutStatusClass = (status) => {
+  const normalized = String(status || '').toUpperCase();
+  if (normalized === 'PAID') return 'approved';
+  if (normalized === 'REFUND_PENDING') return 'rejected';
+  if (normalized === 'DUE') return 'pending-review';
+  if (normalized === 'HELD') return 'closed';
+  return 'pending-review';
+};
+
+const resolveClaimStatusClass = (status) => {
+  const normalized = String(status || '').toUpperCase();
+  if (normalized === 'PAID') return 'approved';
+  if (normalized === 'REJECTED') return 'rejected';
+  if (normalized === 'APPROVED') return 'changes-required';
+  return 'pending-review';
 };
 
 const getCountdownText = (releaseTimeStr) => {
@@ -56,8 +97,8 @@ const parseProofUrls = (raw) => {
 
 const getSellerName = (item) => item?.sellerBusinessName || item?.sellerName || '-';
 const getBuyerName = (item) => item?.buyerBusinessName || item?.buyerName || '-';
-const getRecordAmount = (item, activeTab) =>
-  activeTab === 'MANUAL_CLAIMS' ? item?.approvedAmount || item?.amountPaid : item?.price;
+const getRecordAmount = (item, view) =>
+  view === 'CLAIMS' ? item?.approvedAmount || item?.amountPaid : item?.price;
 const getGrossAmount = (item) => item?.grossProductAmount ?? item?.gross_product_amount ?? item?.price ?? 0;
 const getProcessingFee = (item) => item?.processingFeeAmount ?? item?.processing_fee_amount ?? 0;
 const pick = (item, ...keys) => {
@@ -76,11 +117,11 @@ const sellerPayment = (item) => ({
   ifsc: pick(item, 'sellerIfscCode', 'seller_ifsc_code', 'ifscCode', 'ifsc_code'),
 });
 
-const getQrUrl = (item, activeTab) => {
+const getQrUrl = (item, view) => {
   const sellerUpi = sellerPayment(item).upi || '';
   if (!sellerUpi) return '';
   const sellerName = getSellerName(item);
-  const amount = getRecordAmount(item, activeTab) || '0.00';
+  const amount = getRecordAmount(item, view) || '0.00';
   const payload = `upi://pay?pa=${sellerUpi}&pn=${encodeURIComponent(sellerName)}&am=${amount}&cu=INR`;
   return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(payload)}`;
 };
@@ -95,7 +136,8 @@ function DetailRow({ label, value, mono }) {
 }
 
 function EscrowPayoutsPage({ token }) {
-  const [activeTab, setActiveTab] = useState('HELD');
+  const [view, setView] = useState('PAYOUTS');
+  const [statusFilter, setStatusFilter] = useState('');
   const [query, setQuery] = useState('');
   const [items, setItems] = useState([]);
   const [message, setMessage] = useState({ type: 'info', text: '' });
@@ -105,14 +147,17 @@ function EscrowPayoutsPage({ token }) {
   const [claimApprovedAmount, setClaimApprovedAmount] = useState('');
   const [claimNote, setClaimNote] = useState('');
   const [isConfirming, setIsConfirming] = useState(false);
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+  const [openActionRowId, setOpenActionRowId] = useState(null);
 
-  const loadData = async (statusValue = activeTab) => {
+  const loadData = async (viewValue = view) => {
     setIsLoading(true);
     setMessage({ type: 'info', text: '' });
     try {
-      const response = statusValue === 'MANUAL_CLAIMS'
+      const response = viewValue === 'CLAIMS'
         ? await listManualDeliveryClaims(token)
-        : await listPayoutOrders(token, statusValue);
+        : await listPayoutOrders(token);
       const raw = Array.isArray(response?.data) ? response.data : [];
       raw.sort((a, b) => new Date(b.createdOn || b.submittedAt || 0) - new Date(a.createdOn || a.submittedAt || 0));
       setItems(raw);
@@ -125,46 +170,60 @@ function EscrowPayoutsPage({ token }) {
   };
 
   useEffect(() => {
-    loadData(activeTab);
+    setStatusFilter('');
+    loadData(view);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]);
+  }, [view]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [view, statusFilter, query]);
 
   const filteredItems = useMemo(() => {
+    let result = items;
+    if (statusFilter) {
+      result = result.filter((item) => {
+        const status = view === 'CLAIMS' ? item?.status : item?.payoutStatus;
+        return String(status || '').toUpperCase() === statusFilter;
+      });
+    }
     const term = normalize(query);
-    if (!term) return items;
-    return items.filter((item) => {
-      const haystack = [
-        item?.id,
-        item?.orderReference,
-        item?.buyerName,
-        item?.buyerBusinessName,
-        item?.sellerName,
-        item?.sellerBusinessName,
-        sellerPayment(item).upi,
-        sellerPayment(item).mobile,
-        sellerPayment(item).account,
-        sellerPayment(item).ifsc,
-        item?.claimReference,
-        item?.courierType,
-        item?.bookingId,
-      ].map(normalize).join(' ');
-      return haystack.includes(term);
-    });
-  }, [items, query]);
+    if (term) {
+      result = result.filter((item) => {
+        const haystack = [
+          item?.id,
+          item?.orderReference,
+          item?.buyerName,
+          item?.buyerBusinessName,
+          item?.sellerName,
+          item?.sellerBusinessName,
+          sellerPayment(item).upi,
+          sellerPayment(item).mobile,
+          sellerPayment(item).account,
+          sellerPayment(item).ifsc,
+          item?.claimReference,
+          item?.courierType,
+          item?.bookingId,
+        ].map(normalize).join(' ');
+        return haystack.includes(term);
+      });
+    }
+    return result;
+  }, [items, statusFilter, query, view]);
 
   const totals = useMemo(() => {
-    const amount = filteredItems.reduce((sum, item) => sum + Number(getRecordAmount(item, activeTab) || 0), 0);
+    const amount = filteredItems.reduce((sum, item) => sum + Number(getRecordAmount(item, view) || 0), 0);
     return { count: filteredItems.length, amount };
-  }, [filteredItems, activeTab]);
+  }, [filteredItems, view]);
 
-  const openRecord = (item) => {
+  const openRecord = useCallback((item) => {
     setActiveRecord(item);
-    if (activeTab === 'MANUAL_CLAIMS') {
+    if (view === 'CLAIMS') {
       setClaimDecision(item?.status === 'APPROVED' ? 'PAID' : 'APPROVED');
       setClaimApprovedAmount(item?.approvedAmount || item?.amountPaid || '');
       setClaimNote(item?.adminNote || '');
     }
-  };
+  }, [view]);
 
   const handleConfirmPayout = async () => {
     if (!activeRecord?.id) return;
@@ -172,10 +231,29 @@ function EscrowPayoutsPage({ token }) {
     setMessage({ type: 'info', text: '' });
     try {
       await confirmPayout(token, activeRecord.id, activeRecord.isStorefront);
-      await loadData(activeTab);
+      await loadData(view);
       setMessage({ type: 'success', text: 'Payout marked PAID successfully.' });
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to update payout status.' });
+    } finally {
+      setIsConfirming(false);
+    }
+  };
+
+  const handleRefundPayout = async () => {
+    if (!activeRecord?.id) return;
+    if (activeRecord.isStorefront) {
+      setMessage({ type: 'error', text: 'Storefront order refunds must be processed from the alert popup (payment ID entry required).' });
+      return;
+    }
+    setIsConfirming(true);
+    setMessage({ type: 'info', text: '' });
+    try {
+      await refundPayout(token, activeRecord.id);
+      await loadData(view);
+      setMessage({ type: 'success', text: 'Refund processed successfully via Razorpay.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to process refund.' });
     } finally {
       setIsConfirming(false);
     }
@@ -191,7 +269,7 @@ function EscrowPayoutsPage({ token }) {
         approvedAmount: claimApprovedAmount,
         adminNote: claimNote,
       });
-      await loadData(activeTab);
+      await loadData(view);
       setMessage({ type: 'success', text: `Manual delivery claim marked ${claimDecision}.` });
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to review manual delivery claim.' });
@@ -200,7 +278,186 @@ function EscrowPayoutsPage({ token }) {
     }
   };
 
-  const qrUrl = useMemo(() => getQrUrl(activeRecord, activeTab), [activeRecord, activeTab]);
+  const qrUrl = useMemo(() => getQrUrl(activeRecord, view), [activeRecord, view]);
+
+  const claimColumns = useMemo(() => [
+    {
+      key: 'claimReference',
+      header: 'Claim',
+      render: (val, item) => <strong>{val || `#${item.id}`}</strong>,
+    },
+    {
+      key: 'orderId',
+      header: 'Order',
+      render: (val, item) => (
+        <span>
+          #{val}<br /><small>{item.orderReference || '-'}</small>
+        </span>
+      ),
+    },
+    {
+      key: 'seller',
+      header: 'Seller',
+      render: (_, item) => getSellerName(item),
+    },
+    {
+      key: 'courierType',
+      header: 'Courier',
+      render: (val, item) => (
+        <span>
+          {val || '-'}<br /><small>{item.bookingId || '-'}</small>
+        </span>
+      ),
+    },
+    {
+      key: 'amountPaid',
+      header: 'Claimed',
+      align: 'right',
+      sortable: true,
+      render: (val) => <strong>{money(val)}</strong>,
+    },
+    {
+      key: 'approvedAmount',
+      header: 'Approved',
+      align: 'right',
+      sortable: true,
+      render: (val) => money(val),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      sortable: true,
+      render: (status) => (
+        <span className={`status-pill ${resolveClaimStatusClass(status)}`}>
+          {String(status || '').toUpperCase() || 'PENDING'}
+        </span>
+      ),
+    },
+    {
+      key: 'submittedAt',
+      header: 'Submitted',
+      sortable: true,
+      render: (val) => formatDate(val),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      render: (_, item) => (
+        <div className="table-actions" onClick={(event) => event.stopPropagation()}>
+          <TableRowActionMenu
+            rowId={item.id}
+            openRowId={openActionRowId}
+            onToggle={setOpenActionRowId}
+            actions={[{ label: 'View Claim', onClick: () => openRecord(item) }]}
+          />
+        </div>
+      ),
+    },
+  ], [openRecord, openActionRowId]);
+
+  const payoutColumns = useMemo(() => [
+    {
+      key: 'id',
+      header: 'Order',
+      sortable: true,
+      render: (val, item) => (
+        <span>
+          <strong>#{val}</strong><br /><small>{item.orderReference || '-'}</small>
+        </span>
+      ),
+    },
+    {
+      key: 'buyer',
+      header: 'Buyer',
+      render: (_, item) => getBuyerName(item),
+    },
+    {
+      key: 'seller',
+      header: 'Seller',
+      render: (_, item) => getSellerName(item),
+    },
+    {
+      key: 'payment',
+      header: 'Payment Details',
+      render: (_, item) => (
+        <span>
+          <div>{sellerPayment(item).upi ? `UPI: ${sellerPayment(item).upi}` : 'UPI missing'}</div>
+          <small>{sellerPayment(item).account ? `Bank: ${sellerPayment(item).account}` : 'Bank missing'}</small>
+        </span>
+      ),
+    },
+    {
+      key: 'price',
+      header: 'Net Payout',
+      align: 'right',
+      sortable: true,
+      render: (val) => <strong style={{ color: '#16A34A' }}>{money(val)}</strong>,
+    },
+    {
+      key: 'payoutStatus',
+      header: 'Status',
+      sortable: true,
+      render: (status) => (
+        <span className={`status-pill ${resolvePayoutStatusClass(status)}`}>{status}</span>
+      ),
+    },
+    {
+      key: 'orderDate',
+      header: 'Order Date',
+      sortable: true,
+      render: (_, item) => formatDate(getOrderDate(item)),
+    },
+    {
+      key: 'window',
+      header: 'Release / Delivered',
+      render: (_, item) => (
+        String(item?.payoutStatus || '').toUpperCase() === 'HELD'
+          ? getCountdownText(item.escrowReleaseAt)
+          : formatDate(item.deliveredOn)
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      render: (_, item) => {
+        const rowStatus = String(item?.payoutStatus || '').toUpperCase();
+        const actionLabel = rowStatus === 'DUE' ? 'Pay Now' : rowStatus === 'REFUND_PENDING' ? 'Process Refund' : 'View Details';
+        return (
+          <div className="table-actions" onClick={(event) => event.stopPropagation()}>
+            <TableRowActionMenu
+              rowId={item.id}
+              openRowId={openActionRowId}
+              onToggle={setOpenActionRowId}
+              actions={[{ label: actionLabel, onClick: () => openRecord(item) }]}
+            />
+          </div>
+        );
+      },
+    },
+  ], [openRecord, openActionRowId]);
+
+  const activeRecordStatus = String(activeRecord?.payoutStatus || '').toUpperCase();
+
+  const refreshButton = (
+    <button
+      type="button"
+      className="icon-btn"
+      title="Refresh"
+      aria-label="Refresh"
+      onClick={() => loadData(view)}
+      disabled={isLoading}
+      style={isLoading ? { animation: 'spinRotate 0.8s linear infinite' } : undefined}
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 2v6h-6" />
+        <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+        <path d="M3 22v-6h6" />
+        <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+      </svg>
+    </button>
+  );
 
   return (
     <div>
@@ -209,146 +466,106 @@ function EscrowPayoutsPage({ token }) {
           <h2 className="panel-title">Escrow Payouts Ledger</h2>
           <p className="panel-subtitle">Manage held, due, paid and manual delivery reimbursement payouts.</p>
         </div>
-        <button type="button" className="ghost-btn" onClick={() => loadData(activeTab)} disabled={isLoading}>
-          {isLoading ? 'Refreshing...' : 'Refresh'}
-        </button>
       </div>
 
       <Banner message={message} />
 
-      <div style={styles.tabs}>
-        {TABS.map((tab) => (
-          <button
-            key={tab.value}
-            type="button"
-            className={activeTab === tab.value ? 'primary-btn' : 'ghost-btn'}
-            onClick={() => setActiveTab(tab.value)}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div style={styles.statStrip}>
+        <div style={styles.viewSwitch}>
+          {VIEWS.map((tab) => (
+            <button
+              key={tab.value}
+              type="button"
+              style={view === tab.value ? styles.viewSwitchBtnActive : styles.viewSwitchBtn}
+              onClick={() => setView(tab.value)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <div style={styles.statChip}>
+          <span style={styles.statChipLabel}>Records</span>
+          <strong style={{ ...styles.statChipValue, color: '#6345ED' }}>{totals.count}</strong>
+          <span style={styles.statChipHint}>
+            {(view === 'CLAIMS' ? CLAIM_STATUS_OPTIONS : PAYOUT_STATUS_OPTIONS).find((o) => o.value === statusFilter)?.label}
+          </span>
+        </div>
+        <div style={styles.statChip}>
+          <span style={styles.statChipLabel}>Total amount</span>
+          <strong style={{ ...styles.statChipValue, color: '#16A34A' }}>{money(totals.amount)}</strong>
+        </div>
       </div>
 
-      <div style={styles.summaryStrip}>
-        <div style={styles.summaryBox}>
-          <span style={styles.summaryLabel}>Records</span>
-          <strong style={styles.summaryValue}>{totals.count}</strong>
-        </div>
-        <div style={styles.summaryBox}>
-          <span style={styles.summaryLabel}>Total amount</span>
-          <strong style={styles.summaryValue}>{money(totals.amount)}</strong>
-        </div>
-        <label className="field" style={styles.searchField}>
-          <span>Search</span>
-          <input
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Order, seller, UPI, mobile, bank account, IFSC..."
-          />
-        </label>
-      </div>
-
-      <div className="panel card">
-        <div className="panel-split">
-          <h3 className="panel-subheading">{TABS.find((t) => t.value === activeTab)?.label}</h3>
-          <span className="panel-hint">Click any row to view payment details</span>
-        </div>
-
-        <div className="table-shell">
-          {activeTab === 'MANUAL_CLAIMS' ? (
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Claim</th>
-                  <th>Order</th>
-                  <th>Seller</th>
-                  <th>Courier</th>
-                  <th>Claimed</th>
-                  <th>Approved</th>
-                  <th>Status</th>
-                  <th>Submitted</th>
-                  <th className="table-actions">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredItems.map((item) => {
-                  const status = String(item.status || '').toUpperCase();
-                  return (
-                    <tr key={item.id} onClick={() => openRecord(item)} style={styles.clickableRow}>
-                      <td><strong>{item.claimReference || `#${item.id}`}</strong></td>
-                      <td>#{item.orderId}<br /><small>{item.orderReference || '-'}</small></td>
-                      <td>{getSellerName(item)}</td>
-                      <td>{item.courierType || '-'}<br /><small>{item.bookingId || '-'}</small></td>
-                      <td><strong>{money(item.amountPaid)}</strong></td>
-                      <td>{money(item.approvedAmount)}</td>
-                      <td><span className="status-pill pending-review">{status}</span></td>
-                      <td>{formatDate(item.submittedAt)}</td>
-                      <td className="table-actions">
-                        <button type="button" className="ghost-btn small" onClick={(event) => { event.stopPropagation(); openRecord(item); }}>
-                          View
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-                {!filteredItems.length ? (
-                  <tr><td colSpan="9" className="empty-state">No manual delivery claims found.</td></tr>
-                ) : null}
-              </tbody>
-            </table>
-          ) : (
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Order</th>
-                  <th>Buyer</th>
-                  <th>Seller</th>
-                  <th>Payment Details</th>
-                  <th>Net Payout</th>
-                  <th>Status</th>
-                  <th>{activeTab === 'HELD' ? 'Release Window' : 'Delivered'}</th>
-                  <th className="table-actions">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredItems.map((item) => (
-                  <tr key={`${item.isStorefront ? 's' : 'p'}-${item.id}`} onClick={() => openRecord(item)} style={styles.clickableRow}>
-                    <td><strong>#{item.id}</strong><br /><small>{item.orderReference || '-'}</small></td>
-                    <td>{getBuyerName(item)}</td>
-                    <td>{getSellerName(item)}</td>
-                    <td>
-                      <div>{sellerPayment(item).upi ? `UPI: ${sellerPayment(item).upi}` : 'UPI missing'}</div>
-                      <small>{sellerPayment(item).account ? `Bank: ${sellerPayment(item).account}` : 'Bank missing'}</small>
-                    </td>
-                    <td><strong style={{ color: '#16A34A' }}>{money(item.price)}</strong></td>
-                    <td><span className="status-pill approved">{item.payoutStatus}</span></td>
-                    <td>
-                      {activeTab === 'HELD' ? getCountdownText(item.escrowReleaseAt) : formatDate(item.deliveredOn)}
-                    </td>
-                    <td className="table-actions">
-                      <button type="button" className={activeTab === 'DUE' ? 'primary-btn small' : 'ghost-btn small'} onClick={(event) => { event.stopPropagation(); openRecord(item); }}>
-                        {activeTab === 'DUE' ? 'Pay' : 'View'}
-                      </button>
-                    </td>
-                  </tr>
+      <div className="panel card users-table-card">
+        {view === 'CLAIMS' ? (
+          <DataTable
+            columns={claimColumns}
+            data={filteredItems}
+            isLoading={isLoading}
+            search={query}
+            onSearchChange={setQuery}
+            searchPlaceholder="Order, seller, courier, booking ID..."
+            page={page}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={(newSize) => { setPageSize(newSize); setPage(0); }}
+            emptyTitle="No manual delivery claims found"
+            emptyDescription="No claims match your search or filter."
+            onRowClick={openRecord}
+            toolbarLeft={
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="datatable-pagesize-select"
+                style={{ height: 38, padding: '0 12px', borderRadius: 9999, minWidth: 160 }}
+              >
+                {CLAIM_STATUS_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
-                {!filteredItems.length ? (
-                  <tr><td colSpan="8" className="empty-state">No matching payouts found.</td></tr>
-                ) : null}
-              </tbody>
-            </table>
-          )}
-        </div>
+              </select>
+            }
+            toolbarRight={refreshButton}
+          />
+        ) : (
+          <DataTable
+            columns={payoutColumns}
+            data={filteredItems}
+            isLoading={isLoading}
+            search={query}
+            onSearchChange={setQuery}
+            searchPlaceholder="Order, seller, UPI, mobile, bank account, IFSC..."
+            page={page}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={(newSize) => { setPageSize(newSize); setPage(0); }}
+            emptyTitle="No matching payouts found"
+            emptyDescription="No payouts match your search or filter."
+            onRowClick={openRecord}
+            toolbarLeft={
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="datatable-pagesize-select"
+                style={{ height: 38, padding: '0 12px', borderRadius: 9999, minWidth: 160 }}
+              >
+                {PAYOUT_STATUS_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            }
+            toolbarRight={refreshButton}
+          />
+        )}
       </div>
 
       {activeRecord ? (
-        <div style={styles.drawerBackdrop} onClick={() => setActiveRecord(null)}>
-          <aside style={styles.drawer} onClick={(event) => event.stopPropagation()}>
-            <div style={styles.drawerHead}>
+        <div className="admin-modal-backdrop" role="dialog" aria-modal="true" onClick={() => setActiveRecord(null)}>
+          <div className="admin-modal" style={{ width: 'min(640px, 100%)' }} onClick={(event) => event.stopPropagation()}>
+            <div className="admin-modal-header">
               <div>
-                <h3 style={styles.drawerTitle}>
-                  {activeTab === 'MANUAL_CLAIMS' ? 'Manual Delivery Claim' : 'Payout Details'}
+                <h3 className="admin-modal-title">
+                  {view === 'CLAIMS' ? 'Manual Delivery Claim' : 'Payout Details'}
                 </h3>
                 <p style={styles.drawerSub}>
                   {activeRecord.orderReference || activeRecord.claimReference || `#${activeRecord.id}`}
@@ -357,18 +574,21 @@ function EscrowPayoutsPage({ token }) {
               <button type="button" className="ghost-btn small" onClick={() => setActiveRecord(null)}>Close</button>
             </div>
 
+            <div className="admin-modal-body">
+
             <section style={styles.drawerSection}>
               <h4 style={styles.sectionTitle}>Settlement Summary</h4>
               <DetailRow label="Seller" value={getSellerName(activeRecord)} />
               <DetailRow label="Buyer" value={getBuyerName(activeRecord)} />
-              {activeTab !== 'MANUAL_CLAIMS' ? (
+              <DetailRow label="Order date" value={formatDate(getOrderDate(activeRecord) || activeRecord.submittedAt)} />
+              {view !== 'CLAIMS' ? (
                 <>
                   <DetailRow label="Gross product amount" value={money(getGrossAmount(activeRecord))} />
                   <DetailRow label="Payment & order handling fee (3%)" value={`-${money(getProcessingFee(activeRecord))}`} />
                 </>
               ) : null}
-              <DetailRow label="Net amount to pay" value={money(getRecordAmount(activeRecord, activeTab))} />
-              <DetailRow label="Status" value={activeTab === 'MANUAL_CLAIMS' ? activeRecord.status : activeRecord.payoutStatus} />
+              <DetailRow label="Net amount to pay" value={money(getRecordAmount(activeRecord, view))} />
+              <DetailRow label="Status" value={view === 'CLAIMS' ? activeRecord.status : activeRecord.payoutStatus} />
             </section>
 
             <section style={styles.drawerSection}>
@@ -392,7 +612,7 @@ function EscrowPayoutsPage({ token }) {
               </section>
             )}
 
-            {activeTab === 'MANUAL_CLAIMS' ? (
+            {view === 'CLAIMS' ? (
               <section style={styles.drawerSection}>
                 <h4 style={styles.sectionTitle}>Claim Review</h4>
                 <DetailRow label="Courier" value={activeRecord.courierType} />
@@ -424,20 +644,27 @@ function EscrowPayoutsPage({ token }) {
               </section>
             ) : null}
 
-            <div style={styles.drawerActions}>
+            </div>
+
+            <div className="admin-modal-footer">
               <button type="button" className="ghost-btn" onClick={() => setActiveRecord(null)}>Cancel</button>
-              {activeTab === 'DUE' ? (
+              {view !== 'CLAIMS' && activeRecordStatus === 'DUE' ? (
                 <button type="button" className="primary-btn" onClick={handleConfirmPayout} disabled={isConfirming}>
                   {isConfirming ? 'Saving...' : 'Mark Settlement Paid'}
                 </button>
               ) : null}
-              {activeTab === 'MANUAL_CLAIMS' ? (
+              {view !== 'CLAIMS' && activeRecordStatus === 'REFUND_PENDING' ? (
+                <button type="button" className="primary-btn" onClick={handleRefundPayout} disabled={isConfirming || activeRecord?.isStorefront}>
+                  {isConfirming ? 'Processing...' : 'Refund via Razorpay'}
+                </button>
+              ) : null}
+              {view === 'CLAIMS' ? (
                 <button type="button" className="primary-btn" onClick={handleReviewClaim} disabled={isConfirming}>
                   {isConfirming ? 'Saving...' : 'Save Claim Review'}
                 </button>
               ) : null}
             </div>
-          </aside>
+          </div>
         </div>
       ) : null}
     </div>
@@ -445,42 +672,63 @@ function EscrowPayoutsPage({ token }) {
 }
 
 const styles = {
-  tabs: { display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 },
-  summaryStrip: {
-    display: 'grid',
-    gridTemplateColumns: '160px 220px 1fr',
-    gap: 12,
-    alignItems: 'end',
-    marginBottom: 16,
-  },
-  summaryBox: {
-    background: '#FFFFFF',
+  viewSwitch: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    height: 36,
+    boxSizing: 'border-box',
+    padding: 3,
+    gap: 2,
+    borderRadius: 999,
+    background: '#F1F5F9',
     border: '1px solid #E2E8F0',
-    borderRadius: 12,
-    padding: 14,
   },
-  summaryLabel: { display: 'block', color: '#64748B', fontSize: 12, marginBottom: 4 },
-  summaryValue: { color: '#0F172A', fontSize: 18 },
-  searchField: { margin: 0 },
-  clickableRow: { cursor: 'pointer' },
-  drawerBackdrop: {
-    position: 'fixed',
-    inset: 0,
-    background: 'rgba(15, 23, 42, 0.26)',
-    zIndex: 1000,
-    display: 'flex',
-    justifyContent: 'flex-end',
-  },
-  drawer: {
-    width: 'min(520px, 100vw)',
+  viewSwitchBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
     height: '100%',
-    background: '#FFFFFF',
-    boxShadow: '-16px 0 40px rgba(15, 23, 42, 0.18)',
-    padding: 22,
-    overflowY: 'auto',
+    boxSizing: 'border-box',
+    border: 'none',
+    background: 'transparent',
+    color: '#64748B',
+    padding: '0 14px',
+    borderRadius: 999,
+    fontWeight: 700,
+    fontSize: 12.5,
+    lineHeight: 1,
+    cursor: 'pointer',
   },
-  drawerHead: { display: 'flex', justifyContent: 'space-between', gap: 16, marginBottom: 18 },
-  drawerTitle: { margin: 0, fontSize: 20, color: '#0F172A' },
+  viewSwitchBtnActive: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    height: '100%',
+    boxSizing: 'border-box',
+    border: 'none',
+    background: '#6345ED',
+    color: '#FFFFFF',
+    padding: '0 14px',
+    borderRadius: 999,
+    fontWeight: 700,
+    fontSize: 12.5,
+    lineHeight: 1,
+    cursor: 'pointer',
+    boxShadow: '0 4px 10px rgba(99, 69, 237, 0.28)',
+  },
+  statStrip: { display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16 },
+  statChip: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    height: 36,
+    boxSizing: 'border-box',
+    gap: 6,
+    padding: '0 12px',
+    border: '1px solid #E2E8F0',
+    borderRadius: 999,
+    background: '#FFFFFF',
+  },
+  statChipLabel: { fontSize: 11.5, color: '#64748B', fontWeight: 600, lineHeight: 1 },
+  statChipValue: { fontSize: 13, fontWeight: 700, lineHeight: 1 },
+  statChipHint: { fontSize: 10.5, color: '#94A3B8', lineHeight: 1 },
   drawerSub: { margin: '4px 0 0', color: '#64748B' },
   drawerSection: {
     border: '1px solid #E2E8F0',
@@ -519,13 +767,6 @@ const styles = {
     background: '#FEF2F2',
   },
   proofList: { display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 },
-  drawerActions: {
-    display: 'flex',
-    justifyContent: 'flex-end',
-    gap: 8,
-    paddingTop: 14,
-    borderTop: '1px solid #E2E8F0',
-  },
 };
 
 export default EscrowPayoutsPage;

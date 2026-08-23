@@ -5,6 +5,7 @@ import {
 } from 'recharts';
 import { Banner } from '../components';
 import { getSubscriptionRevenue } from '../services/adminApi';
+import SubscriptionOverviewPage from './SubscriptionOverviewPage';
 
 /* ── Constants ──────────────────────────────────────────────────── */
 const TYPE_LABELS = { SUBSCRIPTION: 'Plan', ADDON: 'Add-on', UPGRADE: 'Upgrade' };
@@ -81,7 +82,9 @@ function PieLegend({ data }) {
 }
 
 /* ── Main Page ──────────────────────────────────────────────────── */
-function SubscriptionRevenuePage({ token }) {
+function SubscriptionRevenuePage({ token, allowedActions }) {
+  const canViewOverview = !allowedActions || allowedActions.has('ADMIN_SUBSCRIPTION_OVERVIEW_READ');
+  const [activeTab, setActiveTab] = useState(canViewOverview ? 'overview' : 'payments');
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState({ type: 'info', text: '' });
@@ -168,11 +171,34 @@ function SubscriptionRevenuePage({ token }) {
     <div className="sub-rev-page">
       <div className="panel-head">
         <div>
-          <h2 className="panel-title">Revenue / Subscription</h2>
-          <p className="panel-subtitle">Breakdown of subscription payments and analytics.</p>
+          <h2 className="panel-title">Subscription Revenue</h2>
+          <p className="panel-subtitle">Plan overview and subscription payment analytics.</p>
         </div>
       </div>
 
+      <div className="rev-tab-switcher">
+        {canViewOverview && (
+          <button
+            type="button"
+            className={`rev-tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
+            onClick={() => setActiveTab('overview')}
+          >
+            Overview
+          </button>
+        )}
+        <button
+          type="button"
+          className={`rev-tab-btn ${activeTab === 'payments' ? 'active' : ''}`}
+          onClick={() => setActiveTab('payments')}
+        >
+          Payments &amp; Analytics
+        </button>
+      </div>
+
+      {activeTab === 'overview' && canViewOverview ? (
+        <SubscriptionOverviewPage token={token} />
+      ) : (
+        <>
       <Banner message={message} />
 
       {isLoading ? (
@@ -447,6 +473,8 @@ function SubscriptionRevenuePage({ token }) {
               )}
             </div>
           </div>
+        </>
+      )}
         </>
       )}
     </div>
