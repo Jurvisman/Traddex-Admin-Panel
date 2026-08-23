@@ -12731,6 +12731,14 @@ textarea {
   word-break: break-word;
 }
 
+.user-detail-value-clamp {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  cursor: help;
+}
+
 .detail-section-head {
   align-items: flex-start;
 }
@@ -19403,9 +19411,16 @@ textarea {
 .pcc-brand-meta { font-size: 12px; color: #64748b; }
 .pcc-media-row {
   display: flex; gap: 24px; align-items: flex-start;
+  width: 100%; box-sizing: border-box;
   padding: 20px; background: #f8fafc; border: 1px solid #e2e8f0;
   border-radius: 10px; margin-bottom: 28px;
 }
+.pcc-gallery-panel {
+  width: 100%; box-sizing: border-box;
+  padding: 20px; background: #f8fafc; border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+.pcc-gallery-panel .pcc-section-label-row { margin-bottom: 14px; }
 .pcc-thumb-box {
   width: 140px; height: 140px; flex-shrink: 0; border-radius: 8px;
   overflow: hidden; border: 1px solid #e2e8f0; background: #f1f5f9;
@@ -19413,7 +19428,7 @@ textarea {
 }
 .pcc-thumb-img { width: 100%; height: 100%; object-fit: cover; }
 .pcc-thumb-empty { font-size: 12px; color: #94a3b8; text-align: center; padding: 8px; }
-.pcc-thumb-actions { flex: 1; }
+.pcc-thumb-actions { flex: 1; max-width: 480px; }
 .pcc-media-label { font-size: 14px; font-weight: 700; color: #1e293b; margin: 0 0 4px; }
 .pcc-media-hint { font-size: 13px; color: #64748b; margin: 0 0 12px; }
 .pcc-media-btns { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -19465,7 +19480,23 @@ textarea {
 .pcc-variant-attrs { margin-top: 16px; padding-top: 16px; border-top: 1px solid #f1f5f9; }
 .pcc-variant-attrs-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 .pcc-attr-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
-.pcc-attr-row input { flex: 1; }
+.pcc-attr-row input {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1.5px solid var(--admin-line, #d1d5db);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--admin-ink, #111827);
+  background: var(--admin-panel, #fff);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-sizing: border-box;
+}
+.pcc-attr-row input:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
 .pcc-form-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 32px; padding-top: 20px; border-top: 1px solid #e2e8f0; }
 
 /* ─── ProductCreatePage flat redesign overrides ────────────────
@@ -20185,8 +20216,8 @@ textarea {
 /* status badge */
 .pvh-status-badge {
   display: inline-flex; align-items: center;
-  padding: 3px 10px; border-radius: 999px;
-  font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+  padding: 2px 9px; border-radius: 999px;
+  font-size: 10px; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase;
 }
 .pvh-status-badge.pvh-status-approved          { background: #d1fae5; color: #065f46; }
 .pvh-status-badge.pvh-status-rejected          { background: #fee2e2; color: #991b1b; }
@@ -20785,9 +20816,9 @@ textarea {
 /* ── Status badge (used in compact header) ───────────────────── */
 .admin-shell-gsc .pvh-status-badge {
   display: inline-flex; align-items: center;
-  padding: 3px 10px; border-radius: 999px;
-  font-size: 11px; font-weight: 700;
-  letter-spacing: 0.04em; text-transform: uppercase;
+  padding: 2px 9px; border-radius: 999px;
+  font-size: 10px; font-weight: 600;
+  letter-spacing: 0.02em; text-transform: uppercase;
 }
 .admin-shell-gsc .pvh-brand-tag {
   display: inline-flex; align-items: center;
@@ -20847,6 +20878,7 @@ textarea {
 /* ── Hero card ──────────────────────────────────────────────── */
 .pvr-hero {
   display: flex;
+  flex-wrap: nowrap;
   gap: 20px;
   align-items: flex-start;
   padding: 20px 22px 18px;
@@ -20877,7 +20909,7 @@ textarea {
   color: #111827; line-height: 1.3;
 }
 .pvr-hero-secondary {
-  margin: 0 0 12px;
+  margin: 0 0 6px;
   font-size: 0.8125rem;
   color: #6b7280;
   line-height: 1.5;
@@ -20887,18 +20919,18 @@ textarea {
   display: flex; flex-wrap: wrap;
   gap: 0;
   border-top: 1px solid #f3f4f6;
-  margin-top: 12px;
-  padding-top: 12px;
+  margin-top: 4px;
+  padding-top: 6px;
 }
 .pvr-kpi-cell {
-  display: flex; flex-direction: column; gap: 2px;
-  padding: 0 22px 0 0;
+  display: flex; flex-direction: column; gap: 1px;
+  padding: 0 14px 0 0;
   border-right: 1px solid #f3f4f6;
-  margin-right: 22px;
+  margin-right: 14px;
 }
 .pvr-kpi-cell:last-child { border-right: none; margin-right: 0; }
-.pvr-kpi-val { font-size: 1.125rem; font-weight: 800; color: #111827; line-height: 1; }
-.pvr-kpi-lbl { font-size: 11px; font-weight: 500; color: #9ca3af; margin-top: 2px; }
+.pvr-kpi-val { font-size: 0.875rem; font-weight: 800; color: #111827; line-height: 1; }
+.pvr-kpi-lbl { font-size: 10px; font-weight: 500; color: #9ca3af; margin-top: 1px; }
 .product-page .bv-tab-content {
   padding: 6px 16px 16px;
   min-height: 0;
@@ -21028,7 +21060,7 @@ textarea {
   .product-page .bv-tab-content {
     padding: 6px 14px 14px;
   }
-  .pvr-hero { flex-wrap: wrap; gap: 14px; }
+  .pvr-hero { flex-wrap: nowrap; gap: 14px; }
   .pvr-kpi-strip { gap: 10px 0; }
   .pvr-kpi-cell { padding: 0 16px 0 0; margin-right: 16px; }
 }
