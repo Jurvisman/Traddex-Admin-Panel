@@ -194,12 +194,16 @@ const BUSINESS_PROFILE_FIELDS = [
   { key: 'razorpayKey', label: 'Razorpay Key' },
 ];
 
+const DETAIL_TAB_GROUPS = [
+  { key: 'profile', label: 'Details', tabs: ['personal', 'business', 'bank'] },
+  { key: 'compliance', label: 'KYC & Documents', tabs: ['kycreview', 'kycdocs', 'media'] },
+  { key: 'commerce', label: 'Orders & Sales', tabs: ['products', 'subscription', 'payments', 'leads', 'orders'] },
+  { key: 'stats', label: 'Stats', tabs: ['performance'] },
+];
+
 const PERSONAL_INFO_KEYS = new Set([
   'ownerName',
-  'contactNumber',
   'whatsappNumber',
-  'email',
-  'address',
   'formattedAddress',
   'placeId',
   'plotNo',
@@ -385,6 +389,7 @@ function BusinessPage({ token, allowedActions }) {
   const [isLoading, setIsLoading] = useState(false);
   const [viewDetails, setViewDetails] = useState(null);
   const [activeTab, setActiveTab] = useState('personal');
+  const [activeDetailGroup, setActiveDetailGroup] = useState('profile');
   const [isViewLoading, setIsViewLoading] = useState(false);
   const [viewProducts, setViewProducts] = useState([]);
   const [activeUserId, setActiveUserId] = useState(null);
@@ -413,6 +418,7 @@ function BusinessPage({ token, allowedActions }) {
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showRejectInput, setShowRejectInput] = useState(false);
+  const [heroActionMenuOpen, setHeroActionMenuOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [isRejecting, setIsRejecting] = useState(false);
   const [activationTarget, setActivationTarget] = useState(null);
@@ -637,6 +643,7 @@ function BusinessPage({ token, allowedActions }) {
       setViewDetails(null);
       setViewProducts([]);
       setActiveTab('personal');
+      setActiveDetailGroup('profile');
       setViewSubscriptions([]);
       setViewFeatureUsage([]);
       setViewLeads(null);
@@ -1238,15 +1245,13 @@ function BusinessPage({ token, allowedActions }) {
     getUserEmail(viewUser) !== '-' ? getUserEmail(viewUser) : null,
     (viewUser?.createdAt || viewUser?.created_at) ? 'Joined ' + formatDate(viewUser?.createdAt || viewUser?.created_at) : null,
   ].filter(Boolean);
-  const activePlanName = activeSubscription?.plan?.name || activeSubscription?.plan_name || activeSubscription?.planName || '';
-  const heroHealthChips = [
+  const TONE_COLORS = { good: '#15803d', warn: '#b45309', neutral: '#0f172a', muted: '#94a3b8' };
+  const heroKpis = [
     { label: 'KYC', value: verificationMeta.label, tone: verificationMeta.isVerified ? 'good' : 'warn' },
     { label: 'Plan', value: activeSubscription ? 'Active' : viewSubscriptions.length ? 'Inactive' : 'No plan', tone: activeSubscription ? 'good' : 'warn' },
     { label: 'Products pending', value: productPendingCount, tone: productPendingCount > 0 ? 'warn' : 'good' },
     { label: 'Attention', value: openAttentionCount, tone: openAttentionCount > 0 ? 'warn' : 'good' },
     { label: 'Last active', value: lastActiveAt ? formatDate(lastActiveAt) : '-', tone: lastActiveAt ? 'neutral' : 'muted' },
-  ];
-  const heroKpis = [
     { label: 'Avg Rating', value: Number(viewBusinessProfile?.rating ?? viewBusinessProfile?.averageRating ?? viewBusinessProfile?.ratingAvg ?? 0).toFixed(1) },
     { label: 'Ratings', value: viewBusinessProfile?.ratingCount ?? viewBusinessProfile?.totalRatings ?? viewBusinessProfile?.ratings_count ?? 0 },
     { label: 'Reviews', value: viewBusinessProfile?.reviewCount ?? viewBusinessProfile?.totalReviews ?? viewBusinessProfile?.reviews_count ?? 0 },
@@ -1767,19 +1772,11 @@ function BusinessPage({ token, allowedActions }) {
                       </span>
                     ))}
                   </p>
-                  <div className="bv-hero-health-strip">
-                    {heroHealthChips.map((chip) => (
-                      <div key={chip.label} className={`bv-hero-health-chip ${chip.tone}`}>
-                        <span>{chip.label}</span>
-                        <strong>{chip.value}</strong>
-                      </div>
-                    ))}
-                  </div>
                   <div className="bv-hero-kpi-strip">
                     {heroKpis.map((kpi) => (
                       <div className="bv-hero-kpi-cell" key={kpi.label}>
-                        <span className="bv-kpi-val">{kpi.value}</span>
                         <span className="bv-kpi-lbl">{kpi.label}</span>
+                        <span className="bv-kpi-val" style={kpi.tone ? { color: TONE_COLORS[kpi.tone] } : undefined}>{kpi.value}</span>
                       </div>
                     ))}
                   </div>
@@ -1787,49 +1784,58 @@ function BusinessPage({ token, allowedActions }) {
 
                 <div className="bv-hero-actions">
                   <div className="bv-hero-action-row">
-                    {canEditKyc && viewBusinessProfile ? (
-                      <button type="button" className="ghost-btn small" onClick={() => navigate('/admin/businesses/' + (viewBusinessProfile.userId || viewUser?.id || '') + '/edit')}>
-                        Edit KYC
+                    {(() => {
+                      const menuActions = [];
+                      if (canEditKyc && viewBusinessProfile) {
+                        menuActions.push({
+                          label: 'Edit KYC',
+                          onClick: () => navigate('/admin/businesses/' + (viewBusinessProfile.userId || viewUser?.id || '') + '/edit'),
+                        });
+                      }
+                      if (
+                        canApprove && viewBusinessProfile?.profileId &&
+                        !verificationMeta.isVerified &&
+                        normalizeStatus(viewBusinessProfile?.status || viewUser?.kycStatus) !== 'UNDER_REVIEW'
+                      ) {
+                        menuActions.push({
+                          label: 'Mark Under Review',
+                          onClick: async () => {
+                            setIsBusinessSaving(true);
+                            try {
+                              await updateBusinessProfileStatus(token, viewBusinessProfile.profileId, 'UNDER_REVIEW');
+                              await loadBusinesses();
+                              await loadBusinessDetails(viewBusinessProfile.userId || viewUser?.id);
+                              setMessage({ type: 'success', text: 'KYC marked as Under Review.' });
+                            } catch (err) { setMessage({ type: 'error', text: err.message || 'Failed.' }); }
+                            finally { setIsBusinessSaving(false); }
+                          },
+                        });
+                      }
+                      if (canApprove && viewBusinessProfile?.profileId && !verificationMeta.isVerified) {
+                        menuActions.push({
+                          label: 'Reject',
+                          danger: true,
+                          onClick: () => setShowRejectInput((v) => !v),
+                        });
+                      }
+                      return menuActions.length ? (
+                        <TableRowActionMenu
+                          rowId="hero"
+                          openRowId={heroActionMenuOpen ? 'hero' : null}
+                          onToggle={(id) => setHeroActionMenuOpen(Boolean(id))}
+                          actions={menuActions}
+                        />
+                      ) : null;
+                    })()}
+                    {canApprove && viewBusinessProfile?.profileId && !verificationMeta.isVerified ? (
+                      <button type="button"
+                        className="primary-btn compact"
+                        onClick={handleBusinessApprove}
+                        disabled={isBusinessSaving || isRejecting}
+                      >
+                        {isBusinessSaving ? 'Approving...' : 'Approve KYC'}
                       </button>
                     ) : null}
-                    {canApprove && viewBusinessProfile?.profileId ? (
-                      <>
-                        {!verificationMeta.isVerified && normalizeStatus(viewBusinessProfile?.status || viewUser?.kycStatus) !== 'UNDER_REVIEW' ? (
-                          <button type="button" className="ghost-btn small" disabled={isBusinessSaving}
-                            onClick={async () => {
-                              setIsBusinessSaving(true);
-                              try {
-                                await updateBusinessProfileStatus(token, viewBusinessProfile.profileId, 'UNDER_REVIEW');
-                                await loadBusinesses();
-                                await loadBusinessDetails(viewBusinessProfile.userId || viewUser?.id);
-                                setMessage({ type: 'success', text: 'KYC marked as Under Review.' });
-                              } catch (err) { setMessage({ type: 'error', text: err.message || 'Failed.' }); }
-                              finally { setIsBusinessSaving(false); }
-                            }}
-                          >Mark Under Review</button>
-                        ) : null}
-                        <button type="button"
-                          className={verificationMeta.isVerified ? 'ghost-btn small' : 'primary-btn compact'}
-                          onClick={handleBusinessApprove}
-                          disabled={isBusinessSaving || isRejecting || verificationMeta.isVerified}
-                        >
-                          {verificationMeta.isVerified ? 'Verified' : isBusinessSaving ? 'Approving...' : 'Approve KYC'}
-                        </button>
-                        {!verificationMeta.isVerified ? (
-                          <button type="button" className="ghost-btn small danger"
-                            onClick={() => setShowRejectInput((v) => !v)}
-                            disabled={isBusinessSaving || isRejecting}
-                          >Reject</button>
-                        ) : null}
-                      </>
-                    ) : null}
-                  </div>
-                  <div className="bv-hero-risk-card">
-                    <span className="bv-hero-risk-label">Admin snapshot</span>
-                    <strong className={openAttentionCount > 0 ? 'bv-hero-risk-warn' : 'bv-hero-risk-good'}>
-                      {openAttentionCount > 0 ? `${openAttentionCount} needs attention` : 'No open attention'}
-                    </strong>
-                    <span>{activeSubscription ? `Plan: ${activePlanName || 'Active'}` : 'Plan: not active'}</span>
                   </div>
                 </div>
               </div>
@@ -1857,56 +1863,55 @@ function BusinessPage({ token, allowedActions }) {
 
               {/* Smart Custom Industry Resolution Banner */}
               {(() => {
-                const customIndName = viewBusinessProfile?.customIndustryName || viewBusinessProfile?.industry || viewUser?.industry || '';
-                const isMasterIndustry = masterIndustries.some(
-                  (m) => String(m.name || '').trim().toLowerCase() === String(customIndName).trim().toLowerCase()
+                const rawIndustry = viewBusinessProfile?.customIndustryName || viewBusinessProfile?.industry || viewUser?.industry || '';
+                const industryTokens = String(rawIndustry)
+                  .split(',')
+                  .map((token) => token.trim())
+                  .filter(Boolean);
+                const masterIndustryNames = new Set(
+                  masterIndustries.map((m) => String(m.name || '').trim().toLowerCase())
+                );
+                const unmatchedIndustries = industryTokens.filter(
+                  (token) => !masterIndustryNames.has(token.toLowerCase())
                 );
 
-                // ONLY show banner if business has a custom industry that is NOT in DB master list yet!
-                if (isCustomResolved || !customIndName || isMasterIndustry) return null;
+                // ONLY show banner if at least one submitted industry is NOT in the master list yet!
+                if (isCustomResolved || unmatchedIndustries.length === 0) return null;
+                const customIndName = unmatchedIndustries.join(', ');
 
                 return (
                   <div style={{
-                    background: 'linear-gradient(135deg, #eef2ff 0%, #fae8ff 100%)',
-                    border: '1.5px solid #a5b4fc',
-                    borderRadius: 16,
-                    padding: '16px 20px',
+                    background: '#fffbeb',
+                    borderRadius: 10,
+                    padding: '12px 16px',
                     marginBottom: 20,
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
                     flexWrap: 'wrap',
                     gap: 12,
-                    boxShadow: '0 4px 12px rgba(99, 102, 241, 0.08)'
                   }}>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                        <span style={{ fontSize: 16 }}>⚡</span>
-                        <strong style={{ fontSize: 15, color: '#3730a3' }}>Industry Classification Action Required</strong>
-                        <span style={{ background: '#6366f1', color: '#ffffff', padding: '2px 10px', borderRadius: 12, fontSize: 12, fontWeight: 700 }}>
-                          "{customIndName}"
-                        </span>
-                      </div>
-                      <p style={{ margin: 0, fontSize: 13, color: '#475569' }}>
-                        Merchant submitted industry: <strong>"{customIndName}"</strong>. Would you like to create it as a new Master Industry or remap it to an existing standard category?
-                      </p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 16 }}>⚠</span>
+                      <strong style={{ fontSize: 14, color: '#92400e' }}>Industry classification needed</strong>
+                      <span style={{ fontSize: 13, color: '#64748b' }}>
+                        Merchant submitted "{customIndName}" &mdash; not in master list yet.
+                      </span>
                     </div>
-                    <div style={{ display: 'flex', gap: 10 }}>
+                    <div style={{ display: 'flex', gap: 8 }}>
                       <button
                         type="button"
-                        className="primary-btn"
-                        style={{ background: '#10b981', borderColor: '#10b981', fontSize: 13, padding: '8px 16px', cursor: 'pointer' }}
+                        className="ghost-btn small"
                         onClick={() => handleOpenCreateMasterModal(customIndName)}
                       >
-                        ➕ Create as Master Industry
+                        Create as Master Industry
                       </button>
                       <button
                         type="button"
-                        className="primary-btn"
-                        style={{ background: '#4f46e5', borderColor: '#4f46e5', fontSize: 13, padding: '8px 16px', cursor: 'pointer' }}
+                        className="ghost-btn small"
                         onClick={handleOpenRemapModal}
                       >
-                        🔄 Remap to Existing Industry
+                        Remap to Existing Industry
                       </button>
                     </div>
                   </div>
@@ -1990,10 +1995,39 @@ function BusinessPage({ token, allowedActions }) {
                 </div>
               )}
 
+              {/* ── Detail group pills ────────────────────────────── */}
+              <div className="bv-detail-group-bar">
+                {DETAIL_TAB_GROUPS.map((group) => {
+                  const groupTabs = detailTabs.filter((tab) => group.tabs.includes(tab.key));
+                  const groupTotal = groupTabs.reduce((sum, tab) => sum + (tab.count || 0), 0);
+                  const groupHasAttention = groupTabs.some((tab) => tab.badgeCount);
+                  return (
+                    <button
+                      key={group.key}
+                      type="button"
+                      className={`bv-detail-group-pill ${activeDetailGroup === group.key ? 'active' : ''}`}
+                      onClick={() => {
+                        setActiveDetailGroup(group.key);
+                        if (!group.tabs.includes(activeTab)) {
+                          setActiveTab(group.tabs[0]);
+                        }
+                      }}
+                    >
+                      {group.label}
+                      {groupTotal ? ` · ${groupTotal}` : ''}
+                      {groupHasAttention ? <span className="bv-detail-group-dot" /> : null}
+                    </button>
+                  );
+                })}
+              </div>
+
               {/* ── Tab panel ──────────────────────────────────────── */}
               <div className="bv-panel panel card">
                 <div className="bv-tab-bar">
-                  {detailTabs.map((tab) => (
+                  {detailTabs.filter((tab) => {
+                    const group = DETAIL_TAB_GROUPS.find((g) => g.key === activeDetailGroup);
+                    return group ? group.tabs.includes(tab.key) : true;
+                  }).map((tab) => (
                     <button
                       key={tab.key}
                       type="button"
