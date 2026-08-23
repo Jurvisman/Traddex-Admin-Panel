@@ -609,7 +609,7 @@ function BusinessPage({ token, allowedActions }) {
     if (isDetailRoute) return;
     loadBusinesses(businessListPage, businessListPageSize);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isDetailRoute, businessListPage, businessListPageSize, filterStatus]);
+  }, [isDetailRoute, businessListPage, businessListPageSize, filterStatus, query]);
 
   const loadBusinessDetails = async (userId) => {
     if (!userId) return;
@@ -735,12 +735,6 @@ function BusinessPage({ token, allowedActions }) {
   useEffect(() => {
     setBusinessListPage(0);
   }, [query, filterStatus]);
-
-  useEffect(() => {
-    if (businessListPage !== pagedBusinesses.page) {
-      setBusinessListPage(pagedBusinesses.page);
-    }
-  }, [businessListPage, pagedBusinesses.page]);
 
   const activeCount = useMemo(() => businesses.filter((user) => Number(user?.active) === 1).length, [businesses]);
   const inactiveCount = Math.max(0, businesses.length - activeCount);
@@ -1601,7 +1595,7 @@ function BusinessPage({ token, allowedActions }) {
                 },
               ]}
               data={filteredBusinesses}
-              totalItems={filteredBusinesses.length}
+              totalItems={totalBusinessCount}
               isLoading={isLoading}
               search={query}
               onSearchChange={setQuery}
