@@ -26,7 +26,6 @@ import {
   SubscriptionAssignPage,
   AddonPricingPage,
   SubscriptionFeaturePage,
-  SubscriptionOverviewPage,
   SubscriptionPlanPage,
   SubscriptionPlanCreatePage,
   SubscriptionPlanViewPage,
@@ -339,10 +338,6 @@ const ADMIN_META = [
   {
     match: '/admin/subscription/features',
     title: 'Master',
-  },
-  {
-    match: '/admin/subscription/overview',
-    title: 'Revenue Model',
   },
   {
     match: '/admin/subscription/plans',
@@ -927,7 +922,6 @@ function AppRoutes() {
             icon: ICONS.dashboard,
             tone: NAV_TONES.dashboard,
             children: [
-              { path: '/admin/storefront', label: 'Domains & Live Sites', icon: ICONS.dashboard, tone: NAV_TONES.dashboard, exact: true },
               { path: '/admin/storefront/website-requests', label: 'Website Requests', icon: ICONS.dashboard, tone: NAV_TONES.dashboard },
             ],
           },
@@ -963,7 +957,6 @@ function AppRoutes() {
             icon: ICONS.subOverview,
             tone: NAV_TONES.subOverview,
             children: [
-              { path: '/admin/subscription/overview', label: 'Revenue Model', icon: ICONS.subOverview, tone: NAV_TONES.subOverview },
               { path: '/admin/subscription/features', label: 'Features', icon: ICONS.subFeatures, tone: NAV_TONES.subFeatures },
               { path: '/admin/subscription/plans', label: 'Plan', icon: ICONS.subPlans, tone: NAV_TONES.subPlans },
               { path: '/admin/subscription/addon-pricing', label: 'Addon Pricing', icon: ICONS.subPlans, tone: NAV_TONES.subAssignments },
@@ -1675,18 +1668,7 @@ function AppRoutes() {
         />
         <Route
           path="subscription/overview"
-          element={
-            <PermissionGate
-              isLoading={isPermissionLoading}
-              isAllowed={
-                canAccessPath('/admin/subscription/overview') &&
-                allowedActionCodes.has('ADMIN_SUBSCRIPTION_OVERVIEW_READ')
-              }
-              fallbackPath={routeFallbackPath}
-            >
-              <SubscriptionOverviewPage token={authToken} />
-            </PermissionGate>
-          }
+          element={<Navigate to="/admin/revenue/subscription" replace />}
         />
         <Route
           path="subscription/features"
@@ -1987,7 +1969,7 @@ function AppRoutes() {
               isAllowed={canAccessPath('/admin/revenue/subscription')}
               fallbackPath={routeFallbackPath}
             >
-              <SubscriptionRevenuePage token={authToken} />
+              <SubscriptionRevenuePage token={authToken} allowedActions={allowedActionCodes} />
             </PermissionGate>
           }
         />
