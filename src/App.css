@@ -503,11 +503,28 @@ textarea {
   }
 
   .login-illustration-pane {
+    padding: 24px 24px 0;
+    min-height: auto;
+  }
+
+  .login-main-illustration {
     display: none;
   }
 
+  .login-illustration-content {
+    gap: 0;
+  }
+
   .login-form-pane {
-    padding: 40px 24px;
+    padding: 24px 24px 40px;
+    height: auto;
+    min-height: calc(100vh - 130px);
+  }
+
+  .auth-viewport,
+  .login-layout {
+    height: auto;
+    min-height: 100vh;
   }
 }
 
