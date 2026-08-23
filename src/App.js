@@ -421,22 +421,22 @@ const ADMIN_META = [
     match: '/admin/advertisement/pricing',
     title: 'Ad Pricing Config',
     breadcrumbs: ['Advertisement', 'Pricing Config'],
-    subtitle: 'Manage hourly base rates and multipliers for the pay-per-ad system.',
+    // subtitle: 'Manage hourly base rates and multipliers for the pay-per-ad system.',
   },
   {
     match: '/admin/orders/purchase',
     title: 'Purchase Orders',
-    subtitle: 'Orders where a buyer is purchasing from a seller/business.',
+    // subtitle: 'Orders where a buyer is purchasing from a seller/business.',
   },
   {
     match: '/admin/orders/sales',
     title: 'Sales Orders',
-    subtitle: 'Orders from the seller/business perspective.',
+    // subtitle: 'Orders from the seller/business perspective.',
   },
   {
     match: '/admin/orders/payouts',
     title: 'Escrow Payouts',
-    subtitle: 'Manage seller escrow funds and payouts (Held, Due, Paid).',
+    // subtitle: 'Manage seller escrow funds and payouts (Held, Due, Paid).',
   },
 ];
 
