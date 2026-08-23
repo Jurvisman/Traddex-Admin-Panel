@@ -639,20 +639,24 @@ function AdminLayout({ navItems, onLogout, token }) {
     };
   }, [token]);
 
-  const handleRefund = async (orderNumber, paymentId) => {
-    if (!paymentId || !paymentId.trim()) {
+  const handleRefund = async (alert_ , paymentId) => {
+    const isCart = alert_.sourceType === 'CART';
+    if (!isCart && (!paymentId || !paymentId.trim())) {
       alert("Please provide the Razorpay Payment ID to trigger the refund.");
       return;
     }
     try {
       const apiBase = process.env.REACT_APP_API_BASE || 'http://localhost:8080';
-      const response = await fetch(`${apiBase}/admin/storefront/orders/${orderNumber}/refund`, {
+      const url = isCart
+        ? `${apiBase}/admin/orders/payouts/${alert_.orderId}/refund`
+        : `${apiBase}/admin/storefront/orders/${alert_.orderNumber}/refund`;
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ razorpayPaymentId: paymentId.trim() })
+        body: isCart ? undefined : JSON.stringify({ razorpayPaymentId: paymentId.trim() })
       });
       const resData = await response.json();
       if (response.ok) {
@@ -731,7 +735,7 @@ function AdminLayout({ navItems, onLogout, token }) {
               ESCROW REFUND ALERT
             </h3>
             <p style={{ margin: '0 0 20px 0', fontSize: '14px', color: '#9ca3af' }}>
-              A customer payment needs immediate refunding due to a canceled storefront order.
+              A customer payment needs immediate refunding due to a canceled {refundAlert.sourceType === 'CART' ? 'order' : 'storefront order'}.
             </p>
 
             {/* Alert Details Table */}
@@ -766,35 +770,37 @@ function AdminLayout({ navItems, onLogout, token }) {
               </div>
             </div>
 
-            {/* Manual Payment ID Input */}
-            <div style={{ marginBottom: '24px', textAlign: 'left' }}>
-              <label style={{ display: 'block', fontSize: '13px', color: '#9ca3af', marginBottom: '6px', fontWeight: '500' }}>
-                Confirm Razorpay Payment ID:
-              </label>
-              <input
-                type="text"
-                value={manualPaymentId}
-                onChange={(e) => setManualPaymentId(e.target.value)}
-                placeholder="e.g. pay_N2hK8zJ9xQW"
-                style={{
-                  width: '100%',
-                  boxSizing: 'border-box',
-                  padding: '10px 14px',
-                  borderRadius: '8px',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                  color: '#f3f4f6',
-                  fontSize: '14px',
-                  outline: 'none'
-                }}
-              />
-            </div>
+            {/* Manual Payment ID Input — only needed for storefront orders, which don't store the payment ID */}
+            {refundAlert.sourceType !== 'CART' && (
+              <div style={{ marginBottom: '24px', textAlign: 'left' }}>
+                <label style={{ display: 'block', fontSize: '13px', color: '#9ca3af', marginBottom: '6px', fontWeight: '500' }}>
+                  Confirm Razorpay Payment ID:
+                </label>
+                <input
+                  type="text"
+                  value={manualPaymentId}
+                  onChange={(e) => setManualPaymentId(e.target.value)}
+                  placeholder="e.g. pay_N2hK8zJ9xQW"
+                  style={{
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                    color: '#f3f4f6',
+                    fontSize: '14px',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+            )}
 
             {/* Action Buttons */}
             <div style={{ display: 'flex', gap: '12px' }}>
               <button
                 type="button"
-                onClick={() => handleRefund(refundAlert.orderNumber, manualPaymentId)}
+                onClick={() => handleRefund(refundAlert, manualPaymentId)}
                 style={{
                   flex: 1,
                   padding: '12px 16px',

@@ -4,6 +4,7 @@ import {
   confirmPayout,
   listManualDeliveryClaims,
   listPayoutOrders,
+  refundPayout,
   reviewManualDeliveryClaim,
 } from '../services/adminApi';
 
@@ -11,6 +12,7 @@ const TABS = [
   { label: 'Held in Escrow', value: 'HELD' },
   { label: 'Due for Payout', value: 'DUE' },
   { label: 'Paid Settlements', value: 'PAID' },
+  { label: 'Refund Pending', value: 'REFUND_PENDING' },
   { label: 'Manual Delivery Claims', value: 'MANUAL_CLAIMS' },
 ];
 
@@ -181,6 +183,25 @@ function EscrowPayoutsPage({ token }) {
     }
   };
 
+  const handleRefundPayout = async () => {
+    if (!activeRecord?.id) return;
+    if (activeRecord.isStorefront) {
+      setMessage({ type: 'error', text: 'Storefront order refunds must be processed from the alert popup (payment ID entry required).' });
+      return;
+    }
+    setIsConfirming(true);
+    setMessage({ type: 'info', text: '' });
+    try {
+      await refundPayout(token, activeRecord.id);
+      await loadData(activeTab);
+      setMessage({ type: 'success', text: 'Refund processed successfully via Razorpay.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Failed to process refund.' });
+    } finally {
+      setIsConfirming(false);
+    }
+  };
+
   const handleReviewClaim = async () => {
     if (!activeRecord?.id) return;
     setIsConfirming(true);
@@ -327,8 +348,12 @@ function EscrowPayoutsPage({ token }) {
                       {activeTab === 'HELD' ? getCountdownText(item.escrowReleaseAt) : formatDate(item.deliveredOn)}
                     </td>
                     <td className="table-actions">
-                      <button type="button" className={activeTab === 'DUE' ? 'primary-btn small' : 'ghost-btn small'} onClick={(event) => { event.stopPropagation(); openRecord(item); }}>
-                        {activeTab === 'DUE' ? 'Pay' : 'View'}
+                      <button
+                        type="button"
+                        className={activeTab === 'DUE' || activeTab === 'REFUND_PENDING' ? 'primary-btn small' : 'ghost-btn small'}
+                        onClick={(event) => { event.stopPropagation(); openRecord(item); }}
+                      >
+                        {activeTab === 'DUE' ? 'Pay' : activeTab === 'REFUND_PENDING' ? 'Refund' : 'View'}
                       </button>
                     </td>
                   </tr>
@@ -431,6 +456,11 @@ function EscrowPayoutsPage({ token }) {
                   {isConfirming ? 'Saving...' : 'Mark Settlement Paid'}
                 </button>
               ) : null}
+              {activeTab === 'REFUND_PENDING' ? (
+                <button type="button" className="primary-btn" onClick={handleRefundPayout} disabled={isConfirming || activeRecord?.isStorefront}>
+                  {isConfirming ? 'Processing...' : 'Refund via Razorpay'}
+                </button>
+              ) : null}
               {activeTab === 'MANUAL_CLAIMS' ? (
                 <button type="button" className="primary-btn" onClick={handleReviewClaim} disabled={isConfirming}>
                   {isConfirming ? 'Saving...' : 'Save Claim Review'}
@@ -448,7 +478,7 @@ const styles = {
   tabs: { display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 },
   summaryStrip: {
     display: 'grid',
-    gridTemplateColumns: '160px 220px 1fr',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
     gap: 12,
     alignItems: 'end',
     marginBottom: 16,

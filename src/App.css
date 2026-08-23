@@ -16702,6 +16702,10 @@ textarea {
 }
 
 @media (max-width: 900px) {
+  .category-fields-layout {
+    grid-template-columns: 1fr !important;
+  }
+
   .admin-shell-gsc .field-grid {
     grid-template-columns: repeat(8, minmax(0, 1fr));
   }

@@ -18,6 +18,22 @@ const parseErrorMessage = async (response, fallback) => {
   }
 };
 
+export const getUserByNumber = async (digits) => {
+  const response = await fetch(`${API_BASE}/api/users/by-number/${digits}`, {
+    method: 'GET',
+    headers: {
+      'ngrok-skip-browser-warning': 'true',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response, `Failed to look up number. Status ${response.status}`));
+  }
+
+  const body = await response.json();
+  return body?.data || null;
+};
+
 export const sendOtp = async (digits) => {
   const response = await fetch(`${API_BASE}/api/users/send-otp`, {
     method: 'POST',

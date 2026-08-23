@@ -1583,7 +1583,7 @@ function CategoryPage({ token }) {
                     ))}
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(280px, 0.8fr)', gap: 18, alignItems: 'start' }}>
+                  <div className="category-fields-layout" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(280px, 0.8fr)', gap: 18, alignItems: 'start' }}>
                     <div>
                       {inheritedAssignedFields.length > 0 && (
                         <div style={{ marginBottom: 16, border: '1px solid #e9d5ff', borderRadius: 14, background: '#faf5ff', padding: 14 }}>
