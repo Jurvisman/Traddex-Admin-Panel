@@ -104,6 +104,12 @@ export const headerSectionTypeOptions = [
   { value: 'horizontalPills', label: 'Horizontal Pills' },
 ];
 
+export const AD_SLOT_TYPE_OPTIONS = [
+  { value: 'FULL_BANNER', label: 'Full banner' },
+  { value: 'MID_CARD', label: 'Mid card' },
+  { value: 'BOTTOM_STRIP', label: 'Bottom strip' },
+];
+
 export const headerToolboxItems = [
   {
     key: 'addressHeader',

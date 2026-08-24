@@ -4154,6 +4154,15 @@ textarea {
   border-color: #dbe4ee;
 }
 
+.toolbox-unsupported-badge {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 700;
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
 .toolbox-empty {
   padding: 18px 14px;
   border-radius: 14px;

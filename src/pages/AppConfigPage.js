@@ -12,10 +12,14 @@ import {
 } from '@dnd-kit/core';
 import { SortableContext, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Banner, ConfirmDialog } from '../components';
+import { HEADER_BLOCK_SCHEMAS } from './appConfig/headerBlockSchemas';
+import { SCREEN_BLOCK_SCHEMAS, TARGETING_FIELDS } from './appConfig/screenBlockSchemas';
+import { SchemaFieldsRenderer } from './appConfig/SchemaFieldsRenderer';
 import {
-  getAppConfigDraft,
+  getMergedAppConfigDraft,
   getPublishedAppConfig,
   getAppConfigPresets,
+  getSupportedBlockTypes,
   getBrandFeedPreview,
   getHomeCategoryPreview,
   listAppConfigVersions,
@@ -47,6 +51,7 @@ import {
   screenSectionTypeOptions,
   defaultBlockTypeBySectionType,
   headerSectionTypeOptions,
+  AD_SLOT_TYPE_OPTIONS,
   toolboxItems,
   blockLabels,
   resolveBlockLabel,
@@ -173,11 +178,6 @@ const NAVIGATION_TARGET_OPTIONS = [
   { value: 'BUSINESS_PRODUCTS', label: 'Business products' },
   { value: 'EXTERNAL_URL', label: 'External URL' },
   { value: 'CUSTOM', label: 'Custom deep link' },
-];
-const AD_SLOT_TYPE_OPTIONS = [
-  { value: 'FULL_BANNER', label: 'Full banner' },
-  { value: 'MID_CARD', label: 'Mid card' },
-  { value: 'BOTTOM_STRIP', label: 'Bottom strip' },
 ];
 const NAVIGATION_TARGET_PLACEHOLDERS = {
   COLLECTION: 'summer-serums',
@@ -554,6 +554,7 @@ function AppConfigPage({ token }) {
   const [sectionForm, setSectionForm] = useState(defaultSectionForm);
   const [headerForm, setHeaderForm] = useState(defaultHeaderForm);
   const [headerPresets, setHeaderPresets] = useState({ colors: [], images: [] });
+  const [supportedBlockTypes, setSupportedBlockTypes] = useState(null);
   const [headerSectionForm, setHeaderSectionForm] = useState(defaultHeaderSectionForm);
   const [newIndustryName, setNewIndustryName] = useState('');
   const [isCreatingIndustry, setIsCreatingIndustry] = useState(false);
@@ -785,8 +786,16 @@ function AppConfigPage({ token }) {
   }, [activeDragId]);
 
   const enrichedToolboxItems = useMemo(
-    () => toolboxItems.map(enrichToolboxItem),
-    []
+    () =>
+      toolboxItems.map((item) => {
+        const enriched = enrichToolboxItem(item);
+        const blockType = item?.section?.blockType || item?.section?.type;
+        // supportedBlockTypes is null until the registry loads (or if it fails to load) —
+        // stay silent rather than flag everything as unsupported in that window.
+        const isSupportedInApp = !supportedBlockTypes || supportedBlockTypes.has(blockType);
+        return { ...enriched, isSupportedInApp };
+      }),
+    [supportedBlockTypes]
   );
 
   const visibleToolboxGroups = useMemo(() => {
@@ -874,6 +883,14 @@ function AppConfigPage({ token }) {
     }
   }, [pages, selectedPageKey]);
 
+  // Version history is scoped per page now — refresh it whenever the selected page changes,
+  // not just after a save/publish, so the panel never shows a stale/wrong page's history.
+  useEffect(() => {
+    if (!selectedPageKey) return;
+    loadVersions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPageKey]);
+
   useEffect(() => {
     if (!selectedPage || !selectedPage.header) {
       setHeaderForm({ ...defaultHeaderForm });
@@ -943,8 +960,17 @@ function AppConfigPage({ token }) {
     const isProductFeedBlock =
       (resolvedBlockType === 'product_card_carousel' || resolvedBlockType === 'multiItemGrid') &&
       Boolean(String(sectionForm.dataSourceRef || '').trim());
+    // Service/Shop blocks scope by industry+category directly via sourceIndustryId/sourceMainCategoryId
+    // and don't use the sourceType==='CATEGORY_FEED' convention other blocks use, so they're allowed
+    // through this gate the same way isProductFeedBlock is.
+    const isServiceOrShopFeedBlock =
+      resolvedBlockType === 'service_card_carousel' || resolvedBlockType === 'shop_card_carousel';
     if (!phaseOneBlockTypes.has(resolvedBlockType) && !isProductFeedBlock) return;
-    if ((sectionForm.sourceType || 'MANUAL') !== 'CATEGORY_FEED' && !isProductFeedBlock) {
+    if (
+      (sectionForm.sourceType || 'MANUAL') !== 'CATEGORY_FEED' &&
+      !isProductFeedBlock &&
+      !isServiceOrShopFeedBlock
+    ) {
       setSourceCategories([]);
       return;
     }
@@ -1022,7 +1048,9 @@ function AppConfigPage({ token }) {
     setIsLoading(true);
     setMessage(emptyMessage);
     try {
-      const response = await getAppConfigDraft(token);
+      // Merged view: combines the legacy shared row with any pages that have since been
+      // split into their own row, so this always reflects the latest edits either way.
+      const response = await getMergedAppConfigDraft(token);
       const payload = response?.data;
       if (payload?.config) {
         const text = JSON.stringify(payload.config, null, 2);
@@ -1049,7 +1077,7 @@ function AppConfigPage({ token }) {
 
   const loadVersions = async () => {
     try {
-      const response = await listAppConfigVersions(token);
+      const response = await listAppConfigVersions(token, selectedPageKey || undefined);
       setVersions(response?.data || []);
     } catch (error) {
       setVersions([]);
@@ -1307,6 +1335,17 @@ function AppConfigPage({ token }) {
     }
   };
 
+  const loadSupportedBlockTypes = async () => {
+    try {
+      const response = await getSupportedBlockTypes(token);
+      const list = Array.isArray(response?.data) ? response.data : [];
+      setSupportedBlockTypes(new Set(list));
+    } catch (error) {
+      // Leave as null on failure — toolbox warnings stay silent rather than false-flagging everything.
+      setSupportedBlockTypes(null);
+    }
+  };
+
   useEffect(() => {
     loadDraft();
     loadVersions();
@@ -1316,6 +1355,7 @@ function AppConfigPage({ token }) {
     loadBusinessDirectory();
     loadMainCategories();
     loadHeaderPresets();
+    loadSupportedBlockTypes();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1337,6 +1377,25 @@ function AppConfigPage({ token }) {
     }
   };
 
+  // If a specific page is selected, scope save/publish to just that page's own row —
+  // theme + dataSources come along for validation but only its one page is included, so
+  // this write can never touch another page's in-progress draft or published version.
+  // With nothing selected (e.g. editing via Advanced JSON at the whole-document level),
+  // this falls back to the legacy shared-row behavior, unchanged.
+  const resolveScopedSaveTarget = (fullConfig) => {
+    const pageIndex = Array.isArray(fullConfig?.pages)
+      ? fullConfig.pages.findIndex((page, index) => getPageKey(page, index) === selectedPageKey)
+      : -1;
+    if (pageIndex < 0) {
+      return { config: fullConfig, pageKey: undefined, page: null };
+    }
+    return {
+      config: { theme: fullConfig.theme, dataSources: fullConfig.dataSources, pages: [fullConfig.pages[pageIndex]] },
+      pageKey: selectedPageKey,
+      page: fullConfig.pages[pageIndex],
+    };
+  };
+
   const saveDraft = async () => {
     const parsed = parseJson(draftText);
     if (parsed.error) {
@@ -1346,13 +1405,17 @@ function AppConfigPage({ token }) {
     setIsLoading(true);
     setMessage(emptyMessage);
     try {
-      const response = await saveAppConfigDraft(token, { config: parsed.data, version: version || undefined });
+      const { config, pageKey, page } = resolveScopedSaveTarget(parsed.data);
+      const response = await saveAppConfigDraft(token, { config, version: version || undefined }, pageKey);
       const payload = response?.data;
       if (payload?.meta?.version) {
         setVersion(payload.meta.version);
       }
       lastSavedDraftRef.current = draftText;
-      setMessage({ type: 'success', text: 'Draft saved.' });
+      setMessage({
+        type: 'success',
+        text: page ? `Draft saved for ${getPageLabel(page, 0, pagePresets)}.` : 'Draft saved.',
+      });
       await loadVersions();
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to save draft.' });
@@ -1370,8 +1433,13 @@ function AppConfigPage({ token }) {
     setIsLoading(true);
     setMessage(emptyMessage);
     try {
-      await publishAppConfig(token);
-      setMessage({ type: 'success', text: 'Draft published.' });
+      const parsed = parseJson(draftText);
+      const { pageKey, page } = parsed.error ? {} : resolveScopedSaveTarget(parsed.data);
+      await publishAppConfig(token, pageKey);
+      setMessage({
+        type: 'success',
+        text: page ? `Published ${getPageLabel(page, 0, pagePresets)}.` : 'Draft published.',
+      });
       await loadVersions();
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Publish failed.' });
@@ -4805,22 +4873,12 @@ function AppConfigPage({ token }) {
                       <input type="text" value={isEditingFixed ? 'Fixed' : screenBlockLabel} disabled />
                     </label>
                     {isAdBannerBlock ? (
-                      <label className="field">
-                        <span>Ad slot</span>
-                        <select
-                          value={sectionForm.slotType || 'FULL_BANNER'}
-                          onChange={(event) =>
-                            setSectionForm((prev) => ({ ...prev, slotType: event.target.value }))
-                          }
-                        >
-                          {AD_SLOT_TYPE_OPTIONS.map((option) => (
-                            <option key={`ad-slot-${option.value}`} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                        <p className="field-help">Must match the published advertisement slot type.</p>
-                      </label>
+                      <SchemaFieldsRenderer
+                        fields={SCREEN_BLOCK_SCHEMAS.ad_banner.fields}
+                        values={sectionForm}
+                        onChange={(name, value) => setSectionForm((prev) => ({ ...prev, [name]: value }))}
+                        context={{}}
+                      />
                     ) : null}
                     {!isPhaseOneBlock ? (
                       <label className="field">
@@ -6807,10 +6865,108 @@ function AppConfigPage({ token }) {
                                   }
                                 />
                               </label>
+                              <label className="field">
+                                <span>Industry (optional)</span>
+                                <select
+                                  value={sectionForm.sourceIndustryId || ''}
+                                  onChange={(event) =>
+                                    setSectionForm((prev) => ({
+                                      ...prev,
+                                      sourceIndustryId: event.target.value,
+                                      sourceMainCategoryId: '',
+                                      sourceCategoryIds: [],
+                                    }))
+                                  }
+                                >
+                                  <option value="">Use page's industry</option>
+                                  {industries.map((item) => {
+                                    const id = resolveIndustryId(item);
+                                    if (!id) return null;
+                                    return (
+                                      <option key={id} value={id}>
+                                        {resolveIndustryLabel(item)}
+                                      </option>
+                                    );
+                                  })}
+                                </select>
+                              </label>
+                              {normalizeCollectionId(sectionForm.sourceIndustryId) ? (
+                                <>
+                                  <label className="field">
+                                    <span>Business category (optional)</span>
+                                    <select
+                                      value={sectionForm.sourceMainCategoryId || ''}
+                                      onChange={(event) =>
+                                        setSectionForm((prev) => ({
+                                          ...prev,
+                                          sourceMainCategoryId: event.target.value,
+                                          sourceCategoryIds: [],
+                                        }))
+                                      }
+                                    >
+                                      <option value="">All categories</option>
+                                      {filteredMainCategoryOptions.map((item) => {
+                                        const id = resolveMainCategoryId(item);
+                                        if (!id) return null;
+                                        return (
+                                          <option key={id} value={id}>
+                                            {resolveMainCategoryName(item)}
+                                          </option>
+                                        );
+                                      })}
+                                    </select>
+                                  </label>
+                                  <label className="field field-span">
+                                    <span>Sub-categories (optional)</span>
+                                    {sectionForm.sourceMainCategoryId ? (
+                                      isLoadingSourceCategories ? (
+                                        <p className="field-help">Loading categories...</p>
+                                      ) : sourceCategories.length ? (
+                                        <div className="checkbox-grid">
+                                          {sourceCategories.map((item) => {
+                                            const id = resolveCategoryId(item);
+                                            if (!id) return null;
+                                            const checked = Array.isArray(sectionForm.sourceCategoryIds)
+                                              ? sectionForm.sourceCategoryIds.includes(id)
+                                              : false;
+                                            return (
+                                              <label key={id} className="checkbox-row">
+                                                <input
+                                                  type="checkbox"
+                                                  checked={checked}
+                                                  onChange={() =>
+                                                    setSectionForm((prev) => {
+                                                      const current = Array.isArray(prev.sourceCategoryIds)
+                                                        ? prev.sourceCategoryIds
+                                                        : [];
+                                                      return {
+                                                        ...prev,
+                                                        sourceCategoryIds: current.includes(id)
+                                                          ? current.filter((value) => value !== id)
+                                                          : [...current, id],
+                                                      };
+                                                    })
+                                                  }
+                                                />
+                                                {resolveCategoryName(item)}
+                                              </label>
+                                            );
+                                          })}
+                                        </div>
+                                      ) : (
+                                        <p className="field-help">No categories found for selected business category.</p>
+                                      )
+                                    ) : (
+                                      <p className="field-help">Select a business category first for tighter filtering.</p>
+                                    )}
+                                  </label>
+                                </>
+                              ) : null}
                               <div className="field field-span">
                                 <p className="field-help">
-                                  Shop Feed fetches nearby businesses by location automatically. The page's industry is
-                                  used as a scope — no explicit industryId needed. Manual items are used as a fallback while loading.
+                                  Shop Feed fetches nearby businesses by location. Leave Industry blank to use the page's
+                                  own industry, or pick a specific one (optionally narrowed by category) to show shops from
+                                  elsewhere. Manual items are used as a fallback while loading.
                                 </p>
                               </div>
                             </div>
@@ -6867,10 +7023,107 @@ function AppConfigPage({ token }) {
                                     }
                                   />
                                 </label>
+                                <label className="field">
+                                  <span>Industry (optional)</span>
+                                  <select
+                                    value={sectionForm.sourceIndustryId || ''}
+                                    onChange={(event) =>
+                                      setSectionForm((prev) => ({
+                                        ...prev,
+                                        sourceIndustryId: event.target.value,
+                                        sourceMainCategoryId: '',
+                                        sourceCategoryIds: [],
+                                      }))
+                                    }
+                                  >
+                                    <option value="">Use page's industry</option>
+                                    {industries.map((item) => {
+                                      const id = resolveIndustryId(item);
+                                      if (!id) return null;
+                                      return (
+                                        <option key={id} value={id}>
+                                          {resolveIndustryLabel(item)}
+                                        </option>
+                                      );
+                                    })}
+                                  </select>
+                                </label>
+                                {normalizeCollectionId(sectionForm.sourceIndustryId) ? (
+                                  <>
+                                    <label className="field">
+                                      <span>Service category (optional)</span>
+                                      <select
+                                        value={sectionForm.sourceMainCategoryId || ''}
+                                        onChange={(event) =>
+                                          setSectionForm((prev) => ({
+                                            ...prev,
+                                            sourceMainCategoryId: event.target.value,
+                                            sourceCategoryIds: [],
+                                          }))
+                                        }
+                                      >
+                                        <option value="">All categories</option>
+                                        {filteredMainCategoryOptions.map((item) => {
+                                          const id = resolveMainCategoryId(item);
+                                          if (!id) return null;
+                                          return (
+                                            <option key={id} value={id}>
+                                              {resolveMainCategoryName(item)}
+                                            </option>
+                                          );
+                                        })}
+                                      </select>
+                                    </label>
+                                    <label className="field field-span">
+                                      <span>Sub-categories (optional)</span>
+                                      {sectionForm.sourceMainCategoryId ? (
+                                        isLoadingSourceCategories ? (
+                                          <p className="field-help">Loading categories...</p>
+                                        ) : sourceCategories.length ? (
+                                          <div className="checkbox-grid">
+                                            {sourceCategories.map((item) => {
+                                              const id = resolveCategoryId(item);
+                                              if (!id) return null;
+                                              const checked = Array.isArray(sectionForm.sourceCategoryIds)
+                                                ? sectionForm.sourceCategoryIds.includes(id)
+                                                : false;
+                                              return (
+                                                <label key={id} className="checkbox-row">
+                                                  <input
+                                                    type="checkbox"
+                                                    checked={checked}
+                                                    onChange={() =>
+                                                      setSectionForm((prev) => {
+                                                        const current = Array.isArray(prev.sourceCategoryIds)
+                                                          ? prev.sourceCategoryIds
+                                                          : [];
+                                                        return {
+                                                          ...prev,
+                                                          sourceCategoryIds: current.includes(id)
+                                                            ? current.filter((value) => value !== id)
+                                                            : [...current, id],
+                                                        };
+                                                      })
+                                                    }
+                                                  />
+                                                  {resolveCategoryName(item)}
+                                                </label>
+                                              );
+                                            })}
+                                          </div>
+                                        ) : (
+                                          <p className="field-help">No categories found for selected service category.</p>
+                                        )
+                                      ) : (
+                                        <p className="field-help">Select a service category first for tighter filtering.</p>
+                                      )}
+                                    </label>
+                                  </>
+                                ) : null}
                                 <div className="field field-span">
                                   <p className="field-help">
                                     Services are fetched live from approved services. Feed mode controls backend sorting:
-                                    Trending, Latest, or Most Booked.
+                                    Trending, Latest, or Most Booked. Leave Industry blank to use the page's own industry.
                                   </p>
                                 </div>
                               </div>
@@ -9394,15 +9647,6 @@ function AppConfigPage({ token }) {
                           />
                         </label>
                         <label className="field">
-                          <span>Item template ref</span>
-                          <input
-                            type="text"
-                            value={sectionForm.itemTemplateRef}
-                            onChange={(event) => setSectionForm((prev) => ({ ...prev, itemTemplateRef: event.target.value }))}
-                            placeholder="actionCard"
-                          />
-                        </label>
-                        <label className="field">
                           <span>Data source ref</span>
                           <input
                             type="text"
@@ -9445,46 +9689,12 @@ function AppConfigPage({ token }) {
                             </label>
                           </>
                         ) : null}
-                        <label className="field field-span">
-                          <span>Target user types (comma separated)</span>
-                          <input
-                            type="text"
-                            value={sectionForm.targetUserTypes}
-                            onChange={(event) => setSectionForm((prev) => ({ ...prev, targetUserTypes: event.target.value }))}
-                            placeholder="USER, BUSINESS"
-                          />
-                        </label>
-                        <label className="field field-span">
-                          <span>Target roles (comma separated)</span>
-                          <input
-                            type="text"
-                            value={sectionForm.targetRoles}
-                            onChange={(event) => setSectionForm((prev) => ({ ...prev, targetRoles: event.target.value }))}
-                            placeholder="Admin, Seller"
-                          />
-                        </label>
-                        <label className="field field-span">
-                          <span>Target industries (comma separated)</span>
-                          <input
-                            type="text"
-                            value={sectionForm.targetIndustries}
-                            onChange={(event) =>
-                              setSectionForm((prev) => ({ ...prev, targetIndustries: event.target.value }))
-                            }
-                            placeholder="Grocery, Electronics"
-                          />
-                        </label>
-                        <label className="field field-span">
-                          <span>Target subscription statuses (comma separated)</span>
-                          <input
-                            type="text"
-                            value={sectionForm.targetSubscriptionStatuses}
-                            onChange={(event) =>
-                              setSectionForm((prev) => ({ ...prev, targetSubscriptionStatuses: event.target.value }))
-                            }
-                            placeholder="ACTIVE, TRIAL"
-                          />
-                        </label>
+                        <SchemaFieldsRenderer
+                          fields={TARGETING_FIELDS}
+                          values={sectionForm}
+                          onChange={(name, value) => setSectionForm((prev) => ({ ...prev, [name]: value }))}
+                          context={{ parseCsvList, formatCsvList }}
+                        />
                           </div>
                         </div>
                       </div>
@@ -9537,96 +9747,23 @@ function AppConfigPage({ token }) {
                         Visible
                       </label>
                     </div>
-                    {isHeaderSearch ? (
-                      <label className="field field-span">
-                        <span>Search placeholder</span>
-                        <input
-                          type="text"
-                          value={headerSectionForm.placeholder}
-                          onChange={(event) =>
-                            setHeaderSectionForm((prev) => ({ ...prev, placeholder: event.target.value }))
-                          }
-                          placeholder='Search "yoga"'
-                        />
-                      </label>
+                    {HEADER_BLOCK_SCHEMAS[headerBlockType]?.fields?.length ? (
+                      <SchemaFieldsRenderer
+                        fields={HEADER_BLOCK_SCHEMAS[headerBlockType].fields}
+                        values={headerSectionForm}
+                        onChange={(name, value) => setHeaderSectionForm((prev) => ({ ...prev, [name]: value }))}
+                        context={{
+                          industries,
+                          normalizeCollectionId,
+                          parseCsvList,
+                          newIndustryName,
+                          setNewIndustryName,
+                          handleCreateIndustry,
+                          isCreatingIndustry,
+                        }}
+                      />
                     ) : null}
-                    {isHeaderPills ? (
-                      <>
-                        <label className="field field-span">
-                          <span>Select industries</span>
-                          {industries.length ? (
-                            <div className="checkbox-grid">
-                              {industries.map((industry) => {
-                                const id = normalizeCollectionId(industry?.id ?? industry?._id ?? industry?.slug ?? industry?.industryId ?? industry?.industry_id ?? industry?.name);
-                                if (!id) return null;
-                                const label = industry?.name || industry?.label || industry?.title || `Industry ${id}`;
-                                const isChecked = Array.isArray(headerSectionForm.industryIds)
-                                  ? headerSectionForm.industryIds.includes(id)
-                                  : false;
-                                return (
-                                  <label key={id} className="checkbox-row">
-                                    <input
-                                      type="checkbox"
-                                      checked={isChecked}
-                                      onChange={() =>
-                                        setHeaderSectionForm((prev) => {
-                                          const current = Array.isArray(prev.industryIds) ? prev.industryIds : [];
-                                          const next = new Set(current);
-                                          if (next.has(id)) {
-                                            next.delete(id);
-                                          } else {
-                                            next.add(id);
-                                          }
-                                          return { ...prev, industryIds: Array.from(next) };
-                                        })
-                                      }
-                                    />
-                                    {label} <span className="muted">({id})</span>
-                                  </label>
-                                );
-                              })}
-                            </div>
-                          ) : (
-                            <p className="field-help">No industries found yet.</p>
-                          )}
-                        </label>
-                        <label className="field field-span">
-                          <span>Industry IDs (comma separated)</span>
-                          <input
-                            type="text"
-                            value={(headerSectionForm.industryIds || []).join(', ')}
-                            onChange={(event) =>
-                              setHeaderSectionForm((prev) => ({
-                                ...prev,
-                                industryIds: parseCsvList(event.target.value),
-                              }))
-                            }
-                            placeholder="grocery, electronics"
-                          />
-                        </label>
-                        <label className="field field-span">
-                          <span>Add new industry pill</span>
-                          <div className="inline-row">
-                            <input
-                              type="text"
-                              value={newIndustryName}
-                              onChange={(event) => setNewIndustryName(event.target.value)}
-                              placeholder="e.g., Electronics"
-                            />
-                            <button
-                              type="button"
-                              className="ghost-btn small"
-                              onClick={handleCreateIndustry}
-                              disabled={isCreatingIndustry}
-                            >
-                              {isCreatingIndustry ? 'Adding...' : 'Add'}
-                            </button>
-                          </div>
-                          <p className="field-help">Creates a new industry and syncs a page for it.</p>
-                        </label>
-                      </>
-                    ) : null}
-                    {isGenericHeaderBlock ? (
+                    {isGenericHeaderBlock && !HEADER_BLOCK_SCHEMAS[headerBlockType]?.fields?.length ? (
                       <label className="field field-span">
                         <span>Block type (advanced)</span>
                         <select

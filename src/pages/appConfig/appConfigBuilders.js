@@ -285,7 +285,6 @@ export const buildSectionFromForm = (base, form) => {
     }
   }
   setOrDelete('itemsPath', form.itemsPath?.trim());
-  setOrDelete('itemTemplateRef', form.itemTemplateRef?.trim());
   setOrDelete('dataSourceRef', form.dataSourceRef?.trim());
   if (isDynamicFallbackBlock) {
     const fallbackBehavior = String(form.fallbackBehavior || 'HIDE_BLOCK').trim().toUpperCase();

@@ -256,6 +256,14 @@ export const ToolboxItem = ({ item, onAdd }) => {
               {modeLabel}
             </span>
           ) : null}
+          {item.isSupportedInApp === false ? (
+            <span
+              className="toolbox-mode-badge toolbox-unsupported-badge"
+              title="No confirmed renderer for this block on the app yet — it may show blank when published."
+            >
+              ⚠ Not in app yet
+            </span>
+          ) : null}
         </div>
         <div className="toolbox-hint">{item.hint}</div>
         {item.bestFor ? <div className="toolbox-best-for">{item.bestFor}</div> : null}
