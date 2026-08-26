@@ -7,7 +7,10 @@
 export const HEADER_BLOCK_SCHEMAS = {
   addressHeader: {
     label: 'Address Header',
-    fields: [],
+    fields: [
+      { name: 'title', label: 'Delivery label (optional)', type: 'text', span: true, placeholder: 'Deliver to' },
+      { name: 'text', label: 'Address / location hint (optional)', type: 'text', span: true, placeholder: 'Home - 380015, Ahmedabad' },
+    ],
   },
   searchBar: {
     label: 'Search Bar',

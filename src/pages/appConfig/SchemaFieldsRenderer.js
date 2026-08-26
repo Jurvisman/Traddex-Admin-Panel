@@ -1,6 +1,4 @@
-// Generic field renderer driven by a block's schema (see headerBlockSchemas.js and future
-// screen-block schema files) instead of hand-written JSX per block type. Adding a field to a
-// block now means adding one line to its schema, not writing a new <label>/<input> block here.
+// Generic field renderer driven by a block's schema (see headerBlockSchemas.js and screenBlockSchemas.js)
 export function SchemaFieldsRenderer({ fields, values, onChange, context }) {
   if (!Array.isArray(fields) || !fields.length) return null;
 
@@ -22,9 +20,6 @@ export function SchemaFieldsRenderer({ fields, values, onChange, context }) {
     }
 
     if (field.type === 'checkbox-list') {
-      // Value is stored as a CSV string (matches how it's already saved/parsed at save-time),
-      // just presented as checkboxes instead of a free-text box. Options are either fixed
-      // (field.options) or resolved dynamically from context (field.optionsFrom: 'industries').
       const options =
         field.options ||
         (field.optionsFrom === 'industries'
@@ -38,14 +33,14 @@ export function SchemaFieldsRenderer({ fields, values, onChange, context }) {
       const current = context.parseCsvList(values?.[field.name] || '');
       const currentSet = new Set(current.map((value) => String(value).trim().toLowerCase()));
       return (
-        <label key={field.name} className={`field${spanClass}`}>
-          <span>{field.label}</span>
+        <div key={field.name} className={`studio-checkbox-field-group${spanClass}`}>
+          <span className="studio-checkbox-group-title">{field.label}</span>
           {options.length ? (
-            <div className="checkbox-grid">
+            <div className="studio-checkbox-items-list">
               {options.map((option) => {
                 const checked = currentSet.has(String(option.value).trim().toLowerCase());
                 return (
-                  <label key={option.value} className="checkbox-row">
+                  <label key={option.value} className="studio-checkbox-row-item">
                     <input
                       type="checkbox"
                       checked={checked}
@@ -58,7 +53,7 @@ export function SchemaFieldsRenderer({ fields, values, onChange, context }) {
                         onChange(field.name, context.formatCsvList(next));
                       }}
                     />
-                    {option.label}
+                    <span className="studio-checkbox-text">{option.label}</span>
                   </label>
                 );
               })}
@@ -66,7 +61,7 @@ export function SchemaFieldsRenderer({ fields, values, onChange, context }) {
           ) : (
             <p className="field-help">No options available.</p>
           )}
-        </label>
+        </div>
       );
     }
 
@@ -103,13 +98,13 @@ export function SchemaFieldsRenderer({ fields, values, onChange, context }) {
       );
     }
 
-    if (field.type === 'industry-checkbox-grid') {
-      const current = Array.isArray(values?.[field.name]) ? values[field.name] : [];
+    if (field.type === 'industry-checkbox-grid' || field.type === 'industry-multi-select') {
+      const selectedIds = Array.isArray(values?.[field.name]) ? values[field.name] : [];
       return (
-        <label key={field.name} className={`field${spanClass}`}>
-          <span>{field.label}</span>
-          {context.industries?.length ? (
-            <div className="checkbox-grid">
+        <div key={field.name} className={`studio-checkbox-field-group${spanClass}`}>
+          <span className="studio-checkbox-group-title">{field.label}</span>
+          {context?.industries && context.industries.length ? (
+            <div className="studio-checkbox-items-list checkbox-grid">
               {context.industries.map((industry) => {
                 const id = context.normalizeCollectionId(
                   industry?.id ??
@@ -121,14 +116,14 @@ export function SchemaFieldsRenderer({ fields, values, onChange, context }) {
                 );
                 if (!id) return null;
                 const label = industry?.name || industry?.label || industry?.title || `Industry ${id}`;
-                const checked = current.includes(id);
+                const isChecked = selectedIds.includes(id);
                 return (
-                  <label key={id} className="checkbox-row">
+                  <label key={id} className="studio-checkbox-row-item checkbox-row">
                     <input
                       type="checkbox"
-                      checked={checked}
+                      checked={isChecked}
                       onChange={() => {
-                        const next = new Set(current);
+                        const next = new Set(selectedIds);
                         if (next.has(id)) {
                           next.delete(id);
                         } else {
@@ -137,7 +132,9 @@ export function SchemaFieldsRenderer({ fields, values, onChange, context }) {
                         onChange(field.name, Array.from(next));
                       }}
                     />
-                    {label} <span className="muted">({id})</span>
+                    <span className="studio-checkbox-text">
+                      {label} <small style={{ color: '#94a3b8' }}>({id})</small>
+                    </span>
                   </label>
                 );
               })}
@@ -145,31 +142,37 @@ export function SchemaFieldsRenderer({ fields, values, onChange, context }) {
           ) : (
             <p className="field-help">No industries found yet.</p>
           )}
-        </label>
+        </div>
       );
     }
 
     if (field.type === 'industry-creator') {
       return (
-        <label key={field.name} className={`field${spanClass}`}>
-          <span>{field.label}</span>
+        <label key={field.name || 'industry-creator'} className={`field${spanClass}`}>
+          <span>{field.label || 'Add new industry pill'}</span>
           <div className="inline-row">
             <input
               type="text"
-              value={context.newIndustryName}
-              onChange={(event) => context.setNewIndustryName(event.target.value)}
-              placeholder="e.g., Electronics"
+              placeholder="e.g. Pharmacy, Pet Care"
+              value={context?.newIndustryName || ''}
+              onChange={(e) => context?.setNewIndustryName?.(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  context?.handleCreateIndustry?.();
+                }
+              }}
             />
             <button
               type="button"
               className="ghost-btn small"
-              onClick={context.handleCreateIndustry}
-              disabled={context.isCreatingIndustry}
+              onClick={context?.handleCreateIndustry}
+              disabled={!context?.newIndustryName?.trim() || context?.isCreatingIndustry}
             >
-              {context.isCreatingIndustry ? 'Adding...' : 'Add'}
+              {context?.isCreatingIndustry ? 'Creating...' : '+ Add'}
             </button>
           </div>
-          <p className="field-help">Creates a new industry and syncs a page for it.</p>
+          <p className="field-help">Creates an active industry and adds it to the list of pills immediately.</p>
         </label>
       );
     }

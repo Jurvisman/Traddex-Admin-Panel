@@ -58,7 +58,6 @@ export const screenSectionTypeOptions = [
   { value: 'horizontal_scroll_list', label: 'Horizontal featured list (SDUI)' },
   { value: 'quick_action_row', label: 'Quick action row (SDUI)' },
   { value: 'grid', label: 'Product grid' },
-  { value: 'column_grid', label: 'Column grid (SDUI)' },
   { value: 'category_icon_grid', label: 'Category icon grid (SDUI)' },
   { value: 'brand_logo_grid', label: 'Brand Bento Box (SDUI)' },
   { value: 'media_overlay_carousel', label: 'Media overlay carousel (SDUI)' },
@@ -4343,39 +4342,6 @@ export const screenToolboxItems = [
     },
   },
   {
-    key: 'columnGrid',
-    label: 'Column Grid',
-    hint: '3-column cards with dual images — supports category feed or manual items',
-    section: {
-      id: 'column_grid',
-      type: 'grid',
-      blockType: 'column_grid',
-      title: 'Festive finds',
-      sectionBgColor: '#f5f0dc',
-      cardBgColor: '#9ad8f8',
-      columnTopLineStyle: 'curve',
-      dataSource: {
-        sourceType: 'CATEGORY_FEED',
-        mode: 'TOP_SELLING',
-        limit: 8,
-        rankingWindowDays: 30,
-        sortBy: 'MANUAL_RANK',
-        filters: { activeOnly: true, hasImageOnly: true },
-      },
-      mapping: {
-        titleField: 'name',
-        imageField: 'imageUrl',
-        secondaryImageField: 'categoryImage',
-        deepLinkTemplate: 'app://category/{id}',
-      },
-      items: [
-        { title: 'T-shirts & Mobile Pouch', imageUrl: '', secondaryImageUrl: '', deepLink: '' },
-        { title: 'Holika Dahan', imageUrl: '', secondaryImageUrl: '', deepLink: '' },
-        { title: 'Gujiya Mould & Ingredients', imageUrl: '', secondaryImageUrl: '', deepLink: '' },
-      ],
-    },
-  },
-  {
     key: 'brandLogoCarousel',
     label: 'Brand Logo Carousel',
     hint: 'Horizontal scrolling brand cards with logo + name (Auto-loads Top Brands for this industry)',
@@ -4446,7 +4412,6 @@ export const blockLabels = {
   split_promo_row: 'Split Promo Row',
   horizontal_scroll_list: 'Featured Cards Block',
   quick_action_row: 'Quick Action Row',
-  column_grid: 'Festive Column Grid',
   category_icon_grid: 'Category Icon Grid',
   brand_logo_grid: 'Brand Bento Box',
   media_overlay_carousel: 'Media Overlay Carousel',
@@ -4573,7 +4538,6 @@ export const resolveBlockType = (section) => {
   if (section.type === 'split_promo_row') return 'split_promo_row';
   if (section.type === 'horizontal_scroll_list') return 'horizontal_scroll_list';
   if (section.type === 'quick_action_row') return 'quick_action_row';
-  if (section.type === 'column_grid') return 'column_grid';
   if (section.type === 'category_icon_grid') return 'category_icon_grid';
   if (section.type === 'brand_logo_grid') return 'brand_logo_grid';
   if (section.type === 'media_overlay_carousel') return 'media_overlay_carousel';
@@ -4704,7 +4668,6 @@ export const phaseOneBlockTypes = new Set([
   'split_promo_row',
   'horizontal_scroll_list',
   'quick_action_row',
-  'column_grid',
   'category_icon_grid',
   'brand_logo_grid',
   'media_overlay_carousel',
@@ -5212,12 +5175,6 @@ export const normalizeColumnTopLineStyle = (value) => {
   return 'flat';
 };
 
-export const COLUMN_GRID_BG_PALETTE = ['#f5f0dc', '#f9f3de', '#eef9ff', '#eaf7ff', '#f6f7ff', '#fff7ef'];
-export const COLUMN_GRID_CARD_BG_PALETTE = ['#9ad8f8', '#b6e2ff', '#d5ecff', '#c3dbff', '#d8d4ff', '#ffd8f3'];
-export const COLUMN_GRID_TOP_LINE_STYLES = [
-  { value: 'flat', label: 'Flat line' },
-  { value: 'curve', label: 'Curve line' },
-];
 export const CATEGORY_FEED_SORT_OPTIONS = [
   { value: 'MANUAL_RANK', label: 'Manual rank' },
   { value: 'NAME', label: 'Name' },

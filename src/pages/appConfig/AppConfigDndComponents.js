@@ -13,7 +13,6 @@ import {
   resolveMainCategoryName,
   resolveCategoryMainCategoryId,
   resolveMainCategoryId,
-  normalizeColumnTopLineStyle,
   parseAspectRatioValue,
   ensureBentoTiles,
 } from './appConfigConstants';
@@ -458,17 +457,34 @@ export const ToolboxDragPreview = ({ item }) => (
 
 export const HeaderBlockPreview = ({ block, industries }) => {
   const blockType = resolveBlockType(block);
-  const placeholder = block?.placeholder || 'Search "yoga"';
+  const placeholder = block?.placeholder || 'Search "products, brands, deals..."';
   if (blockType === 'addressHeader') {
+    const title = block?.title || '⚡ 8 MINS';
+    const location = block?.text || 'HOME - C-901, Silicon Valley';
     return (
       <div className="preview-address-row">
-        <div>
-          <div className="preview-address-time">8 minutes</div>
-          <div className="preview-address-label">HOME - C-901</div>
+        <div className="preview-address-info">
+          <div className="preview-address-time">{title}</div>
+          <div className="preview-address-label">
+            <span>{location}</span>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </div>
         </div>
         <div className="preview-address-icons">
-          <span className="preview-icon-chip">Rs</span>
-          <span className="preview-icon-chip">User</span>
+          <span className="preview-icon-chip" title="Wallet">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="2" y="4" width="20" height="16" rx="2" />
+              <line x1="2" y1="10" x2="22" y2="10" />
+            </svg>
+          </span>
+          <span className="preview-icon-chip preview-avatar-chip" title="Profile">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+          </span>
         </div>
       </div>
     );
@@ -476,8 +492,16 @@ export const HeaderBlockPreview = ({ block, industries }) => {
   if (blockType === 'searchBar') {
     return (
       <div className="preview-search">
-        <span className="preview-search-icon">Search</span>
-        <span>{placeholder}</span>
+        <svg className="preview-search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+        <span className="preview-search-text">{placeholder}</span>
+        <svg className="preview-search-mic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+          <line x1="12" y1="19" x2="12" y2="23" />
+        </svg>
       </div>
     );
   }
@@ -504,11 +528,11 @@ export const HeaderBlockPreview = ({ block, industries }) => {
     if (!pillItems.length) {
       pillItems = allIndustries;
     }
-    const labels = pillItems.length ? pillItems.map((item) => item.label) : ['All', 'Electronics', 'Beauty', 'Grocery'];
+    const labels = pillItems.length ? pillItems.map((item) => item.label) : ['All', 'Electronics', 'Beauty', 'Grocery', 'Fashion'];
     return (
       <div className="preview-pills">
-        {labels.map((label) => (
-          <span key={label} className="preview-pill">
+        {labels.map((label, idx) => (
+          <span key={label} className={`preview-pill ${idx === 0 ? 'is-active' : ''}`}>
             {label}
           </span>
         ))}
@@ -764,69 +788,6 @@ export const PreviewSection = ({
               </div>
             );
           })}
-        </div>
-      </div>
-    );
-  }
-
-  if (blockType === 'column_grid') {
-    const sectionBgColor = section?.sectionBgColor || '#f5f0dc';
-    const sectionBgImage = section?.sectionBgImage || '';
-    const cardBgColor = section?.cardBgColor || '#9ad8f8';
-    const topLineStyle = normalizeColumnTopLineStyle(section?.columnTopLineStyle);
-    return (
-      <div key={`preview-${index}`} className={`preview-section ${hidden ? 'is-hidden' : ''}`}>
-        <div
-          className="preview-phase-one-column-shell"
-          style={
-            sectionBgColor
-              ? { backgroundColor: sectionBgColor, '--column-shell-bg': sectionBgColor }
-              : { '--column-shell-bg': '#f5f0dc' }
-          }
-        >
-          {sectionBgImage ? (
-            <img className="preview-phase-one-column-bg-image" src={sectionBgImage} alt="" />
-          ) : null}
-          <div
-            className={`preview-phase-one-column-topline ${
-              topLineStyle === 'curve'
-                ? 'preview-phase-one-column-topline-curve'
-                : 'preview-phase-one-column-topline-flat'
-            }`}
-          />
-          <div className="preview-phase-one-column-content">
-            {title ? <div className="preview-title">{title}</div> : null}
-            <div className="preview-phase-one-column-grid">
-              {items.map((item, itemIndex) => {
-                const image = getPreviewImage(item);
-                const secondary = getPreviewSecondaryImage(item);
-                const label = getPreviewTitle(item);
-                return (
-                  <div
-                    key={`preview-column-grid-${index}-${itemIndex}`}
-                    className="preview-phase-one-column-card"
-                    style={{ backgroundColor: cardBgColor }}
-                  >
-                    <div className="preview-phase-one-column-title">{label}</div>
-                    <div className="preview-phase-one-column-images">
-                      <div className="preview-phase-one-column-image">
-                        {image ? <img src={image} alt="" /> : <div className="preview-image-placeholder" />}
-                        {item.overlayTitle ? (
-                          <div className="preview-column-overlay">
-                            <span className="preview-column-overlay-title">{item.overlayTitle}</span>
-                            {item.overlaySubtitle ? <span className="preview-column-overlay-subtitle">{item.overlaySubtitle}</span> : null}
-                          </div>
-                        ) : null}
-                      </div>
-                      <div className="preview-phase-one-column-image">
-                        {secondary ? <img src={secondary} alt="" /> : <div className="preview-image-placeholder" />}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
         </div>
       </div>
     );

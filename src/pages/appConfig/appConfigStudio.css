@@ -1,0 +1,988 @@
+/* --------------------------------------------------------------------------
+   Deal360 App Config Builder - Studio Theme Stylesheet
+   Matches modern 3-column Visual Studio design
+   -------------------------------------------------------------------------- */
+
+:root {
+  --studio-bg: #f8fafc;
+  --studio-panel: #ffffff;
+  --studio-border: #e2e8f0;
+  --studio-purple: #6345ed;
+  --studio-purple-dark: #5033d6;
+  --studio-purple-light: #7c5dfa;
+  --studio-purple-soft: #f4f0ff;
+  --studio-purple-border: #e9e3ff;
+  --studio-purple-glow: rgba(99, 69, 237, 0.15);
+  --studio-text-main: #0f172a;
+  --studio-text-muted: #64748b;
+  --studio-danger: #ef4444;
+  --studio-success: #10b981;
+  --studio-radius-sm: 8px;
+  --studio-radius-md: 12px;
+  --studio-radius-lg: 16px;
+  --studio-radius-xl: 24px;
+  --studio-shadow: 0 4px 20px -2px rgba(99, 69, 237, 0.06), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+  --studio-shadow-hover: 0 10px 25px -3px rgba(99, 69, 237, 0.12), 0 4px 8px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Studio container shell */
+.app-config-shell {
+  background-color: var(--studio-bg);
+  min-height: 100vh;
+  padding: 12px 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  color: var(--studio-text-main);
+}
+
+/* --------------------------------------------------------------------------
+   1. Top Studio Action Bar
+   -------------------------------------------------------------------------- */
+.studio-topbar {
+  background: var(--studio-panel);
+  border-radius: var(--studio-radius-md);
+  border: 1px solid var(--studio-border);
+  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: var(--studio-shadow);
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.studio-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  flex: 1 1 auto;
+}
+
+.studio-badge-logo {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--studio-purple-soft);
+  color: var(--studio-purple);
+  padding: 5px 8px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.2px;
+  flex-shrink: 0;
+}
+
+.studio-page-select-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.studio-page-select {
+  appearance: none;
+  background: #ffffff;
+  border: 1px solid var(--studio-border);
+  padding: 5px 24px 5px 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--studio-text-main);
+  cursor: pointer;
+  outline: none;
+  min-width: 100px;
+  max-width: 130px;
+  transition: all 0.2s ease;
+}
+
+.studio-page-select:focus {
+  border-color: var(--studio-purple);
+  box-shadow: 0 0 0 2px var(--studio-purple-soft);
+}
+
+.studio-select-chevron {
+  position: absolute;
+  right: 7px;
+  pointer-events: none;
+  color: var(--studio-text-muted);
+}
+
+.studio-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 5px 9px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.studio-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.studio-btn-outline {
+  background: #ffffff;
+  border: 1px solid var(--studio-border);
+  color: var(--studio-text-main);
+}
+
+.studio-btn-outline:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.studio-btn-outline.is-active {
+  background: var(--studio-purple-soft);
+  border-color: var(--studio-purple);
+  color: var(--studio-purple);
+}
+
+.studio-topbar-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--studio-border);
+  margin: 0 2px;
+}
+
+.studio-meta-info {
+  font-size: 12px;
+  color: var(--studio-text-muted);
+  font-weight: 500;
+}
+
+.studio-version-pill {
+  background: var(--studio-purple-soft);
+  color: var(--studio-purple);
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid var(--studio-purple-border);
+}
+
+.studio-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.studio-btn-draft {
+  background: #ffffff;
+  border: 1px solid var(--studio-purple-border);
+  color: var(--studio-purple);
+}
+
+.studio-btn-draft:hover:not(:disabled) {
+  background: var(--studio-purple-soft);
+  border-color: var(--studio-purple);
+}
+
+.studio-btn-publish {
+  background: linear-gradient(135deg, var(--studio-purple) 0%, var(--studio-purple-dark) 100%);
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 4px 14px var(--studio-purple-glow);
+}
+
+.studio-btn-publish:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(99, 69, 237, 0.3);
+}
+
+.studio-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.studio-device-toggle {
+  display: flex;
+  background: #f1f5f9;
+  padding: 3px;
+  border-radius: 10px;
+  gap: 2px;
+}
+
+.studio-device-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--studio-text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.studio-device-btn.active {
+  background: #ffffff;
+  color: var(--studio-purple);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.studio-theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--studio-border);
+  background: #ffffff;
+  color: var(--studio-text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.studio-theme-toggle:hover {
+  background: #f8fafc;
+  color: var(--studio-text-main);
+}
+
+/* --------------------------------------------------------------------------
+   2. Main 3-Column Studio Grid Layout
+   -------------------------------------------------------------------------- */
+.studio-grid {
+  display: grid;
+  grid-template-columns: 290px 350px minmax(320px, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+@media (max-width: 1280px) {
+  .studio-grid {
+    grid-template-columns: 270px 340px minmax(300px, 1fr);
+    gap: 14px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .studio-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   3. Left Column: Toolbox
+   -------------------------------------------------------------------------- */
+.studio-toolbox {
+  background: var(--studio-panel);
+  border-radius: var(--studio-radius-lg);
+  border: 1px solid var(--studio-purple-border);
+  padding: 16px;
+  box-shadow: var(--studio-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+}
+
+.studio-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.studio-panel-title-group h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--studio-text-main);
+}
+
+.studio-panel-title-group p {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--studio-text-muted);
+}
+
+.studio-count-badge {
+  background: var(--studio-purple-soft);
+  color: var(--studio-purple);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.studio-tabs-row {
+  display: flex;
+  border-bottom: 1px solid var(--studio-border);
+  gap: 16px;
+  margin-top: -4px;
+}
+
+.studio-tab-btn {
+  background: transparent;
+  border: none;
+  padding: 8px 4px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--studio-text-muted);
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.studio-tab-btn.active {
+  color: var(--studio-purple);
+}
+
+.studio-tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--studio-purple);
+  border-radius: 2px;
+}
+
+.studio-search-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.studio-search-bar input {
+  width: 100%;
+  padding: 10px 14px 10px 38px;
+  border-radius: 10px;
+  border: 1px solid var(--studio-border);
+  font-size: 13px;
+  outline: none;
+  background: #ffffff;
+  transition: all 0.2s ease;
+}
+
+.studio-search-bar input:focus {
+  border-color: var(--studio-purple);
+  box-shadow: 0 0 0 3px var(--studio-purple-soft);
+}
+
+.studio-search-icon {
+  position: absolute;
+  left: 12px;
+  color: var(--studio-text-muted);
+  pointer-events: none;
+}
+
+.studio-category-dropdown {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--studio-border);
+  font-size: 13px;
+  font-weight: 500;
+  outline: none;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.studio-accordion-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.studio-accordion-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 14px;
+}
+
+.studio-accordion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+
+.studio-accordion-header span {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--studio-purple);
+  letter-spacing: 0.5px;
+}
+
+.studio-block-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.studio-block-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 4px;
+  background: #ffffff;
+  border: 1px solid var(--studio-purple-border);
+  border-radius: var(--studio-radius-md);
+  cursor: grab;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: center;
+  user-select: none;
+  min-height: 86px;
+}
+
+.studio-block-card:hover {
+  transform: translateY(-3px);
+  border-color: #c4b5fd;
+  box-shadow: var(--studio-shadow-hover);
+  background: #fdfcff;
+}
+
+.studio-block-card:active {
+  cursor: grabbing;
+}
+
+.studio-block-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--studio-purple-soft);
+  color: var(--studio-purple);
+  transition: all 0.2s ease;
+}
+
+.studio-block-card:hover .studio-block-icon-wrap {
+  background: var(--studio-purple);
+  color: #ffffff;
+}
+
+.studio-block-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--studio-text-main);
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.studio-mode-chip {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #f1f5f9;
+  color: #64748b;
+  margin-top: 1px;
+}
+
+.studio-mode-chip.mode-dynamic,
+.studio-mode-chip.mode-live {
+  background: #ede9fe;
+  color: #6345ed;
+}
+
+.studio-mode-chip.mode-hybrid {
+  background: #e0e7ff;
+  color: #4338ca;
+}
+
+.studio-mode-chip.mode-manual {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.studio-mode-chip.mode-fixed {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+/* --------------------------------------------------------------------------
+   4. Center Column: Live Device Mockup Canvas
+   -------------------------------------------------------------------------- */
+.studio-canvas-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: sticky;
+  top: 10px;
+}
+
+.studio-phone-mockup {
+  width: 336px;
+  height: 640px;
+  background: #0f111a;
+  border-radius: 40px;
+  padding: 9px;
+  box-shadow: 0 20px 45px -10px rgba(15, 23, 42, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.studio-phone-screen {
+  flex: 1;
+  background: #f8f9fa;
+  border-radius: 32px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.studio-phone-screen::-webkit-scrollbar {
+  width: 3px;
+}
+
+.studio-phone-screen::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+/* Status Bar with Dynamic Island */
+.studio-phone-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #ffffff;
+  position: relative;
+  z-index: 25;
+  background: #6345ED;
+  border-top-left-radius: 32px;
+  border-top-right-radius: 32px;
+  flex-shrink: 0;
+  user-select: none;
+  pointer-events: none;
+}
+
+.studio-status-time {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  line-height: 1;
+}
+
+.studio-phone-notch {
+  width: 76px;
+  height: 16px;
+  background: #000000;
+  border-radius: 12px;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 6px;
+  z-index: 30;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.studio-status-icons {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  line-height: 1;
+}
+
+/* Droppable Areas inside Phone Screen */
+.preview-header {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-bottom-left-radius: 18px;
+  border-bottom-right-radius: 18px;
+  background: #6345ED;
+  color: #ffffff;
+  padding: 4px 10px 12px;
+  position: relative;
+  transition: all 0.2s ease;
+  min-height: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start !important;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.preview-header-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+  z-index: 10;
+}
+
+.preview-header-block {
+  border-radius: 12px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  position: relative;
+}
+
+.preview-header-block.is-active {
+  outline: 2px solid #ffffff;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.45);
+}
+
+.studio-header-drop-placeholder {
+  padding: 12px 8px;
+  text-align: center;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.85);
+  border: 1px dashed rgba(255, 255, 255, 0.45);
+  border-radius: 10px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Header Blocks Specific Modern Previews */
+.preview-address-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 4px;
+}
+
+.preview-address-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.preview-address-time {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+  color: #ffffff;
+  text-transform: uppercase;
+}
+
+.preview-address-label {
+  font-size: 10px;
+  font-weight: 600;
+  opacity: 0.92;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.preview-address-icons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.preview-icon-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  transition: all 0.2s ease;
+}
+
+.preview-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 11px;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #64748b;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.preview-search-icon {
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.preview-search-text {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #64748b;
+}
+
+.preview-search-mic {
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.preview-pills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 2px 0 4px;
+  scrollbar-width: none;
+}
+
+.preview-pills::-webkit-scrollbar {
+  display: none;
+}
+
+.preview-pill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  backdrop-filter: blur(6px);
+  transition: all 0.2s ease;
+}
+
+.preview-pill.is-active {
+  background: #ffffff;
+  color: #1e1b4b;
+  font-weight: 700;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
+  border-color: #ffffff;
+}
+
+.studio-screen-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  flex: 1;
+}
+
+.studio-sortable-block-wrap {
+  position: relative;
+  border-radius: 14px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.studio-sortable-block-wrap.is-active {
+  outline: 2px solid var(--studio-purple);
+  box-shadow: 0 0 0 4px var(--studio-purple-glow);
+}
+
+.studio-screen-empty-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 48px 16px;
+  text-align: center;
+  color: var(--studio-text-muted);
+}
+
+.studio-screen-empty-placeholder strong {
+  font-size: 14px;
+  color: var(--studio-text-main);
+}
+
+.studio-screen-empty-placeholder span {
+  font-size: 12px;
+}
+
+/* --------------------------------------------------------------------------
+   5. Right Column: Block Properties Panel
+   -------------------------------------------------------------------------- */
+.studio-properties {
+  background: var(--studio-panel);
+  border-radius: var(--studio-radius-lg);
+  border: 1px solid var(--studio-purple-border);
+  padding: 16px;
+  box-shadow: var(--studio-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+  position: relative;
+}
+
+.studio-mode-toggle {
+  display: flex;
+  background: #f1f5f9;
+  padding: 3px;
+  border-radius: 10px;
+  gap: 2px;
+}
+
+.studio-mode-btn {
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--studio-text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.studio-mode-btn.active {
+  background: #ffffff;
+  color: var(--studio-purple);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+/* Checkbox group styling in Properties Panel */
+.studio-checkbox-field-group {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 8px !important;
+  width: 100% !important;
+  margin-bottom: 8px;
+}
+
+.studio-checkbox-group-title {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: var(--studio-text-main) !important;
+  margin-bottom: 2px;
+}
+
+.studio-checkbox-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  padding: 4px 0;
+}
+
+.studio-checkbox-row-item {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 10px !important;
+  cursor: pointer !important;
+  margin: 0 !important;
+  width: 100% !important;
+}
+
+.studio-checkbox-row-item input[type="checkbox"] {
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px !important;
+  accent-color: var(--studio-purple) !important;
+  cursor: pointer !important;
+  margin: 0 !important;
+}
+
+.studio-checkbox-text {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: var(--studio-text-main) !important;
+  line-height: 1.3 !important;
+  text-align: left !important;
+}
+
+/* Generic checkbox overrides */
+.checkbox-grid {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  width: 100% !important;
+}
+
+.checkbox-row {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 10px !important;
+  cursor: pointer !important;
+  margin: 0 !important;
+  font-size: 13px !important;
+  color: var(--studio-text-main) !important;
+}
+
+.checkbox-row input[type="checkbox"] {
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px !important;
+  accent-color: var(--studio-purple) !important;
+  cursor: pointer !important;
+  margin: 0 !important;
+}
+
+/* Properties Bottom Sticky Bar */
+.studio-properties-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 0 4px;
+  border-top: 1px solid var(--studio-border);
+  gap: 10px;
+  position: sticky;
+  bottom: 0;
+  background: var(--studio-panel);
+  z-index: 10;
+  margin-top: auto;
+}
+
+.studio-btn-danger {
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+  color: #e11d48;
+}
+
+.studio-btn-danger:hover:not(:disabled) {
+  background: #ffe4e6;
+  border-color: #fda4af;
+}
+
+.studio-btn-save {
+  background: var(--studio-purple);
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 4px 12px var(--studio-purple-glow);
+}
+
+.studio-btn-save:hover:not(:disabled) {
+  background: var(--studio-purple-dark);
+  box-shadow: 0 6px 18px rgba(99, 69, 237, 0.25);
+}
