@@ -64,7 +64,6 @@ export const ensureHeaderBlocks = (page) => {
 export const buildSectionFromForm = (base, form) => {
   const next = { ...(base || {}) };
   const resolvedBlockType = form.blockType?.trim() || form.type?.trim() || '';
-  const isColumnGridBlock = resolvedBlockType === 'column_grid';
   const isCampaignBentoBlock = resolvedBlockType === 'campaignBento';
   const isPhaseOneProductShelfBlock = resolvedBlockType === 'product_shelf_horizontal';
   const isProductCardCarouselBlock = resolvedBlockType === 'product_card_carousel';
@@ -75,7 +74,6 @@ export const buildSectionFromForm = (base, form) => {
   const isTabbedProductShelfBlock = resolvedBlockType === 'tabbed_product_shelf';
   const isShopCardCarouselBlock = resolvedBlockType === 'shop_card_carousel';
   const isDynamicFallbackBlock =
-    isColumnGridBlock ||
     isCampaignBentoBlock ||
     isPhaseOneProductShelfBlock ||
     isProductCardCarouselBlock ||
@@ -142,17 +140,10 @@ export const buildSectionFromForm = (base, form) => {
   }
   setOrDelete('placeholder', form.placeholder?.trim());
   setOrDelete('sectionBgColor', form.sectionBgColor?.trim());
-  if (isColumnGridBlock) {
-    setOrDelete('sectionBgImage', form.sectionBgImage?.trim());
-    next.columnTopLineStyle = normalizeColumnTopLineStyle(form.columnTopLineStyle);
-    delete next.columnTopLineColor;
-    delete next.columnTopLineImage;
-  } else {
-    delete next.sectionBgImage;
-    delete next.columnTopLineStyle;
-    delete next.columnTopLineColor;
-    delete next.columnTopLineImage;
-  }
+  delete next.sectionBgImage;
+  delete next.columnTopLineStyle;
+  delete next.columnTopLineColor;
+  delete next.columnTopLineImage;
   setOrDelete('cardBgColor', form.cardBgColor?.trim());
   setOrDelete('titleColor', form.titleColor?.trim());
   setOrDelete('badgeBgColor', form.badgeBgColor?.trim());
@@ -260,7 +251,7 @@ export const buildSectionFromForm = (base, form) => {
       } else {
         delete next.headerImage;
       }
-    } else if (!isColumnGridBlock) {
+    } else {
       delete next.headerImage;
     }
   }
@@ -285,7 +276,6 @@ export const buildSectionFromForm = (base, form) => {
     }
   }
   setOrDelete('itemsPath', form.itemsPath?.trim());
-  setOrDelete('itemTemplateRef', form.itemTemplateRef?.trim());
   setOrDelete('dataSourceRef', form.dataSourceRef?.trim());
   if (isDynamicFallbackBlock) {
     const fallbackBehavior = String(form.fallbackBehavior || 'HIDE_BLOCK').trim().toUpperCase();

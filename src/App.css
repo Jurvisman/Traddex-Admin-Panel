@@ -4154,6 +4154,15 @@ textarea {
   border-color: #dbe4ee;
 }
 
+.toolbox-unsupported-badge {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 700;
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
 .toolbox-empty {
   padding: 18px 14px;
   border-radius: 14px;
@@ -4271,8 +4280,8 @@ textarea {
 }
 
 .preview-header {
-  min-height: 150px;
-  padding: 12px;
+  min-height: auto;
+  padding: 8px 12px 14px;
   color: #ffffff;
   background: #6345ED;
   background-size: cover;
@@ -4280,7 +4289,7 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  justify-content: flex-end;
+  justify-content: flex-start;
   cursor: pointer;
 }
 

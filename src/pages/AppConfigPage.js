@@ -12,10 +12,21 @@ import {
 } from '@dnd-kit/core';
 import { SortableContext, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Banner, ConfirmDialog } from '../components';
+import { HEADER_BLOCK_SCHEMAS } from './appConfig/headerBlockSchemas';
+import { SCREEN_BLOCK_SCHEMAS, TARGETING_FIELDS } from './appConfig/screenBlockSchemas';
+import { ITEM_LIST_BLOCK_SCHEMAS } from './appConfig/itemListBlockSchemas';
+import { SchemaFieldsRenderer } from './appConfig/SchemaFieldsRenderer';
+import { ItemListFieldEditor } from './appConfig/ItemListFieldEditor';
+import './appConfig/appConfigStudio.css';
+import { StudioTopBar } from './appConfig/StudioTopBar';
+import { StudioToolbox } from './appConfig/StudioToolbox';
+import { StudioCanvas } from './appConfig/StudioCanvas';
+import { StudioIcons } from './appConfig/appConfigStudioIcons';
 import {
-  getAppConfigDraft,
+  getMergedAppConfigDraft,
   getPublishedAppConfig,
   getAppConfigPresets,
+  getSupportedBlockTypes,
   getBrandFeedPreview,
   getHomeCategoryPreview,
   listAppConfigVersions,
@@ -47,6 +58,7 @@ import {
   screenSectionTypeOptions,
   defaultBlockTypeBySectionType,
   headerSectionTypeOptions,
+  AD_SLOT_TYPE_OPTIONS,
   toolboxItems,
   blockLabels,
   resolveBlockLabel,
@@ -74,10 +86,6 @@ import {
   collectImageUrls,
   isHexColor,
   resolveHexColor,
-  normalizeColumnTopLineStyle,
-  COLUMN_GRID_BG_PALETTE,
-  COLUMN_GRID_CARD_BG_PALETTE,
-  COLUMN_GRID_TOP_LINE_STYLES,
   CATEGORY_FEED_SORT_OPTIONS,
   CATEGORY_ICON_FEED_MODE_OPTIONS,
   PLACE_CARD_SOURCE_OPTIONS,
@@ -174,11 +182,6 @@ const NAVIGATION_TARGET_OPTIONS = [
   { value: 'EXTERNAL_URL', label: 'External URL' },
   { value: 'CUSTOM', label: 'Custom deep link' },
 ];
-const AD_SLOT_TYPE_OPTIONS = [
-  { value: 'FULL_BANNER', label: 'Full banner' },
-  { value: 'MID_CARD', label: 'Mid card' },
-  { value: 'BOTTOM_STRIP', label: 'Bottom strip' },
-];
 const NAVIGATION_TARGET_PLACEHOLDERS = {
   COLLECTION: 'summer-serums',
   CAMPAIGN: 'beauty-fest',
@@ -221,7 +224,6 @@ const TOOLBOX_LABEL_OVERRIDES = {
   tabbedProductShelf: 'Tabbed Product Shelf',
   categoryIconGrid: 'Category Grid',
   categoryShowcase: 'Category Showcase',
-  columnGrid: 'Category Cards',
   brandShowcase: 'Brand Bento Box',
   mediaOverlayCarousel: 'Image Story Cards',
   featuredCards: 'Manual Feature Cards',
@@ -237,7 +239,6 @@ const TOOLBOX_HINT_OVERRIDES = {
   productGrid: 'Best for dense 2/3-column live product discovery',
   categoryIconGrid: 'Best for app-like category icons such as Snacks, Beauty, Electronics',
   categoryShowcase: 'Best for visual category bubbles with category images',
-  columnGrid: 'Best for larger category cards with preview images',
   brandShowcase: 'Brand campaign with top banner, four tiles, and bottom CTA banner',
   mediaOverlayCarousel: 'Manual image cards with title overlay; use for stories or brand stores',
   featuredCards: 'Manual promo cards; use when content is curated, not backend-fed',
@@ -271,7 +272,6 @@ const TOOLBOX_GROUP_BY_KEY = {
   categoryIconGrid: 'categories',
   categoryShowcase: 'categories',
   categoryPreviewGrid: 'categories',
-  columnGrid: 'categories',
   brandShowcase: 'categories',
   brandLogoCarousel: 'categories',
   shopsNearYou: 'discovery',
@@ -554,6 +554,7 @@ function AppConfigPage({ token }) {
   const [sectionForm, setSectionForm] = useState(defaultSectionForm);
   const [headerForm, setHeaderForm] = useState(defaultHeaderForm);
   const [headerPresets, setHeaderPresets] = useState({ colors: [], images: [] });
+  const [supportedBlockTypes, setSupportedBlockTypes] = useState(null);
   const [headerSectionForm, setHeaderSectionForm] = useState(defaultHeaderSectionForm);
   const [newIndustryName, setNewIndustryName] = useState('');
   const [isCreatingIndustry, setIsCreatingIndustry] = useState(false);
@@ -785,8 +786,16 @@ function AppConfigPage({ token }) {
   }, [activeDragId]);
 
   const enrichedToolboxItems = useMemo(
-    () => toolboxItems.map(enrichToolboxItem),
-    []
+    () =>
+      toolboxItems.map((item) => {
+        const enriched = enrichToolboxItem(item);
+        const blockType = item?.section?.blockType || item?.section?.type;
+        // supportedBlockTypes is null until the registry loads (or if it fails to load) —
+        // stay silent rather than flag everything as unsupported in that window.
+        const isSupportedInApp = !supportedBlockTypes || supportedBlockTypes.has(blockType);
+        return { ...enriched, isSupportedInApp };
+      }),
+    [supportedBlockTypes]
   );
 
   const visibleToolboxGroups = useMemo(() => {
@@ -874,6 +883,14 @@ function AppConfigPage({ token }) {
     }
   }, [pages, selectedPageKey]);
 
+  // Version history is scoped per page now — refresh it whenever the selected page changes,
+  // not just after a save/publish, so the panel never shows a stale/wrong page's history.
+  useEffect(() => {
+    if (!selectedPageKey) return;
+    loadVersions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPageKey]);
+
   useEffect(() => {
     if (!selectedPage || !selectedPage.header) {
       setHeaderForm({ ...defaultHeaderForm });
@@ -943,8 +960,17 @@ function AppConfigPage({ token }) {
     const isProductFeedBlock =
       (resolvedBlockType === 'product_card_carousel' || resolvedBlockType === 'multiItemGrid') &&
       Boolean(String(sectionForm.dataSourceRef || '').trim());
+    // Service/Shop blocks scope by industry+category directly via sourceIndustryId/sourceMainCategoryId
+    // and don't use the sourceType==='CATEGORY_FEED' convention other blocks use, so they're allowed
+    // through this gate the same way isProductFeedBlock is.
+    const isServiceOrShopFeedBlock =
+      resolvedBlockType === 'service_card_carousel' || resolvedBlockType === 'shop_card_carousel';
     if (!phaseOneBlockTypes.has(resolvedBlockType) && !isProductFeedBlock) return;
-    if ((sectionForm.sourceType || 'MANUAL') !== 'CATEGORY_FEED' && !isProductFeedBlock) {
+    if (
+      (sectionForm.sourceType || 'MANUAL') !== 'CATEGORY_FEED' &&
+      !isProductFeedBlock &&
+      !isServiceOrShopFeedBlock
+    ) {
       setSourceCategories([]);
       return;
     }
@@ -982,7 +1008,6 @@ function AppConfigPage({ token }) {
   useEffect(() => {
     const resolvedBlockType = sectionForm.blockType || sectionForm.type || '';
     if (
-      resolvedBlockType !== 'column_grid' &&
       resolvedBlockType !== 'category_icon_grid' &&
       resolvedBlockType !== 'category_showcase'
     ) {
@@ -1022,7 +1047,9 @@ function AppConfigPage({ token }) {
     setIsLoading(true);
     setMessage(emptyMessage);
     try {
-      const response = await getAppConfigDraft(token);
+      // Merged view: combines the legacy shared row with any pages that have since been
+      // split into their own row, so this always reflects the latest edits either way.
+      const response = await getMergedAppConfigDraft(token);
       const payload = response?.data;
       if (payload?.config) {
         const text = JSON.stringify(payload.config, null, 2);
@@ -1049,7 +1076,7 @@ function AppConfigPage({ token }) {
 
   const loadVersions = async () => {
     try {
-      const response = await listAppConfigVersions(token);
+      const response = await listAppConfigVersions(token, selectedPageKey || undefined);
       setVersions(response?.data || []);
     } catch (error) {
       setVersions([]);
@@ -1307,6 +1334,17 @@ function AppConfigPage({ token }) {
     }
   };
 
+  const loadSupportedBlockTypes = async () => {
+    try {
+      const response = await getSupportedBlockTypes(token);
+      const list = Array.isArray(response?.data) ? response.data : [];
+      setSupportedBlockTypes(new Set(list));
+    } catch (error) {
+      // Leave as null on failure — toolbox warnings stay silent rather than false-flagging everything.
+      setSupportedBlockTypes(null);
+    }
+  };
+
   useEffect(() => {
     loadDraft();
     loadVersions();
@@ -1316,6 +1354,7 @@ function AppConfigPage({ token }) {
     loadBusinessDirectory();
     loadMainCategories();
     loadHeaderPresets();
+    loadSupportedBlockTypes();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1337,6 +1376,25 @@ function AppConfigPage({ token }) {
     }
   };
 
+  // If a specific page is selected, scope save/publish to just that page's own row —
+  // theme + dataSources come along for validation but only its one page is included, so
+  // this write can never touch another page's in-progress draft or published version.
+  // With nothing selected (e.g. editing via Advanced JSON at the whole-document level),
+  // this falls back to the legacy shared-row behavior, unchanged.
+  const resolveScopedSaveTarget = (fullConfig) => {
+    const pageIndex = Array.isArray(fullConfig?.pages)
+      ? fullConfig.pages.findIndex((page, index) => getPageKey(page, index) === selectedPageKey)
+      : -1;
+    if (pageIndex < 0) {
+      return { config: fullConfig, pageKey: undefined, page: null };
+    }
+    return {
+      config: { theme: fullConfig.theme, dataSources: fullConfig.dataSources, pages: [fullConfig.pages[pageIndex]] },
+      pageKey: selectedPageKey,
+      page: fullConfig.pages[pageIndex],
+    };
+  };
+
   const saveDraft = async () => {
     const parsed = parseJson(draftText);
     if (parsed.error) {
@@ -1346,13 +1404,17 @@ function AppConfigPage({ token }) {
     setIsLoading(true);
     setMessage(emptyMessage);
     try {
-      const response = await saveAppConfigDraft(token, { config: parsed.data, version: version || undefined });
+      const { config, pageKey, page } = resolveScopedSaveTarget(parsed.data);
+      const response = await saveAppConfigDraft(token, { config, version: version || undefined }, pageKey);
       const payload = response?.data;
       if (payload?.meta?.version) {
         setVersion(payload.meta.version);
       }
       lastSavedDraftRef.current = draftText;
-      setMessage({ type: 'success', text: 'Draft saved.' });
+      setMessage({
+        type: 'success',
+        text: page ? `Draft saved for ${getPageLabel(page, 0, pagePresets)}.` : 'Draft saved.',
+      });
       await loadVersions();
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to save draft.' });
@@ -1370,8 +1432,13 @@ function AppConfigPage({ token }) {
     setIsLoading(true);
     setMessage(emptyMessage);
     try {
-      await publishAppConfig(token);
-      setMessage({ type: 'success', text: 'Draft published.' });
+      const parsed = parseJson(draftText);
+      const { pageKey, page } = parsed.error ? {} : resolveScopedSaveTarget(parsed.data);
+      await publishAppConfig(token, pageKey);
+      setMessage({
+        type: 'success',
+        text: page ? `Published ${getPageLabel(page, 0, pagePresets)}.` : 'Draft published.',
+      });
       await loadVersions();
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Publish failed.' });
@@ -1584,7 +1651,7 @@ function AppConfigPage({ token }) {
       setMessage({ type: 'error', text: 'Select a page before editing header settings.' });
       return;
     }
-    setActivePanel(null);
+    setActivePanel('header');
     setShowCustomPageFields(true);
   };
 
@@ -1693,7 +1760,6 @@ function AppConfigPage({ token }) {
     if (!blockType) return false;
     if (blockType === 'horizontal_scroll_list') return field === 'imageUrl';
     if (blockType === 'category_icon_grid') return field === 'imageUrl';
-    if (blockType === 'column_grid') return field === 'imageUrl' || field === 'secondaryImageUrl';
     return false;
   };
 
@@ -2179,44 +2245,6 @@ function AppConfigPage({ token }) {
     return Array.isArray(items) ? items : [];
   };
 
-  const applyFestiveColumnGridPreset = () => {
-    if ((sectionForm.blockType || sectionForm.type || '') !== 'column_grid') return;
-    setSectionForm((prev) => {
-      const normalizedItems = normalizePhaseOneItems(prev.sduiItems, 'column_grid');
-      return {
-        ...prev,
-        title: (prev.title || '').trim() || 'Festive finds',
-        sectionBgColor: resolveHexColor(prev.sectionBgColor, '#f5f0dc'),
-        cardBgColor: resolveHexColor(prev.cardBgColor, '#9ad8f8'),
-        columnTopLineStyle: normalizeColumnTopLineStyle(prev.columnTopLineStyle || 'curve'),
-        sourceType: 'CATEGORY_FEED',
-        sourceFeedMode: 'TOP_SELLING',
-        sourceLimit: String(Math.max(1, Math.min(20, Number(prev.sourceLimit || 8)))),
-        sourceSortBy: prev.sourceSortBy || 'MANUAL_RANK',
-        sourceActiveOnly: true,
-        sourceHasImageOnly: true,
-        sourceRankingWindowDays: String(Math.max(1, Math.min(365, Number(prev.sourceRankingWindowDays || 30)))),
-        mappingTitleField: prev.mappingTitleField || 'name',
-        mappingImageField: prev.mappingImageField || 'imageUrl',
-        mappingSecondaryImageField: prev.mappingSecondaryImageField || 'categoryImage',
-        mappingDeepLinkTemplate: prev.mappingDeepLinkTemplate || 'app://category/{id}',
-        sduiItems: normalizedItems.map((item) => ({
-          ...item,
-          title: item.title || '',
-          imageUrl: item.imageUrl || '',
-          secondaryImageUrl: item.secondaryImageUrl || '',
-          deepLink: item.deepLink || '',
-        })),
-      };
-    });
-    setSourceAutoRefresh(true);
-    setShowAdvancedSourceSettings(false);
-    setMessage({
-      type: 'info',
-      text: 'Festive preset applied. Select a main category and categories, then refresh the feed.',
-    });
-  };
-
   const handleApplyCategoryFeed = async () => {
     const resolvedBlockType = sectionForm.blockType || sectionForm.type || '';
     if (!phaseOneBlockTypes.has(resolvedBlockType)) {
@@ -2372,57 +2400,6 @@ function AppConfigPage({ token }) {
           badgeText: '',
         };
       });
-
-      if (resolvedBlockType === 'column_grid') {
-        const response = await getHomeCategoryPreview(token, {
-          ids: picked.map((item) => resolveCategoryId(item)).filter(Boolean),
-          limit: 2,
-          rankingWindowDays,
-        });
-        const categoryPreview = response?.data?.categories;
-        const byId = new Map(
-          (Array.isArray(categoryPreview) ? categoryPreview : [])
-            .map((item) => [normalizeCollectionId(item?.id), item])
-        );
-        nextItems = picked.map((item) => {
-          const categoryId = resolveCategoryId(item);
-          const resolvedItemMainCategoryId =
-            normalizeCollectionId(
-              resolvedMainCategoryId || item?.mainCategoryId || item?.main_category_id
-            ) || categoryId;
-          const preview = byId.get(categoryId);
-          const previewItems = Array.isArray(preview?.items) ? preview.items : [];
-          const first = previewItems[0] || null;
-          const second = previewItems[1] || null;
-          const mappedPrimaryImage =
-            (imageField && item?.[imageField]) || resolveCategoryImage(item) || '';
-          const mappedSecondaryImage =
-            (secondaryImageField && item?.[secondaryImageField]) || '';
-          const title =
-            (titleField === 'name' ? resolveCategoryName(item) : item?.[titleField]) || resolveCategoryName(item);
-          return {
-            id: categoryId,
-            collectionId: categoryId,
-            title: String(title || ''),
-            imageUrl: first?.imageUrl || mappedPrimaryImage,
-            secondaryImageUrl: second?.imageUrl || mappedSecondaryImage,
-            deepLink: appendQueryParamsToDeepLink(
-            resolveDeepLinkFromTemplate(deepLinkTemplate, {
-              id: resolvedItemMainCategoryId,
-              mainCategoryId: resolvedItemMainCategoryId,
-              categoryId,
-              name: resolveCategoryName(item),
-                slug: item?.path || resolveCategoryName(item),
-              }),
-            {
-              industryId: normalizeCollectionId(industryId),
-              mainCategoryId: normalizeCollectionId(resolvedItemMainCategoryId),
-              categoryId,
-            }
-          ),
-          };
-        });
-      }
 
       const selectedMainCategory = mainCategories.find(
         (item) => resolveMainCategoryId(item) === normalizeCollectionId(resolvedMainCategoryId)
@@ -2606,6 +2583,7 @@ function AppConfigPage({ token }) {
 
   const closeHeaderEditor = () => {
     setActivePanel(null);
+    setShowCustomPageFields(false);
     resetHeaderSectionForm();
   };
 
@@ -3432,6 +3410,25 @@ function AppConfigPage({ token }) {
     resetSectionForm();
   };
 
+  const handleDuplicateSection = (index) => {
+    if (index === null || index === undefined || index < 0) return;
+    const config = getConfigForBuilder();
+    if (!config) return;
+    const next = cloneConfig(config);
+    const pagesList = ensurePagesArray(next);
+    const pageIndex = pagesList.findIndex((page, idx) => getPageKey(page, idx) === selectedPageKey);
+    if (pageIndex < 0) return;
+    const sections = ensureScreenSections(pagesList[pageIndex]);
+    const original = sections[index];
+    if (!original) return;
+    const cloned = cloneConfig(original);
+    cloned.id = `${original.id || 'section'}_copy_${Date.now().toString().slice(-4)}`;
+    sections.splice(index + 1, 0, cloned);
+    updateConfigFromBuilder(next, `Duplicated section "${original.id}". Remember to save draft.`);
+    setEditingSectionIndex(index + 1);
+    setSectionForm(buildSectionFormFromConfig(cloned, cloned.type || 'banner'));
+  };
+
   const handleMoveHeaderSection = (index, direction) => {
     const config = getConfigForBuilder();
     if (!config) return;
@@ -3610,12 +3607,10 @@ function AppConfigPage({ token }) {
   const isCategoryFeedEligible =
     screenBlockType === 'category_icon_grid' ||
     screenBlockType === 'horizontal_scroll_list' ||
-    screenBlockType === 'column_grid' ||
     screenBlockType === 'category_showcase' ||
     screenBlockType === 'media_overlay_carousel';
   const isHeroBanner = screenBlockType === 'heroBanner';
   const isPhaseOneHorizontalList = screenBlockType === 'horizontal_scroll_list';
-  const isPhaseOneColumnGrid = screenBlockType === 'column_grid';
   const isPhaseOneCategoryIconGrid = screenBlockType === 'category_icon_grid';
   const isPhaseOneBrandGrid = screenBlockType === 'brand_logo_grid';
   const isBrandFeedEligible = isPhaseOneBrandGrid;
@@ -3734,13 +3729,6 @@ function AppConfigPage({ token }) {
   const isBeautyPromoBanner = promoBannerPreset === 'beauty';
   const stylePresetOptions = STYLE_PRESET_OPTIONS[screenBlockType] || [];
   const supportsStylePreset = stylePresetOptions.length > 0;
-  const currentSourceFingerprint = buildCategoryFeedFingerprint(sectionForm, screenBlockType);
-  const hasPendingSourceChanges = Boolean(
-    isPhaseOneColumnGrid &&
-      String(sectionForm.sourceType || 'MANUAL').toUpperCase() === 'CATEGORY_FEED' &&
-      currentSourceFingerprint &&
-      currentSourceFingerprint !== lastAppliedSourceFingerprint
-  );
   const isMappingDeepLinkTemplateValid = isValidDeepLinkValue(
     sectionForm.mappingDeepLinkTemplate || 'app://category/{id}'
   );
@@ -4294,124 +4282,47 @@ function AppConfigPage({ token }) {
   );
 
   return (
-    <div className="app-config-page">
-      <div className="panel-head app-config-head">
-        <div>
-          <h2 className="panel-title">Manage Dynamic Home Page</h2>
-          <p className="panel-subtitle">Control the visibility and order of sections on the user home page.</p>
-        </div>
-        <div className="inline-row">
-          <button
-            type="button"
-            className="ghost-btn small"
-            onClick={() => setShowAdvancedJson((prev) => !prev)}
-          >
-            {showAdvancedJson ? 'Hide JSON' : 'Advanced JSON'}
-          </button>
-          <button type="button" className="ghost-btn" onClick={handleRefresh} disabled={isLoading}>
-            {isLoading ? <><span className="inline-spinner dark" />Refreshing...</> : 'Refresh'}
-          </button>
-        </div>
-      </div>
+    <div className="studio-page">
+      <StudioTopBar
+        pages={pages}
+        selectedPageKey={selectedPageKey}
+        onSelectPageKey={(val) => {
+          setSelectedPageKey(val);
+          resetSectionForm();
+          resetHeaderSectionForm();
+          setShowCustomPageFields(false);
+          setActivePanel(null);
+        }}
+        pagePresets={pagePresets}
+        getPageLabel={getPageLabel}
+        getPageKey={getPageKey}
+        showManagePages={showManagePages}
+        onToggleManagePages={() => setShowManagePages((prev) => !prev)}
+        showManageTabs={showManageTabs}
+        onToggleManageTabs={() => setShowManageTabs((prev) => !prev)}
+        latestUpdated={latestUpdated}
+        hasUnsavedChanges={hasUnsavedChanges}
+        version={version}
+        versionCount={versionCount}
+        versions={versions}
+        showVersionDropdown={showVersionDropdown}
+        onToggleVersionDropdown={() => setShowVersionDropdown((prev) => !prev)}
+        versionDropdownRef={versionDropdownRef}
+        onRequestRollback={requestRollback}
+        onCreateBaseConfig={handleCreateBaseConfig}
+        onEnsureHeaderPages={ensureHeaderPages}
+        onSaveDraft={saveDraft}
+        onPublish={requestPublish}
+        isLoading={isLoading}
+      />
       <Banner message={message} />
       
-      <div className="app-config-card" style={{ position: 'relative' }}>
+      <div style={{ position: 'relative', width: '100%' }}>
         {isLoading && !configSnapshot ? (
           <div className="page-loading-overlay">
             <div className="page-spinner" />
-        </div>
+          </div>
         ) : null}
-        <div className="config-toolbar">
-          <div className="page-block">
-            <label className="page-field">
-              <span>Page</span>
-              <select
-                value={selectedPageKey}
-                onChange={(event) => {
-                  setSelectedPageKey(event.target.value);
-                  resetSectionForm();
-                  resetHeaderSectionForm();
-                  setShowCustomPageFields(false);
-                  setActivePanel(null);
-                }}
-              >
-                <option value="">Select page</option>
-                {pages.map((page, index) => {
-                  const key = getPageKey(page, index);
-                  return (
-                    <option key={key} value={key}>
-                      {getPageLabel(page, index, pagePresets)}
-                    </option>
-                  );
-                })}
-              </select>
-            </label>
-            <button
-              type="button"
-              className="ghost-btn small"
-              onClick={() => setShowManagePages((prev) => !prev)}
-            >
-              {showManagePages ? 'Hide Pages' : 'Manage Pages'}
-            </button>
-            <button
-              type="button"
-              className="ghost-btn small"
-              onClick={() => setShowManageTabs((prev) => !prev)}
-            >
-              {showManageTabs ? 'Hide Tabs' : 'Manage Tabs'}
-            </button>
-            <span className="update-chip">
-              {latestUpdated ? `Last updated ${formatDate(latestUpdated)}` : 'No updates yet'}
-            </span>
-            {hasUnsavedChanges ? <span className="unsaved-chip">Unsaved changes</span> : null}
-            {version ? <span className="version-chip">v{version}</span> : null}
-            <div className="version-dropdown-wrap" ref={versionDropdownRef}>
-              <button
-                type="button"
-                className="ghost-btn small"
-                onClick={() => setShowVersionDropdown((prev) => !prev)}
-              >
-                History ({versionCount})
-              </button>
-              {showVersionDropdown && versions.length > 0 ? (
-                <div className="version-dropdown">
-                  <div className="version-dropdown-header">Recent Versions</div>
-                  {versions.slice(0, 5).map((item) => (
-                    <div key={item.id} className="version-dropdown-row">
-                      <div className="version-dropdown-info">
-                        <span className="version-dropdown-id">#{item.id}</span>
-                        <span className="version-dropdown-status">{item.status || 'draft'}</span>
-                        <span className="version-dropdown-date">{formatDate(item.updated_on || item.published_on)}</span>
-                      </div>
-                      <button
-                        type="button"
-                        className="ghost-btn small danger"
-                        onClick={(e) => { e.stopPropagation(); setShowVersionDropdown(false); requestRollback(item.id); }}
-                        disabled={isLoading}
-                      >
-                        Rollback
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-          </div>
-          <div className="toolbar-actions">
-            <button type="button" className="ghost-btn small" onClick={handleCreateBaseConfig} disabled={isLoading}>
-              Create Base Config
-            </button>
-            <button type="button" className="ghost-btn small" onClick={ensureHeaderPages} disabled={isLoading}>
-              Ensure Header Pages
-            </button>
-            <button type="button" className="primary-btn compact" onClick={saveDraft} disabled={isLoading}>
-              {isLoading ? <><span className="inline-spinner" />Saving...</> : 'Save Draft'}
-            </button>
-            <button type="button" className="primary-btn compact" onClick={requestPublish} disabled={isLoading}>
-              {isLoading ? <><span className="inline-spinner" />Publishing...</> : 'Publish'}
-            </button>
-          </div>
-        </div>
 
         {showManagePages && configSnapshot ? (
           <div className="manage-pages-panel">
@@ -4602,189 +4513,74 @@ function AppConfigPage({ token }) {
             onDragCancel={handleDragCancel}
             onDragEnd={handleDragEnd}
           >
-            <div className="app-config-body">
-              <div className="app-config-builder">
-                <div className="toolbox-card">
-                  <div className="panel-split">
-                    <div>
-                      <h3 className="panel-subheading">Toolbox</h3>
-                      <p className="toolbox-caption">Pick a block by job, not by implementation name.</p>
-                    </div>
-                    <span className="chip subtle">{toolboxResultCount} blocks</span>
+            <div className="studio-grid">
+              {/* Left Column: Toolbox */}
+              <StudioToolbox
+                items={enrichedToolboxItems}
+                groups={TOOLBOX_GROUPS}
+                onAddBlock={handleToolboxAdd}
+              />
+
+              {/* Center Column: Live Device Mockup Canvas */}
+              <StudioCanvas
+                selectedPage={selectedPage}
+                headerDrop={headerDrop}
+                screenDrop={screenDrop}
+                previewHeaderStyle={previewHeaderStyle}
+                openHeaderSettings={openHeaderSettings}
+                headerDragIds={headerDragIds}
+                selectedHeaderSections={selectedHeaderSections}
+                activePanel={activePanel}
+                editingHeaderSectionIndex={editingHeaderSectionIndex}
+                editingSectionIndex={editingSectionIndex}
+                openEditHeaderSection={openEditHeaderSection}
+                openEditSection={openEditSection}
+                industries={industries}
+                headerAttachedEntries={headerAttachedEntries}
+                bodyDragIds={bodyDragIds}
+                bodySectionEntries={bodySectionEntries}
+                collections={collections}
+                mainCategories={mainCategories}
+                productCollections={productCollections}
+                pageThemePreset={pageThemePreset}
+                buildDragId={buildDragId}
+              />
+
+              {/* Right Column: Block Properties */}
+              <div className="studio-properties">
+                <div className="studio-panel-header">
+                  <div className="studio-panel-title-group">
+                    <h3>Block Properties</h3>
+                    <p>Customize the selected block</p>
                   </div>
-                  <div className="toolbox-controls">
-                    <label className="toolbox-search">
-                      <span>Search blocks</span>
-                      <input
-                        type="search"
-                        value={toolboxSearch}
-                        onChange={(event) => setToolboxSearch(event.target.value)}
-                        placeholder="Product, category, banner..."
-                      />
-                    </label>
-                    <div className="toolbox-filter-row">
-                      <select
-                        value={toolboxGroupFilter}
-                        onChange={(event) => setToolboxGroupFilter(event.target.value)}
-                        aria-label="Filter toolbox group"
-                      >
-                        <option value="CORE">Recommended blocks</option>
-                        <option value="ALL">All blocks incl. legacy</option>
-                        {TOOLBOX_GROUPS.map((group) => (
-                          <option key={group.id} value={group.id}>{group.label}</option>
-                        ))}
-                      </select>
-                      <select
-                        value={toolboxModeFilter}
-                        onChange={(event) => setToolboxModeFilter(event.target.value)}
-                        aria-label="Filter toolbox mode"
-                      >
-                        <option value="ALL">All data modes</option>
-                        <option value="DYNAMIC">Live feed</option>
-                        <option value="HYBRID">Live + backup</option>
-                        <option value="MANUAL">Manual content</option>
-                        <option value="FIXED">Fixed</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="toolbox-list">
-                    {visibleToolboxGroups.length ? (
-                      visibleToolboxGroups.map((group) => (
-                        <details className="toolbox-group" key={group.id} open>
-                          <summary className="toolbox-group-title">
-                            <span>{group.label}</span>
-                            <small>{group.items.length}</small>
-                          </summary>
-                          <p className="toolbox-group-description">{group.description}</p>
-                          <div className="toolbox-group-items">
-                            {group.items.map((item) => (
-                              <ToolboxItem key={item.key} item={item} onAdd={handleToolboxAdd} />
-                            ))}
-                          </div>
-                        </details>
-                      ))
-                    ) : (
-                      <div className="toolbox-empty">
-                        <strong>No blocks match this filter.</strong>
-                        <span>Clear search or choose another group.</span>
-                      </div>
-                    )}
-                  </div>
-                  <p className="toolbox-note">Drag a block into the preview or use Add. Badges describe how each block gets data.</p>
-                </div>
-              </div>
-              <div className="app-config-preview">
-              <div className="preview-shell">
-                <div className="preview-phone">
-                  <div className="preview-screen">
-                    <DropZone
-                      id="drop-header"
-                      isOver={headerDrop.isOver}
-                      className="preview-header"
-                      style={previewHeaderStyle}
-                      onClick={openHeaderSettings}
+                  <div className="studio-mode-toggle">
+                    <button
+                      type="button"
+                      className={`studio-mode-btn ${activePanel !== 'header' ? 'active' : ''}`}
+                      onClick={() => {
+                        setShowCustomPageFields(false);
+                        setActivePanel('screen');
+                        if (editingSectionIndex === null && selectedSections.length > 0) {
+                          openEditSection(0);
+                        }
+                      }}
                     >
-                      <div className="preview-header-title">
-                        {selectedPage?.route || selectedPage?.id || 'Home'}
-                      </div>
-                      <SortableContext items={headerDragIds} strategy={verticalListSortingStrategy}>
-                        {selectedHeaderSections.length ? (
-                          <div className="preview-header-stack">
-                            {selectedHeaderSections.map((section, index) => {
-                              const isActive = activePanel === 'header' && editingHeaderSectionIndex === index;
-                              const isHidden = section?.enabled === false;
-                              return (
-                                <SortablePreviewItem
-                                  key={headerDragIds[index]}
-                                  id={headerDragIds[index]}
-                                  className={`preview-header-block ${isActive ? 'is-active' : ''} ${
-                                    isHidden ? 'is-hidden' : ''
-                                  }`}
-                                  onClick={() => openEditHeaderSection(index)}
-                                >
-                                  {<HeaderBlockPreview block={section} industries={industries} />}
-                                </SortablePreviewItem>
-                              );
-                            })}
-                          </div>
-                        ) : (
-                          <div className="preview-header-empty">Drop header blocks here</div>
-                        )}
-                      </SortableContext>
-                      {headerAttachedEntries.length ? (
-                        <div className="preview-header-attached">
-                          {headerAttachedEntries.map((entry) => {
-                            const isActive = activePanel === 'screen' && editingSectionIndex === entry.index;
-                            return (
-                              <div
-                                key={`header-attached-${entry.index}`}
-                                className={`preview-attached-item ${isActive ? 'is-active' : ''}`}
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  openEditSection(entry.index);
-                                }}
-                              >
-                                <PreviewSection
-                                  section={entry.section}
-                                  index={entry.index}
-                                  collections={collections}
-                                  mainCategories={mainCategories}
-                                  productCollections={productCollections}
-                                  pageThemePreset={pageThemePreset}
-                                />
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : null}
-                    </DropZone>
-                    <DropZone id="drop-screen" isOver={screenDrop.isOver} className="preview-content">
-                      <SortableContext items={bodyDragIds} strategy={verticalListSortingStrategy}>
-                        {bodySectionEntries.length ? (
-                          bodySectionEntries.map((entry, idx) => {
-                            const isActive = activePanel === 'screen' && editingSectionIndex === entry.index;
-                            const dragId = buildDragId(entry.section, entry.index, 'section');
-                            return (
-                              <SortablePreviewItem
-                                key={dragId}
-                                id={dragId}
-                                className={`preview-sortable ${isActive ? 'is-active' : ''}`}
-                                onClick={() => openEditSection(entry.index)}
-                              >
-                                <PreviewSection
-                                  section={entry.section}
-                                  index={entry.index}
-                                  collections={collections}
-                                  mainCategories={mainCategories}
-                                  productCollections={productCollections}
-                                  pageThemePreset={pageThemePreset}
-                                />
-                              </SortablePreviewItem>
-                            );
-                          })
-                        ) : (
-                          <div className="preview-empty">Drop blocks here.</div>
-                        )}
-                      </SortableContext>
-                    </DropZone>
-                  </div>
-                </div>
-                <p className="preview-note">Live preview is approximate and uses placeholder data.</p>
-              </div>
-            </div>
-            <div className="app-config-properties">
-              <div className="properties-card">
-                <div className="panel-split">
-                  <div>
-                    <h3 className="panel-subheading">Block Properties</h3>
-                    <p className="field-help">Select a block to edit its settings.</p>
-                  </div>
-                  <div className="inline-row">
-                    {activePanel ? (
-                      <span className="chip subtle">{activePanel === 'header' ? 'Header' : 'Body'}</span>
-                    ) : null}
-                    <button type="button" className="ghost-btn small" onClick={openHeaderSettings}>
-                      Header settings
+                      Body
+                    </button>
+                    <button
+                      type="button"
+                      className={`studio-mode-btn ${activePanel === 'header' ? 'active' : ''}`}
+                      onClick={() => {
+                        setActivePanel('header');
+                        setShowCustomPageFields(false);
+                        if (selectedHeaderSections.length > 0) {
+                          openEditHeaderSection(editingHeaderSectionIndex !== null ? editingHeaderSectionIndex : 0);
+                        } else {
+                          openHeaderSettings();
+                        }
+                      }}
+                    >
+                      Header
                     </button>
                   </div>
                 </div>
@@ -4805,22 +4601,12 @@ function AppConfigPage({ token }) {
                       <input type="text" value={isEditingFixed ? 'Fixed' : screenBlockLabel} disabled />
                     </label>
                     {isAdBannerBlock ? (
-                      <label className="field">
-                        <span>Ad slot</span>
-                        <select
-                          value={sectionForm.slotType || 'FULL_BANNER'}
-                          onChange={(event) =>
-                            setSectionForm((prev) => ({ ...prev, slotType: event.target.value }))
-                          }
-                        >
-                          {AD_SLOT_TYPE_OPTIONS.map((option) => (
-                            <option key={`ad-slot-${option.value}`} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                        <p className="field-help">Must match the published advertisement slot type.</p>
-                      </label>
+                      <SchemaFieldsRenderer
+                        fields={SCREEN_BLOCK_SCHEMAS.ad_banner.fields}
+                        values={sectionForm}
+                        onChange={(name, value) => setSectionForm((prev) => ({ ...prev, [name]: value }))}
+                        context={{}}
+                      />
                     ) : null}
                     {!isPhaseOneBlock ? (
                       <label className="field">
@@ -6081,16 +5867,6 @@ function AppConfigPage({ token }) {
                                 ) : null}
                                     <div className="field field-span">
                                       <div className="inline-row">
-                                        {isPhaseOneColumnGrid ? (
-                                          <label className="checkbox-row">
-                                            <input
-                                              type="checkbox"
-                                              checked={sourceAutoRefresh}
-                                              onChange={(event) => setSourceAutoRefresh(event.target.checked)}
-                                            />
-                                            Auto-refresh on source change
-                                          </label>
-                                        ) : null}
                                         <button
                                           type="button"
                                           className="ghost-btn small"
@@ -6101,15 +5877,10 @@ function AppConfigPage({ token }) {
                                             : 'Show advanced source settings'}
                                         </button>
                                       </div>
-                                      {!sourceAutoRefresh && hasPendingSourceChanges ? (
-                                        <p className="field-warning">
-                                          Source settings changed. Click Refresh feed to update preview items.
-                                        </p>
-                                      ) : null}
                                     </div>
                                     {showAdvancedSourceSettings ? (
                                       <div className="field field-span source-advanced-grid">
-                                        {(isPhaseOneColumnGrid || isPhaseOneCategoryIconGrid || isPhaseOneCategoryShowcase) ? (
+                                        {(isPhaseOneCategoryIconGrid || isPhaseOneCategoryShowcase) ? (
                                           <label className="field">
                                             <span>Top-selling window (days)</span>
                                             <input
@@ -6159,22 +5930,6 @@ function AppConfigPage({ token }) {
                                                 placeholder="imageUrl"
                                               />
                                             </label>
-                                            {isPhaseOneColumnGrid ? (
-                                              <label className="field">
-                                                <span>Secondary image field</span>
-                                                <input
-                                                  type="text"
-                                                  value={sectionForm.mappingSecondaryImageField || ''}
-                                                  onChange={(event) =>
-                                                    setSectionForm((prev) => ({
-                                                      ...prev,
-                                                      mappingSecondaryImageField: event.target.value,
-                                                    }))
-                                                  }
-                                                  placeholder="secondaryImageUrl"
-                                                />
-                                              </label>
-                                            ) : null}
                                   <label className="field field-span">
                                     <span>Deep link template</span>
                                               <div className="inline-row">
@@ -6238,18 +5993,12 @@ function AppConfigPage({ token }) {
                                       onClick={handleApplyCategoryFeed}
                                       disabled={isResolvingSource}
                                     >
-                                          {isResolvingSource
-                                            ? 'Loading...'
-                                            : isPhaseOneColumnGrid
-                                              ? 'Refresh feed'
-                                              : 'Apply source'}
+                                          {isResolvingSource ? 'Loading...' : 'Apply source'}
                                     </button>
                                     <span className="field-help">
                                           {isPhaseOneCategoryIconGrid || isPhaseOneCategoryShowcase
                                             ? 'Main category title and category icons will auto-fill.'
-                                            : isPhaseOneColumnGrid
-                                              ? 'Preview images will refresh from the selected categories.'
-                                              : 'Top categories will load and item cards below will auto-fill.'}
+                                            : 'Top categories will load and item cards below will auto-fill.'}
                                     </span>
                                   </div>
                                 </div>
@@ -6807,10 +6556,108 @@ function AppConfigPage({ token }) {
                                   }
                                 />
                               </label>
+                              <label className="field">
+                                <span>Industry (optional)</span>
+                                <select
+                                  value={sectionForm.sourceIndustryId || ''}
+                                  onChange={(event) =>
+                                    setSectionForm((prev) => ({
+                                      ...prev,
+                                      sourceIndustryId: event.target.value,
+                                      sourceMainCategoryId: '',
+                                      sourceCategoryIds: [],
+                                    }))
+                                  }
+                                >
+                                  <option value="">Use page's industry</option>
+                                  {industries.map((item) => {
+                                    const id = resolveIndustryId(item);
+                                    if (!id) return null;
+                                    return (
+                                      <option key={id} value={id}>
+                                        {resolveIndustryLabel(item)}
+                                      </option>
+                                    );
+                                  })}
+                                </select>
+                              </label>
+                              {normalizeCollectionId(sectionForm.sourceIndustryId) ? (
+                                <>
+                                  <label className="field">
+                                    <span>Business category (optional)</span>
+                                    <select
+                                      value={sectionForm.sourceMainCategoryId || ''}
+                                      onChange={(event) =>
+                                        setSectionForm((prev) => ({
+                                          ...prev,
+                                          sourceMainCategoryId: event.target.value,
+                                          sourceCategoryIds: [],
+                                        }))
+                                      }
+                                    >
+                                      <option value="">All categories</option>
+                                      {filteredMainCategoryOptions.map((item) => {
+                                        const id = resolveMainCategoryId(item);
+                                        if (!id) return null;
+                                        return (
+                                          <option key={id} value={id}>
+                                            {resolveMainCategoryName(item)}
+                                          </option>
+                                        );
+                                      })}
+                                    </select>
+                                  </label>
+                                  <label className="field field-span">
+                                    <span>Sub-categories (optional)</span>
+                                    {sectionForm.sourceMainCategoryId ? (
+                                      isLoadingSourceCategories ? (
+                                        <p className="field-help">Loading categories...</p>
+                                      ) : sourceCategories.length ? (
+                                        <div className="checkbox-grid">
+                                          {sourceCategories.map((item) => {
+                                            const id = resolveCategoryId(item);
+                                            if (!id) return null;
+                                            const checked = Array.isArray(sectionForm.sourceCategoryIds)
+                                              ? sectionForm.sourceCategoryIds.includes(id)
+                                              : false;
+                                            return (
+                                              <label key={id} className="checkbox-row">
+                                                <input
+                                                  type="checkbox"
+                                                  checked={checked}
+                                                  onChange={() =>
+                                                    setSectionForm((prev) => {
+                                                      const current = Array.isArray(prev.sourceCategoryIds)
+                                                        ? prev.sourceCategoryIds
+                                                        : [];
+                                                      return {
+                                                        ...prev,
+                                                        sourceCategoryIds: current.includes(id)
+                                                          ? current.filter((value) => value !== id)
+                                                          : [...current, id],
+                                                      };
+                                                    })
+                                                  }
+                                                />
+                                                {resolveCategoryName(item)}
+                                              </label>
+                                            );
+                                          })}
+                                        </div>
+                                      ) : (
+                                        <p className="field-help">No categories found for selected business category.</p>
+                                      )
+                                    ) : (
+                                      <p className="field-help">Select a business category first for tighter filtering.</p>
+                                    )}
+                                  </label>
+                                </>
+                              ) : null}
                               <div className="field field-span">
                                 <p className="field-help">
-                                  Shop Feed fetches nearby businesses by location automatically. The page's industry is
-                                  used as a scope — no explicit industryId needed. Manual items are used as a fallback while loading.
+                                  Shop Feed fetches nearby businesses by location. Leave Industry blank to use the page's
+                                  own industry, or pick a specific one (optionally narrowed by category) to show shops from
+                                  elsewhere. Manual items are used as a fallback while loading.
                                 </p>
                               </div>
                             </div>
@@ -6867,10 +6714,107 @@ function AppConfigPage({ token }) {
                                     }
                                   />
                                 </label>
+                                <label className="field">
+                                  <span>Industry (optional)</span>
+                                  <select
+                                    value={sectionForm.sourceIndustryId || ''}
+                                    onChange={(event) =>
+                                      setSectionForm((prev) => ({
+                                        ...prev,
+                                        sourceIndustryId: event.target.value,
+                                        sourceMainCategoryId: '',
+                                        sourceCategoryIds: [],
+                                      }))
+                                    }
+                                  >
+                                    <option value="">Use page's industry</option>
+                                    {industries.map((item) => {
+                                      const id = resolveIndustryId(item);
+                                      if (!id) return null;
+                                      return (
+                                        <option key={id} value={id}>
+                                          {resolveIndustryLabel(item)}
+                                        </option>
+                                      );
+                                    })}
+                                  </select>
+                                </label>
+                                {normalizeCollectionId(sectionForm.sourceIndustryId) ? (
+                                  <>
+                                    <label className="field">
+                                      <span>Service category (optional)</span>
+                                      <select
+                                        value={sectionForm.sourceMainCategoryId || ''}
+                                        onChange={(event) =>
+                                          setSectionForm((prev) => ({
+                                            ...prev,
+                                            sourceMainCategoryId: event.target.value,
+                                            sourceCategoryIds: [],
+                                          }))
+                                        }
+                                      >
+                                        <option value="">All categories</option>
+                                        {filteredMainCategoryOptions.map((item) => {
+                                          const id = resolveMainCategoryId(item);
+                                          if (!id) return null;
+                                          return (
+                                            <option key={id} value={id}>
+                                              {resolveMainCategoryName(item)}
+                                            </option>
+                                          );
+                                        })}
+                                      </select>
+                                    </label>
+                                    <label className="field field-span">
+                                      <span>Sub-categories (optional)</span>
+                                      {sectionForm.sourceMainCategoryId ? (
+                                        isLoadingSourceCategories ? (
+                                          <p className="field-help">Loading categories...</p>
+                                        ) : sourceCategories.length ? (
+                                          <div className="checkbox-grid">
+                                            {sourceCategories.map((item) => {
+                                              const id = resolveCategoryId(item);
+                                              if (!id) return null;
+                                              const checked = Array.isArray(sectionForm.sourceCategoryIds)
+                                                ? sectionForm.sourceCategoryIds.includes(id)
+                                                : false;
+                                              return (
+                                                <label key={id} className="checkbox-row">
+                                                  <input
+                                                    type="checkbox"
+                                                    checked={checked}
+                                                    onChange={() =>
+                                                      setSectionForm((prev) => {
+                                                        const current = Array.isArray(prev.sourceCategoryIds)
+                                                          ? prev.sourceCategoryIds
+                                                          : [];
+                                                        return {
+                                                          ...prev,
+                                                          sourceCategoryIds: current.includes(id)
+                                                            ? current.filter((value) => value !== id)
+                                                            : [...current, id],
+                                                        };
+                                                      })
+                                                    }
+                                                  />
+                                                  {resolveCategoryName(item)}
+                                                </label>
+                                              );
+                                            })}
+                                          </div>
+                                        ) : (
+                                          <p className="field-help">No categories found for selected service category.</p>
+                                        )
+                                      ) : (
+                                        <p className="field-help">Select a service category first for tighter filtering.</p>
+                                      )}
+                                    </label>
+                                  </>
+                                ) : null}
                                 <div className="field field-span">
                                   <p className="field-help">
                                     Services are fetched live from approved services. Feed mode controls backend sorting:
-                                    Trending, Latest, or Most Booked.
+                                    Trending, Latest, or Most Booked. Leave Industry blank to use the page's own industry.
                                   </p>
                                 </div>
                               </div>
@@ -6992,7 +6936,62 @@ function AppConfigPage({ token }) {
                           </div>
                         ) : null}
                     {/* -- Items ------------------------------------------ */}
-                    {!isPhaseOneBrandGrid ? (
+                    {ITEM_LIST_BLOCK_SCHEMAS[screenBlockType] ? (
+                      <ItemListFieldEditor
+                        schema={ITEM_LIST_BLOCK_SCHEMAS[screenBlockType]}
+                        sectionForm={sectionForm}
+                        context={{
+                          normalizePhaseOneItems,
+                          updatePhaseOneItem,
+                          addPhaseOneItem,
+                          removePhaseOneItem,
+                          movePhaseOneItem,
+                          duplicatePhaseOneItem,
+                          ITEM_DEEP_LINK_PRESETS,
+                          // image field
+                          getWarningKey,
+                          phaseOneImageWarnings,
+                          handlePhaseOneImageChange,
+                          handleBentoImageClick,
+                          isUploadingBentoImage,
+                          openMediaPicker,
+                          // destination-picker field
+                          usesCtaDestination: isBeautyHeroBanner || isPromoHeroBanner,
+                          parseNavigationTarget,
+                          buildNavigationTargetLink,
+                          getNavigationTargetPlaceholder,
+                          updateItemNavigationTarget,
+                          updateItemCtaNavigationTarget,
+                          handleHeroNavigationTargetTypeChange,
+                          handleHeroCtaNavigationTargetTypeChange,
+                          updateItemBusinessProductsTarget,
+                          NAVIGATION_TARGET_OPTIONS,
+                          productCollectionOptions,
+                          isLoadingProductCollections,
+                          destinationMainCategoryOptions,
+                          approvedDestinationProducts,
+                          isLoadingDestinationProducts,
+                          heroDestinationQueries,
+                          updateHeroDestinationQuery,
+                          normalizeSearchText,
+                          getDestinationProductSearchText,
+                          formatCleanDestinationProductLabel,
+                          businessDirectory,
+                          isLoadingBusinessDirectory,
+                          businessDestinationQueries,
+                          updateBusinessDestinationQuery,
+                          loadBusinessDirectory,
+                          getBusinessSelectionSearchText,
+                          resolveBusinessDirectoryId,
+                          formatBusinessDestinationLabel,
+                          resolveHexColor,
+                          isDataSourceFeedActive:
+                            isPhaseOneDataSourceFeed ||
+                            isPhaseOneCategoryIconGrid ||
+                            isPhaseOneCategoryShowcase,
+                        }}
+                      />
+                    ) : !isPhaseOneBrandGrid ? (
                     <div className={`prop-group${collapsedGroups.items ? ' is-collapsed' : ''}`}>
                       <div className="prop-group-header" onClick={() => togglePropGroup('items')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && togglePropGroup('items')}>
                         <div className="prop-group-left">
@@ -7005,39 +7004,23 @@ function AppConfigPage({ token }) {
                         <label className="field field-span">
                           <span>Block items</span>
                           <div className="inline-row">
-                            {!isPhaseOneCategoryIconGrid &&
-                            !isPhaseOneBrandGrid &&
-                            !isPhaseOneCategoryShowcase &&
+                            {!isPhaseOneBrandGrid &&
                             !isBeautyHeroBanner &&
                             !isProductCardCarouselFeed &&
                             !isPhaseOneDataSourceFeed &&
                             !isPromoBanner &&
                             !(isTabbedProductShelf && (sectionForm.blockDataSourceType || 'MANUAL') === 'PRODUCT_FEED') &&
-                            !(isShopCardCarousel && (sectionForm.blockDataSourceType || 'SHOP_FEED') === 'SHOP_FEED') &&
-                            !(isSplitPromoRow && normalizePhaseOneItems(sectionForm.sduiItems, screenBlockType).length >= 2) &&
                             !(isBeautySalonCarousel && String(sectionForm.sourceType || 'MANUAL').toUpperCase() === 'BUSINESS_SELECTION') ? (
                               <button type="button" className="ghost-btn small" onClick={addPhaseOneItem}>
                                 + Add item
                               </button>
                             ) : null}
                             <span className="field-help">
-                              {isPhaseOneCategoryIconGrid || isPhaseOneCategoryShowcase
-                                ? 'Category images are loaded automatically from the category master.'
-                                : isPhaseOneBrandGrid
+                              {isPhaseOneBrandGrid
                                     ? 'Top/bottom banners are editable. Middle cards are controlled via the collection dropdown.'
                                   : isPhaseOneProductShelf
                                     ? 'Products come from the data source. Select a product API or collection for this list.'
-                                    : isPromoHeroBanner
-                                      ? isPhaseOneDataSourceFeed
-                                        ? 'Promo hero is coming from the selected data source feed. Switch to Hybrid or Manual to edit hero content directly.'
-                                        : isPromoHeroHybridFeed
-                                          ? 'Manual hero fields below override the first item from the selected data source. Leave any field blank to keep the live feed value.'
-                                          : 'Set image, title, subtitle, badge text, CTA, and deep link for the hero.'
-                                      : isPhaseOneHeroCarousel
-                                        ? isPhaseOneDataSourceFeed
-                                          ? 'Hero slides are coming from the selected data source feed. Switch to Manual to edit slide images and destinations directly.'
-                                          : 'Set slide image and destination for each hero card. Extra text fields are hidden because the current app UI only uses the image and tap target.'
-                                        : isProductCardCarousel
+                                    : isProductCardCarousel
                                         ? isProductCardCarouselFeed
                                           ? 'Products are loaded from the selected feed. Switch to Manual items to edit the cards directly.'
                                           : 'Set image, title, subtitle, price, optional badge, and deep link for each product card.'
@@ -7055,10 +7038,6 @@ function AppConfigPage({ token }) {
                                       ? 'Products are fetched live from the selected feed and grouped into tabs automatically.'
                                     : isTabbedProductShelf
                                       ? 'Set title, tab label, image, price, and deep link for each product card.'
-                                    : isShopCardCarousel && (sectionForm.blockDataSourceType || 'SHOP_FEED') === 'SHOP_FEED'
-                                      ? 'Shops are fetched live by location. Add fallback items shown while loading.'
-                                    : isShopCardCarousel
-                                      ? 'Set name, image, rating, distance, and deep link for each shop card.'
                                   : 'Set image + text + deep link for each card.'}
                             </span>
                           </div>
@@ -7068,20 +7047,13 @@ function AppConfigPage({ token }) {
                             <div className="field-help">
                               {isProductCardCarouselFeed
                                 ? 'This section is using a live product feed. Manual product card fields are hidden while feed mode is enabled.'
-                                : isPromoHeroBanner
-                                  ? 'This promo hero is using a live data source feed. Switch to Hybrid or Manual to edit hero fields directly.'
-                                  : 'This section is using a live data source feed. Manual item fields are hidden while feed mode is enabled.'}
+                                : 'This section is using a live data source feed. Manual item fields are hidden while feed mode is enabled.'}
                             </div>
                           ) : normalizePhaseOneItems(sectionForm.sduiItems, screenBlockType).map((item, idx, allItems) => {
                             const imageWarning = phaseOneImageWarnings[getWarningKey(idx, 'imageUrl')];
-                            const secondaryImageWarning =
-                              phaseOneImageWarnings[getWarningKey(idx, 'secondaryImageUrl')];
-                            const usesCtaDestination = isBeautyHeroBanner || isPromoHeroBanner;
+                            const usesCtaDestination = isBeautyHeroBanner;
                             const showHeroDestinationPicker =
-                              isPhaseOneHeroCarousel ||
-                              isPhaseOneHorizontalList ||
                               isMediaOverlayCarousel ||
-                              isSplitPromoRow ||
                               usesCtaDestination;
                             const navigationTarget = parseNavigationTarget(
                               usesCtaDestination ? item.ctaLink || item.deepLink || '' : item.deepLink || '',
@@ -7119,17 +7091,14 @@ function AppConfigPage({ token }) {
                               String(sectionForm.sourceType || 'MANUAL').toUpperCase() === 'BUSINESS_SELECTION';
                             const showItemActions =
                               !isPhaseOneBrandGrid &&
-                              !isPhaseOneCategoryIconGrid &&
                               !isPhaseOneProductShelf &&
-                              !isPhaseOneCategoryShowcase &&
                               !isBeautyHeroBanner &&
                               !isProductCardCarouselFeed &&
                               !isPhaseOneDataSourceFeed &&
                               !isPromoBanner;
                             const allowDuplicateItem =
                               showItemActions &&
-                              !isBusinessSelectionPlaceCard &&
-                              !(isSplitPromoRow && allItems.length >= 2);
+                              !isBusinessSelectionPlaceCard;
                             return (
                               <div
                                 key={`phase-one-item-${idx}`}
@@ -7142,10 +7111,6 @@ function AppConfigPage({ token }) {
                                       ? 'Top banner'
                                       : isBrandCtaItem
                                         ? 'Bottom banner'
-                                        : isSplitPromoRow
-                                          ? idx === 0
-                                            ? 'Left card'
-                                            : 'Right card'
                                           : isBeautySalonCarousel &&
                                             String(sectionForm.sourceType || 'MANUAL').toUpperCase() === 'BUSINESS_SELECTION'
                                             ? item?.title || `Business ${idx + 1}`
@@ -7200,22 +7165,12 @@ function AppConfigPage({ token }) {
                                   <div className="phase-one-thumb checkerboard">
                                     {item.imageUrl ? <img src={item.imageUrl} alt="" /> : <span>Main image</span>}
                                   </div>
-                                  {isPhaseOneColumnGrid ? (
-                                    <div className="phase-one-thumb checkerboard">
-                                      {item.secondaryImageUrl ? (
-                                        <img src={item.secondaryImageUrl} alt="" />
-                                      ) : (
-                                        <span>Second image</span>
-                                      )}
-                                    </div>
-                                  ) : null}
                                 </div>
                                 ) : null}
                               {!isBrandHeroItem &&
                               !isBrandCtaItem &&
                               !isPromoBanner &&
-                              !isBeautyTipChips &&
-                              !isPhaseOneHeroCarousel ? (
+                              !isBeautyTipChips ? (
                                 <label className="field">
                                   <span>{isMediaOverlayCarousel ? 'Overlay title' : 'Title'}</span>
                                   <input
@@ -7227,7 +7182,7 @@ function AppConfigPage({ token }) {
                                         ? (isBeautyMediaOverlay ? 'Glass Skin' : 'Smart Home')
                                         : 'Item title'
                                     }
-                                    disabled={isBrandTileItem || isPhaseOneCategoryIconGrid || isPhaseOneCategoryShowcase}
+                                    disabled={isBrandTileItem}
                                   />
                                 </label>
                               ) : null}
@@ -7266,28 +7221,6 @@ function AppConfigPage({ token }) {
                                   </select>
                                 </label>
                               ) : null}
-                              {isPhaseOneHorizontalList ? (
-                                <label className="field">
-                                  <span>Badge text</span>
-                                  <input
-                                    type="text"
-                                    value={item.badgeText || ''}
-                                    onChange={(event) => updatePhaseOneItem(idx, 'badgeText', event.target.value)}
-                                    placeholder="Festive finds"
-                                  />
-                                </label>
-                              ) : null}
-                              {isPhaseOneHorizontalList ? (
-                                <label className="field">
-                                  <span>Bottom label</span>
-                                  <input
-                                    type="text"
-                                    value={item.subtitle || ''}
-                                    onChange={(event) => updatePhaseOneItem(idx, 'subtitle', event.target.value)}
-                                    placeholder="For you"
-                                  />
-                                </label>
-                              ) : null}
                               {isBeautyHeroBanner ? (
                                 <>
                                 <label className="field">
@@ -7301,85 +7234,6 @@ function AppConfigPage({ token }) {
                                   <label className="field">
                                     <span>CTA button text</span>
                                     <input type="text" value={item.ctaText || ''} onChange={(event) => updatePhaseOneItem(idx, 'ctaText', event.target.value)} placeholder="Shop the edit" />
-                                  </label>
-                                </>
-                              ) : null}
-                              {isPromoHeroBanner ? (
-                                <>
-                                  <label className="field">
-                                    <span>Subtitle</span>
-                                    <input
-                                      type="text"
-                                      value={item.subtitle || ''}
-                                      onChange={(event) => updatePhaseOneItem(idx, 'subtitle', event.target.value)}
-                                      placeholder="Phones, laptops, and smart gear with fast delivery"
-                                    />
-                                  </label>
-                                  <label className="field">
-                                    <span>Badge text</span>
-                                    <input
-                                      type="text"
-                                      value={item.badgeText || ''}
-                                      onChange={(event) => updatePhaseOneItem(idx, 'badgeText', event.target.value)}
-                                      placeholder="Electronics Week"
-                                    />
-                                  </label>
-                                  <label className="field">
-                                    <span>CTA button text</span>
-                                    <input
-                                      type="text"
-                                      value={item.ctaText || ''}
-                                      onChange={(event) => updatePhaseOneItem(idx, 'ctaText', event.target.value)}
-                                      placeholder="Shop now"
-                                    />
-                                  </label>
-                                </>
-                              ) : null}
-                              {isSplitPromoRow ? (
-                                <>
-                                  <label className="field">
-                                    <span>Subtitle</span>
-                                    <input
-                                      type="text"
-                                      value={item.subtitle || ''}
-                                      onChange={(event) => updatePhaseOneItem(idx, 'subtitle', event.target.value)}
-                                      placeholder={idx === 0 ? 'Fresh | Organic | Daily' : 'Up to 30% OFF'}
-                                    />
-                                  </label>
-                                  <label className="field">
-                                    <span>{idx === 0 ? 'Eyebrow label (optional)' : 'Badge text'}</span>
-                                    <input
-                                      type="text"
-                                      value={item.badgeText || ''}
-                                      onChange={(event) => updatePhaseOneItem(idx, 'badgeText', event.target.value)}
-                                      placeholder={idx === 0 ? 'Top Deals' : 'Snack Time'}
-                                    />
-                                  </label>
-                                  <label className="field">
-                                    <span>CTA button text</span>
-                                    <input
-                                      type="text"
-                                      value={item.ctaText || ''}
-                                      onChange={(event) => updatePhaseOneItem(idx, 'ctaText', event.target.value)}
-                                      placeholder="Shop now"
-                                    />
-                                  </label>
-                                  <label className="field">
-                                    <span>Accent color (optional)</span>
-                                    <div className="inline-row">
-                                      <input
-                                        type="text"
-                                        value={item.accentColor || ''}
-                                        onChange={(event) => updatePhaseOneItem(idx, 'accentColor', event.target.value)}
-                                        placeholder={idx === 0 ? '#F0F9D8' : '#D8F3AA'}
-                                      />
-                                      <input
-                                        type="color"
-                                        className="color-input"
-                                        value={resolveHexColor(item.accentColor, idx === 0 ? '#F0F9D8' : '#D8F3AA')}
-                                        onChange={(event) => updatePhaseOneItem(idx, 'accentColor', event.target.value)}
-                                      />
-                                    </div>
                                   </label>
                                 </>
                               ) : null}
@@ -7753,18 +7607,6 @@ function AppConfigPage({ token }) {
                                   ) : null}
                                 </>
                               ) : null}
-                              {isShopCardCarousel ? (
-                                <>
-                                  <label className="field">
-                                    <span>Rating</span>
-                                    <input type="text" value={item.rating || ''} onChange={(event) => updatePhaseOneItem(idx, 'rating', event.target.value)} placeholder="4.8" />
-                                  </label>
-                                  <label className="field">
-                                    <span>Distance</span>
-                                    <input type="text" value={item.distance || ''} onChange={(event) => updatePhaseOneItem(idx, 'distance', event.target.value)} placeholder="2.4 km" />
-                                  </label>
-                                </>
-                              ) : null}
                               {isTabbedProductShelf ? (
                                 <>
                                   <label className="field">
@@ -7777,21 +7619,7 @@ function AppConfigPage({ token }) {
                                   </label>
                                 </>
                               ) : null}
-                              {isPhaseOneColumnGrid ? (
-                                <>
-                                  <label className="field">
-                                    <span>Overlay title</span>
-                                    <input type="text" value={item.overlayTitle || ''} onChange={(event) => updatePhaseOneItem(idx, 'overlayTitle', event.target.value)} placeholder="Glass Skin" />
-                                  </label>
-                                  <label className="field">
-                                    <span>Overlay subtitle</span>
-                                    <input type="text" value={item.overlaySubtitle || ''} onChange={(event) => updatePhaseOneItem(idx, 'overlaySubtitle', event.target.value)} placeholder="Hydration heroes" />
-                                  </label>
-                                </>
-                              ) : null}
-                              {!isPhaseOneCategoryIconGrid &&
-                              !isPhaseOneCategoryShowcase &&
-                              !isBrandTileItem &&
+                              {!isBrandTileItem &&
                               !isPhaseOneProductShelf &&
                               !isPhaseOneChipScroll &&
                               !isPhaseOneIconList &&
@@ -7834,44 +7662,7 @@ function AppConfigPage({ token }) {
                                   {imageWarning ? <span className="field-warning">{imageWarning}</span> : null}
                                 </label>
                               ) : null}
-                              {isPhaseOneColumnGrid ? (
-                                <label className="field">
-                                  <span>Secondary image URL</span>
-                                  <div className="inline-row">
-                                    <input
-                                      type="text"
-                                      value={item.secondaryImageUrl || ''}
-                                      onChange={(event) => handlePhaseOneImageChange(idx, 'secondaryImageUrl', event.target.value)}
-                                      placeholder="https://cdn.example.com/item-2.jpg"
-                                    />
-                                    <button
-                                      type="button"
-                                      className="ghost-btn small"
-                                      onClick={() =>
-                                        handleBentoImageClick({ kind: 'sdui', index: idx, field: 'secondaryImageUrl' })
-                                      }
-                                      disabled={isUploadingBentoImage}
-                                    >
-                                      {isUploadingBentoImage ? 'Uploading...' : 'Upload'}
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className="ghost-btn small"
-                                      onClick={() =>
-                                        openMediaPicker({ kind: 'sdui', index: idx, field: 'secondaryImageUrl' })
-                                      }
-                                    >
-                                      Library
-                                    </button>
-                                  </div>
-                                  {secondaryImageWarning ? (
-                                    <span className="field-warning">{secondaryImageWarning}</span>
-                                  ) : null}
-                                </label>
-                              ) : null}
-                              {!isPhaseOneCategoryIconGrid &&
-                              !isPhaseOneCategoryShowcase &&
-                              !isPhaseOneProductShelf &&
+                              {!isPhaseOneProductShelf &&
                               !isProductCardCarouselFeed &&
                               !isPhaseOneDataSourceFeed &&
                               !isPromoBanner ? (
@@ -8190,169 +7981,10 @@ function AppConfigPage({ token }) {
                                   </label>
                                 )
                               ) : null}
-                              {isPhaseOneHorizontalList ? (
-                                <span className="field-help">
-                                  Featured cards now use image-first style. Upload image and optional text/badge only.
-                                </span>
-                              ) : null}
                               </div>
                             );
                           })}
                         </div>
-                        {isPhaseOneColumnGrid ? (
-                          <>
-                            <div className="field field-span">
-                              <div className="inline-row">
-                                        <button
-                                          type="button"
-                                  className="ghost-btn small"
-                                  onClick={applyFestiveColumnGridPreset}
-                                >
-                                  Apply market preset
-                                </button>
-                                <span className="field-help">
-                                  Applies recommended festive defaults and auto-configures CATEGORY_FEED mapping.
-                                </span>
-                                    </div>
-                            </div>
-                                  <label className="field">
-                              <span>Section background color</span>
-                                    <div className="inline-row">
-                                      <input
-                                        type="text"
-                                  value={sectionForm.sectionBgColor}
-                                  onChange={(event) =>
-                                    setSectionForm((prev) => ({ ...prev, sectionBgColor: event.target.value }))
-                                  }
-                                  placeholder="#f5f0dc"
-                                      />
-                                      <input
-                                        type="color"
-                                        className="color-input"
-                                  value={resolveHexColor(sectionForm.sectionBgColor, '#f5f0dc')}
-                                  onChange={(event) =>
-                                    setSectionForm((prev) => ({ ...prev, sectionBgColor: event.target.value }))
-                                  }
-                                      />
-                                    </div>
-                                    <div className="color-palette-row">
-                                {COLUMN_GRID_BG_PALETTE.map((color) => (
-                                        <button
-                                    key={`col-grid-bg-${color}`}
-                                          type="button"
-                                          className={`color-palette-swatch ${
-                                      (sectionForm.sectionBgColor || '').toLowerCase() === color.toLowerCase()
-                                              ? 'is-selected'
-                                              : ''
-                                          }`}
-                                          style={{ backgroundColor: color }}
-                                          title={color}
-                                    onClick={() =>
-                                      setSectionForm((prev) => ({
-                                        ...prev,
-                                        sectionBgColor: color,
-                                      }))
-                                    }
-                                        />
-                                      ))}
-                                    </div>
-                                  </label>
-                                  <label className="field">
-                              <span>Card color (all cards)</span>
-                                    <div className="inline-row">
-                                      <input
-                                        type="text"
-                                  value={sectionForm.cardBgColor}
-                                        onChange={(event) =>
-                                    setSectionForm((prev) => ({ ...prev, cardBgColor: event.target.value }))
-                                        }
-                                  placeholder="#9ad8f8"
-                                      />
-                                      <input
-                                        type="color"
-                                        className="color-input"
-                                  value={resolveHexColor(sectionForm.cardBgColor, '#9ad8f8')}
-                                        onChange={(event) =>
-                                    setSectionForm((prev) => ({ ...prev, cardBgColor: event.target.value }))
-                                        }
-                                      />
-                                    </div>
-                                    <div className="color-palette-row">
-                                {COLUMN_GRID_CARD_BG_PALETTE.map((color) => (
-                                        <button
-                                    key={`col-grid-card-${color}`}
-                                          type="button"
-                                          className={`color-palette-swatch ${
-                                      (sectionForm.cardBgColor || '').toLowerCase() === color.toLowerCase()
-                                              ? 'is-selected'
-                                              : ''
-                                          }`}
-                                          style={{ backgroundColor: color }}
-                                          title={color}
-                                    onClick={() =>
-                                      setSectionForm((prev) => ({
-                                        ...prev,
-                                        cardBgColor: color,
-                                      }))
-                                    }
-                                        />
-                                      ))}
-                                    </div>
-                                  </label>
-                            <label className="field field-span">
-                              <span>Section background image URL (optional)</span>
-                              <div className="inline-row">
-                                <input
-                                  type="text"
-                                  value={sectionForm.sectionBgImage || ''}
-                                  onChange={(event) =>
-                                    setSectionForm((prev) => ({ ...prev, sectionBgImage: event.target.value }))
-                                  }
-                                  placeholder="https://cdn.example.com/festive-bg.png"
-                                />
-                                <button
-                                  type="button"
-                                  className="ghost-btn small"
-                                  onClick={() => handleBentoImageClick({ kind: 'sectionField', field: 'sectionBgImage' })}
-                                  disabled={isUploadingBentoImage}
-                                >
-                                  {isUploadingBentoImage ? 'Uploading...' : 'Upload'}
-                                </button>
-                                <button
-                                  type="button"
-                                  className="ghost-btn small"
-                                  onClick={() => openMediaPicker({ kind: 'sectionField', field: 'sectionBgImage' })}
-                                >
-                                  Library
-                                </button>
-                                </div>
-                              <p className="field-help">
-                                If a background image is set it will be rendered in the section; the color is used as a fallback.
-                              </p>
-                            </label>
-                            <label className="field">
-                              <span>Top line style</span>
-                              <select
-                                value={normalizeColumnTopLineStyle(sectionForm.columnTopLineStyle)}
-                                onChange={(event) =>
-                                  setSectionForm((prev) => ({
-                                    ...prev,
-                                    columnTopLineStyle: normalizeColumnTopLineStyle(event.target.value),
-                                  }))
-                                }
-                              >
-                                {COLUMN_GRID_TOP_LINE_STYLES.map((item) => (
-                                  <option key={item.value} value={item.value}>
-                                    {item.label}
-                                  </option>
-                                ))}
-                              </select>
-                            </label>
-                            <p className="field-help field-span">
-                              "Curve" shows a festive curvy edge; "Flat" shows a straight top strip.
-                            </p>
-                          </>
-                              ) : null}
                     {isMultiItemGrid ? (
                       <>
                         {!isCategoryPreviewGrid ? (
@@ -9394,15 +9026,6 @@ function AppConfigPage({ token }) {
                           />
                         </label>
                         <label className="field">
-                          <span>Item template ref</span>
-                          <input
-                            type="text"
-                            value={sectionForm.itemTemplateRef}
-                            onChange={(event) => setSectionForm((prev) => ({ ...prev, itemTemplateRef: event.target.value }))}
-                            placeholder="actionCard"
-                          />
-                        </label>
-                        <label className="field">
                           <span>Data source ref</span>
                           <input
                             type="text"
@@ -9445,253 +9068,79 @@ function AppConfigPage({ token }) {
                             </label>
                           </>
                         ) : null}
-                        <label className="field field-span">
-                          <span>Target user types (comma separated)</span>
-                          <input
-                            type="text"
-                            value={sectionForm.targetUserTypes}
-                            onChange={(event) => setSectionForm((prev) => ({ ...prev, targetUserTypes: event.target.value }))}
-                            placeholder="USER, BUSINESS"
-                          />
-                        </label>
-                        <label className="field field-span">
-                          <span>Target roles (comma separated)</span>
-                          <input
-                            type="text"
-                            value={sectionForm.targetRoles}
-                            onChange={(event) => setSectionForm((prev) => ({ ...prev, targetRoles: event.target.value }))}
-                            placeholder="Admin, Seller"
-                          />
-                        </label>
-                        <label className="field field-span">
-                          <span>Target industries (comma separated)</span>
-                          <input
-                            type="text"
-                            value={sectionForm.targetIndustries}
-                            onChange={(event) =>
-                              setSectionForm((prev) => ({ ...prev, targetIndustries: event.target.value }))
-                            }
-                            placeholder="Grocery, Electronics"
-                          />
-                        </label>
-                        <label className="field field-span">
-                          <span>Target subscription statuses (comma separated)</span>
-                          <input
-                            type="text"
-                            value={sectionForm.targetSubscriptionStatuses}
-                            onChange={(event) =>
-                              setSectionForm((prev) => ({ ...prev, targetSubscriptionStatuses: event.target.value }))
-                            }
-                            placeholder="ACTIVE, TRIAL"
-                          />
-                        </label>
+                        <SchemaFieldsRenderer
+                          fields={TARGETING_FIELDS}
+                          values={sectionForm}
+                          onChange={(name, value) => setSectionForm((prev) => ({ ...prev, [name]: value }))}
+                          context={{ parseCsvList, formatCsvList }}
+                        />
                           </div>
                         </div>
                       </div>
                     ) : null}
-                    <div className="modal-actions">
-                      <button type="button" className="ghost-btn" onClick={closeEditor}>
-                        Close
+                    <div className="studio-properties-footer">
+                      <button
+                        type="button"
+                        className="studio-btn studio-btn-danger"
+                        onClick={() => requestDeleteSection(editingSectionIndex)}
+                        disabled={editingSectionIndex === null || isEditingFixed || isLoading}
+                      >
+                        <StudioIcons.Trash />
+                        <span>Delete Block</span>
                       </button>
-                      {editingSectionIndex !== null ? (
-                        <button
-                          type="button"
-                          className="ghost-btn small danger"
-                          onClick={() => requestDeleteSection(editingSectionIndex)}
-                          disabled={isLoading}
-                        >
-                          Remove
-                        </button>
-                      ) : null}
-                      <button type="submit" className="primary-btn compact" disabled={isLoading}>
-                        {editingSectionIndex !== null ? 'Save' : 'Add Block'}
+                      <button
+                        type="button"
+                        className="studio-btn studio-btn-outline"
+                        onClick={() => handleDuplicateSection(editingSectionIndex)}
+                        disabled={editingSectionIndex === null || isEditingFixed || isLoading}
+                      >
+                        <StudioIcons.Duplicate />
+                        <span>Duplicate</span>
+                      </button>
+                      <button type="submit" className="studio-btn studio-btn-save" disabled={isLoading}>
+                        <StudioIcons.Save />
+                        <span>Save Changes</span>
                       </button>
                     </div>
                   </form>
                 ) : activePanel === 'header' ? (
-                  <form className="field-grid" onSubmit={handleHeaderSectionSubmit}>
-                    <label className="field field-span">
-                      <span>Block type</span>
-                      <input type="text" value={headerBlockLabel} disabled />
-                    </label>
-                    <label className="field">
-                      <span>Block id</span>
-                      <input
-                        type="text"
-                        value={headerSectionForm.id}
-                        onChange={(event) => setHeaderSectionForm((prev) => ({ ...prev, id: event.target.value }))}
-                        placeholder="address_header"
-                        required
-                      />
-                    </label>
-                    <div className="field">
-                      <span>Visibility</span>
-                      <label className="checkbox-row">
-                        <input
-                          type="checkbox"
-                          checked={headerSectionForm.enabled !== false}
-                          onChange={(event) =>
-                            setHeaderSectionForm((prev) => ({ ...prev, enabled: event.target.checked }))
-                          }
-                        />
-                        Visible
-                      </label>
-                    </div>
-                    {isHeaderSearch ? (
-                      <label className="field field-span">
-                        <span>Search placeholder</span>
-                        <input
-                          type="text"
-                          value={headerSectionForm.placeholder}
-                          onChange={(event) =>
-                            setHeaderSectionForm((prev) => ({ ...prev, placeholder: event.target.value }))
-                          }
-                          placeholder='Search "yoga"'
-                        />
-                      </label>
-                    ) : null}
-                    {isHeaderPills ? (
-                      <>
-                        <label className="field field-span">
-                          <span>Select industries</span>
-                          {industries.length ? (
-                            <div className="checkbox-grid">
-                              {industries.map((industry) => {
-                                const id = normalizeCollectionId(industry?.id ?? industry?._id ?? industry?.slug ?? industry?.industryId ?? industry?.industry_id ?? industry?.name);
-                                if (!id) return null;
-                                const label = industry?.name || industry?.label || industry?.title || `Industry ${id}`;
-                                const isChecked = Array.isArray(headerSectionForm.industryIds)
-                                  ? headerSectionForm.industryIds.includes(id)
-                                  : false;
-                                return (
-                                  <label key={id} className="checkbox-row">
-                                    <input
-                                      type="checkbox"
-                                      checked={isChecked}
-                                      onChange={() =>
-                                        setHeaderSectionForm((prev) => {
-                                          const current = Array.isArray(prev.industryIds) ? prev.industryIds : [];
-                                          const next = new Set(current);
-                                          if (next.has(id)) {
-                                            next.delete(id);
-                                          } else {
-                                            next.add(id);
-                                          }
-                                          return { ...prev, industryIds: Array.from(next) };
-                                        })
-                                      }
-                                    />
-                                    {label} <span className="muted">({id})</span>
-                                  </label>
-                                );
-                              })}
-                            </div>
-                          ) : (
-                            <p className="field-help">No industries found yet.</p>
-                          )}
-                        </label>
-                        <label className="field field-span">
-                          <span>Industry IDs (comma separated)</span>
-                          <input
-                            type="text"
-                            value={(headerSectionForm.industryIds || []).join(', ')}
-                            onChange={(event) =>
-                              setHeaderSectionForm((prev) => ({
-                                ...prev,
-                                industryIds: parseCsvList(event.target.value),
-                              }))
-                            }
-                            placeholder="grocery, electronics"
-                          />
-                        </label>
-                        <label className="field field-span">
-                          <span>Add new industry pill</span>
-                          <div className="inline-row">
-                            <input
-                              type="text"
-                              value={newIndustryName}
-                              onChange={(event) => setNewIndustryName(event.target.value)}
-                              placeholder="e.g., Electronics"
-                            />
-                            <button
-                              type="button"
-                              className="ghost-btn small"
-                              onClick={handleCreateIndustry}
-                              disabled={isCreatingIndustry}
-                            >
-                              {isCreatingIndustry ? 'Adding...' : 'Add'}
-                            </button>
-                          </div>
-                          <p className="field-help">Creates a new industry and syncs a page for it.</p>
-                        </label>
-                      </>
-                    ) : null}
-                    {isGenericHeaderBlock ? (
-                      <label className="field field-span">
-                        <span>Block type (advanced)</span>
-                        <select
-                          value={headerSectionForm.type}
-                          onChange={(event) =>
-                            setHeaderSectionForm((prev) => ({
-                              ...prev,
-                              type: event.target.value,
-                              blockType: event.target.value,
-                            }))
-                          }
-                        >
-                          {headerSectionTypeOptions.map((opt) => (
-                            <option key={opt.value} value={opt.value}>
-                              {opt.label}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                    ) : null}
-                    <div className="field field-span modal-actions">
-                      <button type="button" className="ghost-btn" onClick={closeHeaderEditor}>
-                        Close
-                      </button>
-                      {editingHeaderSectionIndex !== null ? (
-                        <button
-                          type="button"
-                          className="ghost-btn small danger"
-                          onClick={() => requestDeleteHeaderSection(editingHeaderSectionIndex)}
-                        >
-                          Remove
-                        </button>
-                      ) : null}
-                      <button type="submit" className="primary-btn compact">
-                        {editingHeaderSectionIndex !== null ? 'Save' : 'Add Header Block'}
-                      </button>
-                    </div>
-                  </form>
-                ) : (
-                  <div className="properties-empty enhanced-empty">
-                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M15 15l-2 5L9 9l11 4-5 2z" />
-                      <path d="M18.5 18.5L22 22" />
-                    </svg>
-                    <p className="empty-state-text">Click on any block in the preview to edit its properties here.</p>
-                  </div>
-                )}
-              </div>
-              {showCustomPageFields ? (
-                <div className="properties-card">
-                  <div className="panel-split">
-                    <div>
-                      <h3 className="panel-subheading">Page Settings</h3>
-                      <p className="field-help">Header background image and overlay gradient.</p>
-                    </div>
-                    <button
-                      type="button"
-                      className="ghost-btn small"
-                      onClick={() => setShowCustomPageFields(false)}
-                    >
-                      Hide
-                    </button>
-                  </div>
-                  {selectedPage ? (
-                    <form className="field-grid" onSubmit={handleHeaderSubmit}>
+                  showCustomPageFields ? (
+                    <form className="field-grid prop-form" onSubmit={handleHeaderSubmit}>
+                      <div
+                        className="field-span"
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          marginBottom: '8px',
+                          paddingBottom: '8px',
+                          borderBottom: '1px solid #e5e7eb',
+                        }}
+                      >
+                        <div>
+                          <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: '#111827' }}>
+                            Header Style & Colors
+                          </h4>
+                          <p className="field-help" style={{ margin: 0 }}>
+                            Background image, theme colors, and padding.
+                          </p>
+                        </div>
+                        {selectedHeaderSections.length ? (
+                          <button
+                            type="button"
+                            className="ghost-btn small"
+                            onClick={() => {
+                              setShowCustomPageFields(false);
+                              openEditHeaderSection(
+                                editingHeaderSectionIndex !== null ? editingHeaderSectionIndex : 0
+                              );
+                            }}
+                          >
+                            ← Back to Block
+                          </button>
+                        ) : null}
+                      </div>
+
                       <label className="field field-span">
                         <span>Header background image URL</span>
                         <div className="inline-row">
@@ -10001,27 +9450,148 @@ function AppConfigPage({ token }) {
                           placeholder="rgba(255,255,255,0.05), rgba(255,255,255,0.55)"
                         />
                       </label>
-                      <div className="field field-span">
-                        <div className="inline-row">
-                          <button type="submit" className="primary-btn compact">
-                            Apply Header
-                          </button>
-                          <button type="button" className="ghost-btn small danger" onClick={requestClearHeader}>
-                            Clear
-                          </button>
-                        </div>
+                      <div className="field field-span studio-properties-footer">
+                        <button type="button" className="studio-btn studio-btn-danger" onClick={requestClearHeader}>
+                          <StudioIcons.Trash />
+                          <span>Clear Header</span>
+                        </button>
+                        <button type="button" className="studio-btn studio-btn-outline" onClick={closeHeaderEditor}>
+                          <span>Cancel</span>
+                        </button>
+                        <button type="submit" className="studio-btn studio-btn-save" disabled={isLoading}>
+                          <StudioIcons.Save />
+                          <span>Apply Header</span>
+                        </button>
                       </div>
                     </form>
                   ) : (
-                    <p className="field-help">Select a page to edit header settings.</p>
-                  )}
-                </div>
-              ) : null}
+                    <form className="field-grid prop-form" onSubmit={handleHeaderSectionSubmit}>
+                      <div
+                        className="field-span"
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          marginBottom: '8px',
+                          paddingBottom: '8px',
+                          borderBottom: '1px solid #e5e7eb',
+                        }}
+                      >
+                        <span style={{ fontSize: '13px', fontWeight: 600, color: '#374151' }}>
+                          Header Block ({editingHeaderSectionIndex !== null ? editingHeaderSectionIndex + 1 : 1} of{' '}
+                          {selectedHeaderSections.length})
+                        </span>
+                        <button
+                          type="button"
+                          className="ghost-btn small"
+                          onClick={() => setShowCustomPageFields(true)}
+                          style={{ fontSize: '12px' }}
+                        >
+                          🎨 Header Colors & Style
+                        </button>
+                      </div>
+                      <label className="field field-span">
+                        <span>Block type</span>
+                        <input type="text" value={headerBlockLabel} disabled />
+                      </label>
+                      <label className="field">
+                        <span>Block id</span>
+                        <input
+                          type="text"
+                          value={headerSectionForm.id}
+                          onChange={(event) =>
+                            setHeaderSectionForm((prev) => ({ ...prev, id: event.target.value }))
+                          }
+                          placeholder="address_header"
+                          required
+                        />
+                      </label>
+                      <div className="field">
+                        <span>Visibility</span>
+                        <label className="checkbox-row">
+                          <input
+                            type="checkbox"
+                            checked={headerSectionForm.enabled !== false}
+                            onChange={(event) =>
+                              setHeaderSectionForm((prev) => ({ ...prev, enabled: event.target.checked }))
+                            }
+                          />
+                          Visible
+                        </label>
+                      </div>
+                      {HEADER_BLOCK_SCHEMAS[headerBlockType]?.fields?.length ? (
+                        <SchemaFieldsRenderer
+                          fields={HEADER_BLOCK_SCHEMAS[headerBlockType].fields}
+                          values={headerSectionForm}
+                          onChange={(name, value) =>
+                            setHeaderSectionForm((prev) => ({ ...prev, [name]: value }))
+                          }
+                          context={{
+                            industries,
+                            normalizeCollectionId,
+                            parseCsvList,
+                            newIndustryName,
+                            setNewIndustryName,
+                            handleCreateIndustry,
+                            isCreatingIndustry,
+                          }}
+                        />
+                      ) : null}
+                      {isGenericHeaderBlock && !HEADER_BLOCK_SCHEMAS[headerBlockType]?.fields?.length ? (
+                        <label className="field field-span">
+                          <span>Block type (advanced)</span>
+                          <select
+                            value={headerSectionForm.type}
+                            onChange={(event) =>
+                              setHeaderSectionForm((prev) => ({
+                                ...prev,
+                                type: event.target.value,
+                                blockType: event.target.value,
+                              }))
+                            }
+                          >
+                            {headerSectionTypeOptions.map((opt) => (
+                              <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      ) : null}
+                      <div className="studio-properties-footer">
+                        <button
+                          type="button"
+                          className="studio-btn studio-btn-danger"
+                          onClick={() => requestDeleteHeaderSection(editingHeaderSectionIndex)}
+                          disabled={editingHeaderSectionIndex === null || isLoading}
+                        >
+                          <StudioIcons.Trash />
+                          <span>Delete Block</span>
+                        </button>
+                        <button type="button" className="studio-btn studio-btn-outline" onClick={closeHeaderEditor}>
+                          <span>Cancel</span>
+                        </button>
+                        <button type="submit" className="studio-btn studio-btn-save" disabled={isLoading}>
+                          <StudioIcons.Save />
+                          <span>Save Changes</span>
+                        </button>
+                      </div>
+                    </form>
+                  )
+                ) : (
+                  <div className="properties-empty enhanced-empty">
+                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M15 15l-2 5L9 9l11 4-5 2z" />
+                      <path d="M18.5 18.5L22 22" />
+                    </svg>
+                    <p className="empty-state-text">Click on any block in the preview to edit its properties here.</p>
+                  </div>
+                )}
+              </div>
             </div>
             <DragOverlay>
               {activeToolboxItem ? <ToolboxDragPreview item={activeToolboxItem} /> : null}
             </DragOverlay>
-            </div>
           </DndContext>
         )}
         <input

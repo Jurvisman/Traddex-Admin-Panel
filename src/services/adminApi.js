@@ -341,16 +341,26 @@ export const getInquiryReport = (token, filters = {}) => {
 };
 
 // App config management
-export const getAppConfigDraft = (token) => request('/admin/app-config/draft', { token });
-export const saveAppConfigDraft = (token, payload) =>
-  request('/admin/app-config/draft', { method: 'PUT', body: payload, token });
+// pageKey scopes the call to one page's own draft/published row instead of the legacy
+// shared row — omit it to keep operating on the legacy/global row untouched.
+const withPageKey = (path, pageKey) =>
+  pageKey ? `${path}?pageKey=${encodeURIComponent(pageKey)}` : path;
+
+export const getAppConfigDraft = (token, pageKey) => request(withPageKey('/admin/app-config/draft', pageKey), { token });
+export const getMergedAppConfigDraft = (token) => request('/admin/app-config/draft/merged', { token });
+export const saveAppConfigDraft = (token, payload, pageKey) =>
+  request(withPageKey('/admin/app-config/draft', pageKey), { method: 'PUT', body: payload, token });
 export const validateAppConfig = (token, payload) =>
   request('/admin/app-config/validate', { method: 'POST', body: payload, token });
-export const publishAppConfig = (token) => request('/admin/app-config/publish', { method: 'POST', token });
-export const listAppConfigVersions = (token) => request('/admin/app-config/versions', { token });
+export const publishAppConfig = (token, pageKey) =>
+  request(withPageKey('/admin/app-config/publish', pageKey), { method: 'POST', token });
+export const listAppConfigVersions = (token, pageKey) =>
+  request(withPageKey('/admin/app-config/versions', pageKey), { token });
 export const rollbackAppConfig = (token, payload) =>
   request('/admin/app-config/rollback', { method: 'POST', body: payload, token });
 export const getAppConfigPresets = (token) => request('/admin/app-config/presets', { token });
+export const getSupportedBlockTypes = (token) => request('/admin/app-config/block-types', { token });
+export const listKnownAppConfigPages = (token) => request('/admin/app-config/pages', { token });
 export const getPublishedAppConfig = () => request('/app-config');
 export const getHomeCategoryPreview = (token, { ids = [], limit = 2, rankingWindowDays } = {}) => {
   const cleanIds = Array.isArray(ids)
