@@ -27,7 +27,9 @@ const emptyForm = {
   perUserLimit: '1',
   applicableUserType: 'BUSINESS',
   active: true,
+  showInCheckoutList: false,
   planIds: [],
+  planOverrides: {},
 };
 
 const unwrap = (response, fallback) => response?.data || response || fallback;
@@ -61,7 +63,11 @@ const normalizeForm = (coupon = {}) => ({
   perUserLimit: coupon.perUserLimit ?? '1',
   applicableUserType: coupon.applicableUserType || 'BUSINESS',
   active: coupon.active !== false,
+  showInCheckoutList: Boolean(coupon.showInCheckoutList),
   planIds: Array.isArray(coupon.planIds) ? coupon.planIds.map(String) : [],
+  planOverrides: coupon.planDiscountOverrides && typeof coupon.planDiscountOverrides === 'object'
+    ? Object.fromEntries(Object.entries(coupon.planDiscountOverrides).map(([k, v]) => [String(k), String(v)]))
+    : {},
 });
 
 const statusClass = (value) => {
@@ -224,7 +230,13 @@ function SubscriptionCouponPage({ token }) {
     perUserLimit: toNumberOrNull(form.perUserLimit),
     applicableUserType: form.applicableUserType,
     active: Boolean(form.active),
+    showInCheckoutList: Boolean(form.showInCheckoutList),
     planIds: form.planIds.map(Number).filter(Boolean),
+    planDiscountOverrides: Object.fromEntries(
+      form.planIds
+        .filter((planId) => toNumberOrNull(form.planOverrides?.[planId]) > 0)
+        .map((planId) => [planId, toNumberOrNull(form.planOverrides[planId])])
+    ),
   });
 
   const handleSubmit = async (event) => {
@@ -830,6 +842,15 @@ function SubscriptionCouponPage({ token }) {
                       />
                       <span style={{ fontSize: 13, fontWeight: 600, color: '#1e293b' }}>Active Coupon</span>
                     </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', marginTop: 18 }}>
+                      <input
+                        type="checkbox"
+                        checked={form.showInCheckoutList}
+                        onChange={(event) => updateForm('showInCheckoutList', event.target.checked)}
+                        style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#6345ED' }}
+                      />
+                      <span style={{ fontSize: 13, fontWeight: 600, color: '#1e293b' }}>Show in checkout offer list</span>
+                    </label>
                   </div>
 
                   {/* Row 7: Applicable Plans */}
@@ -837,33 +858,55 @@ function SubscriptionCouponPage({ token }) {
                     <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
                       Applicable Plans
                     </label>
-                    <select
-                      multiple
-                      value={form.planIds}
-                      onChange={(event) =>
-                        updateForm(
-                          'planIds',
-                          Array.from(event.target.selectedOptions).map((option) => option.value),
-                        )
-                      }
-                      style={{
-                        width: '100%',
-                        boxSizing: 'border-box',
-                        minHeight: '100px',
-                        padding: '8px',
-                        borderRadius: '8px',
-                        border: '1px solid #e2e8f0',
-                      }}
-                    >
+                    <p style={{ fontSize: 12, color: '#6b7280', margin: '0 0 8px' }}>
+                      Leave all unchecked to apply to every plan. Check a plan and optionally set an override amount
+                      to charge a different flat discount for that plan instead of the global discount value above.
+                    </p>
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 6,
+                      maxHeight: 220,
+                      overflowY: 'auto',
+                      padding: 8,
+                      borderRadius: 8,
+                      border: '1px solid #e2e8f0',
+                    }}>
                       {plans.map((plan) => {
-                        const planId = planIdOf(plan);
+                        const planId = String(planIdOf(plan));
+                        const checked = form.planIds.includes(planId);
                         return (
-                          <option key={planId} value={String(planId)}>
-                            {planNameOf(plan)}
-                          </option>
+                          <div key={planId} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, cursor: 'pointer' }}>
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={(event) => {
+                                  const nextPlanIds = event.target.checked
+                                    ? [...form.planIds, planId]
+                                    : form.planIds.filter((id) => id !== planId);
+                                  updateForm('planIds', nextPlanIds);
+                                }}
+                                style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#6345ED' }}
+                              />
+                              <span style={{ fontSize: 13, color: '#1e293b' }}>{planNameOf(plan)}</span>
+                            </label>
+                            {checked && (
+                              <input
+                                type="number"
+                                min="0"
+                                placeholder="Override Rs (optional)"
+                                value={form.planOverrides?.[planId] ?? ''}
+                                onChange={(event) =>
+                                  updateForm('planOverrides', { ...form.planOverrides, [planId]: event.target.value })
+                                }
+                                style={{ width: 170, padding: '6px 8px', borderRadius: 6, border: '1px solid #e2e8f0', fontSize: 12.5 }}
+                              />
+                            )}
+                          </div>
                         );
                       })}
-                    </select>
+                    </div>
                     <span className="field-help">Hold Ctrl (or Cmd) to select multiple plans. Leave empty for all plans.</span>
                   </div>
 
