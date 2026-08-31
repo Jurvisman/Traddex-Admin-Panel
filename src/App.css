@@ -3298,6 +3298,16 @@ textarea {
   font-size: 12px;
 }
 
+.plan-duration-pricing-card {
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid #d8ccff;
+  border-radius: 14px;
+  background: #fbfaff;
+  margin-top: 4px;
+}
+
 .plan-description-card {
   gap: 10px;
 }

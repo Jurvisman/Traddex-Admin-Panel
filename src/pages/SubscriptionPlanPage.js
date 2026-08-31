@@ -31,6 +31,13 @@ const initialForm = {
   best_for: '',
   waitlist_enabled: '0',
   apply_to_existing_subscribers: false,
+  duration_pricing_enabled: '0',
+  duration_3m_discount_percent: '0',
+  duration_3m_bonus_months: '0',
+  duration_6m_discount_percent: '0',
+  duration_6m_bonus_months: '0',
+  duration_12m_discount_percent: '0',
+  duration_12m_bonus_months: '0',
 };
 
 const USER_TYPES = [
@@ -231,6 +238,13 @@ function SubscriptionPlanPage({ token }) {
       best_for: form.best_for.trim() || null,
       waitlist_enabled: form.waitlist_enabled === '1',
       apply_to_existing_subscribers: Boolean(form.apply_to_existing_subscribers),
+      duration_pricing_enabled: form.duration_pricing_enabled === '1',
+      duration_3m_discount_percent: toNumber(form.duration_3m_discount_percent) ?? 0,
+      duration_3m_bonus_months: toNumber(form.duration_3m_bonus_months) ?? 0,
+      duration_6m_discount_percent: toNumber(form.duration_6m_discount_percent) ?? 0,
+      duration_6m_bonus_months: toNumber(form.duration_6m_bonus_months) ?? 0,
+      duration_12m_discount_percent: toNumber(form.duration_12m_discount_percent) ?? 0,
+      duration_12m_bonus_months: toNumber(form.duration_12m_bonus_months) ?? 0,
       features: featureRows
         .filter((row) => row.feature_id)
         .map((row) => ({
@@ -319,6 +333,13 @@ function SubscriptionPlanPage({ token }) {
       popular: plan.popular !== null && plan.popular !== undefined ? String(plan.popular) : '0',
       best_for: plan.best_for || '',
       waitlist_enabled: plan.waitlist_enabled ? '1' : '0',
+      duration_pricing_enabled: plan.duration_pricing_enabled ? '1' : '0',
+      duration_3m_discount_percent: plan.duration_3m_discount_percent ?? '0',
+      duration_3m_bonus_months: plan.duration_3m_bonus_months ?? '0',
+      duration_6m_discount_percent: plan.duration_6m_discount_percent ?? '0',
+      duration_6m_bonus_months: plan.duration_6m_bonus_months ?? '0',
+      duration_12m_discount_percent: plan.duration_12m_discount_percent ?? '0',
+      duration_12m_bonus_months: plan.duration_12m_bonus_months ?? '0',
     });
     const rows = (plan.features || []).map((feature) =>
       createFeatureRow({
@@ -867,6 +888,99 @@ function SubscriptionPlanPage({ token }) {
                       required
                     />
                   </label>
+                </div>
+
+                <div className="plan-duration-pricing-card">
+                  <div className="panel-split">
+                    <h4 className="panel-subheading">Duration pricing (1 / 3 / 6 / 12 months)</h4>
+                  </div>
+                  <label className="field field-span" style={{ maxWidth: 320 }}>
+                    <span>Enable duration pricing</span>
+                    <select
+                      value={form.duration_pricing_enabled}
+                      onChange={(event) => handleChange('duration_pricing_enabled', event.target.value)}
+                    >
+                      <option value="0">Off - show plain Monthly / Yearly only</option>
+                      <option value="1">On - show 1 / 3 / 6 / 12 month tiles at checkout</option>
+                    </select>
+                  </label>
+                  <div className="field-grid" style={{ opacity: form.duration_pricing_enabled === '1' ? 1 : 0.5 }}>
+                    <label className="field">
+                      <span>3 month - discount %</span>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={form.duration_3m_discount_percent}
+                        onChange={(event) => handleChange('duration_3m_discount_percent', event.target.value)}
+                        disabled={form.duration_pricing_enabled !== '1'}
+                        placeholder="0"
+                      />
+                    </label>
+                    <label className="field">
+                      <span>3 month - bonus months</span>
+                      <input
+                        type="number"
+                        min="0"
+                        max="24"
+                        value={form.duration_3m_bonus_months}
+                        onChange={(event) => handleChange('duration_3m_bonus_months', event.target.value)}
+                        disabled={form.duration_pricing_enabled !== '1'}
+                        placeholder="0"
+                      />
+                    </label>
+                    <label className="field">
+                      <span>6 month - discount %</span>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={form.duration_6m_discount_percent}
+                        onChange={(event) => handleChange('duration_6m_discount_percent', event.target.value)}
+                        disabled={form.duration_pricing_enabled !== '1'}
+                        placeholder="0"
+                      />
+                    </label>
+                    <label className="field">
+                      <span>6 month - bonus months</span>
+                      <input
+                        type="number"
+                        min="0"
+                        max="24"
+                        value={form.duration_6m_bonus_months}
+                        onChange={(event) => handleChange('duration_6m_bonus_months', event.target.value)}
+                        disabled={form.duration_pricing_enabled !== '1'}
+                        placeholder="0"
+                      />
+                    </label>
+                    <label className="field">
+                      <span>12 month - discount %</span>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={form.duration_12m_discount_percent}
+                        onChange={(event) => handleChange('duration_12m_discount_percent', event.target.value)}
+                        disabled={form.duration_pricing_enabled !== '1'}
+                        placeholder="0"
+                      />
+                    </label>
+                    <label className="field">
+                      <span>12 month - bonus months</span>
+                      <input
+                        type="number"
+                        min="0"
+                        max="24"
+                        value={form.duration_12m_bonus_months}
+                        onChange={(event) => handleChange('duration_12m_bonus_months', event.target.value)}
+                        disabled={form.duration_pricing_enabled !== '1'}
+                        placeholder="0"
+                      />
+                    </label>
+                  </div>
+                  <small style={{ color: '#8a8fa8', fontSize: 11 }}>
+                    Fill either field per row - leave the other at 0. Coupons apply to the 1 month plan only.
+                  </small>
                 </div>
 
                 {editingId ? (
